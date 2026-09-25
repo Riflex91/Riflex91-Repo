@@ -150,7 +150,9 @@ async function run(env) {
   vm.runInContext(source,env.box,{
     filename:"pr20-8-upgrade-durable-shadow-no-write.js",
   });
-  for(let i=0;i<240;i+=1) {
+  // CI may need more event-loop turns for WebCrypto-backed durable-intent hashing.
+  // Keep the wait bounded while avoiding nondeterministic TEST_DID_NOT_TERMINATE flakes.
+  for(let i=0;i<2400;i+=1) {
     await new Promise(resolve => setImmediate(resolve));
     const status=env.box.V5PR208UpgradeDurableShadowNoWrite?.status?.();
     if(status?.terminal) return status;

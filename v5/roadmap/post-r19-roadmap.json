@@ -88,7 +88,7 @@
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: Compound ist produktiv ratifiziert und der reale 5m-Postcommit-Lauf ist mit persistenter Completion #2272 (60 Samples / 300545 ms / 0 zusaetzliche Writes) ratifiziert. PR20.8 bleibt ausschliesslich durch Exchange ohne normalen Kandidaten blockiert; keine Acquisition/Mutation zur Kandidatenerzeugung, PR20.9 und normalRuntime bleiben geschlossen."
+    "AKTUELL: Upgrade und Compound sind fuer PR20.8 ratifiziert; Exchange bleibt ohne normalen Kandidaten blockiert. Der No-Candidate-Closeout erlaubt ausschliesslich einen frischen read-only Target-Family-Rescan v1.0.4 nach dem Compound-Commit. Keine Acquisition/Mutation zur Kandidatenerzeugung, keine Exchange-Authority, PR20.9 und normalRuntime bleiben geschlossen."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -1666,7 +1666,7 @@
     }
   },
   "pr20_8": {
-    "status": "COMPOUND_LIVE_5M_RATIFIED_EXCHANGE_NO_CANDIDATE",
+    "status": "EXCHANGE_NO_CANDIDATE_CLOSEOUT_REVIEWED_FRESH_READONLY_RESCAN_REQUIRED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1710,13 +1710,13 @@
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
       "normalUpgrade": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS",
       "normalCompound": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_RATIFIED",
-      "normalExchange": "BLOCKIERT_KEIN_NORMALKANDIDAT_AUTHORITY_CLOSED",
+      "normalExchange": "BLOCKIERT_KEIN_NORMALKANDIDAT_FRESH_READONLY_RESCAN_REQUIRED_AUTHORITY_CLOSED",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
+    "nextAction": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -2209,7 +2209,9 @@
       "roadmapCriteriaRelaxed": false,
       "acquisitionOrMutationToCreateCandidateAllowed": false,
       "compoundLive5mBehaviorObservedPass": true,
-      "compoundLive5mCompletionNotificationPersisted": true
+      "compoundLive5mCompletionNotificationPersisted": true,
+      "exchangeNoCandidateCloseoutReviewed": true,
+      "freshReadOnlyRescanRequired": true
     },
     "compoundDurableShadow": {
       "status": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
@@ -2685,6 +2687,36 @@
       "exchangeLive5mTested": false,
       "exchangeAutonomyProductiveProven": false,
       "normalRuntimeAllowed": false
+    },
+    "exchangeNoCandidateCloseoutReview": {
+      "status": "REVIEWED_FRESH_READONLY_RESCAN_REQUIRED",
+      "review": "v5/roadmap/pr20-8-exchange-no-candidate-closeout-review.json",
+      "existingEvidence": "v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json",
+      "existingObservedAtMs": 1790278399271,
+      "existingExchangeStatus": "KEIN_KANDIDAT",
+      "existingExchangeCandidateCount": 0,
+      "compoundMutationCommittedAfterExistingObservation": true,
+      "freshCurrentInventoryEvidenceRequired": true,
+      "acquisitionOrMutationToCreateCandidateAllowed": false,
+      "exchangeWriteAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "durableIntentCreationAllowed": false,
+      "normalRuntimeAllowed": false,
+      "scannerTestId": "pr20-8-wertmutation-live-candidate-readonly",
+      "scannerControllerVersion": "1.0.4",
+      "scannerPackage": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js",
+      "scannerSourceCommit": "27e25e69dc0e26d8ae05328335718c36a6a0c659",
+      "scannerPackageSha256": "0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b",
+      "scannerPackageBytes": 21343,
+      "scannerExpectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
+      "scannerMaximumGameplayWrites": 0,
+      "scannerMaximumPublicFunctionCalls": 0,
+      "scannerMaximumRawWriteCalls": 0,
+      "manifestCutoverPrepared": false,
+      "deployed": false,
+      "evidenceObserved": false,
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN"
     }
   }
 }
