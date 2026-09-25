@@ -89,9 +89,9 @@ test("roadmap advances only to shadow deployment observation",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   const shadow=a.anniversaryGiftExchangeShadow;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED");
+    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RUNNER_PREPARED_NOT_DEPLOYED");
   assert.equal(roadmap.pr20_8.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW");
+    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER");
   assert.equal(a.status,"ANNIVERSARYGIFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED");
   assert.equal(shadow.status,"MANIFEST_CUTOVER_PREPARED");
   assert.equal(shadow.manifestCutoverPrepared,true);
