@@ -95,7 +95,13 @@ http://localhost:5173/?localAdmin=1&legacy=/legacy/
 ```
 
 The browser creates/reuses the deliberately local identity
-`local-admin@al25d.invalid` and the warrior `LocalAdmin`. Because the pinned
+`local-admin@al25d.invalid` and the warrior `LocalAdmin`.
+
+A round graphics switch is fixed in the upper-right game UI at the requested
+toolbar position. It shows `2.5D` or `ORG`; clicking it swaps the visible
+renderer instantly while the same local legacy runtime, character and socket
+session continue running. The selected graphics mode is remembered in browser
+localStorage. Because the pinned
 development config uses `Local: true` together with `unsecure_admin: true`,
 the localhost account receives development-admin behavior without changing
 production authentication or using an Adventure Land account.
