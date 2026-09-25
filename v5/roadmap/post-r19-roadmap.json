@@ -93,7 +93,8 @@
     "PR20.9 ist nach abgeschlossenem PR20.8 entsperrt. Craft Durable Shadow Manifest-Cutover ist fuer den exakt gepinnten NORMAL_CRAFT_ONLY NO-WRITE-Runner vorbereitet; naechster Schritt ist reale Browser-Beobachtung. Gameplay/Raw/Produktiv-Craft/NormalRuntime Authority bleiben false.",
     "PR20.9 bleibt ohne natuerlichen NORMAL_CRAFT_ONLY-Kandidaten fail-closed; die CAP-022 Production-Material-Acquisition/Handoff-Foundation wird NO-WRITE fuer den spaeteren automatischen Materialpfad vorbereitet und zaehlt nicht als Craft-Ratifizierung.",
     "Automatische Materialbeschaffung darf erst nach den produktiven PR22-/PR23-Gates reale Farmer-Aktionen ausloesen; danach darf PR20.9 bei einem natuerlich entstandenen Craft-Kandidaten erneut geprueft werden.",
-    "CAP-022 Production-Material-Acquisition ist in die PR21-28 Shadow-Pipeline eingebunden; BLOCKIERT-Evidence sperrt die Pipeline, produktive Material-Ausfuehrung sowie PR20.9-Candidate-Acquisition bleiben false."
+    "CAP-022 Production-Material-Acquisition ist in die PR21-28 Shadow-Pipeline eingebunden; BLOCKIERT-Evidence sperrt die Pipeline, produktive Material-Ausfuehrung sowie PR20.9-Candidate-Acquisition bleiben false.",
+    "CAP-022 Material-Handoff ist NO-WRITE bis zur bestehenden COLLECTION/Rendezvous-Logistik geplant: MATERIAL_READY_FOR_HANDOFF stoppt Farming, pinnt einen physischen Stack und verlangt nach spaeterem Settlement einen frischen PR20.9-Craft-Rescan; die Planung selbst zaehlt nicht als Craft-Kandidat oder Ratifizierung."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -967,7 +968,25 @@
         "normalRuntimeAllowed": false,
         "shadowOrchestratorConnected": true,
         "shadowOrchestrator": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
-        "productiveExecutionAllowed": false
+        "productiveExecutionAllowed": false,
+        "materialHandoffFoundation": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/koordination/production-material-handoff.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-handoff-foundation.json",
+          "test": "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs",
+          "logisticsArt": "COLLECTION",
+          "singlePhysicalStackPinned": true,
+          "exactItemFingerprintPinned": true,
+          "farmStopRequired": true,
+          "settledFutureHandoffRequiresFreshCraftRescan": true,
+          "handoffPlanCountsAsNaturalCurrentInventoryCandidate": false,
+          "foundationCountsAsCraftRatification": false,
+          "productiveExecutionAllowed": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
+        },
+        "freshCraftRescanAfterSettledHandoffRequired": true
       }
     },
     {
@@ -1071,7 +1090,10 @@
         "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs",
         "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
         "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
-        "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs"
+        "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs",
+        "v5/grundlage/quelle/koordination/production-material-handoff.ts",
+        "v5/grundlage/vertraege/runtime/pr22-23-production-material-handoff-foundation.json",
+        "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1095,7 +1117,24 @@
         "normalRuntimeAllowed": false,
         "shadowOrchestratorConnected": true,
         "shadowOrchestrator": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
-        "productiveExecutionAllowed": false
+        "productiveExecutionAllowed": false,
+        "materialHandoffFoundation": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/koordination/production-material-handoff.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-handoff-foundation.json",
+          "test": "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs",
+          "logisticsArt": "COLLECTION",
+          "singlePhysicalStackPinned": true,
+          "exactItemFingerprintPinned": true,
+          "farmStopRequired": true,
+          "settledFutureHandoffRequiresFreshCraftRescan": true,
+          "handoffPlanCountsAsNaturalCurrentInventoryCandidate": false,
+          "foundationCountsAsCraftRatification": false,
+          "productiveExecutionAllowed": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
+        }
       }
     },
     {
@@ -1144,7 +1183,10 @@
         "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs",
         "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
         "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
-        "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs"
+        "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs",
+        "v5/grundlage/quelle/koordination/production-material-handoff.ts",
+        "v5/grundlage/vertraege/runtime/pr22-23-production-material-handoff-foundation.json",
+        "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1171,7 +1213,24 @@
         "normalRuntimeAllowed": false,
         "shadowOrchestratorConnected": true,
         "shadowOrchestrator": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
-        "productiveExecutionAllowed": false
+        "productiveExecutionAllowed": false,
+        "materialHandoffFoundation": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/koordination/production-material-handoff.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-handoff-foundation.json",
+          "test": "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs",
+          "logisticsArt": "COLLECTION",
+          "singlePhysicalStackPinned": true,
+          "exactItemFingerprintPinned": true,
+          "farmStopRequired": true,
+          "settledFutureHandoffRequiresFreshCraftRescan": true,
+          "handoffPlanCountsAsNaturalCurrentInventoryCandidate": false,
+          "foundationCountsAsCraftRatification": false,
+          "productiveExecutionAllowed": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
+        }
       }
     },
     {
@@ -4336,7 +4395,26 @@
       "normalRuntimeAllowed": false,
       "shadowOrchestratorConnected": true,
       "shadowOrchestrator": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
-      "productiveExecutionAllowed": false
+      "productiveExecutionAllowed": false,
+      "materialHandoffFoundation": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "v5/grundlage/quelle/koordination/production-material-handoff.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-handoff-foundation.json",
+        "test": "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs",
+        "logisticsArt": "COLLECTION",
+        "singlePhysicalStackPinned": true,
+        "exactItemFingerprintPinned": true,
+        "farmStopRequired": true,
+        "settledFutureHandoffRequiresFreshCraftRescan": true,
+        "handoffPlanCountsAsNaturalCurrentInventoryCandidate": false,
+        "foundationCountsAsCraftRatification": false,
+        "productiveExecutionAllowed": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
+      },
+      "freshCraftRescanAfterSettledHandoffRequired": true,
+      "automaticMaterialPathPreparedThroughCollectionPlanning": true
     }
   },
   "acceleratedImplementation": {
@@ -4589,7 +4667,24 @@
       "normalRuntimeAllowed": false,
       "shadowOrchestratorConnected": true,
       "shadowOrchestrator": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
-      "productiveExecutionAllowed": false
+      "productiveExecutionAllowed": false,
+      "materialHandoffFoundation": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "v5/grundlage/quelle/koordination/production-material-handoff.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-handoff-foundation.json",
+        "test": "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs",
+        "logisticsArt": "COLLECTION",
+        "singlePhysicalStackPinned": true,
+        "exactItemFingerprintPinned": true,
+        "farmStopRequired": true,
+        "settledFutureHandoffRequiresFreshCraftRescan": true,
+        "handoffPlanCountsAsNaturalCurrentInventoryCandidate": false,
+        "foundationCountsAsCraftRatification": false,
+        "productiveExecutionAllowed": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
+      }
     }
   },
   "pr23": {
@@ -4661,7 +4756,24 @@
       "normalRuntimeAllowed": false,
       "shadowOrchestratorConnected": true,
       "shadowOrchestrator": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
-      "productiveExecutionAllowed": false
+      "productiveExecutionAllowed": false,
+      "materialHandoffFoundation": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "v5/grundlage/quelle/koordination/production-material-handoff.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-handoff-foundation.json",
+        "test": "v5/grundlage/tests/pr22-23-production-material-handoff.test.mjs",
+        "logisticsArt": "COLLECTION",
+        "singlePhysicalStackPinned": true,
+        "exactItemFingerprintPinned": true,
+        "farmStopRequired": true,
+        "settledFutureHandoffRequiresFreshCraftRescan": true,
+        "handoffPlanCountsAsNaturalCurrentInventoryCandidate": false,
+        "foundationCountsAsCraftRatification": false,
+        "productiveExecutionAllowed": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
+      }
     }
   },
   "pr24": {
