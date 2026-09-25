@@ -157,7 +157,7 @@ function farmer(overrides={}) {
 
 test("PR23 Farmer admission enforces AoE hard caps and never grants action authority",()=>{
   const ready=pruefePr23FarmerShadowAdmission(farmer());
-  assert.equal(ready.status,"BEREIT_NO_WRITE");
+  assert.equal(ready.status,"BEREIT_NO_WRITE",JSON.stringify(ready.blocker));
   assert.equal(ready.combatAuthority,false);
   assert.equal(ready.skillAuthority,false);
   assert.equal(ready.gameplayAuthority,false);
