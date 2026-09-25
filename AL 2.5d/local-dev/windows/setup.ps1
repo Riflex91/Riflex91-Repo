@@ -16,6 +16,12 @@ $AdventureDir = Join-Path $RuntimeRoot "adventureland"
 $CommonDir = Join-Path $RuntimeRoot "common"
 $ConfigDir = Join-Path $RuntimeRoot "secretsandconfig"
 $RdbmsPath = Join-Path $RuntimeRoot "db.rdbms"
+$MongoVersion = "8.0.17"
+$MongoArchive = Join-Path $RuntimeRoot "mongodb-windows-x86_64-$MongoVersion.zip"
+$MongoRoot = Join-Path $RuntimeRoot "mongodb-$MongoVersion"
+$MongoDataDir = Join-Path $RuntimeRoot "mongodb-data"
+$MongoLogDir = Join-Path $RuntimeRoot "mongodb-log"
+$MongoPidFile = Join-Path $RuntimeRoot "mongodb.pid"
 
 function Require-Command([string]$Name) {
   if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
@@ -94,6 +100,110 @@ function Test-Mongo {
   }
 }
 
+function Resolve-PythonExe {
+  $PyLauncher = Get-Command "py" -ErrorAction SilentlyContinue
+  if ($PyLauncher) {
+    $Resolved = & $PyLauncher.Source -3.12 -c "import sys; print(sys.executable)" 2>$null
+    if ($LASTEXITCODE -eq 0 -and $Resolved) {
+      return ($Resolved | Select-Object -First 1).Trim()
+    }
+
+    $Resolved = & $PyLauncher.Source -3 -c "import sys; print(sys.executable)" 2>$null
+    if ($LASTEXITCODE -eq 0 -and $Resolved) {
+      return ($Resolved | Select-Object -First 1).Trim()
+    }
+  }
+
+  $Python = Get-Command "python" -ErrorAction SilentlyContinue
+  if ($Python -and $Python.Source -notlike "*WindowsApps*") {
+    return $Python.Source
+  }
+
+  $Winget = Get-Command "winget" -ErrorAction SilentlyContinue
+  if ($Winget) {
+    Write-Host "==> Python was not found; installing Python 3.12 for the current user"
+    & $Winget.Source install -e --id Python.Python.3.12 --scope user --silent --accept-package-agreements --accept-source-agreements
+    if ($LASTEXITCODE -ne 0) {
+      throw "Python 3.12 installation via winget failed."
+    }
+
+    $Candidates = @(
+      (Join-Path $env:LOCALAPPDATA "Programs\Python\Python312\python.exe"),
+      (Join-Path $env:LOCALAPPDATA "Programs\Python\Python313\python.exe")
+    )
+
+    foreach ($Candidate in $Candidates) {
+      if (Test-Path $Candidate) {
+        return $Candidate
+      }
+    }
+  }
+
+  throw "Python 3 is required for the one-time development datastore import and could not be found or installed."
+}
+
+function Get-PortableMongoExe {
+  $Existing = Get-ChildItem -Path $MongoRoot -Filter "mongod.exe" -Recurse -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+
+  if ($Existing) {
+    return $Existing.FullName
+  }
+
+  Write-Host "==> Downloading portable MongoDB $MongoVersion"
+  if (-not (Test-Path $MongoArchive)) {
+    $MongoUrl = "https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-$MongoVersion.zip"
+    Invoke-WebRequest -Uri $MongoUrl -OutFile $MongoArchive
+  }
+
+  if (Test-Path $MongoRoot) {
+    Remove-Item $MongoRoot -Recurse -Force
+  }
+
+  New-Item -ItemType Directory -Force -Path $MongoRoot | Out-Null
+  Expand-Archive -LiteralPath $MongoArchive -DestinationPath $MongoRoot -Force
+
+  $Mongod = Get-ChildItem -Path $MongoRoot -Filter "mongod.exe" -Recurse -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+
+  if (-not $Mongod) {
+    throw "Portable MongoDB archive was extracted but mongod.exe was not found."
+  }
+
+  return $Mongod.FullName
+}
+
+function Start-PortableMongo {
+  if (Test-Mongo) {
+    return
+  }
+
+  $MongodExe = Get-PortableMongoExe
+  New-Item -ItemType Directory -Force -Path $MongoDataDir | Out-Null
+  New-Item -ItemType Directory -Force -Path $MongoLogDir | Out-Null
+
+  $MongoLogPath = Join-Path $MongoLogDir "mongod.log"
+  Write-Host "==> Starting portable MongoDB on 127.0.0.1:27017"
+
+  $MongoProcess = Start-Process -FilePath $MongodExe -PassThru -WindowStyle Hidden -ArgumentList @(
+    "--dbpath", $MongoDataDir,
+    "--bind_ip", "127.0.0.1",
+    "--port", "27017",
+    "--logpath", $MongoLogPath,
+    "--logappend"
+  )
+
+  Set-Content -Path $MongoPidFile -Value $MongoProcess.Id -Encoding ASCII
+
+  for ($i = 0; $i -lt 45 -and -not (Test-Mongo); $i++) {
+    Start-Sleep -Seconds 1
+  }
+
+  if (-not (Test-Mongo)) {
+    throw "Portable MongoDB did not become reachable on port 27017. See $MongoLogPath"
+  }
+}
+
 Require-Command "git"
 Require-Command "node"
 Require-Command "npm"
@@ -132,28 +242,8 @@ if (-not $SkipInstall) {
   npm --prefix $ProjectRoot install
 }
 
-$Docker = Get-Command "docker" -ErrorAction SilentlyContinue
-
 if (-not (Test-Mongo)) {
-  if (-not $Docker) {
-    throw "MongoDB is not listening on 127.0.0.1:27017 and Docker is unavailable. Install MongoDB locally or Docker Desktop."
-  }
-
-  Write-Host "==> Starting isolated MongoDB container"
-  $Existing = docker ps -a --filter "name=^/al25d-mongo$" --format "{{.Names}}"
-  if ($Existing -eq "al25d-mongo") {
-    docker start al25d-mongo | Out-Null
-  } else {
-    docker run -d --name al25d-mongo -p 27017:27017 -v al25d-mongo-data:/data/db mongo:7.0 | Out-Null
-  }
-
-  for ($i = 0; $i -lt 30 -and -not (Test-Mongo); $i++) {
-    Start-Sleep -Seconds 1
-  }
-
-  if (-not (Test-Mongo)) {
-    throw "MongoDB did not become reachable on port 27017."
-  }
+  Start-PortableMongo
 }
 
 if (-not $SkipSeed) {
@@ -164,37 +254,23 @@ if (-not $SkipSeed) {
   }
 
   Write-Host "==> Importing map/game development data"
-  if ($Docker) {
-    $GameMount = ($AdventureDir -replace "\\", "/")
-    $SeedMount = ($RdbmsPath -replace "\\", "/")
-    $DockerArgs = @(
-      "run", "--rm",
-      "--add-host=host.docker.internal:host-gateway",
-      "-e", "MONGO_URI=mongodb://host.docker.internal:27017/",
-      "-e", "MONGO_DB=adventureland",
-      "-e", "RDBMS_PATH=/seed/db.rdbms",
-      "-v", "$($GameMount):/workspace",
-      "-v", "$($SeedMount):/seed/db.rdbms:ro",
-      "-w", "/workspace/agentic",
-      "python:3.12-slim",
-      "sh", "-lc", "pip install --quiet pymongo && python _migrate_rdbms.py"
-    )
-    & docker @DockerArgs
+  $PythonExe = Resolve-PythonExe
+  & $PythonExe -m pip install --quiet pymongo
+  if ($LASTEXITCODE -ne 0) {
+    throw "pymongo installation failed."
+  }
+
+  $env:MONGO_URI = "mongodb://127.0.0.1:27017/"
+  $env:MONGO_DB = "adventureland"
+  $env:RDBMS_PATH = $RdbmsPath
+  Push-Location (Join-Path $AdventureDir "agentic")
+  try {
+    & $PythonExe _migrate_rdbms.py
     if ($LASTEXITCODE -ne 0) {
       throw "Development datastore import failed."
     }
-  } else {
-    Require-Command "python"
-    python -m pip install --quiet pymongo
-    $env:MONGO_URI = "mongodb://127.0.0.1:27017/"
-    $env:MONGO_DB = "adventureland"
-    $env:RDBMS_PATH = $RdbmsPath
-    Push-Location (Join-Path $AdventureDir "agentic")
-    try {
-      python _migrate_rdbms.py
-    } finally {
-      Pop-Location
-    }
+  } finally {
+    Pop-Location
   }
 
   Write-Host "==> Removing imported player/account data from the local database"
