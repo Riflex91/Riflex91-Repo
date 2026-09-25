@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "EXCHANGE_READONLY_RESCAN_MANIFEST_CUTOVER_PREPARED",
+    "status": "EXCHANGE_READONLY_RESCAN_V1_0_4_HANDSHAKE_FAILED_RECOVERY_V1_0_5_PACKAGE_READY",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+    "nextAction": "PR20_8_EXCHANGE_READONLY_RESCAN_HANDSHAKE_RECOVERY_MANIFEST_CUTOVER",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1626,7 +1626,7 @@
       "normalRuntimeAllowed": false
     },
     "exchangeNoCandidateCloseoutReview": {
-      "status": "MANIFEST_CUTOVER_PREPARED_FOR_FRESH_READONLY_RESCAN",
+      "status": "V1_0_4_DEPLOYMENT_HANDSHAKE_FAILED_ZERO_WRITE",
       "review": "roadmap/pr20-8-exchange-no-candidate-closeout-review.json",
       "existingEvidence": "roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json",
       "existingObservedAtMs": 1790278399271,
@@ -1653,9 +1653,19 @@
       "manifestCutoverPrepared": true,
       "deployed": false,
       "evidenceObserved": false,
-      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+      "nextGate": "PR20_8_EXCHANGE_READONLY_RESCAN_HANDSHAKE_RECOVERY_MANIFEST_CUTOVER",
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
-      "bridgeMayDeployPinnedRunner": true
+      "bridgeMayDeployPinnedRunner": false,
+      "deploymentFailureObserved": true,
+      "deploymentFailureBridgeAt": "2026-09-25T05:34:26.3182088Z",
+      "deploymentFailureState": "ERROR",
+      "deploymentFailureError": "InvalidOperationException: V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED",
+      "deploymentFailureCurrentTestId": "pr20-8-compound-live-5m",
+      "deploymentFailureCurrentVersion": "1.0.2",
+      "deploymentFailureGameplayWrites": 0,
+      "deploymentFailurePublicFunctionCalls": 0,
+      "deploymentFailureRawWriteCalls": 0,
+      "freshScannerCompletionObserved": false
     },
     "activeAutonomousManifest": {
       "testId": "pr20-8-wertmutation-live-candidate-readonly",
@@ -1672,7 +1682,44 @@
       "exchangeAuthority": false,
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
-      "normalRuntimeAllowed": false
+      "normalRuntimeAllowed": false,
+      "deploymentHandshakeFailed": true,
+      "deployed": false,
+      "evidenceObserved": false
+    },
+    "exchangeReadOnlyRescanHandshakeRecovery": {
+      "status": "PACKAGE_READY_NOT_DEPLOYED",
+      "contract": "grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-handshake-recovery-preparation.json",
+      "package": "werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js",
+      "test": "werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs",
+      "contractTest": "grundlage/tests/pr20-exchange-readonly-rescan-handshake-recovery-preparation.test.mjs",
+      "testId": "pr20-8-wertmutation-live-candidate-readonly",
+      "fromControllerVersion": "1.0.4",
+      "controllerVersion": "1.0.5",
+      "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
+      "sourceCommit": "d4269f0e7998e265be4a3d1c1dffdd9b0e138c90",
+      "packageSha256": "27d16d91fcba345b9e87ce2b8724a0e65bf202c1b74f73ab6187d488e4c55a92",
+      "packageBytes": 21792,
+      "recoveryScope": "OBSERVABILITY_FACADE_HANDSHAKE_ONLY",
+      "staleFacadeMarker": "__v5Pr208CandidateFacadeVersion",
+      "staleMarkerMustMatchLiveTestIdAndVersionBeforeShortCircuit": true,
+      "scannerSemanticsChanged": false,
+      "inventorySelectionSemanticsChanged": false,
+      "maximumGameplayWrites": 0,
+      "maximumPublicFunctionCalls": 0,
+      "maximumRawWriteCalls": 0,
+      "exchangeAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "durableIntentCreated": false,
+      "sameIntentRetry": false,
+      "normalRuntimeAllowed": false,
+      "acquisitionOrMutationToCreateCandidateAllowed": false,
+      "manifestCutoverPrepared": false,
+      "deployed": false,
+      "bridgeMayDeployPinnedRunner": false,
+      "evidenceObserved": false,
+      "nextGate": "PR20_8_EXCHANGE_READONLY_RESCAN_HANDSHAKE_RECOVERY_MANIFEST_CUTOVER"
     }
   },
   "pr20_9": {
