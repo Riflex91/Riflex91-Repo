@@ -110,6 +110,15 @@ PR21-28 Full-Chain-Orchestration-Readiness:
 
 Die gemeinsame Shadow-Pipeline akzeptiert CAP-022 nicht mehr nur anhand der ersten Material-Acquisition-Foundation. Alle neun vorbereiteten NO-WRITE-Fundamente von `MATERIAL_ACQUISITION` bis `TEAM_RESCAN_DURABLE_ADMISSION` muessen vollstaendig vorhanden und `PREPARED_NO_WRITE` sein. Eine fehlende oder blockierte Komponente sowie Authority- oder Ratification-Drift sperrt die gesamte PR21-28-Shadow-Pipeline fail-closed. Reale `ALL_SETTLED`-/Craft-Evidence wird dadurch nicht vorgetaeuscht oder ersetzt.
 
+
+PR22/PR23 Feature-Gate-Bindung:
+
+- `grundlage/quelle/runtime/pr21-28-feature-gates.ts`
+- `grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json`
+- `grundlage/tests/pr21-28-evidence-feature-gates.test.mjs`
+
+Fuer PR22 und PR23 reicht ein generisches `orchestrationPrepared=true` nicht mehr aus. Beide produktiven Eligibility-Gates verlangen zusaetzlich `cap022FullChainReady=true`. Fehlt diese Bedingung, erhaelt der jeweilige Stage einen eigenen CAP-022-Blocker und die nachfolgende Produktivkette bleibt geschlossen. Die Gate-Auswertung erteilt weiterhin selbst keine Authority.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf
