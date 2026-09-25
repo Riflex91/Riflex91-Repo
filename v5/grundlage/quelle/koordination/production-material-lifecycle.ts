@@ -403,6 +403,10 @@ export class PersistenterProduktionsMaterialLifecycle {
       throw new Error("CAP022_LIFECYCLE_RESCAN_ZUSTAND_UNGUELTIG");
     }
     if (rescan.schemaVersion !== 1
+        || ![
+          "CRAFT_RESCAN_KANDIDAT_BEREIT_NO_WRITE",
+          "CRAFT_RESCAN_BLOCKIERT",
+        ].includes(rescan.status)
         || rescan.objectiveId !== objectiveId
         || rescan.logistikId !== alt.handoffLogistikId
         || rescan.settledHandoffVerified !== true
