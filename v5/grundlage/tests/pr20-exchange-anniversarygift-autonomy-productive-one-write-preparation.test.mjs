@@ -80,7 +80,7 @@ test("autonomy productive runner package is exact pinned and narrow",()=>{
   }
 });
 
-test("manifest cutover deploys only the pinned productive autonomy one-write runner",()=>{
+test("historical autonomy productive cutover stays exact while active manifest advances to PR20.9",()=>{
   assert.equal(cutover.status,"MANIFEST_CUTOVER_PREPARED");
   assert.equal(
     cutover.prerequisite.requiredAutonomyRouteShadowStatus,
@@ -88,12 +88,14 @@ test("manifest cutover deploys only the pinned productive autonomy one-write run
   );
   assert.equal(cutover.prerequisite.autonomyRouteShadowNotificationId,3020);
   assert.equal(cutover.prerequisite.priorCommittedTransactionMayNotGrantAuthority,true);
-  assert.equal(manifest.testId,cutover.manifest.testId);
-  assert.equal(manifest.controllerVersion,cutover.manifest.controllerVersion);
-  assert.equal(manifest.sourceCommit,cutover.manifest.sourceCommit);
-  assert.equal(manifest.packagePath,cutover.manifest.packagePath);
-  assert.equal(manifest.packageSha256,cutover.manifest.packageSha256);
-  assert.equal(manifest.expectedGlobal,cutover.manifest.expectedGlobal);
+  assert.notEqual(manifest.testId,cutover.manifest.testId);
+  assert.equal(manifest.gate,"PR20.9_PRODUCTION");
+  assert.equal(manifest.testId,"pr20-9-craft-durable-shadow-no-write");
+  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(manifest.sourceCommit,"116d762a1e1fad230cbd64a5a44d6762465501f0");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-9-craft-durable-shadow-no-write.js");
+  assert.equal(manifest.packageSha256,"a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a");
+  assert.equal(manifest.expectedGlobal,"V5PR209CraftDurableShadowNoWrite");
   assert.equal(manifest.normalRuntimeAllowed,false);
   assert.equal(cutover.productiveBoundary.newAutonomousDecisionRequired,true);
   assert.equal(cutover.productiveBoundary.manualPinnedInventoryIndexForbidden,true);
@@ -120,7 +122,7 @@ test("roadmap reflects ratified productive autonomy and closes PR20.8",()=>{
   );
   assert.equal(p.nextAction,"ADVANCE_TO_PR20_9_PRODUCTION");
   assert.equal(a.status,"RATIFIED_BESTANDEN_COMMITTED_AUTONOMOUS_ONE_WRITE");
-  assert.equal(a.testId,manifest.testId);
+  assert.equal(a.testId,"pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live");
   assert.equal(a.manifestCutoverPrepared,true);
   assert.equal(a.deployed,true);
   assert.equal(a.liveEvidenceObserved,true);
