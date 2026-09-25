@@ -51,6 +51,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208ValueMutationLiveCandidateReadonly",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-exchange-candidate-acquisition-readonly": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
+    expectedGlobal: "V5PR208ExchangeCandidateAcquisitionReadonly",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-6-mluck-autonomous-live-5m": Object.freeze({
     path: "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
     expectedGlobal: "V5PR206MluckTest",
@@ -983,4 +988,35 @@ test("PR20.8 Compound 5m notification identity recovery manifest is exact and ze
     "sameIntentRetry: true",
     "normalRuntimeAllowed: true",
   ]) assert.equal(packageSource.includes(forbidden), false, forbidden);
+});
+
+
+test("PR20.8 Exchange acquisition discovery manifest remains exact zero-write discovery", () => {
+  if (manifest.testId !== "pr20-8-exchange-candidate-acquisition-readonly") return;
+  assert.equal(manifest.controllerVersion, "1.0.1");
+  assert.equal(
+    manifest.sourceCommit,
+    "3182b137957416b253dde303bbba54dd800f8b14",
+  );
+  assert.equal(
+    manifest.packageSha256,
+    "1acc8253cef6b02b33a6a5de289ce5a7095066d36bc727f9cffa77647e8778ec",
+  );
+  assert.equal(packageBytes.length, 12605);
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  assert.ok(packageSource.includes('const TEST_ID = "pr20-8-exchange-candidate-acquisition-readonly"'));
+  assert.ok(packageSource.includes('const VERSION = "1.0.1"'));
+  assert.ok(packageSource.includes('const API_NAME = "V5PR208ExchangeCandidateAcquisitionReadonly"'));
+  assert.ok(packageSource.includes('gameplayWrites: 0'));
+  assert.ok(packageSource.includes('publicFunctionCalls: 0'));
+  assert.ok(packageSource.includes('rawWriteCalls: 0'));
+  assert.ok(packageSource.includes('bankRetrieve: false'));
+  assert.ok(packageSource.includes('buy: false'));
+  assert.ok(packageSource.includes('farm: false'));
+  assert.ok(packageSource.includes('exchange: false'));
+  assert.ok(packageSource.includes('normalRuntimeAllowed: false'));
+  for (const marker of [
+    "bank_retrieve(", "bank_store(", "smart_move(", "buy(", "buy_with_gold(",
+    "exchange(", "attack(", "use_skill(", "socket.emit(", ".socket.emit(", "api_call("
+  ]) assert.equal(packageSource.includes(marker), false, marker);
 });
