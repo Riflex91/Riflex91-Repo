@@ -591,10 +591,10 @@ Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
     "pr20-8-compound-live-5m", "1.0.0",
     true, 0, 0, false, true, 0),
     "V5_PR208_COMPOUND_5M_PERFORMANCE_RECOVERY_REJECTS_OTHER_TARGET_VERSION");
-Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+Assert(!CdpAdventureLandClient.IsSafePr208CompoundLive5mPerformanceRecovery(
     "other-test", "1.0.1",
     "pr20-8-compound-live-5m", "1.0.0",
-    true, 0, 0, false, true, 0),
+    true, 0, 0, false, 0),
     "V5_PR208_COMPOUND_5M_PERFORMANCE_RECOVERY_REJECTS_OTHER_DESIRED_TEST");
 
 Assert(CdpAdventureLandClient.ShouldContinuePr208CandidateReadonlyContextConvergence(
