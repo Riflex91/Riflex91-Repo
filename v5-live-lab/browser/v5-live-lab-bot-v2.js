@@ -2479,6 +2479,10 @@
           id: currentTask.id,
           type: currentTask.type,
           score: currentTask.score,
+          partyId: currentTask.partyId || null,
+          partyMemberIds: currentTask.partyMemberIds
+            ? Object.freeze(currentTask.partyMemberIds.slice())
+            : null,
           targetId: currentTask.target && currentTask.target.id || null,
           worldStateId: currentTask.worldObservation && currentTask.worldObservation.stateId || null,
         } : null,
