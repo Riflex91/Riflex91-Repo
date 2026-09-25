@@ -209,7 +209,7 @@ test("PR20.6 MLuck package distributes only a narrow heartbeat worker to farmer 
 
 test("PR20.8 updater persistence bootstrap is exact, self-persisting and gameplay-no-write", () => {
   if (manifest.testId !== "pr20-8-native-updater-recovery-bootstrap-v1") return;
-  assert.equal(manifest.controllerVersion, "1.0.1");
+  assert.equal(manifest.controllerVersion, "1.0.0");
   assert.equal(
     manifest.sourceCommit,
     "e6a52aafcacb5c23c4a2cdfef88250cbb0e3fe2e",
