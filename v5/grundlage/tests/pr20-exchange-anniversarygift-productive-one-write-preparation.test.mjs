@@ -154,10 +154,10 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   const live=a.anniversaryGiftProductiveOneWrite;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_SERVICE_MOUNT_MANIFEST_CUTOVER_PREPARED");
+    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RESTORED_AFTER_SERVICE_MOUNT");
   assert.equal(roadmap.pr20_8.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_SERVICE_MOUNT");
-  assert.equal(a.status,"ANNIVERSARYGIFT_SERVICE_MOUNT_MANIFEST_CUTOVER_PREPARED");
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_AFTER_SERVICE_MOUNT");
+  assert.equal(a.status,"ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RESTORED_AFTER_SERVICE_MOUNT");
   assert.equal(a.anniversaryGiftExchangeShadow.status,
     "RATIFIED_LIVE_DURABLE_SHADOW_NO_SEND");
   assert.equal(a.anniversaryGiftExchangeShadow.deployed,true);
@@ -165,26 +165,26 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
   assert.equal(a.anniversaryGiftExchangeShadow.latestNotificationId,2752);
   assert.equal(a.anniversaryGiftRewardDomain.status,
     "RATIFIED_SCOPED_CURRENT_SOURCE_REVALIDATION");
-  assert.equal(live.status,"BLOCKED_LIVE_SERVICE_UNREACHABLE_ZERO_WRITE");
+  assert.equal(live.status,"MANIFEST_RESTORED_AFTER_SERVICE_MOUNT");
   assert.equal(live.manifestCutoverPrepared,true);
-  assert.equal(live.deployed,true);
-  assert.equal(live.liveEvidenceObserved,true);
+  assert.equal(live.deployed,false);
+  assert.equal(live.liveEvidenceObserved,false);
   assert.equal(live.exchangeAuthority,false);
   assert.equal(live.gameplayAuthority,false);
   assert.equal(live.rawWriteAuthority,false);
   assert.equal(live.normalRuntimeAllowed,false);
 });
 
-test("active autonomous manifest is cut over to the Exchange service mount",()=>{
+test("active autonomous manifest is restored to the productive one-write runner",()=>{
   assert.equal(manifest.testId,
-    "pr20-8-exchange-anniversarygift-service-mount");
+    "pr20-8-exchange-anniversarygift-productive-one-write-live");
   assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.sourceCommit,
-    "72e01a9dd911e9a21c8e6d2002851c707f130c98");
+    "5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
   assert.equal(manifest.packageSha256,
-    "c2a58c21a648ce17693029965380e4c343012d90de528edb43fc1b4a1946b163");
+    "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
   assert.equal(manifest.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftServiceMount");
+    "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
   assert.equal(manifest.normalRuntimeAllowed,false);
   assert.equal(shadow.status,"PREPARED_NO_WRITE");
 });
