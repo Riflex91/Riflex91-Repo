@@ -93,9 +93,9 @@ test("current recovery hardening evidence stays immutable while the manifest adv
   assert.equal(evidence.safetyBoundary.recoveryMayNotRewriteIntent,true);
   assert.equal(evidence.safetyBoundary.recoveryMayNotCreateGameplayWrite,true);
   assert.equal(manifest.testId,"pr20-8-compound-live-5m");
-  assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,"61db398373d1909bc11eb883af5902ac339a123c");
-  assert.equal(manifest.packageSha256,"2c68619ffb7359373a6a817ac939c34278a66f5c69e7d3efba59a5ff5c00e221");
+  assert.equal(manifest.controllerVersion,"1.0.1");
+  assert.equal(manifest.sourceCommit,"51b1fc8038740f828cacffe866c6db799a447348");
+  assert.equal(manifest.packageSha256,"23af77b23467e99fddfa437b9dc54873d0e3f25d783c940c819b447e44863a2b");
   assert.notEqual(manifest.testId,evidence.testId);
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
