@@ -78,13 +78,24 @@ Der persistente Batch-Controller aktiviert immer nur **ein** Transfer-Leg. Nach 
 
 Zusaetzlich verifiziert der gemeinsame Logistik-Settlement-Pfad mehrere physische Stacks desselben Item/Levels nun **aggregiert** gegen die Recipient-Baseline. Damit kann ein partieller Delta nicht mehr mehrere Einzel-Stack-Anforderungen gleichzeitig erfuellen.
 
+
+Multi-Source-ALL_SETTLED-Craft-Rescan:
+
+- `grundlage/quelle/koordination/production-material-team-craft-rescan.ts`
+- `grundlage/vertraege/runtime/pr22-23-production-material-team-craft-rescan-foundation.json`
+- `grundlage/tests/pr22-23-production-material-team-craft-rescan.test.mjs`
+
+Die Team-Bruecke akzeptiert ausschliesslich einen terminalen Batchzustand `ALLE_SETTLED` mit vollstaendiger, geordneter Transfer-ID-Kette, ohne aktiven Transfer und mit finalem Settlement-Fingerprint. Der Merchant-Inventar-Snapshot muss **nach** dem finalen Settlement frisch beobachtet worden sein und exakt dessen finalen Inventar-Fingerprint tragen. Das aggregiert uebergebene Material muss als NORMAL-Craft-Rezeptinput auftauchen. Danach laeuft nur der bestehende PR20.9 Read-only-Preflight.
+
+Auch `TEAM_CRAFT_RESCAN_KANDIDAT_BEREIT_NO_WRITE` ist **keine** Craft-Ratifizierung. Es entstehen weder Craft-Authority noch Gameplay-/Raw-Write-Authority oder Normal-Runtime-Freigabe.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf
 
 Der vorbereitete Pfad lautet:
 
-`Production FARM-Node -> gemeinsames MaterialObjective -> Multi-Farmer-Aggregation -> FARM_REQUIRED -> aggregate MATERIAL_READY_FOR_HANDOFF -> PR22-Koordination -> PR23 Movement/Combat/Loot -> gepinnter Multi-Source Collection-Batch -> persistente sequenzielle Settlements/Recovery -> ALLE_SETTLED -> frischer Merchant-Inventar-Snapshot -> NORMAL_CRAFT_ONLY-Rescan -> spaeterer PR20.9-Durable-Shadow-Pfad`
+`Production FARM-Node -> gemeinsames MaterialObjective -> Multi-Farmer-Aggregation -> FARM_REQUIRED -> aggregate MATERIAL_READY_FOR_HANDOFF -> PR22-Koordination -> PR23 Movement/Combat/Loot -> gepinnter Multi-Source Collection-Batch -> persistente sequenzielle Settlements/Recovery -> ALLE_SETTLED -> frischer Merchant-Inventar-Snapshot -> TEAM NORMAL_CRAFT_ONLY-Rescan -> separate PR20.9-Craft-Evidence -> spaeterer produktiver Production-Pfad`
 
 Die Foundation:
 
