@@ -14,6 +14,7 @@ import {
 export type LegacyGameDataLike = Readonly<{
   maps?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   geometry?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  tilesets?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }>;
 
 export type LegacyGlobalsLike = Readonly<{
@@ -72,8 +73,18 @@ function snapshotCollisionLines(value: unknown): readonly RenderCollisionLine[] 
 }
 
 function tileDefinition(
-  value: unknown
-): Readonly<{ material: string; width: number; height: number }> | undefined {
+  value: unknown,
+  tilesetsValue: unknown
+):
+  | Readonly<{
+      material: string;
+      width: number;
+      height: number;
+      sourceX: number;
+      sourceY: number;
+      textureUrl?: string;
+    }>
+  | undefined {
   if (!Array.isArray(value) || value.length < 5) return undefined;
 
   const width = finiteNumber(value[3]);
@@ -86,13 +97,29 @@ function tileDefinition(
     typeof value[0] === "string" && value[0]
       ? value[0]
       : "default";
+  const sourceX = finiteNumber(value[1]) ?? 0;
+  const sourceY = finiteNumber(value[2]) ?? 0;
+  const tilesets = recordValue(tilesetsValue);
+  const tileset = recordValue(tilesets?.[material]);
+  const textureUrl =
+    typeof tileset?.file === "string" && tileset.file
+      ? tileset.file
+      : undefined;
 
-  return Object.freeze({ material, width, height });
+  return Object.freeze({
+    material,
+    width,
+    height,
+    sourceX,
+    sourceY,
+    ...(textureUrl ? { textureUrl } : {})
+  });
 }
 
 function snapshotSurfacePlacements(
   tilesValue: unknown,
   placementsValue: unknown,
+  tilesetsValue: unknown,
   layer: "ground" | "structure",
   group?: number
 ): readonly RenderMapSurface[] {
@@ -110,7 +137,7 @@ function snapshotSurfacePlacements(
     const y = finiteNumber(candidate[2]);
     if (tile === undefined || x === undefined || y === undefined) continue;
 
-    const definition = tileDefinition(tilesValue[tile]);
+    const definition = tileDefinition(tilesValue[tile], tilesetsValue);
     if (!definition) continue;
 
     const repeatX = finiteNumber(candidate[3]) ?? x;
@@ -129,7 +156,16 @@ function snapshotSurfacePlacements(
         maxX,
         maxY,
         layer,
-        ...(group === undefined ? {} : { group })
+        ...(group === undefined ? {} : { group }),
+        ...(definition.textureUrl
+          ? {
+              textureUrl: definition.textureUrl,
+              sourceX: definition.sourceX,
+              sourceY: definition.sourceY,
+              tileWidth: definition.width,
+              tileHeight: definition.height
+            }
+          : {})
       })
     );
   }
@@ -138,7 +174,8 @@ function snapshotSurfacePlacements(
 }
 
 function snapshotMapSurfaces(
-  visualGeometry: Readonly<Record<string, unknown>> | undefined
+  visualGeometry: Readonly<Record<string, unknown>> | undefined,
+  tilesetsValue: unknown
 ): readonly RenderMapSurface[] {
   if (!visualGeometry) return Object.freeze([]);
 
@@ -147,6 +184,7 @@ function snapshotMapSurfaces(
     ...snapshotSurfacePlacements(
       tiles,
       visualGeometry.placements,
+      tilesetsValue,
       "ground"
     )
   ];
@@ -154,7 +192,13 @@ function snapshotMapSurfaces(
   if (Array.isArray(visualGeometry.groups)) {
     visualGeometry.groups.forEach((group, index) => {
       surfaces.push(
-        ...snapshotSurfacePlacements(tiles, group, "structure", index)
+        ...snapshotSurfacePlacements(
+          tiles,
+          group,
+          tilesetsValue,
+          "structure",
+          index
+        )
       );
     });
   }
@@ -246,7 +290,10 @@ export function snapshotLegacyMapState(
   const rawYLines = geometryRecord?.y_lines ?? visualGeometry?.y_lines;
   const xLines = snapshotCollisionLines(rawXLines);
   const yLines = snapshotCollisionLines(rawYLines);
-  const surfaces = snapshotMapSurfaces(visualGeometry);
+  const surfaces = snapshotMapSurfaces(
+    visualGeometry,
+    globals.G?.tilesets
+  );
 
   return Object.freeze({
     id: mapId,

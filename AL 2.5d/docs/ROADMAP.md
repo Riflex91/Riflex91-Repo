@@ -53,6 +53,7 @@ Deliverable: original game logic driving the visible new renderer.
 Status: in progress
 
 - [ ] new Main/Town visual asset set
+- [x] original Main/Town ground tileset crops projected into read-only 2.5D surfaces
 - [x] mirrored immutable tile placements/groups from G.geometry
 - [x] materialized 2.5D Main/Town surface massing from original placement footprints
 - [x] presentation cleanup: seamless ground surfaces, quieter grid, stronger structure massing

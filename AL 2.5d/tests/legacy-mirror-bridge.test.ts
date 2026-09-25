@@ -87,6 +87,10 @@ describe("LegacyMirrorBridge", () => {
         maps: Object.freeze({
           main: Object.freeze({ name: "Main" })
         }),
+        tilesets: Object.freeze({
+          town_floor: Object.freeze({ file: "/images/tiles/town-floor.png" }),
+          town_wall: Object.freeze({ file: "/images/tiles/town-wall.png" })
+        }),
         geometry: Object.freeze({
           main: Object.freeze({
             min_x: -100,
@@ -146,7 +150,12 @@ describe("LegacyMirrorBridge", () => {
         minY: 0,
         maxX: 96,
         maxY: 64,
-        layer: "ground"
+        layer: "ground",
+        textureUrl: "/images/tiles/town-floor.png",
+        sourceX: 0,
+        sourceY: 0,
+        tileWidth: 32,
+        tileHeight: 32
       },
       {
         tile: 1,
@@ -156,7 +165,12 @@ describe("LegacyMirrorBridge", () => {
         maxX: 116,
         maxY: 116,
         layer: "structure",
-        group: 0
+        group: 0,
+        textureUrl: "/images/tiles/town-wall.png",
+        sourceX: 32,
+        sourceY: 0,
+        tileWidth: 16,
+        tileHeight: 16
       }
     ]);
     expect(renderer.frames).toHaveLength(1);

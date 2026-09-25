@@ -43,6 +43,11 @@ export type RenderMapSurface = Readonly<{
   maxY: number;
   layer: "ground" | "structure";
   group?: number;
+  textureUrl?: string;
+  sourceX?: number;
+  sourceY?: number;
+  tileWidth?: number;
+  tileHeight?: number;
 }>;
 
 export type RenderMapGeometrySummary = Readonly<{

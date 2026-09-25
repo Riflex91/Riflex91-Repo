@@ -53,6 +53,14 @@ export class Pixi25DRenderer implements RenderBridge {
   private readonly mapLayer = new Container();
   private readonly visuals = new Map<string, EntityVisual>();
   private readonly textureLoads = new Map<string, Promise<Texture | null>>();
+  private readonly imageLoads = new Map<
+    string,
+    Promise<HTMLImageElement | null>
+  >();
+  private readonly groundTextureCache = new Map<
+    string,
+    Readonly<{ texture: Texture; rasterScale: number }>
+  >();
   private camera: CameraState = DEFAULT_CAMERA;
   private mounted = false;
   private mapVisualKey = "";
@@ -113,6 +121,11 @@ export class Pixi25DRenderer implements RenderBridge {
     if (!this.mounted) return;
     this.visuals.clear();
     this.textureLoads.clear();
+    this.imageLoads.clear();
+    for (const cached of this.groundTextureCache.values()) {
+      cached.texture.destroy(true);
+    }
+    this.groundTextureCache.clear();
     this.app.destroy(true, { children: true });
     this.mounted = false;
     this.mapVisualKey = "";
@@ -154,11 +167,22 @@ export class Pixi25DRenderer implements RenderBridge {
 
     this.mapLayer.addChild(floor);
 
-    const surfaces = new Graphics();
+    const groundSurfaces = new Graphics();
+    const structures = new Graphics();
+    const textureLayer = new Container();
+
     for (const surface of geometry?.surfaces ?? []) {
-      this.drawMapSurface(surfaces, surface);
+      if (surface.layer === "ground") {
+        this.drawMapSurface(groundSurfaces, surface);
+        void this.addTexturedGroundSurface(surface, textureLayer, key);
+      } else {
+        this.drawMapSurface(structures, surface);
+      }
     }
-    this.mapLayer.addChild(surfaces);
+
+    this.mapLayer.addChild(groundSurfaces);
+    this.mapLayer.addChild(textureLayer);
+    this.mapLayer.addChild(structures);
 
     const grid = new Graphics();
     this.drawGrid(grid, bounds);
@@ -459,6 +483,163 @@ export class Pixi25DRenderer implements RenderBridge {
   private seedUnit(seed: number): number {
     const next = Math.imul(seed ^ 0x9e3779b9, 1664525) + 1013904223;
     return ((next >>> 0) % 1000) / 1000;
+  }
+
+  private async addTexturedGroundSurface(
+    surface: RenderMapSurface,
+    layer: Container,
+    mapKey: string
+  ): Promise<void> {
+    if (
+      surface.layer !== "ground" ||
+      !surface.textureUrl ||
+      surface.sourceX === undefined ||
+      surface.sourceY === undefined ||
+      surface.tileWidth === undefined ||
+      surface.tileHeight === undefined
+    ) {
+      return;
+    }
+
+    const image = await this.loadMapImage(surface.textureUrl);
+    if (!image || this.mapVisualKey !== mapKey || layer.parent !== this.mapLayer) {
+      return;
+    }
+
+    const cached = this.createGroundTexture(surface, image);
+    if (!cached) return;
+
+    const sprite = new Sprite(cached.texture);
+    const origin = projectWorldToScreen({
+      x: surface.minX,
+      y: surface.minY
+    });
+    const worldDepth = surface.maxY - surface.minY;
+    const inverseRasterScale = 1 / cached.rasterScale;
+
+    sprite.position.set(origin.x - worldDepth * 0.5, origin.y);
+    sprite.scale.set(inverseRasterScale);
+    sprite.alpha = 0.9;
+    layer.addChild(sprite);
+  }
+
+  private loadMapImage(src: string): Promise<HTMLImageElement | null> {
+    const resolved = new URL(src, window.location.href).href;
+    const existing = this.imageLoads.get(resolved);
+    if (existing) return existing;
+
+    const load = new Promise<HTMLImageElement | null>((resolve) => {
+      const image = new Image();
+      image.decoding = "async";
+      image.onload = () => resolve(image);
+      image.onerror = () => resolve(null);
+      image.src = resolved;
+    });
+
+    this.imageLoads.set(resolved, load);
+    return load;
+  }
+
+  private createGroundTexture(
+    surface: RenderMapSurface,
+    image: HTMLImageElement
+  ): Readonly<{ texture: Texture; rasterScale: number }> | null {
+    const tileWidth = surface.tileWidth;
+    const tileHeight = surface.tileHeight;
+    const sourceX = surface.sourceX;
+    const sourceY = surface.sourceY;
+
+    if (
+      tileWidth === undefined ||
+      tileHeight === undefined ||
+      sourceX === undefined ||
+      sourceY === undefined ||
+      tileWidth <= 0 ||
+      tileHeight <= 0
+    ) {
+      return null;
+    }
+
+    const worldWidth = Math.max(1, surface.maxX - surface.minX);
+    const worldDepth = Math.max(1, surface.maxY - surface.minY);
+    const cacheKey = [
+      surface.textureUrl,
+      sourceX,
+      sourceY,
+      tileWidth,
+      tileHeight,
+      worldWidth,
+      worldDepth
+    ].join(":");
+    const existing = this.groundTextureCache.get(cacheKey);
+    if (existing) return existing;
+
+    const maxRasterSide = 1024;
+    const rasterScale = Math.min(
+      1,
+      maxRasterSide / worldWidth,
+      maxRasterSide / worldDepth
+    );
+    const flat = document.createElement("canvas");
+    flat.width = Math.max(1, Math.ceil(worldWidth * rasterScale));
+    flat.height = Math.max(1, Math.ceil(worldDepth * rasterScale));
+
+    const flatContext = flat.getContext("2d");
+    if (!flatContext) return null;
+
+    flatContext.imageSmoothingEnabled = false;
+
+    for (let x = 0; x < worldWidth; x += tileWidth) {
+      for (let y = 0; y < worldDepth; y += tileHeight) {
+        const remainingWidth = Math.min(tileWidth, worldWidth - x);
+        const remainingHeight = Math.min(tileHeight, worldDepth - y);
+        const sourceWidth = Math.max(1, remainingWidth);
+        const sourceHeight = Math.max(1, remainingHeight);
+
+        flatContext.drawImage(
+          image,
+          sourceX,
+          sourceY,
+          sourceWidth,
+          sourceHeight,
+          x * rasterScale,
+          y * rasterScale,
+          remainingWidth * rasterScale,
+          remainingHeight * rasterScale
+        );
+      }
+    }
+
+    const isoWidth = Math.max(
+      1,
+      Math.ceil((flat.width + flat.height) * 0.5)
+    );
+    const isoHeight = Math.max(
+      1,
+      Math.ceil((flat.width + flat.height) * 0.25)
+    );
+    const iso = document.createElement("canvas");
+    iso.width = isoWidth;
+    iso.height = isoHeight;
+
+    const isoContext = iso.getContext("2d");
+    if (!isoContext) return null;
+
+    isoContext.imageSmoothingEnabled = false;
+    isoContext.setTransform(
+      0.5,
+      0.25,
+      -0.5,
+      0.25,
+      flat.height * 0.5,
+      0
+    );
+    isoContext.drawImage(flat, 0, 0);
+
+    const texture = Texture.from(iso);
+    const cached = Object.freeze({ texture, rasterScale });
+    this.groundTextureCache.set(cacheKey, cached);
+    return cached;
   }
 
   private materialColor(material: string): number {
