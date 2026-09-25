@@ -9,6 +9,18 @@ const source=fs.readFileSync(
   "werkzeuge/pr20-9-craft-durable-shadow-no-write.js",
   "utf8",
 );
+const contract=JSON.parse(fs.readFileSync(
+  "grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-runner-preparation.json",
+  "utf8",
+));
+const roadmap=JSON.parse(fs.readFileSync(
+  "roadmap/post-r19-roadmap.json",
+  "utf8",
+));
+const prep=JSON.parse(fs.readFileSync(
+  "grundlage/vertraege/runtime/merchant-remaining-production-preparation.json",
+  "utf8",
+));
 
 class MemoryStorage {
   constructor(){ this.rows=new Map(); }
@@ -352,4 +364,59 @@ test("PR20.9 Craft runner package contains no gameplay mutation bypass",()=>{
     "NO_CONSERVATIVE_OUTPUTSPACE",
     "CRAFTSMAN_POINT",
   ]) assert.ok(source.includes(marker),marker);
+});
+
+test("PR20.9 Craft runner contract and roadmap remain no-write and not active",()=>{
+  assert.equal(contract.status,"PACKAGE_BEREIT_NO_WRITE");
+  assert.equal(contract.testId,"pr20-9-craft-durable-shadow-no-write");
+  assert.equal(contract.controllerVersion,"1.0.0");
+  assert.equal(contract.expectedGlobal,"V5PR209CraftDurableShadowNoWrite");
+  assert.equal(contract.scope,"NORMAL_CRAFT_ONLY");
+  assert.equal(contract.candidatePolicy.naturalCurrentInventoryOnly,true);
+  assert.equal(contract.candidatePolicy.splitStackAllowed,false);
+  assert.equal(contract.candidatePolicy.anniversaryCraftAllowed,false);
+  assert.equal(contract.candidatePolicy.autoCraftAllowed,false);
+  assert.equal(contract.shadowSemantics.exactTerminalRecoveryAllowed,true);
+  assert.equal(contract.shadowSemantics.conflictingExistingIntentFailsClosed,true);
+  assert.equal(contract.shadowSemantics.journalTerminalArt,"ABBRUCH");
+  assert.equal(contract.shadowSemantics.sendBoundaryState,"NICHT_GESENDET");
+  assert.equal(contract.shadowSemantics.reconciliationClassification,"NOT_APPLIED");
+  assert.equal(contract.authority.craftAuthority,false);
+  assert.equal(contract.authority.gameplayAuthority,false);
+  assert.equal(contract.authority.rawWriteAuthority,false);
+  assert.equal(contract.authority.broadGraphExecutionAuthority,false);
+  assert.equal(contract.authority.normalRuntimeAllowed,false);
+  assert.equal(contract.writes.maximumGameplayWrites,0);
+  assert.equal(contract.writes.maximumPublicFunctionCalls,0);
+  assert.equal(contract.writes.maximumRawWriteCalls,0);
+  assert.equal(contract.manifest.cutoverPrepared,false);
+  assert.equal(contract.manifest.active,false);
+
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE_BEREIT_NO_WRITE",
+  );
+  assert.equal(prep.pr20_9.status,roadmap.pr20_9.status);
+  assert.equal(
+    roadmap.pr20_9.nextAction,
+    "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER",
+  );
+  assert.equal(prep.pr20_9.nextAction,roadmap.pr20_9.nextAction);
+  assert.equal(roadmap.pr20_9.liveExecutionAllowed,false);
+  assert.equal(roadmap.pr20_9.productiveCraftAuthority,false);
+  assert.equal(roadmap.pr20_9.broadGraphExecutionAuthority,false);
+  assert.equal(roadmap.pr20_9.normalRuntimeAllowed,false);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.active,false);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.manifestCutoverPrepared,false);
+
+  const parallel=roadmap.parallelPreparations.find(x=>x?.id==="PR20.9_PRODUCTION");
+  assert.ok(parallel);
+  assert.equal(parallel.status,roadmap.pr20_9.status);
+  assert.equal(parallel.nextAction,roadmap.pr20_9.nextAction);
+  assert.equal(parallel.liveExecutionAllowed,false);
+  for(const artifact of [
+    "v5/werkzeuge/pr20-9-craft-durable-shadow-no-write.js",
+    "v5/werkzeuge/tests/pr20-9-craft-durable-shadow-no-write.test.mjs",
+    "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-runner-preparation.json",
+  ]) assert.ok(parallel.artifacts.includes(artifact),artifact);
 });
