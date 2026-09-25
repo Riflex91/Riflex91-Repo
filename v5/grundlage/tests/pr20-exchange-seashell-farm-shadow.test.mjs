@@ -112,7 +112,7 @@ test("already having twenty Seashells skips farm preparation and returns to scan
   }));
   assert.equal(result.status,"ALREADY_SATISFIED_NO_WRITE");
   assert.equal(result.target.remainingQuantity,0);
-  assert.equal(result.nextAction,"RUN_EXISTING_EXCHANGE_SCANNER");
+  assert.equal(result.nextAction,"PREPARE_SEASHELL_HANDOFF_SHADOW_NO_WRITE");
   assert.equal(result.farmAuthority,false);
   assert.equal(result.exchangeAuthority,false);
 });
