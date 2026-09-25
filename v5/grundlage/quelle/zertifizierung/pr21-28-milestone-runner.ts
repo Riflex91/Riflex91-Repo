@@ -24,6 +24,7 @@ export interface Pr21_28MilestoneRunnerPlan {
   readonly checkpointId: Pr21_28CheckpointId;
   readonly segmente: readonly Pr21_28MilestoneSegmentPlan[];
   readonly maximaleSamples: number;
+  readonly cap022FullChainRequired: boolean;
   readonly runtimeMussSeparatAutorisiertSein: true;
   readonly runnerErteiltKeineAuthority: true;
   readonly observerOnly: true;
@@ -53,6 +54,11 @@ export interface Pr21_28MilestoneSample {
   readonly starvationCriticalCount: number;
 }
 
+export interface Pr21_28MilestoneEvaluationPrerequisites {
+  readonly schemaVersion: 1;
+  readonly cap022FullChainReady: boolean;
+}
+
 export interface Pr21_28MilestoneRunnerAuswertung {
   readonly schemaVersion: 1;
   readonly checkpointId: Pr21_28CheckpointId;
@@ -67,6 +73,8 @@ export interface Pr21_28MilestoneRunnerAuswertung {
   readonly evidenceRows: readonly Pr21_28LiveEvidenceRow[];
   readonly alleMinimaErreicht: boolean;
   readonly alleZieleErreicht: boolean;
+  readonly cap022FullChainRequired: boolean;
+  readonly cap022FullChainSatisfied: boolean;
   readonly runnerGameplayWrites: 0;
   readonly runnerPublicFunctionCalls: 0;
   readonly runnerRawWriteCalls: 0;
@@ -125,6 +133,9 @@ export function planePr21_28MilestoneRunner(
     checkpointId,
     segmente,
     maximaleSamples,
+    cap022FullChainRequired: segmente.some(
+      x => x.stage === "PR22" || x.stage === "PR23",
+    ),
     runtimeMussSeparatAutorisiertSein: true,
     runnerErteiltKeineAuthority: true,
     observerOnly: true,
@@ -165,19 +176,27 @@ function summe(
 export function wertePr21_28MilestoneSamplesAus(
   plan: Pr21_28MilestoneRunnerPlan,
   samples: readonly Pr21_28MilestoneSample[],
+  prerequisites: Pr21_28MilestoneEvaluationPrerequisites,
 ): Pr21_28MilestoneRunnerAuswertung {
   if (plan.schemaVersion !== 1
       || plan.segmente.length < 1
       || plan.segmente.length > 16
       || samples.length < 2
-      || samples.length > plan.maximaleSamples) {
+      || samples.length > plan.maximaleSamples
+      || prerequisites.schemaVersion !== 1) {
     throw new Error("PR21_28_MILESTONE_RUNNER_INPUT_UNGUELTIG");
   }
+
+  const cap022FullChainSatisfied =
+    !plan.cap022FullChainRequired || prerequisites.cap022FullChainReady === true;
 
   const segmentIndex = new Map(
     plan.segmente.map((x, index) => [x.segmentId, index] as const),
   );
   const blocker: string[] = [];
+  if (!cap022FullChainSatisfied) {
+    blocker.push("PR21_28_MILESTONE_CAP022_FULL_CHAIN_NICHT_BEREIT");
+  }
   let sampleGaps = 0;
   let segmentReihenfolgeVerletzt = 0;
   let letzterSegmentIndex = 0;
@@ -325,6 +344,8 @@ export function wertePr21_28MilestoneSamplesAus(
     evidenceRows: Object.freeze(evidenceRows),
     alleMinimaErreicht,
     alleZieleErreicht,
+    cap022FullChainRequired: plan.cap022FullChainRequired,
+    cap022FullChainSatisfied,
     runnerGameplayWrites: 0,
     runnerPublicFunctionCalls: 0,
     runnerRawWriteCalls: 0,

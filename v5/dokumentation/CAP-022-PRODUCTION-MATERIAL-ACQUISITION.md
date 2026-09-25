@@ -128,6 +128,16 @@ PR22/PR23 Stage-Ledger-/Replay-Bindung:
 
 Auch das zentrale Stage-Ledger verlangt fuer PR22 und PR23 `cap022FullChainReady=true`, bevor `preparationComplete` gesetzt werden darf. Im Advance-Replay entstehen bei fehlender Bindung explizite `PR22_CAP022_FULL_CHAIN_REQUIRED` bzw. `PR23_CAP022_FULL_CHAIN_REQUIRED`-Blocker. Der Replay-Pfad mutiert keine Gates und erteilt keine Authority.
 
+
+Milestone-Runner / Checkpoint-Runbook-Bindung:
+
+- `grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts`
+- `grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts`
+- `grundlage/vertraege/runtime/pr21-28-milestone-runners.json`
+- `grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json`
+
+Der `POST_PR24_25_GROUP_CHECKPOINT` enthaelt ein PR23-Capability-Segment und ist deshalb ebenfalls CAP-022-pflichtig. Seine Milestone-Auswertung verlangt explizit `cap022FullChainReady=true`; ohne diese Bedingung bleibt die Evidence `BLOCKIERT`. Das Runbook fuehrt fuer diesen Checkpoint zusaetzlich `CAP022_FULL_CHAIN_READY` als verpflichtende Precondition, bevor ein extern autorisierter Runtime-Lauf gestartet werden darf. Runner und Runbook erteilen selbst weiterhin keine Gameplay-Authority und ratifizieren keine Evidence.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf

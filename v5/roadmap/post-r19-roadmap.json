@@ -105,7 +105,8 @@
     "CAP-022 Full-Chain-Readiness ist jetzt in der PR21-28-Shadow-Orchestrierung fail-closed: alle neun NO-WRITE-Fundamente von Material-Acquisition bis Team-Rescan-Durable-Admission muessen vorhanden und PREPARED_NO_WRITE sein; fehlende/blockierte Komponenten sperren die Pipeline. PR20.9-Ratification-Credit, Candidate-Acquisition, Durable Intent und produktive Craft-Authority bleiben false.",
     "Der zentrale PR21-28-Readiness-Snapshot ist jetzt an CAP-022 Full-Chain-Readiness gebunden: selbst bei vollstaendig vorbereitetem Stage-Ledger bleibt der Status PARTIALLY_PREPARED, solange eine der neun CAP-022-NO-WRITE-Foundations fehlt oder blockiert ist. Dadurch kann die Live-Evidence-Grenze nicht ohne den kompletten Materialpfad erreicht werden.",
     "PR22/PR23 Feature-Gates sind jetzt explizit an CAP-022 Full-Chain gebunden: orchestrationPrepared allein reicht nicht mehr. Bei cap022FullChainReady=false blockiert der jeweilige Gate-Stage mit eigenem Blocker und schliesst die nachfolgende Produktivkette; Authority bleibt dabei unveraendert false.",
-    "PR22/PR23 Stage-Ledger und Advance-Replay sind jetzt explizit an CAP-022 Full-Chain gebunden: preparationComplete verlangt cap022FullChainReady=true; fehlt die Bindung, erscheinen eigene CAP-022-Replay-Blocker und weder Preparation- noch Productive-Chain kann die Materialkette umgehen."
+    "PR22/PR23 Stage-Ledger und Advance-Replay sind jetzt explizit an CAP-022 Full-Chain gebunden: preparationComplete verlangt cap022FullChainReady=true; fehlt die Bindung, erscheinen eigene CAP-022-Replay-Blocker und weder Preparation- noch Productive-Chain kann die Materialkette umgehen.",
+    "Der PR23-enthaltende Group-Milestone-Runner und sein Checkpoint-Runbook sind jetzt explizit an CAP-022 Full-Chain gebunden: ohne cap022FullChainReady wird die Milestone-Auswertung BLOCKIERT und das Runbook verlangt CAP022_FULL_CHAIN_READY bereits als Precondition vor externem Runtime-Start."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -1000,7 +1001,13 @@
         "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
-        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
+        "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
+        "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs"
       ],
       "deferredAutomaticMaterialRecheck": {
         "status": "WAITING_FOR_FUTURE_PRODUCTIVE_MATERIAL_ACQUISITION",
@@ -1329,6 +1336,44 @@
             "durableIntentCreated": false,
             "productiveCraftAuthorityOpened": false,
             "normalRuntimeAllowed": false
+          },
+          "milestoneRunnerBinding": {
+            "status": "PREPARED_NO_WRITE",
+            "source": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
+            "test": "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
+            "requiredCheckpoint": "POST_PR24_25_GROUP_CHECKPOINT",
+            "requiredStages": [
+              "PR23"
+            ],
+            "planField": "cap022FullChainRequired",
+            "evaluationInputField": "cap022FullChainReady",
+            "blocker": "PR21_28_MILESTONE_CAP022_FULL_CHAIN_NICHT_BEREIT",
+            "missingFullChainStatus": "BLOCKIERT",
+            "runnerRatifiesEvidence": false,
+            "runnerIssuesAuthority": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
+          },
+          "checkpointRunbookBinding": {
+            "status": "PREPARED_NO_WRITE",
+            "source": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
+            "test": "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs",
+            "requiredCheckpoint": "POST_PR24_25_GROUP_CHECKPOINT",
+            "requiredPrecondition": "CAP022_FULL_CHAIN_READY",
+            "runbookField": "cap022FullChainRequired",
+            "missingFullChainMayNotStartExternalRuntime": true,
+            "manualRatificationStillRequired": true,
+            "runnerOwnsGameplayAuthority": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
           }
         }
       }
@@ -1459,7 +1504,13 @@
         "v5/grundlage/quelle/produktion/pr20-9-craft-team-rescan-durable-admission.ts",
         "v5/grundlage/vertraege/runtime/pr20-9-craft-team-rescan-durable-admission-foundation.json",
         "v5/grundlage/tests/pr20-9-craft-team-rescan-durable-admission.test.mjs",
-        "v5/grundlage/quelle/runtime/cap022-foundation-chain-readiness.ts"
+        "v5/grundlage/quelle/runtime/cap022-foundation-chain-readiness.ts",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
+        "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
+        "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1774,6 +1825,44 @@
             },
             "replayMutatesGate": false,
             "replayIssuesAuthority": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
+          },
+          "milestoneRunnerBinding": {
+            "status": "PREPARED_NO_WRITE",
+            "source": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
+            "test": "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
+            "requiredCheckpoint": "POST_PR24_25_GROUP_CHECKPOINT",
+            "requiredStages": [
+              "PR23"
+            ],
+            "planField": "cap022FullChainRequired",
+            "evaluationInputField": "cap022FullChainReady",
+            "blocker": "PR21_28_MILESTONE_CAP022_FULL_CHAIN_NICHT_BEREIT",
+            "missingFullChainStatus": "BLOCKIERT",
+            "runnerRatifiesEvidence": false,
+            "runnerIssuesAuthority": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
+          },
+          "checkpointRunbookBinding": {
+            "status": "PREPARED_NO_WRITE",
+            "source": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
+            "test": "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs",
+            "requiredCheckpoint": "POST_PR24_25_GROUP_CHECKPOINT",
+            "requiredPrecondition": "CAP022_FULL_CHAIN_READY",
+            "runbookField": "cap022FullChainRequired",
+            "missingFullChainMayNotStartExternalRuntime": true,
+            "manualRatificationStillRequired": true,
+            "runnerOwnsGameplayAuthority": false,
             "currentPr20_9RatificationCredit": false,
             "candidateAcquisitionOrMutationAllowedNow": false,
             "durableIntentCreated": false,
@@ -2172,6 +2261,44 @@
             },
             "replayMutatesGate": false,
             "replayIssuesAuthority": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
+          },
+          "milestoneRunnerBinding": {
+            "status": "PREPARED_NO_WRITE",
+            "source": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
+            "test": "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
+            "requiredCheckpoint": "POST_PR24_25_GROUP_CHECKPOINT",
+            "requiredStages": [
+              "PR23"
+            ],
+            "planField": "cap022FullChainRequired",
+            "evaluationInputField": "cap022FullChainReady",
+            "blocker": "PR21_28_MILESTONE_CAP022_FULL_CHAIN_NICHT_BEREIT",
+            "missingFullChainStatus": "BLOCKIERT",
+            "runnerRatifiesEvidence": false,
+            "runnerIssuesAuthority": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
+          },
+          "checkpointRunbookBinding": {
+            "status": "PREPARED_NO_WRITE",
+            "source": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
+            "test": "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs",
+            "requiredCheckpoint": "POST_PR24_25_GROUP_CHECKPOINT",
+            "requiredPrecondition": "CAP022_FULL_CHAIN_READY",
+            "runbookField": "cap022FullChainRequired",
+            "missingFullChainMayNotStartExternalRuntime": true,
+            "manualRatificationStillRequired": true,
+            "runnerOwnsGameplayAuthority": false,
             "currentPr20_9RatificationCredit": false,
             "candidateAcquisitionOrMutationAllowedNow": false,
             "durableIntentCreated": false,
@@ -5705,6 +5832,44 @@
           "durableIntentCreated": false,
           "productiveCraftAuthorityOpened": false,
           "normalRuntimeAllowed": false
+        },
+        "milestoneRunnerBinding": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
+          "test": "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
+          "requiredCheckpoint": "POST_PR24_25_GROUP_CHECKPOINT",
+          "requiredStages": [
+            "PR23"
+          ],
+          "planField": "cap022FullChainRequired",
+          "evaluationInputField": "cap022FullChainReady",
+          "blocker": "PR21_28_MILESTONE_CAP022_FULL_CHAIN_NICHT_BEREIT",
+          "missingFullChainStatus": "BLOCKIERT",
+          "runnerRatifiesEvidence": false,
+          "runnerIssuesAuthority": false,
+          "currentPr20_9RatificationCredit": false,
+          "candidateAcquisitionOrMutationAllowedNow": false,
+          "durableIntentCreated": false,
+          "productiveCraftAuthorityOpened": false,
+          "normalRuntimeAllowed": false
+        },
+        "checkpointRunbookBinding": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
+          "test": "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs",
+          "requiredCheckpoint": "POST_PR24_25_GROUP_CHECKPOINT",
+          "requiredPrecondition": "CAP022_FULL_CHAIN_READY",
+          "runbookField": "cap022FullChainRequired",
+          "missingFullChainMayNotStartExternalRuntime": true,
+          "manualRatificationStillRequired": true,
+          "runnerOwnsGameplayAuthority": false,
+          "currentPr20_9RatificationCredit": false,
+          "candidateAcquisitionOrMutationAllowedNow": false,
+          "durableIntentCreated": false,
+          "productiveCraftAuthorityOpened": false,
+          "normalRuntimeAllowed": false
         }
       }
     }
@@ -6255,6 +6420,44 @@
           "durableIntentCreated": false,
           "productiveCraftAuthorityOpened": false,
           "normalRuntimeAllowed": false
+        },
+        "milestoneRunnerBinding": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
+          "test": "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
+          "requiredCheckpoint": "POST_PR24_25_GROUP_CHECKPOINT",
+          "requiredStages": [
+            "PR23"
+          ],
+          "planField": "cap022FullChainRequired",
+          "evaluationInputField": "cap022FullChainReady",
+          "blocker": "PR21_28_MILESTONE_CAP022_FULL_CHAIN_NICHT_BEREIT",
+          "missingFullChainStatus": "BLOCKIERT",
+          "runnerRatifiesEvidence": false,
+          "runnerIssuesAuthority": false,
+          "currentPr20_9RatificationCredit": false,
+          "candidateAcquisitionOrMutationAllowedNow": false,
+          "durableIntentCreated": false,
+          "productiveCraftAuthorityOpened": false,
+          "normalRuntimeAllowed": false
+        },
+        "checkpointRunbookBinding": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
+          "test": "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs",
+          "requiredCheckpoint": "POST_PR24_25_GROUP_CHECKPOINT",
+          "requiredPrecondition": "CAP022_FULL_CHAIN_READY",
+          "runbookField": "cap022FullChainRequired",
+          "missingFullChainMayNotStartExternalRuntime": true,
+          "manualRatificationStillRequired": true,
+          "runnerOwnsGameplayAuthority": false,
+          "currentPr20_9RatificationCredit": false,
+          "candidateAcquisitionOrMutationAllowedNow": false,
+          "durableIntentCreated": false,
+          "productiveCraftAuthorityOpened": false,
+          "normalRuntimeAllowed": false
         }
       }
     }
@@ -6619,6 +6822,44 @@
           },
           "replayMutatesGate": false,
           "replayIssuesAuthority": false,
+          "currentPr20_9RatificationCredit": false,
+          "candidateAcquisitionOrMutationAllowedNow": false,
+          "durableIntentCreated": false,
+          "productiveCraftAuthorityOpened": false,
+          "normalRuntimeAllowed": false
+        },
+        "milestoneRunnerBinding": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
+          "test": "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
+          "requiredCheckpoint": "POST_PR24_25_GROUP_CHECKPOINT",
+          "requiredStages": [
+            "PR23"
+          ],
+          "planField": "cap022FullChainRequired",
+          "evaluationInputField": "cap022FullChainReady",
+          "blocker": "PR21_28_MILESTONE_CAP022_FULL_CHAIN_NICHT_BEREIT",
+          "missingFullChainStatus": "BLOCKIERT",
+          "runnerRatifiesEvidence": false,
+          "runnerIssuesAuthority": false,
+          "currentPr20_9RatificationCredit": false,
+          "candidateAcquisitionOrMutationAllowedNow": false,
+          "durableIntentCreated": false,
+          "productiveCraftAuthorityOpened": false,
+          "normalRuntimeAllowed": false
+        },
+        "checkpointRunbookBinding": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
+          "test": "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs",
+          "requiredCheckpoint": "POST_PR24_25_GROUP_CHECKPOINT",
+          "requiredPrecondition": "CAP022_FULL_CHAIN_READY",
+          "runbookField": "cap022FullChainRequired",
+          "missingFullChainMayNotStartExternalRuntime": true,
+          "manualRatificationStillRequired": true,
+          "runnerOwnsGameplayAuthority": false,
           "currentPr20_9RatificationCredit": false,
           "candidateAcquisitionOrMutationAllowedNow": false,
           "durableIntentCreated": false,

@@ -30,6 +30,7 @@ export interface Pr21_28CheckpointRunbook {
   readonly completionArtifacts: readonly string[];
   readonly minimumDurationSeconds: number;
   readonly targetDurationSeconds: number;
+  readonly cap022FullChainRequired: boolean;
   readonly manualRatificationRequired: true;
   readonly externalRuntimeOwnsGameplayAuthority: true;
   readonly runnerOwnsGameplayAuthority: false;
@@ -90,6 +91,7 @@ export function bauePr21_28CheckpointRunbook(
     "CURRENT_MAIN_VERIFIED",
     "CHECKPOINT_PREDECESSOR_PRODUCTIVE_GATE_SATISFIED",
     "REQUIRED_FEATURE_GATES_RATIFIED",
+    ...(plan.cap022FullChainRequired ? ["CAP022_FULL_CHAIN_READY"] : []),
     "NO_OPEN_UNRESOLVED_TRANSACTION",
     "NO_PENDING_SAME_INTENT_RETRY",
     "R11_HEALTH_GREEN",
@@ -129,6 +131,7 @@ export function bauePr21_28CheckpointRunbook(
     completionArtifacts,
     minimumDurationSeconds,
     targetDurationSeconds,
+    cap022FullChainRequired: plan.cap022FullChainRequired,
     manualRatificationRequired: true,
     externalRuntimeOwnsGameplayAuthority: true,
     runnerOwnsGameplayAuthority: false,
