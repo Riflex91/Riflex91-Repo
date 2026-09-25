@@ -1,13 +1,23 @@
-import type { GameFrameSnapshot, RenderBridge } from "../render/RenderBridge";
+import type {
+  GameFrameSnapshot,
+  RenderBridge,
+  RenderMapState
+} from "../render/RenderBridge";
 import {
   LegacySnapshotAdapter,
   type LegacyEntityLike
 } from "./LegacySnapshotAdapter";
 
+export type LegacyGameDataLike = Readonly<{
+  maps?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  geometry?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+}>;
+
 export type LegacyGlobalsLike = Readonly<{
   current_map?: string;
   character?: LegacyEntityLike | null;
   entities?: Readonly<Record<string, LegacyEntityLike>>;
+  G?: LegacyGameDataLike;
 }>;
 
 export type FrameScheduler = Readonly<{
@@ -19,6 +29,60 @@ const browserFrameScheduler: FrameScheduler = {
   request: (callback) => requestAnimationFrame(callback),
   cancel: (handle) => cancelAnimationFrame(handle)
 };
+
+function countCollection(value: unknown): number {
+  if (Array.isArray(value)) return value.length;
+  if (value && typeof value === "object") return Object.keys(value).length;
+  return 0;
+}
+
+function snapshotPrimitiveMetadata(
+  source: Readonly<Record<string, unknown>> | undefined
+): Readonly<Record<string, string | number | boolean | null>> {
+  const metadata: Record<string, string | number | boolean | null> = {};
+
+  for (const [key, value] of Object.entries(source ?? {})) {
+    if (
+      value === null ||
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      metadata[key] = value;
+    }
+  }
+
+  return Object.freeze(metadata);
+}
+
+/**
+ * Takes a small immutable summary of G.maps[current_map] and
+ * G.geometry[current_map]. No legacy arrays/objects are handed to the renderer,
+ * so the rendering side cannot mutate authoritative topology/game data.
+ */
+export function snapshotLegacyMapState(
+  globals: LegacyGlobalsLike,
+  mapId: string
+): RenderMapState | undefined {
+  const mapDefinition = globals.G?.maps?.[mapId];
+  const geometry = globals.G?.geometry?.[mapId];
+
+  if (!mapDefinition && !geometry) return undefined;
+
+  return Object.freeze({
+    id: mapId,
+    metadata: snapshotPrimitiveMetadata(mapDefinition),
+    geometry: Object.freeze({
+      available: Boolean(geometry),
+      tiles: countCollection(geometry?.tiles),
+      placements: countCollection(geometry?.placements),
+      groups: countCollection(geometry?.groups),
+      animations: countCollection(geometry?.animations),
+      xLines: countCollection(geometry?.x_lines),
+      yLines: countCollection(geometry?.y_lines)
+    })
+  });
+}
 
 /**
  * Mirrors the original Adventure Land client state into the new renderer.
@@ -46,12 +110,16 @@ export class LegacyMirrorBridge {
       character?.map ??
       "main";
 
-    const snapshot = this.adapter.toSnapshot({
+    const entitySnapshot = this.adapter.toSnapshot({
       tick: this.tick++,
       map,
       character,
       entities: globals.entities ?? {}
     });
+    const mapState = snapshotLegacyMapState(globals, map);
+    const snapshot: GameFrameSnapshot = mapState
+      ? Object.freeze({ ...entitySnapshot, mapState })
+      : entitySnapshot;
 
     this.renderer.renderFrame(snapshot);
     return snapshot;
