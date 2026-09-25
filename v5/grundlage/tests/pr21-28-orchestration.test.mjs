@@ -246,6 +246,22 @@ function orchestrationRequest(overrides={}) {
   return {
     schemaVersion:1,
     pr20ProductiveComplete:false,
+    materialAcquisition:{
+      schemaVersion:1,
+      status:"KEIN_FARM_BEDARF",
+      produktionsId:"prod-material-shadow",
+      ablaufId:"workflow-material-shadow",
+      ziele:[],
+      blocker:[],
+      pr22ProduktivGateErforderlich:true,
+      pr23ProduktivGateErforderlich:true,
+      currentPr20_9CandidateAcquisitionAllowed:false,
+      planningOnly:true,
+      ausfuehrungsAutoritaet:false,
+      gameplayAutoritaet:false,
+      rawWriteAutoritaet:false,
+      normalRuntimeAllowed:false,
+    },
     pr21:{
       schemaVersion:1,
       status:"BEREIT_FUER_INTEGRATIONSTEST_NO_WRITE",
@@ -328,6 +344,8 @@ test("PR21-28 orchestrator connects every foundation while productive dependency
   const result=orchestrierePr21_28ShadowPipeline(orchestrationRequest());
   assert.equal(result.status,"SHADOW_PIPELINE_BEREIT_NO_WRITE");
   assert.equal(result.allFoundationsConnected,true);
+  assert.equal(result.materialAcquisitionFoundationReady,true);
+  assert.equal(result.materialAcquisitionProductiveExecutionAllowed,false);
   assert.equal(result.highestPreparedStage,"PR28");
   assert.equal(result.stages.length,8);
   assert.equal(result.stages[0].productiveDependencySatisfied,false);
@@ -344,12 +362,27 @@ test("PR21-28 orchestrator connects every foundation while productive dependency
   assert.equal(blocked.status,"BLOCKIERT");
   assert.equal(blocked.highestPreparedStage,"PR27");
   assert.ok(blocked.blocker.includes("PR21_28_FOUNDATION_BLOCKIERT:PR28"));
+
+  const materialBlocked=orchestrierePr21_28ShadowPipeline(orchestrationRequest({
+    materialAcquisition:{
+      ...orchestrationRequest().materialAcquisition,
+      status:"BLOCKIERT",
+      blocker:["CAP022_FARMER_FEHLT_ODER_STALE:farm:1"],
+    },
+  }));
+  assert.equal(materialBlocked.status,"BLOCKIERT");
+  assert.equal(materialBlocked.materialAcquisitionFoundationReady,false);
+  assert.equal(materialBlocked.materialAcquisitionProductiveExecutionAllowed,false);
+  assert.ok(materialBlocked.blocker.includes(
+    "PR21_28_FOUNDATION_BLOCKIERT:CAP022_MATERIAL_ACQUISITION",
+  ));
 });
 
 test("PR21-28 orchestration batch contains no direct gameplay mutation bypass",()=>{
   const paths=[
     "grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
     "grundlage/quelle/koordination/pr22-coordination-shadow-workflow.ts",
+    "grundlage/quelle/koordination/production-material-acquisition.ts",
     "grundlage/quelle/gruppe/pr24-25-group-validation-suite.ts",
     "grundlage/quelle/optimierung/pr26-28-autonomy-shadow-plan.ts",
   ];
