@@ -301,9 +301,27 @@ test("CAP-022 Admission verbietet offene Craft-Authority oder offene Transaktion
 });
 
 test("CAP-022 Admission erzwingt frische maximal 1500ms Durable-Shadow-Plan-TTL",()=>{
+  const basis=preflightRequest();
+  const lang=preflightRequest({
+    recipe:{
+      ...basis.recipe,
+      gueltigBisMs:2000,
+    },
+    reachability:{
+      ...basis.reachability,
+      gueltigBisMs:2000,
+    },
+  });
+  const langResult=pruefePr20_9CraftReadOnlyPreflight(lang,200);
+  assert.equal(langResult.status,"BEREIT_NO_WRITE");
+
   assert.throws(
     ()=>bereitePr20_9CraftTeamRescanDurableAdmissionVor(
-      request({fence:fence({beobachtetAmMs:0,gueltigBisMs:2000})}),
+      request({
+        teamRescan:readyTeamRescan({preflight:langResult}),
+        craftPreflightRequest:lang,
+        fence:fence({beobachtetAmMs:0,gueltigBisMs:2000}),
+      }),
       200,
     ),
     /PR20_9_TEAM_RESCAN_ADMISSION_PLAN_TTL_UNGUELTIG/,
