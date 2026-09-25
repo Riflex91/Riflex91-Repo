@@ -111,23 +111,20 @@ test("manifest cutover deploys only the pinned productive autonomy one-write run
   assert.equal(cutover.deploymentBoundary.mayAdvanceToPr20_9,false);
 });
 
-test("roadmap advances only to deploy and observe productive autonomy one-write",()=>{
+test("roadmap reflects ratified productive autonomy and closes PR20.8",()=>{
   const p=roadmap.pr20_8;
   const a=p.exchangeCandidateAcquisition.anniversaryGiftExchangeAutonomyProductiveOneWrite;
   assert.equal(
     p.status,
-    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED",
+    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_RATIFIED_PR20_8_COMPLETE",
   );
-  assert.equal(
-    p.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_PRODUCTIVE_ONE_WRITE",
-  );
-  assert.equal(a.status,"MANIFEST_CUTOVER_PREPARED");
+  assert.equal(p.nextAction,"ADVANCE_TO_PR20_9_PRODUCTION");
+  assert.equal(a.status,"RATIFIED_BESTANDEN_COMMITTED_AUTONOMOUS_ONE_WRITE");
   assert.equal(a.testId,manifest.testId);
   assert.equal(a.manifestCutoverPrepared,true);
-  assert.equal(a.deployed,false);
-  assert.equal(a.liveEvidenceObserved,false);
-  assert.equal(a.productiveAutonomyProven,false);
+  assert.equal(a.deployed,true);
+  assert.equal(a.liveEvidenceObserved,true);
+  assert.equal(a.productiveAutonomyProven,true);
   assert.equal(a.manualPinnedInventoryIndex,false);
   assert.equal(a.priorCommittedTransactionGrantsAuthority,false);
   assert.equal(a.maximumGameplayWrites,1);
@@ -135,9 +132,9 @@ test("roadmap advances only to deploy and observe productive autonomy one-write"
   assert.equal(a.maximumRawWriteCalls,0);
   assert.equal(a.sameIntentRetry,false);
   assert.equal(a.normalRuntimeAllowed,false);
-  assert.equal(p.exitGateReview.exchangeAutonomyProductiveProven,false);
-  assert.equal(p.exitGateReview.currentExitGateSatisfied,false);
-  assert.equal(p.exitGateReview.mayAdvanceToPr20_9,false);
+  assert.equal(p.exitGateReview.exchangeAutonomyProductiveProven,true);
+  assert.equal(p.exitGateReview.currentExitGateSatisfied,true);
+  assert.equal(p.exitGateReview.mayAdvanceToPr20_9,true);
 });
 
 test("parallel PR20.8 mirror matches the productive autonomy deployment state",()=>{
