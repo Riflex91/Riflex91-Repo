@@ -731,7 +731,7 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "EXCHANGE_NO_CANDIDATE_CLOSEOUT_REVIEWED_FRESH_READONLY_RESCAN_REQUIRED",
+    "EXCHANGE_READONLY_RESCAN_MANIFEST_CUTOVER_PREPARED",
   );
   assert.equal(
     prep.pr20_8.nextAction,
@@ -1428,9 +1428,9 @@ test("PR20.8 Compound 5m evidence is ratified with zero additional mutation", ()
   assert.equal(e.normalRuntimeAllowed,false);
 });
 
-test("PR20.8 Exchange no-candidate closeout permits only a fresh read-only rescan", () => {
+test("PR20.8 Exchange no-candidate closeout manifest cutover permits only the fresh read-only rescan", () => {
   const r=prep.pr20_8.exchangeNoCandidateCloseoutReview;
-  assert.equal(r.status,"REVIEWED_FRESH_READONLY_RESCAN_REQUIRED");
+  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_FRESH_READONLY_RESCAN");
   assert.equal(r.review,"roadmap/pr20-8-exchange-no-candidate-closeout-review.json");
   assert.equal(r.existingEvidence,"roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json");
   assert.equal(r.existingObservedAtMs,1790278399271);
@@ -1454,10 +1454,32 @@ test("PR20.8 Exchange no-candidate closeout permits only a fresh read-only resca
   assert.equal(r.scannerMaximumGameplayWrites,0);
   assert.equal(r.scannerMaximumPublicFunctionCalls,0);
   assert.equal(r.scannerMaximumRawWriteCalls,0);
-  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.manifest,"roadmap/v5-autonomous-test-manifest.json");
+  assert.equal(r.manifestCutoverPrepared,true);
+  assert.equal(r.bridgeMayDeployPinnedRunner,true);
   assert.equal(r.deployed,false);
   assert.equal(r.evidenceObserved,false);
   assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
+  const active=prep.pr20_8.activeAutonomousManifest;
+  assert.equal(active.testId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(active.controllerVersion,"1.0.4");
+  assert.equal(active.package,"werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js");
+  assert.equal(active.sourceCommit,"27e25e69dc0e26d8ae05328335718c36a6a0c659");
+  assert.equal(active.packageSha256,"0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b");
+  assert.equal(active.packageBytes,21343);
+  assert.equal(active.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
+  assert.equal(active.maximumGameplayWrites,0);
+  assert.equal(active.maximumPublicFunctionCalls,0);
+  assert.equal(active.maximumRawWriteCalls,0);
+  assert.equal(active.exchangeAuthority,false);
+  assert.equal(active.gameplayAuthority,false);
+  assert.equal(active.rawWriteAuthority,false);
+  assert.equal(active.normalRuntimeAllowed,false);
+  const retired=prep.pr20_8.activeCompoundLive5mManifest;
+  assert.equal(retired.active,false);
+  assert.equal(retired.retiredFromActiveManifest,true);
+  assert.equal(retired.supersededByTestId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(retired.supersededByControllerVersion,"1.0.4");
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
