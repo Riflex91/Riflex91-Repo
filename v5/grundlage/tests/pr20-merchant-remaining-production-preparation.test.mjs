@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "EXCHANGE_CURRENT_INVENTORY_NO_CANDIDATE_RATIFIED_WAIT_FUTURE_READONLY_RESCAN",
+    "EXCHANGE_ACQUISITION_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN",
+    "DEPLOY_EXCHANGE_ACQUISITION_DISCOVERY_READ_ONLY",
   );
   const exit=prep.pr20_8.exitGateReview;
   assert.equal(exit.status,"BLOCKED_EXCHANGE_NO_CANDIDATE");
@@ -1509,16 +1509,19 @@ test("PR20.8 Exchange closeout records the fresh v1.0.6 no-candidate evidence", 
   assert.equal(fresh.outcome,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
   assert.equal(r.nextGate,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
   const active=prep.pr20_8.activeAutonomousManifest;
-  assert.equal(active.testId,"pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(active.controllerVersion,"1.0.6");
-  assert.equal(active.package,"werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js");
-  assert.equal(active.sourceCommit,"a5fd67cc9c587b2a20b163915936717c7b4e8321");
-  assert.equal(active.packageSha256,"fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387");
-  assert.equal(active.packageBytes,21688);
-  assert.equal(active.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
+  assert.equal(active.testId,"pr20-8-exchange-candidate-acquisition-readonly");
+  assert.equal(active.controllerVersion,"1.0.1");
+  assert.equal(active.package,"werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js");
+  assert.equal(active.sourceCommit,"3182b137957416b253dde303bbba54dd800f8b14");
+  assert.equal(active.packageSha256,"1acc8253cef6b02b33a6a5de289ce5a7095066d36bc727f9cffa77647e8778ec");
+  assert.equal(active.packageBytes,12605);
+  assert.equal(active.expectedGlobal,"V5PR208ExchangeCandidateAcquisitionReadonly");
   assert.equal(active.maximumGameplayWrites,0);
   assert.equal(active.maximumPublicFunctionCalls,0);
   assert.equal(active.maximumRawWriteCalls,0);
+  assert.equal(active.bankRetrieveAuthority,false);
+  assert.equal(active.buyAuthority,false);
+  assert.equal(active.farmAuthority,false);
   assert.equal(active.exchangeAuthority,false);
   assert.equal(active.gameplayAuthority,false);
   assert.equal(active.rawWriteAuthority,false);
