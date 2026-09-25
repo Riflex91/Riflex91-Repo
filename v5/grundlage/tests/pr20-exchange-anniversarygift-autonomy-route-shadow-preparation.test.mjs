@@ -122,7 +122,7 @@ test("roadmap advances only to shadow manifest cutover and leaves productive aut
     "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_RATIFIED_AUTONOMY_PENDING",
   );
   const s=p.exchangeCandidateAcquisition.anniversaryGiftExchangeAutonomyRouteShadow;
-  assert.equal(s.status,"MANIFEST_CUTOVER_PREPARED_NO_WRITE");
+  assert.equal(s.status,"START_RECOVERY_MANIFEST_CUTOVER_PREPARED_NO_WRITE");
   assert.equal(s.testId,"pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write");
   assert.equal(s.selectionMode,"AUTONOMOUS_FRESH_CURRENT_INVENTORY_SCAN");
   assert.equal(s.manualPinnedInventoryIndex,false);
