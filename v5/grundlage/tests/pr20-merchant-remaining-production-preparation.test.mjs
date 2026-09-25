@@ -731,20 +731,20 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER_PREPARED",
+    "COMPOUND_LIVE_5M_RATIFIED_EXCHANGE_NO_CANDIDATE",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION",
+    "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
   );
   const exit=prep.pr20_8.exitGateReview;
-  assert.equal(exit.status,"BLOCKED_COMPOUND_5M_NOTIFICATION_EXCHANGE_NO_CANDIDATE");
+  assert.equal(exit.status,"BLOCKED_EXCHANGE_NO_CANDIDATE");
   assert.equal(exit.evidence,"roadmap/pr20-8-no-candidate-exit-gate-review.json");
   assert.equal(exit.currentExitGateSatisfied,false);
   assert.equal(exit.compoundRatified,true);
-  assert.equal(exit.compoundLive5mTested,false);
+  assert.equal(exit.compoundLive5mTested,true);
   assert.equal(exit.compoundLive5mBehaviorObservedPass,true);
-  assert.equal(exit.compoundLive5mCompletionNotificationPersisted,false);
+  assert.equal(exit.compoundLive5mCompletionNotificationPersisted,true);
   assert.equal(exit.exchangeRatified,false);
   assert.equal(exit.exchangeLive5mTested,false);
   assert.equal(exit.exchangeAutonomyProductiveProven,false);
@@ -1138,7 +1138,7 @@ test("PR20.8 Compound productive one-write runner package has a separate aggrega
   assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_PREPARATION");
 });
 
-test("PR20.8 Compound one-write evidence is ratified while 5m and Exchange remain open", () => {
+test("PR20.8 Compound one-write evidence remains ratified after 5m closeout while Exchange stays open", () => {
   const e=prep.pr20_8.compoundProductiveOneWriteEvidence;
   assert.equal(e.status,"RATIFIED_COMMITTED_SUCCESS");
   assert.equal(e.evidence,"roadmap/pr20-8-compound-productive-one-write-evidence.json");
@@ -1148,7 +1148,7 @@ test("PR20.8 Compound one-write evidence is ratified while 5m and Exchange remai
   assert.equal(e.sendCount,1);
   assert.equal(e.reconciliation,"COMMITTED_SUCCESS");
   assert.equal(e.compoundRatified,true);
-  assert.equal(e.compoundLive5mTested,false);
+  assert.equal(e.compoundLive5mTested,true);
   assert.equal(e.exchangeRatified,false);
   assert.equal(e.normalRuntimeAllowed,false);
 });
@@ -1276,7 +1276,7 @@ test("PR20.8 Compound 5m observer runner package has a separate zero-write aggre
   assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN");
 });
 
-test("PR20.8 Compound 5m v1.0.1 behavior passed but notification persistence remains open", () => {
+test("PR20.8 Compound 5m v1.0.1 historical pass is linked to the persisted v1.0.2 ratification", () => {
   const r=prep.pr20_8.compoundLive5mPerformanceRecovery;
   assert.equal(r.status,"V1_0_1_REAL_BROWSER_BESTANDEN_NOTIFICATION_PERSISTENCE_GAP");
   assert.equal(
@@ -1334,18 +1334,20 @@ test("PR20.8 Compound 5m v1.0.1 behavior passed but notification persistence rem
   assert.equal(r.observedAdditionalPublicFunctionCalls,0);
   assert.equal(r.observedAdditionalRawWriteCalls,0);
   assert.equal(r.observedPerformanceTrickVerification,"HOWLER_PLAYING_TRUE");
-  assert.equal(r.completionNotificationPersisted,false);
+  assert.equal(r.completionNotificationPersisted,true);
   assert.equal(r.notificationPersistenceBlocker,"RUN_STARTED_AT_MS_IDENTITY_COLLISION");
   assert.equal(r.observedRunStartedAtMs,0);
-  assert.equal(r.ratifiedCompoundLive5m,false);
+  assert.equal(r.ratifiedCompoundLive5m,true);
+  assert.equal(r.notificationId,2272);
+  assert.equal(r.ratificationEvidence,"roadmap/pr20-8-compound-live-5m-evidence.json");
   assert.equal(r.retiredFromActiveManifest,true);
   assert.equal(r.supersededByNotificationIdentityRecovery,true);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION");
+  assert.equal(r.nextGate,"PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW");
 });
 
-test("PR20.8 Compound 5m notification identity recovery v1.0.2 manifest cutover is prepared", () => {
+test("PR20.8 Compound 5m notification identity recovery v1.0.2 is ratified and persisted", () => {
   const r=prep.pr20_8.compoundLive5mNotificationIdentityRecovery;
-  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_COMPLETION_NOTIFICATION_CONFIRMATION");
+  assert.equal(r.status,"RATIFIED_COMPLETION_PERSISTED");
   assert.equal(r.contract,"grundlage/vertraege/runtime/pr20-8-compound-live-5m-notification-identity-recovery-preparation.json");
   assert.equal(r.package,"werkzeuge/pr20-8-compound-live-5m-v1-0-2.js");
   assert.equal(r.test,"werkzeuge/tests/pr20-8-compound-live-5m-v1-0-2.test.mjs");
@@ -1379,12 +1381,49 @@ test("PR20.8 Compound 5m notification identity recovery v1.0.2 manifest cutover 
   assert.equal(r.normalRuntimeAllowed,false);
   assert.equal(r.manifest,"roadmap/v5-autonomous-test-manifest.json");
   assert.equal(r.manifestCutoverPrepared,true);
-  assert.equal(r.deployed,false);
-  assert.equal(r.bridgeMayDeployPinnedRunner,true);
-  assert.equal(r.deploymentEvidenceObserved,false);
-  assert.equal(r.completionNotificationPersisted,false);
+  assert.equal(r.deployed,true);
+  assert.equal(r.bridgeMayDeployPinnedRunner,false);
+  assert.equal(r.deploymentEvidenceObserved,true);
+  assert.equal(r.completionNotificationPersisted,true);
+  assert.equal(r.notificationId,2272);
+  assert.equal(r.runStartedAtMs,1790310011908);
+  assert.equal(r.observedAtMs,1790311955056);
+  assert.equal(r.samples,60);
+  assert.equal(r.durationMs,300545);
+  assert.equal(r.sourceSendCount,1);
+  assert.equal(r.observedAdditionalGameplayWrites,0);
+  assert.equal(r.observedAdditionalPublicFunctionCalls,0);
+  assert.equal(r.observedAdditionalRawWriteCalls,0);
+  assert.equal(r.ratifiedCompoundLive5m,true);
+  assert.equal(r.evidence,"roadmap/pr20-8-compound-live-5m-evidence.json");
   assert.equal(r.liveWriteEnabled,false);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION");
+  assert.equal(r.nextGate,"PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW");
+});
+
+test("PR20.8 Compound 5m evidence is ratified with zero additional mutation", () => {
+  const e=prep.pr20_8.compoundLive5mEvidence;
+  assert.equal(e.status,"RATIFIED_BESTANDEN_ZERO_ADDITIONAL_MUTATION");
+  assert.equal(e.evidence,"roadmap/pr20-8-compound-live-5m-evidence.json");
+  assert.equal(e.notificationId,2272);
+  assert.equal(e.runStartedAtMs,1790310011908);
+  assert.equal(e.observedAtMs,1790311955056);
+  assert.equal(e.statusObserved,"BESTANDEN");
+  assert.equal(e.phaseObserved,"COMPLETE");
+  assert.equal(e.terminalObserved,true);
+  assert.equal(e.samples,60);
+  assert.equal(e.durationMs,300545);
+  assert.equal(e.sourceSendCount,1);
+  assert.equal(e.additionalGameplayWrites,0);
+  assert.equal(e.additionalPublicFunctionCalls,0);
+  assert.equal(e.additionalRawWriteCalls,0);
+  assert.equal(e.sameIntentRetry,false);
+  assert.equal(e.completionNotificationPersisted,true);
+  assert.equal(e.noDuplicateValueChangingEffectObserved,true);
+  assert.equal(e.compoundLive5mTested,true);
+  assert.equal(e.exchangeRatified,false);
+  assert.equal(e.exchangeLive5mTested,false);
+  assert.equal(e.exchangeAutonomyProductiveProven,false);
+  assert.equal(e.normalRuntimeAllowed,false);
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
