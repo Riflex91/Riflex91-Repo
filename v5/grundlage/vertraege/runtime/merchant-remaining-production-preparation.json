@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "EXCHANGE_READONLY_RESCAN_V1_0_4_HANDSHAKE_BLOCKED_FACADE_RECOVERY_V1_0_5_READY",
+    "status": "EXCHANGE_READONLY_RESCAN_FACADE_RECOVERY_MANIFEST_CUTOVER_PREPARED",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_EXCHANGE_READONLY_RESCAN_FACADE_RECOVERY_MANIFEST_CUTOVER",
+    "nextAction": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1626,7 +1626,7 @@
       "normalRuntimeAllowed": false
     },
     "exchangeNoCandidateCloseoutReview": {
-      "status": "V1_0_4_DEPLOYMENT_HANDSHAKE_BLOCKED",
+      "status": "V1_0_4_HANDSHAKE_BLOCKED_RECOVERY_V1_0_5_MANIFEST_CUTOVER_PREPARED",
       "review": "roadmap/pr20-8-exchange-no-candidate-closeout-review.json",
       "existingEvidence": "roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json",
       "existingObservedAtMs": 1790278399271,
@@ -1653,7 +1653,7 @@
       "manifestCutoverPrepared": true,
       "deployed": false,
       "evidenceObserved": false,
-      "nextGate": "PR20_8_EXCHANGE_READONLY_RESCAN_FACADE_RECOVERY_MANIFEST_CUTOVER",
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
       "bridgeMayDeployPinnedRunner": false,
       "bridgeState": "ERROR",
@@ -1669,13 +1669,13 @@
     },
     "activeAutonomousManifest": {
       "testId": "pr20-8-wertmutation-live-candidate-readonly",
-      "controllerVersion": "1.0.4",
-      "package": "werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js",
-      "sourceCommit": "27e25e69dc0e26d8ae05328335718c36a6a0c659",
-      "packageSha256": "0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b",
-      "packageBytes": 21343,
+      "controllerVersion": "1.0.5",
+      "package": "werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js",
+      "sourceCommit": "36bece2cc75854e7d02c6c8dc6ddaf75a74579cb",
+      "packageSha256": "e87996be9ee56b31f7737923b5bf8999a0a8af82393dea9419f5f4fd3d4b494e",
+      "packageBytes": 21688,
       "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
-      "purpose": "FRESH_COMPOUND_EXCHANGE_TARGET_FAMILY_READONLY_RESCAN_AFTER_COMPOUND_COMMIT",
+      "purpose": "FRESH_COMPOUND_EXCHANGE_TARGET_FAMILY_READONLY_RESCAN_AFTER_COMPOUND_COMMIT_FACADE_RECOVERY",
       "maximumGameplayWrites": 0,
       "maximumPublicFunctionCalls": 0,
       "maximumRawWriteCalls": 0,
@@ -1685,7 +1685,7 @@
       "normalRuntimeAllowed": false
     },
     "exchangeReadonlyRescanFacadeRecovery": {
-      "status": "RECOVERY_PACKAGE_READY_NOT_DEPLOYED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_FRESH_READONLY_RESCAN",
       "contract": "grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-facade-recovery-preparation.json",
       "package": "werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js",
       "test": "werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs",
@@ -1714,10 +1714,12 @@
       "durableIntentCreated": false,
       "normalRuntimeAllowed": false,
       "acquisitionOrMutationToCreateCandidateAllowed": false,
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
       "evidenceObserved": false,
-      "nextGate": "PR20_8_EXCHANGE_READONLY_RESCAN_FACADE_RECOVERY_MANIFEST_CUTOVER"
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+      "manifest": "roadmap/v5-autonomous-test-manifest.json",
+      "bridgeMayDeployPinnedRunner": true
     }
   },
   "pr20_9": {
