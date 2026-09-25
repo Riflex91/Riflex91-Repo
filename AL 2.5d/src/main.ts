@@ -59,11 +59,9 @@ async function boot(): Promise<void> {
   const attachedLegacySource = isLegacyCompatibilitySource(window)
     ? (window as unknown as LegacyCompatibilitySource)
     : null;
-  const host =
-    attachedLegacySource ??
-    false
-      ? createAttachedOverlayHost()
-      : document.querySelector<HTMLElement>("#game");
+  const host = attachedLegacySource
+    ? createAttachedOverlayHost()
+    : document.querySelector<HTMLElement>("#game");
 
   if (!host) {
     throw new Error("Missing #game mount element");
