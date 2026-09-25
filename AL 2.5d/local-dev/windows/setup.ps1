@@ -30,12 +30,32 @@ function Checkout-PinnedRepo(
 ) {
   if (-not (Test-Path (Join-Path $Destination ".git"))) {
     git clone $Url $Destination
+    if ($LASTEXITCODE -ne 0) {
+      throw "Git clone failed for $Url."
+    }
   }
 
-  git -C $Destination fetch --all --tags --prune
-  git -C $Destination checkout --detach $Commit
+  # Some removable/exFAT-style Windows volumes do not expose ownership metadata.
+  # Scope Git's trust exception to this exact repository and this command only;
+  # do not weaken the user's global safe.directory configuration.
+  $SafeDirectory = ($Destination -replace "\\", "/")
 
-  $Actual = (git -C $Destination rev-parse HEAD).Trim()
+  & git -c "safe.directory=$SafeDirectory" -C $Destination fetch --all --tags --prune
+  if ($LASTEXITCODE -ne 0) {
+    throw "Git fetch failed for $Destination."
+  }
+
+  & git -c "safe.directory=$SafeDirectory" -C $Destination checkout --detach $Commit
+  if ($LASTEXITCODE -ne 0) {
+    throw "Git checkout failed for $Destination."
+  }
+
+  $ActualOutput = & git -c "safe.directory=$SafeDirectory" -C $Destination rev-parse HEAD
+  if ($LASTEXITCODE -ne 0 -or -not $ActualOutput) {
+    throw "Unable to read Git HEAD for $Destination."
+  }
+
+  $Actual = ($ActualOutput | Select-Object -First 1).Trim()
   if ($Actual -ne $Commit) {
     throw "Pin verification failed for $Destination. Expected $Commit, got $Actual."
   }
@@ -202,5 +222,5 @@ const { MongoClient } = require("mongodb");
 Write-Host ""
 Write-Host "Local AL 2.5D sandbox is ready."
 Write-Host "Run: .\local-dev\windows\start.ps1"
-Write-Host "The browser sandbox creates LocalAdmin automatically."
+Write-Host "Characters are created manually in the original client UI."
 Write-Host "No real Adventure Land account is used."
