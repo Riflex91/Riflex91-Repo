@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
+      "status": "EXCHANGE_CURRENT_INVENTORY_NO_CANDIDATE_RATIFIED_WAIT_FUTURE_READONLY_RESCAN",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
+      "nextAction": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -826,7 +826,34 @@
         "v5/werkzeuge/pr20-8-compound-productive-one-write-live.js",
         "v5/werkzeuge/tests/pr20-8-compound-productive-one-write-live.test.mjs",
         "v5/grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-runner-preparation.json",
-        "v5/grundlage/tests/pr20-compound-productive-one-write-runner-preparation.test.mjs"
+        "v5/grundlage/tests/pr20-compound-productive-one-write-runner-preparation.test.mjs",
+        "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json",
+        "v5/grundlage/tests/pr20-compound-live-5m-preparation.test.mjs",
+        "v5/werkzeuge/pr20-8-compound-live-5m.js",
+        "v5/werkzeuge/tests/pr20-8-compound-live-5m.test.mjs",
+        "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json",
+        "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
+        "v5/werkzeuge/tests/pr20-8-compound-live-5m-v1-0-1.test.mjs",
+        "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-performance-recovery-preparation.json",
+        "v5/grundlage/tests/pr20-compound-live-5m-performance-recovery-preparation.test.mjs",
+        "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-2.js",
+        "v5/werkzeuge/tests/pr20-8-compound-live-5m-v1-0-2.test.mjs",
+        "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-notification-identity-recovery-preparation.json",
+        "v5/grundlage/tests/pr20-compound-live-5m-notification-identity-recovery-preparation.test.mjs",
+        "v5/roadmap/pr20-8-compound-live-5m-evidence.json",
+        "v5/grundlage/tests/pr20-compound-live-5m-evidence.test.mjs",
+        "v5/roadmap/pr20-8-exchange-no-candidate-closeout-review.json",
+        "v5/grundlage/tests/pr20-exchange-no-candidate-closeout-review.test.mjs",
+        "v5/grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-facade-recovery-preparation.json",
+        "v5/grundlage/tests/pr20-exchange-readonly-rescan-facade-recovery-preparation.test.mjs",
+        "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js",
+        "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs",
+        "v5/roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json",
+        "v5/grundlage/tests/pr20-exchange-readonly-rescan-v1-0-5-evidence.test.mjs",
+        "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js",
+        "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.test.mjs",
+        "v5/roadmap/pr20-8-exchange-readonly-rescan-v1-0-6-evidence.json",
+        "v5/grundlage/tests/pr20-exchange-readonly-rescan-v1-0-6-evidence.test.mjs"
       ]
     },
     {
