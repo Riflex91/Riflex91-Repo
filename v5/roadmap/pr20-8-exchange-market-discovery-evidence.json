@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "evidenceArt": "V5_PR20_8_EXCHANGE_PLAYER_MARKET_DISCOVERY_REAL_BROWSER",
+  "status": "RATIFIED_MARKET_NO_CANDIDATE_ONE_MOVEMENT",
+  "manifestMainCommit": "e8744d77789ab9141dba04d5be561d11567f745a",
+  "testId": "pr20-8-exchange-market-discovery",
+  "controllerVersion": "1.0.0",
+  "package": "v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js",
+  "sourceCommit": "d977684f56ebe24f021cd46ae7efc502c406ecc6",
+  "packageSha256": "175adb93980af0e7cefe19835101255473031ac51bcc70369e5a4b7d521609cd",
+  "packageBytes": 12657,
+  "expectedGlobal": "V5PR208ExchangeMarketDiscovery",
+  "notificationId": 2671,
+  "runStartedAtMs": 1790336576195,
+  "observedAtMs": 1790336581796,
+  "terminalStatus": "BLOCKIERT",
+  "phase": "PR20_8_EXCHANGE_MARKET_DISCOVERY",
+  "blocker": [
+    "PR20_8_ACQUISITION_KEIN_MARKET_KANDIDAT"
+  ],
+  "movement": {
+    "target": "main",
+    "issued": true,
+    "completed": true,
+    "error": null,
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "maximumCalls": 1,
+    "sameIntentRetry": false
+  },
+  "discovery": {
+    "visibleSellerCount": 15,
+    "eligibleListingCount": 0,
+    "selected": null
+  },
+  "authority": {
+    "tradeBuy": false,
+    "farm": false,
+    "normalRuntimeAllowed": false
+  },
+  "packageSafety": {
+    "purchaseCallsitePresent": false,
+    "farmCallsitePresent": false,
+    "exchangeCallsitePresent": false,
+    "rawSocketWriteCallsitePresent": false
+  },
+  "evidenceSeparation": {
+    "movementCountsAsExchangeRatification": false,
+    "discoveryCountsAsExchangeRatification": false,
+    "exchangeStillUnratified": true,
+    "exchangeLive5mStillNotRun": true,
+    "exchangeAutonomyStillNotProductiveProven": true
+  },
+  "observedRunnerNextAction": "PREPARE_SEASHELL_FARM_STAGE",
+  "sourceAudit": {
+    "seashellDefinition": {
+      "baseGold": 800,
+      "exchangeQuantity": 20,
+      "questField": "seashell",
+      "compatibleWithV1_0_6ExactBooleanQuestCheck": true
+    },
+    "staticServerSourceObservation": "CROC_TO_SEASHELL_ROWS_ARE_ADDED_INSIDE_GAMEPLAY_HARDCORE_BLOCK",
+    "targetServer": "EU/I",
+    "normalServerSeashellFarmProven": false,
+    "directSeashellFarmAuthority": false,
+    "reason": "DO_NOT_TREAT_HARDCORE_ONLY_DROP_MUTATION_AS_NORMAL_SERVER_SOURCE"
+  },
+  "nextAction": "PREPARE_NORMAL_SOURCE_DISCOVERY"
+}
