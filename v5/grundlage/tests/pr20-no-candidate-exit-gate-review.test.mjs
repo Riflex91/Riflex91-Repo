@@ -66,7 +66,11 @@ test("PR20.8 Compound 5m preparation changes no remaining exit authority", () =>
   assert.equal(p.publicCompoundCallSites,0);
   assert.equal(p.manifestCutoverPrepared,true);
   assert.equal(p.deployed,false);
-  assert.equal(p.bridgeMayDeployPinnedRunner,true);
+  assert.equal(p.bridgeMayDeployPinnedRunner,false);
+  assert.equal(p.retiredFromActiveManifest,true);
+  assert.equal(p.supersededByPerformanceRecovery,true);
+  assert.equal(p.activeRecoveryControllerVersion,"1.0.1");
+  assert.equal(p.activeRecoveryPackage,"v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js");
   assert.equal(p.deploymentEvidenceObserved,false);
   assert.equal(p.realFiveMinuteRunCompleted,false);
   assert.equal(review.currentExitGateSatisfied,false);
