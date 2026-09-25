@@ -59,7 +59,7 @@ test("committed Upgrade evidence stays immutable while the active manifest advan
   assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.gate, "PR20.8_WERTMUTATIONEN");
   assert.equal(manifest.sourceCommit,"859c5be1067fbd5360c17ccfe0d912a98537bfc9");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-live-5m.js");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-live-5m-v1-0-0.js");
   assert.equal(manifest.packageSha256,"455593d7691dc5436af27a5b89afb5fc208f2ebca4253aa87d0726821abcda94");
   assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftLive5m");
   assert.equal(manifest.normalRuntimeAllowed, false);
