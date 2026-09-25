@@ -210,6 +210,29 @@ export class LegacySnapshotAdapter {
     return "prop";
   }
 
+  private appearanceKey(
+    entity: LegacyEntityLike,
+    kind: EntityKind
+  ): string {
+    if (kind === "player") {
+      return `player:${entity.ctype ?? "adventurer"}`;
+    }
+
+    if (kind === "monster") {
+      return `monster:${entity.mtype ?? entity.skin ?? "monster"}`;
+    }
+
+    if (kind === "npc") {
+      const npcKey =
+        typeof entity.npc === "string"
+          ? entity.npc
+          : entity.skin ?? entity.type ?? "npc";
+      return `npc:${npcKey}`;
+    }
+
+    return `${kind}:${entity.skin ?? entity.type ?? entity.id}`;
+  }
+
   private convertEntity(
     entity: LegacyEntityLike,
     kind: EntityKind,
@@ -238,6 +261,7 @@ export class LegacySnapshotAdapter {
       y,
       z: entity.z,
       texture: this.resolveAssetId(entity, kind),
+      appearanceKey: this.appearanceKey(entity, kind),
       ...(legacySprite ? { legacySprite } : {}),
       facing,
       name,

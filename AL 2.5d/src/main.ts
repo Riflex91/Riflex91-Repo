@@ -15,6 +15,7 @@ import {
   isLoopbackHostname
 } from "./local/LocalAdminSandbox";
 import { AssetRegistry, type AssetEntry } from "./render/AssetRegistry";
+import { CUSTOM_ENTITY_ASSETS } from "./render/CustomEntityArt";
 import { viewportToWorld, worldToViewport } from "./render/camera";
 import { Pixi25DRenderer } from "./render/Pixi25DRenderer";
 import type {
@@ -79,7 +80,7 @@ async function boot(): Promise<void> {
     throw new Error("Missing #game mount element");
   }
 
-  const assets = new AssetRegistry();
+  const assets = new AssetRegistry(CUSTOM_ENTITY_ASSETS);
   const renderer = new Pixi25DRenderer(assets);
   let camera: CameraState = { x: 0, y: 0, zoom: 1.5 };
   let legacyMirror: LegacyMirrorBridge | null = null;

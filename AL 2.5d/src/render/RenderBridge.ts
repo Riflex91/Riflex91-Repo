@@ -15,6 +15,7 @@ export type RenderEntity = Readonly<{
   y: number;
   z?: number;
   texture: string;
+  appearanceKey?: string;
   legacySprite?: RenderSpriteFrame;
   facing?: number;
   scale?: number;

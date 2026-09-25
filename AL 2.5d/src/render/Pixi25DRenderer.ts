@@ -9,6 +9,7 @@ import {
 } from "pixi.js";
 
 import { AssetRegistry } from "./AssetRegistry";
+import { resolveCustomEntityArt } from "./CustomEntityArt";
 import type {
   CameraState,
   EntityKind,
@@ -806,7 +807,20 @@ export class Pixi25DRenderer implements RenderBridge {
       this.drawFallback(visual.fallback, entity.kind, Boolean(entity.local));
     }
 
-    if (entity.legacySprite) {
+    const customArt = resolveCustomEntityArt(entity);
+
+    if (customArt) {
+      if (visual.spriteKey) {
+        visual.spriteKey = "";
+      }
+
+      if (visual.assetId !== customArt.assetId) {
+        visual.assetId = customArt.assetId;
+        visual.sprite.visible = false;
+        visual.fallback.visible = true;
+        void this.loadTexture(visual, customArt.assetId);
+      }
+    } else if (entity.legacySprite) {
       const spriteKey = this.legacySpriteKey(entity.legacySprite);
 
       if (visual.spriteKey !== spriteKey) {
@@ -843,11 +857,12 @@ export class Pixi25DRenderer implements RenderBridge {
       }
     }
 
+    const metrics = this.entityVisualMetrics(entity);
     const shadowKey = [
       entity.kind,
       entity.local ? 1 : 0,
-      entity.legacySprite?.width ?? "",
-      entity.legacySprite?.height ?? ""
+      metrics.width,
+      metrics.height
     ].join("|");
 
     if (visual.shadowKey !== shadowKey) {
@@ -874,8 +889,8 @@ export class Pixi25DRenderer implements RenderBridge {
       entity.maxMp ?? "",
       entity.targeted ? 1 : 0,
       entity.local ? 1 : 0,
-      entity.legacySprite?.width ?? "",
-      entity.legacySprite?.height ?? ""
+      metrics.width,
+      metrics.height
     ].join("|");
 
     if (visual.uiKey !== uiKey) {
@@ -884,13 +899,33 @@ export class Pixi25DRenderer implements RenderBridge {
     }
   }
 
+  private entityVisualMetrics(
+    entity: RenderEntity
+  ): Readonly<{ width: number; height: number }> {
+    const customArt = resolveCustomEntityArt(entity);
+
+    if (customArt) {
+      return {
+        width: customArt.width,
+        height: customArt.height
+      };
+    }
+
+    return {
+      width: entity.legacySprite?.width ?? 36,
+      height:
+        entity.legacySprite?.height ??
+        (entity.kind === "monster" ? 30 : 42)
+    };
+  }
+
   private drawEntityShadow(
     graphics: Graphics,
     entity: RenderEntity
   ): void {
     graphics.clear();
 
-    const spriteWidth = entity.legacySprite?.width;
+    const spriteWidth = this.entityVisualMetrics(entity).width;
     const radiusX = spriteWidth !== undefined
       ? Math.max(7, Math.min(20, spriteWidth * 0.34))
       : entity.kind === "monster"
@@ -982,20 +1017,14 @@ export class Pixi25DRenderer implements RenderBridge {
     const ui = visual.ui;
     ui.clear();
 
+    const metrics = this.entityVisualMetrics(entity);
     const spriteHeight = Math.max(
       28,
-      Math.min(
-        76,
-        entity.legacySprite?.height ??
-          (entity.kind === "monster" ? 30 : 42)
-      )
+      Math.min(76, metrics.height)
     );
     const spriteWidth = Math.max(
       28,
-      Math.min(
-        56,
-        entity.legacySprite?.width ?? 36
-      )
+      Math.min(56, metrics.width)
     );
     const hpBarY = -spriteHeight - 12;
     const mpBarY = -spriteHeight - 6;
