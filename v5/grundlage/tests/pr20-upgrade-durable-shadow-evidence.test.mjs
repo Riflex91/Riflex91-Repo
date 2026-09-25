@@ -92,12 +92,12 @@ test("current recovery hardening evidence stays immutable while the manifest adv
   assert.equal(evidence.safetyBoundary.currentRecoveryPackageMayOnlyRecoverExactTerminalNoWriteIntent,true);
   assert.equal(evidence.safetyBoundary.recoveryMayNotRewriteIntent,true);
   assert.equal(evidence.safetyBoundary.recoveryMayNotCreateGameplayWrite,true);
-  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write");
+  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live");
   assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,"578b18dfa96fd7c4809d55aae4664eae5f37eb43");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-0.js");
-  assert.equal(manifest.packageSha256,"39084a646825c6bca6231b0968e41cebfbbf3548e8a93bba155dcb64b2fbf2be");
-  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite");
+  assert.equal(manifest.sourceCommit,"ec3e0d141af72e962e85ddf48edd0fbe5e0e218e");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live-v1-0-0.js");
+  assert.equal(manifest.packageSha256,"6fca304c62dfeea6fb718da6164b1e6b956d6ccdff12ccde9d80138cfc941532");
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftAutonomyProductiveOneWriteLive");
   assert.notEqual(manifest.testId,evidence.testId);
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
