@@ -216,4 +216,41 @@ describe("LegacyCompatibilityRuntime", () => {
       /commit mismatch/
     );
   });
+
+  it("switches the visible renderer host without changing legacy gameplay state", () => {
+    const host = {
+      style: {
+        visibility: "",
+        pointerEvents: "auto"
+      }
+    } as unknown as HTMLElement;
+    const source: LegacyCompatibilitySource = {
+      current_map: "main",
+      character: {
+        id: "Hero",
+        real_x: 10,
+        real_y: 20,
+        map: "main"
+      },
+      entities: {},
+      G: {}
+    };
+    const before = JSON.stringify(source);
+    const runtime = new LegacyCompatibilityRuntime(host).attach(source);
+
+    runtime.setGraphicsMode("original");
+
+    expect(runtime.getGraphicsMode()).toBe("original");
+    expect(host.style.visibility).toBe("hidden");
+    expect(host.style.pointerEvents).toBe("none");
+    expect(JSON.stringify(source)).toBe(before);
+
+    runtime.setGraphicsMode("2.5d");
+
+    expect(runtime.getGraphicsMode()).toBe("2.5d");
+    expect(host.style.visibility).toBe("");
+    expect(host.style.pointerEvents).toBe("auto");
+    expect(JSON.stringify(source)).toBe(before);
+  });
+
 });
