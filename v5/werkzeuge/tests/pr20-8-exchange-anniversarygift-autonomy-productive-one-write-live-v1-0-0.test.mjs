@@ -397,6 +397,65 @@ test("definition drift blocks fail-closed",async()=>{
   }
 });
 
+test("unprovable poststate is UNKNOWN fail-closed and never retries",async()=>{
+  const env=makeBox({reward:{kind:"invalid"}});
+  const status=await execute(env);
+  assert.equal(status.status,"UNGEKLAERT");
+  assert.equal(status.phase,"RECOVERY_PENDING");
+  assert.equal(status.terminal,false);
+  assert.equal(status.evidence.reconciliation.classification,"UNKNOWN");
+  assert.equal(env.getExchangeCalls(),1);
+  assert.equal(status.gameplayWrites,1);
+  assert.equal(status.publicFunctionCalls,1);
+  assert.equal(status.rawWriteCalls,0);
+  assert.equal(status.sameIntentRetry,false);
+  assert.equal(status.authority.authorityIssued,true);
+  assert.equal(status.authority.authorityConsumed,true);
+  assert.equal(status.authority.exchangeAuthority,false);
+  assert.equal(status.authority.gameplayAuthority,false);
+});
+
+test("service distance over 300 blocks even with computer before authority or send",async()=>{
+  const env=makeBox({computer:true,x:400,y:-478});
+  const status=await execute(env);
+  assert.equal(status.status,"FEHLER");
+  assert.ok(status.blocker.includes(
+    "PR20_8_EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_SERVICE_NICHT_ERREICHBAR"
+  ));
+  assert.equal(env.getExchangeCalls(),0);
+  assert.equal(status.gameplayWrites,0);
+  assert.equal(status.publicFunctionCalls,0);
+  assert.equal(status.rawWriteCalls,0);
+  assert.equal(status.authority.authorityIssued,false);
+});
+
+test("q moving target and hostile aggro each block before authority or send",async()=>{
+  const cases=[
+    [()=>makeBox({q:{exchange:{ms:1}}}),
+      "PR20_8_EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_Q_NICHT_FREI"],
+    [()=>makeBox({moving:true}),
+      "PR20_8_EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_CHARACTER_BEWEGT_SICH"],
+    [()=>makeBox({target:"goo"}),
+      "PR20_8_EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_CHARACTER_HAT_ZIEL"],
+    [()=>{
+      const env=makeBox();
+      env.box.entities.hostile={type:"monster",dead:false,rip:false,target:"My_Merchant"};
+      return env;
+    },"PR20_8_EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_CHARACTER_UNTER_ANGRIFF"],
+  ];
+  for(const [make,marker] of cases){
+    const env=make();
+    const status=await execute(env);
+    assert.equal(status.status,"FEHLER");
+    assert.ok(status.blocker.includes(marker),marker);
+    assert.equal(env.getExchangeCalls(),0);
+    assert.equal(status.gameplayWrites,0);
+    assert.equal(status.publicFunctionCalls,0);
+    assert.equal(status.rawWriteCalls,0);
+    assert.equal(status.authority.authorityIssued,false);
+  }
+});
+
 test("runner source exposes exactly one public wrapper call and no raw bypass",()=>{
   assert.equal((source.match(/globalThis\.exchange\(/g)||[]).length,1);
   for(const marker of [
@@ -428,5 +487,6 @@ test("runner source exposes exactly one public wrapper call and no raw bypass",(
     "autonomyDecisionId",
     "state.gameplayWrites += 1",
     "state.publicFunctionCalls += 1",
+    'classification:"UNKNOWN"',
   ]) assert.ok(source.includes(marker),marker);
 });
