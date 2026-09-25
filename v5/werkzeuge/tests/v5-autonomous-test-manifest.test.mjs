@@ -56,6 +56,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208ExchangeAnniversarygiftDurableShadowNoWrite",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-exchange-anniversarygift-productive-one-write-live": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-exchange-anniversarygift-productive-one-write-live.js",
+    expectedGlobal: "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-exchange-candidate-acquisition-readonly": Object.freeze({
     path: "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
     expectedGlobal: "V5PR208ExchangeCandidateAcquisitionReadonly",
@@ -739,6 +744,40 @@ test("PR20.8 candidate discovery v1.0.7 manifest is exact anniversarygift-only r
   assert.ok(packageSource.includes("publish();"));
 });
 
+
+test("PR20.8 anniversarygift productive Exchange manifest is exact one-write", () => {
+  if (manifest.testId !== "pr20-8-exchange-anniversarygift-productive-one-write-live") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit, "5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
+  assert.equal(manifest.packagePath,
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-productive-one-write-live.js");
+  assert.equal(manifest.packageSha256,
+    "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
+  assert.equal(manifest.expectedGlobal,
+    "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.ok(packageSource.includes(
+    'const TEST_ID = "pr20-8-exchange-anniversarygift-productive-one-write-live"'));
+  assert.ok(packageSource.includes('const VERSION = "1.0.0"'));
+  assert.ok(packageSource.includes(
+    'const API_NAME = "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive"'));
+  assert.ok(packageSource.includes(
+    'const SOURCE_COMMIT = "90052162eb3ebda36c893e1eb4af643913c8f984"'));
+  assert.ok(packageSource.includes(
+    'const DROP_GRAPH_SHA256 = "2fad9b50ac0bb87a8e53a0cff8f6e34ded949b3531f8843f86d3f1fb8e828342"'));
+  assert.ok(packageSource.includes("maximumUses:1"));
+  assert.ok(packageSource.includes("sameIntentRetry:false"));
+  assert.ok(packageSource.includes("state.gameplayWrites += 1"));
+  assert.ok(packageSource.includes("state.publicFunctionCalls += 1"));
+  assert.equal((packageSource.match(/globalThis\.exchange\(/g) || []).length, 1);
+  for (const marker of [
+    "parent.exchange(", "socket.emit(", ".socket.emit(", "api_call(",
+    "upgrade(", "compound(", "buy(", "buy_with_gold(", "trade_buy(",
+    "send_item(", "send_gold(", "start_character(", "command_character("
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
 
 test("PR20.8 anniversarygift Exchange durable shadow manifest is exact no-send", () => {
   if (manifest.testId !== "pr20-8-exchange-anniversarygift-durable-shadow-no-write") return;
