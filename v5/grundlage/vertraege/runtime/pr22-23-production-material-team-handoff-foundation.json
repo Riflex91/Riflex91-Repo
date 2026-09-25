@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "CAP022_TEAM_COLLECTION_HANDOFF_FOUNDATION",
+  "status": "PREPARED_NO_WRITE",
+  "capability": "CAP-022",
+  "name": "Multi-Source Production Material Collection Handoff",
+  "source": "v5/grundlage/quelle/koordination/production-material-team-handoff.ts",
+  "test": "v5/grundlage/tests/pr22-23-production-material-team-handoff.test.mjs",
+  "prerequisite": {
+    "teamStatus": "TEAM_MATERIAL_READY_FOR_HANDOFF_NO_WRITE",
+    "remainingToFarm": 0,
+    "farmStopRequired": true,
+    "allWorkersSameProductionObjective": true
+  },
+  "sourcePinning": {
+    "freshSourceInventoryEvidenceRequired": true,
+    "sourceInventoryFingerprintMustMatchTeamObservation": true,
+    "physicalQuantityMustMatchTeamObservation": true,
+    "physicalStackIdentityScopedPerSourceCharacter": true,
+    "exactItemFingerprintsPinned": true,
+    "multipleStacksPerSourceAllowed": true,
+    "totalPinnedQuantityMustEqualRequiredQuantity": true
+  },
+  "sequenceBoundary": {
+    "transferSequenceFixed": true,
+    "parallelTransferAllowed": false,
+    "eachTransferMustSettleBeforeNext": true,
+    "freshMerchantBaselineBeforeEachTransferRequired": true,
+    "freshMerchantRendezvousBeforeEachTransferRequired": true,
+    "sameTransferRetryAllowed": false,
+    "finalCraftRescanOnlyAfterAllSettled": true,
+    "reason": "A previous transfer must not satisfy the settlement evidence of a later transfer."
+  },
+  "planningBinding": {
+    "actionContractId": "AL-ACTION-SEND-ITEM",
+    "recoveryContractId": "AL-RECOVERY-SEND-ITEM",
+    "verifierId": "AL-VERIFIER-SEND-ITEM",
+    "planningOnly": true
+  },
+  "safetyBoundary": {
+    "productiveExecutionAllowed": false,
+    "transferAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "currentPr20_9RatificationCredit": false,
+    "candidateAcquisitionOrMutationAllowedNow": false
+  },
+  "productiveDependencies": {
+    "pr22CoordinationRequired": true,
+    "pr23FarmerActionsRequired": true,
+    "productiveCollectionTransferRequired": true,
+    "batchSettlementRecoveryRequiredBeforeProductiveUse": true
+  },
+  "nextAction": "PREPARE_MULTI_SOURCE_COLLECTION_BATCH_SETTLEMENT_RECOVERY_NO_WRITE"
+}
