@@ -1882,7 +1882,7 @@
   },
   "pr20_9": {
     "ziel": "Craft und Production produktiv",
-    "status": "CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE_BEREIT_NO_WRITE",
+    "status": "CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-CRAFT",
@@ -1947,7 +1947,7 @@
       "normalRuntimeAllowed": false,
       "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION"
     },
-    "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER",
+    "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_REAL_BROWSER_RUN",
     "craftDurableShadow": {
       "status": "FOUNDATION_BEREIT_NO_WRITE",
       "source": "grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
@@ -1998,9 +1998,12 @@
       "broadGraphExecutionAuthority": false,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "manifestCutoverPrepared": false,
-      "active": false,
-      "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER"
+      "manifestCutoverPrepared": true,
+      "active": true,
+      "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_REAL_BROWSER_RUN",
+      "packageSha256": "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
+      "packageBytes": 26951,
+      "manifest": "roadmap/v5-autonomous-test-manifest.json"
     }
   },
   "pr21": {
