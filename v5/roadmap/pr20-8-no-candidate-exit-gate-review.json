@@ -343,7 +343,11 @@
     "exchangeAuthority": false,
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
-    "normalRuntimeAllowed": false
+    "normalRuntimeAllowed": false,
+    "active": false,
+    "historicalLatestPr20_8Manifest": true,
+    "temporarilySupersededByTestId": "pr20-9-craft-durable-shadow-no-write",
+    "restoreAfterSupersedingTerminalEvidence": true
   },
   "exchangeReadonlyRescanFacadeRecovery": {
     "status": "REAL_BROWSER_FRESH_RESCAN_COMPLETED_NO_CANDIDATE_ZERO_WRITE",
