@@ -916,13 +916,19 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
         "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
-        "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs"
+        "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
       "milestoneRunnerStatus": "PREPARED_NO_WRITE",
       "milestoneCheckpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
-      "checkpointRunbookStatus": "PREPARED_NO_WRITE"
+      "checkpointRunbookStatus": "PREPARED_NO_WRITE",
+      "ratificationRecordStatus": "PREPARED_NOT_USED",
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
     },
     {
       "id": "PR22_MULTI_CHARACTER",
@@ -942,10 +948,16 @@
         "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
         "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
-        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
-      "featureGateStatus": "PREPARED_NOT_RATIFIED"
+      "featureGateStatus": "PREPARED_NOT_RATIFIED",
+      "ratificationRecordStatus": "PREPARED_NOT_USED",
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
     },
     {
       "id": "PR23_FARMER",
@@ -973,13 +985,19 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
         "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
-        "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs"
+        "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
       "milestoneRunnerStatus": "PREPARED_NO_WRITE",
       "milestoneCheckpointId": "POST_PR24_25_GROUP_CHECKPOINT",
-      "checkpointRunbookStatus": "PREPARED_NO_WRITE"
+      "checkpointRunbookStatus": "PREPARED_NO_WRITE",
+      "ratificationRecordStatus": "PREPARED_NOT_USED",
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
     },
     {
       "id": "PR24_GROUP_MATRIX",
@@ -999,10 +1017,16 @@
         "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
         "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
-        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
-      "featureGateStatus": "PREPARED_NOT_RATIFIED"
+      "featureGateStatus": "PREPARED_NOT_RATIFIED",
+      "ratificationRecordStatus": "PREPARED_NOT_USED",
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
     },
     {
       "id": "PR25_GROUP_LIVE_EVIDENCE",
@@ -1030,13 +1054,19 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
         "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
-        "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs"
+        "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
       "milestoneRunnerStatus": "PREPARED_NO_WRITE",
       "milestoneCheckpointId": "POST_PR24_25_GROUP_CHECKPOINT",
-      "checkpointRunbookStatus": "PREPARED_NO_WRITE"
+      "checkpointRunbookStatus": "PREPARED_NO_WRITE",
+      "ratificationRecordStatus": "PREPARED_NOT_USED",
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
     },
     {
       "id": "PR26_TASK_PARTY_OPTIMIZER",
@@ -1056,10 +1086,16 @@
         "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
         "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
-        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
-      "featureGateStatus": "PREPARED_NOT_RATIFIED"
+      "featureGateStatus": "PREPARED_NOT_RATIFIED",
+      "ratificationRecordStatus": "PREPARED_NOT_USED",
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
     },
     {
       "id": "PR27_ACCOUNT_PROGRESSION",
@@ -1079,10 +1115,16 @@
         "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
         "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
-        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
-      "featureGateStatus": "PREPARED_NOT_RATIFIED"
+      "featureGateStatus": "PREPARED_NOT_RATIFIED",
+      "ratificationRecordStatus": "PREPARED_NOT_USED",
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
     },
     {
       "id": "PR28_WORLD_AUTONOMY",
@@ -1110,13 +1152,19 @@
         "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
         "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
-        "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs"
+        "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+        "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
+        "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
       "milestoneRunnerStatus": "PREPARED_NO_WRITE",
       "milestoneCheckpointId": "POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN",
-      "checkpointRunbookStatus": "PREPARED_NO_WRITE"
+      "checkpointRunbookStatus": "PREPARED_NO_WRITE",
+      "ratificationRecordStatus": "PREPARED_NOT_USED",
+      "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED"
     }
   ],
   "safePreparationBoundary": {
@@ -3405,6 +3453,18 @@
       "automaticRatification": false,
       "automaticAuthorityIssue": false,
       "normalRuntimeEnabled": false
+    },
+    "ratificationGateProposalsBatch6": {
+      "status": "PREPARED_NO_WRITE",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
+      "ratificationRecord": "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+      "gateAdvanceProposal": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+      "test": "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs",
+      "automaticRatification": false,
+      "gateMutationPerformed": false,
+      "authorityIssued": false,
+      "broadRuntimeGrant": false,
+      "gesamtfreigabeRequiredSeparately": true
     }
   },
   "pr21": {
@@ -3432,7 +3492,14 @@
     "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
     "checkpointRunbookStatus": "PREPARED_NO_WRITE",
     "checkpointRunbookSource": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
-    "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts"
+    "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
+    "ratificationRecordStatus": "PREPARED_NOT_USED",
+    "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+    "ratificationRecordSource": "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+    "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+    "automaticRatification": false,
+    "gateMutationPerformed": false,
+    "broadRuntimeGrant": false
   },
   "pr22": {
     "status": "BLOCKED_BY_PR21",
@@ -3454,7 +3521,14 @@
     "featureGateStatus": "PREPARED_NOT_RATIFIED",
     "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
     "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
-    "productiveAuthorityIssued": false
+    "productiveAuthorityIssued": false,
+    "ratificationRecordStatus": "PREPARED_NOT_USED",
+    "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+    "ratificationRecordSource": "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+    "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+    "automaticRatification": false,
+    "gateMutationPerformed": false,
+    "broadRuntimeGrant": false
   },
   "pr23": {
     "status": "BLOCKED_BY_PR22",
@@ -3485,7 +3559,14 @@
     "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
     "checkpointRunbookStatus": "PREPARED_NO_WRITE",
     "checkpointRunbookSource": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
-    "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts"
+    "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
+    "ratificationRecordStatus": "PREPARED_NOT_USED",
+    "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+    "ratificationRecordSource": "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+    "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+    "automaticRatification": false,
+    "gateMutationPerformed": false,
+    "broadRuntimeGrant": false
   },
   "pr24": {
     "status": "BLOCKED_BY_PR23",
@@ -3506,7 +3587,14 @@
     "featureGateStatus": "PREPARED_NOT_RATIFIED",
     "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
     "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
-    "productiveAuthorityIssued": false
+    "productiveAuthorityIssued": false,
+    "ratificationRecordStatus": "PREPARED_NOT_USED",
+    "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+    "ratificationRecordSource": "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+    "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+    "automaticRatification": false,
+    "gateMutationPerformed": false,
+    "broadRuntimeGrant": false
   },
   "pr25": {
     "status": "BLOCKED_BY_PR24",
@@ -3536,7 +3624,14 @@
     "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
     "checkpointRunbookStatus": "PREPARED_NO_WRITE",
     "checkpointRunbookSource": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
-    "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts"
+    "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
+    "ratificationRecordStatus": "PREPARED_NOT_USED",
+    "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+    "ratificationRecordSource": "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+    "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+    "automaticRatification": false,
+    "gateMutationPerformed": false,
+    "broadRuntimeGrant": false
   },
   "pr26": {
     "status": "BLOCKED_BY_PR25",
@@ -3558,7 +3653,14 @@
     "featureGateStatus": "PREPARED_NOT_RATIFIED",
     "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
     "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
-    "productiveAuthorityIssued": false
+    "productiveAuthorityIssued": false,
+    "ratificationRecordStatus": "PREPARED_NOT_USED",
+    "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+    "ratificationRecordSource": "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+    "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+    "automaticRatification": false,
+    "gateMutationPerformed": false,
+    "broadRuntimeGrant": false
   },
   "pr27": {
     "status": "BLOCKED_BY_PR26",
@@ -3580,7 +3682,14 @@
     "featureGateStatus": "PREPARED_NOT_RATIFIED",
     "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
     "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
-    "productiveAuthorityIssued": false
+    "productiveAuthorityIssued": false,
+    "ratificationRecordStatus": "PREPARED_NOT_USED",
+    "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+    "ratificationRecordSource": "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+    "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+    "automaticRatification": false,
+    "gateMutationPerformed": false,
+    "broadRuntimeGrant": false
   },
   "pr28": {
     "status": "BLOCKED_BY_PR27",
@@ -3609,6 +3718,13 @@
     "milestoneObservabilitySource": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
     "checkpointRunbookStatus": "PREPARED_NO_WRITE",
     "checkpointRunbookSource": "v5/grundlage/quelle/zertifizierung/pr21-28-checkpoint-runbook.ts",
-    "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts"
+    "resultPackageSource": "v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts",
+    "ratificationRecordStatus": "PREPARED_NOT_USED",
+    "gateAdvanceProposalStatus": "PREPARED_NOT_APPLIED",
+    "ratificationRecordSource": "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+    "gateAdvanceProposalSource": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+    "automaticRatification": false,
+    "gateMutationPerformed": false,
+    "broadRuntimeGrant": false
   }
 }
