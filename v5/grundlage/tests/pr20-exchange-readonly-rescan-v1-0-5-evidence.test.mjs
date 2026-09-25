@@ -106,12 +106,12 @@ test("fresh no-candidate evidence does not satisfy Exchange or PR20.8 exit crite
   assert.equal(evidence.nextAction,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
 });
 
-test("active manifest is the exact purchase-disabled Exchange player-market discovery",()=>{
-  assert.equal(manifest.testId,"pr20-8-exchange-market-discovery");
-  assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,"d977684f56ebe24f021cd46ae7efc502c406ecc6");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js");
-  assert.equal(manifest.packageSha256,"175adb93980af0e7cefe19835101255473031ac51bcc70369e5a4b7d521609cd");
-  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeMarketDiscovery");
+test("active manifest is the exact anniversarygift exception read-only rescan",()=>{
+  assert.equal(manifest.testId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(manifest.controllerVersion,"1.0.7");
+  assert.equal(manifest.sourceCommit,"682e3e483ff5ed69671f0330545ae1718ccd12c4");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-7.js");
+  assert.equal(manifest.packageSha256,"00e2f5ed379f27a489af1c1a87f142cd7efe7fb7617d1e814d3033563137dbf9");
+  assert.equal(manifest.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
