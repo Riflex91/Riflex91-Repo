@@ -50,11 +50,11 @@
     "PR20_8_EXCHANGE_5M_LIVE_NOT_RUN",
     "PR20_8_EXCHANGE_AUTONOMY_NOT_PRODUCTIVE_PROVEN"
   ],
-  "nextAction": "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER",
+  "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
   "mayAdvanceToPr20_9": false,
   "roadmapCriteriaRelaxed": false,
   "compoundLive5mPreparation": {
-    "status": "RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED",
+    "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
     "contract": "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json",
     "additionalGameplayWritesAllowed": 0,
     "additionalPublicFunctionCallsAllowed": 0,
@@ -63,11 +63,15 @@
     "runnerPackage": "v5/werkzeuge/pr20-8-compound-live-5m.js",
     "runnerContract": "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json",
     "publicCompoundCallSites": 0,
-    "manifestCutoverPrepared": false,
-    "deployed": false
+    "manifestCutoverPrepared": true,
+    "deployed": false,
+    "bridgeMayDeployPinnedRunner": true,
+    "deploymentEvidenceObserved": false,
+    "realFiveMinuteRunCompleted": false,
+    "compoundWriteAuthority": false
   },
   "compoundLive5mRunner": {
-    "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+    "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
     "testId": "pr20-8-compound-live-5m",
     "controllerVersion": "1.0.0",
     "package": "v5/werkzeuge/pr20-8-compound-live-5m.js",
@@ -79,8 +83,11 @@
     "rawWriteCallsAllowed": 0,
     "publicCompoundCallSites": 0,
     "compoundWriteAuthority": false,
-    "manifestCutoverPrepared": false,
+    "manifestCutoverPrepared": true,
     "deployed": false,
-    "maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass": true
+    "maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass": true,
+    "bridgeMayDeployPinnedRunner": true,
+    "deploymentEvidenceObserved": false,
+    "realFiveMinuteRunCompleted": false
   }
 }
