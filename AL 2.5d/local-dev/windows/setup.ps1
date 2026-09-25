@@ -263,16 +263,34 @@ Checkout-PinnedRepo "https://github.com/kaansoral/adventureland_mongodb.git" $Ad
 Checkout-PinnedRepo "https://github.com/kaansoral/common_engine.git" $CommonDir $CommonCommit
 Checkout-PinnedRepo "https://github.com/kaansoral/adventureland_secretsandconfig.git" $ConfigDir $ConfigCommit
 
+$OptionsPath = Join-Path $ConfigDir "options.js"
+$Options = Get-Content $OptionsPath -Raw
+$MsgpackSetting = 'msgpack_path: "/socket.io-msgpack/"'
+
+if (-not $Options.Contains($MsgpackSetting)) {
+  $SocketPathLine = "`t`tpath: `"/socket.io/`","
+  if (-not $Options.Contains($SocketPathLine)) {
+    throw "Unable to locate the local Socket.IO path in options.js."
+  }
+
+  Write-Host "==> Adding the local MessagePack Socket.IO path required by the pinned game server"
+  $Options = $Options.Replace(
+    $SocketPathLine,
+    $SocketPathLine + "`r`n`t`tmsgpack_path: `"/socket.io-msgpack/`","
+  )
+  Set-Content -Path $OptionsPath -Value $Options -Encoding UTF8
+}
+
 Write-Host "==> Copying pinned common/config trees into the runtime"
 Sync-DirectoryCopy (Join-Path $AdventureDir "common") $CommonDir
 Sync-DirectoryCopy (Join-Path $AdventureDir "secretsandconfig") $ConfigDir
 
-$OptionsPath = Join-Path $ConfigDir "options.js"
 $Options = Get-Content $OptionsPath -Raw
 foreach ($Required in @(
   "Dev: true",
   "Local: true",
   "unsecure_admin: true",
+  'msgpack_path: "/socket.io-msgpack/"',
   "ip_limit: 3",
   "character_limit: 3"
 )) {
