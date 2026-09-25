@@ -161,6 +161,120 @@ test("Supply Delivery wird erst durch Recipient-Inventardifferenz settled", () =
   }).zustand, "SETTLED");
 });
 
+
+
+test("Recipient-Settlement aggregiert mehrere physische Stacks desselben Items", () => {
+  const ledger = new MerchantLogistikLedger();
+  ledger.plane(logistikPlan({
+    posten: [
+      {
+        physischeKennung: "merchant:1:pot-a",
+        name: "hpot1",
+        level: 0,
+        menge: 40,
+        baselineEmpfaengerMenge: 50,
+      },
+      {
+        physischeKennung: "merchant:2:pot-b",
+        name: "hpot1",
+        level: 0,
+        menge: 60,
+        baselineEmpfaengerMenge: 50,
+      },
+    ],
+  }));
+  ledger.beginneRendezvous("log-1");
+  ledger.bestaetigeRendezvous("log-1", {
+    schemaVersion: 1,
+    characterId: "warrior",
+    sessionId: "session-1",
+    serverRegion: "EU",
+    serverIdentifier: "I",
+    rosterEpoche: 12,
+    beobachtetAmMs: 200,
+    distanz: 200,
+    freshnessFingerprint: "target-fresh",
+  });
+  ledger.beginneTransfer("log-1");
+
+  assert.throws(() => ledger.verifiziereSettlement("log-1", {
+    schemaVersion: 1,
+    characterId: "warrior",
+    sessionId: "session-1",
+    serverRegion: "EU",
+    serverIdentifier: "I",
+    rosterEpoche: 12,
+    beobachtetAmMs: 300,
+    inventoryFingerprint: "inventory-partial",
+    baselineInventoryFingerprint: "inventory-before",
+    mengen: [{ name: "hpot1", level: 0, menge: 110 }],
+    settlementFingerprint: "settle-partial-fp",
+  }), /LOGISTIK_SETTLEMENT_MENGE_FEHLT:hpot1/);
+
+  assert.equal(ledger.verifiziereSettlement("log-1", {
+    schemaVersion: 1,
+    characterId: "warrior",
+    sessionId: "session-1",
+    serverRegion: "EU",
+    serverIdentifier: "I",
+    rosterEpoche: 12,
+    beobachtetAmMs: 310,
+    inventoryFingerprint: "inventory-complete",
+    baselineInventoryFingerprint: "inventory-before",
+    mengen: [{ name: "hpot1", level: 0, menge: 150 }],
+    settlementFingerprint: "settle-complete-fp",
+  }).zustand, "SETTLED");
+});
+
+test("Recipient-Settlement blockiert widerspruechliche Baselines fuer dasselbe Item", () => {
+  const ledger = new MerchantLogistikLedger();
+  ledger.plane(logistikPlan({
+    posten: [
+      {
+        physischeKennung: "merchant:1:pot-a",
+        name: "hpot1",
+        level: 0,
+        menge: 40,
+        baselineEmpfaengerMenge: 50,
+      },
+      {
+        physischeKennung: "merchant:2:pot-b",
+        name: "hpot1",
+        level: 0,
+        menge: 60,
+        baselineEmpfaengerMenge: 55,
+      },
+    ],
+  }));
+  ledger.beginneRendezvous("log-1");
+  ledger.bestaetigeRendezvous("log-1", {
+    schemaVersion: 1,
+    characterId: "warrior",
+    sessionId: "session-1",
+    serverRegion: "EU",
+    serverIdentifier: "I",
+    rosterEpoche: 12,
+    beobachtetAmMs: 200,
+    distanz: 200,
+    freshnessFingerprint: "target-fresh",
+  });
+  ledger.beginneTransfer("log-1");
+
+  assert.throws(() => ledger.verifiziereSettlement("log-1", {
+    schemaVersion: 1,
+    characterId: "warrior",
+    sessionId: "session-1",
+    serverRegion: "EU",
+    serverIdentifier: "I",
+    rosterEpoche: 12,
+    beobachtetAmMs: 300,
+    inventoryFingerprint: "inventory-after",
+    baselineInventoryFingerprint: "inventory-before",
+    mengen: [{ name: "hpot1", level: 0, menge: 155 }],
+    settlementFingerprint: "settle-fp",
+  }), /LOGISTIK_SETTLEMENT_PLAN_BASELINE_DRIFT:hpot1/);
+});
+
 test("Logistik-Restart erlaubt keinen blinden Transfer-Retry", () => {
   const alt = new MerchantLogistikLedger();
   alt.plane(logistikPlan());
