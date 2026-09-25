@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "EXCHANGE_ACQUISITION_BANK_MOUNT_MANIFEST_CUTOVER_PREPARED",
+      "status": "EXCHANGE_BANK_SNAPSHOT_NO_CANDIDATE_RATIFIED_MARKET_DISCOVERY_PREPARED",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "DEPLOY_EXCHANGE_ACQUISITION_BANK_MOUNT",
+      "nextAction": "MERGE_MARKET_DISCOVERY_PACKAGE_THEN_CUTOVER",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -861,7 +861,12 @@
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-bank-mount.json",
         "v5/werkzeuge/pr20-8-exchange-candidate-bank-mount-v1-0-0.js",
-        "v5/werkzeuge/tests/pr20-8-exchange-candidate-bank-mount-v1-0-0.test.mjs"
+        "v5/werkzeuge/tests/pr20-8-exchange-candidate-bank-mount-v1-0-0.test.mjs",
+        "v5/roadmap/pr20-8-exchange-candidate-bank-mount-evidence.json",
+        "v5/grundlage/tests/pr20-exchange-candidate-bank-mount-evidence.test.mjs",
+        "v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js",
+        "v5/werkzeuge/tests/pr20-8-exchange-market-discovery-v1-0-0.test.mjs",
+        "v5/grundlage/vertraege/runtime/pr20-8-exchange-market-discovery.json"
       ]
     },
     {
