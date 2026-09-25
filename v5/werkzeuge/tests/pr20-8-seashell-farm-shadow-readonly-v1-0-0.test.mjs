@@ -7,6 +7,12 @@ const source=fs.readFileSync(
   "werkzeuge/pr20-8-seashell-farm-shadow-readonly-v1-0-0.js",
   "utf8",
 );
+const runnerContract=JSON.parse(fs.readFileSync(
+  "grundlage/vertraege/runtime/pr20-8-exchange-seashell-farm-shadow-runner.json",
+  "utf8",
+));
+const roadmap=JSON.parse(fs.readFileSync("roadmap/post-r19-roadmap.json","utf8"));
+const manifest=JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest.json","utf8"));
 
 function sandbox(overrides={}){
   const character={
@@ -215,4 +221,46 @@ test("runner source contains no gameplay, lifecycle or raw transport mutation pa
   assert.ok(source.includes("rawWriteCalls: 0"));
   assert.ok(source.includes("farmerWorkersInstalled: 0"));
   assert.ok(source.includes("normalRuntimeAllowed: false"));
+});
+
+test("runner contract and current roadmap remain read-only and undeployed",()=>{
+  assert.equal(runnerContract.status,"RUNNER_PREPARED_READ_ONLY");
+  assert.equal(runnerContract.runner.testId,"pr20-8-seashell-farm-shadow-readonly");
+  assert.equal(runnerContract.runner.controllerVersion,"1.0.0");
+  assert.equal(runnerContract.runner.expectedGlobal,"V5PR208SeashellFarmShadowReadonly");
+  assert.equal(runnerContract.runner.localFarmerOnly,true);
+  assert.equal(runnerContract.runner.packagePinDeferredUntilManifestCutover,true);
+  assert.equal(runnerContract.noWriteBoundary.movementAuthority,false);
+  assert.equal(runnerContract.noWriteBoundary.combatAuthority,false);
+  assert.equal(runnerContract.noWriteBoundary.skillAuthority,false);
+  assert.equal(runnerContract.noWriteBoundary.lootAuthority,false);
+  assert.equal(runnerContract.noWriteBoundary.farmAuthority,false);
+  assert.equal(runnerContract.noWriteBoundary.exchangeAuthority,false);
+  assert.equal(runnerContract.noWriteBoundary.startCharacterAllowed,false);
+  assert.equal(runnerContract.noWriteBoundary.commandCharacterAllowed,false);
+  assert.equal(runnerContract.noWriteBoundary.workerInstallAllowed,false);
+  assert.equal(runnerContract.deployment.autonomousManifestChanged,false);
+  assert.equal(runnerContract.deployment.manifestCutoverPrepared,false);
+  assert.equal(runnerContract.deployment.deployed,false);
+  assert.equal(runnerContract.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_READ_ONLY");
+
+  assert.equal(roadmap.pr20_8.status,"EXCHANGE_SEASHELL_FARM_SHADOW_RUNNER_PREPARED_READ_ONLY");
+  assert.equal(roadmap.pr20_8.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_READ_ONLY");
+  const shadow=roadmap.pr20_8.exchangeCandidateAcquisition.seashellFarmShadow;
+  assert.equal(shadow.runnerPrepared,true);
+  assert.equal(shadow.manifestCutoverPrepared,false);
+  assert.equal(shadow.deployed,false);
+  assert.equal(shadow.liveEvidenceObserved,false);
+  assert.equal(shadow.alreadySatisfiedNextAction,"PREPARE_SEASHELL_HANDOFF_SHADOW_NO_WRITE");
+});
+
+test("autonomous manifest remains on market discovery until a separate cutover stage",()=>{
+  assert.equal(manifest.testId,"pr20-8-exchange-market-discovery");
+  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(
+    manifest.packagePath,
+    "v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js",
+  );
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeMarketDiscovery");
+  assert.equal(manifest.normalRuntimeAllowed,false);
 });
