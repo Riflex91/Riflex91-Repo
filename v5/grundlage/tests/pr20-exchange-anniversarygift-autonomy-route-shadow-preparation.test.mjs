@@ -22,7 +22,7 @@ test("PR20.8 anniversarygift autonomy shadow package is exact pinned zero-write"
   assert.equal(b.testId,"pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write");
   assert.equal(b.controllerVersion,"1.0.0");
   assert.equal(b.expectedGlobal,"V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite");
-  assert.equal(b.sourceCommit,"d2fe950c2a20fe5aa87f6cdb6487ca79b959ef29");
+  assert.equal(b.sourceCommit,"578b18dfa96fd7c4809d55aae4664eae5f37eb43");
   assert.equal(
     b.packageSha256,
     "39084a646825c6bca6231b0968e41cebfbbf3548e8a93bba155dcb64b2fbf2be",
