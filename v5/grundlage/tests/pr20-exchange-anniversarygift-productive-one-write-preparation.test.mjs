@@ -175,7 +175,7 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
   assert.equal(live.normalRuntimeAllowed,false);
 });
 
-test("active autonomous manifest is cut over to the productive one-write runner",()=>{
+test("active autonomous manifest is cut over to the Exchange service mount",()=>{
   assert.equal(manifest.testId,
     "pr20-8-exchange-anniversarygift-service-mount");
   assert.equal(manifest.controllerVersion,"1.0.0");
