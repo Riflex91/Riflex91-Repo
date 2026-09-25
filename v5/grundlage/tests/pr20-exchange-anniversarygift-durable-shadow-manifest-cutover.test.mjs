@@ -35,26 +35,21 @@ test("anniversarygift shadow cutover pins the exact prepared no-send package",()
   assert.equal(cutover.manifest.normalRuntimeAllowed,false);
 });
 
-test("manifest exactly matches cutover and checked-in pinned bytes",()=>{
-  assert.equal(manifest.testId,cutover.manifest.testId);
-  assert.equal(manifest.controllerVersion,cutover.manifest.controllerVersion);
-  assert.equal(manifest.sourceCommit,cutover.manifest.sourceCommit);
-  assert.equal(manifest.packagePath,cutover.manifest.packagePath);
-  assert.equal(manifest.packageSha256,cutover.manifest.packageSha256);
-  assert.equal(manifest.expectedGlobal,cutover.manifest.expectedGlobal);
-  assert.equal(manifest.normalRuntimeAllowed,false);
-
-  const packagePath=manifest.packagePath.replace(/^v5\//,"");
+test("historical shadow cutover package bytes remain exact after later manifest advance",()=>{
+  const packagePath=cutover.manifest.packagePath.replace(/^v5\\//,"");
   const bytes=fs.readFileSync(packagePath);
   assert.equal(bytes.length,cutover.manifest.packageBytes);
   assert.equal(
     crypto.createHash("sha256").update(bytes).digest("hex"),
-    manifest.packageSha256,
+    cutover.manifest.packageSha256,
   );
   const pinned=execFileSync("git",[
-    "show",manifest.sourceCommit+":"+manifest.packagePath,
+    "show",cutover.manifest.sourceCommit+":"+cutover.manifest.packagePath,
   ],{encoding:null,maxBuffer:256*1024});
   assert.deepEqual(pinned,bytes);
+  assert.notEqual(manifest.testId,cutover.manifest.testId);
+  assert.equal(manifest.testId,
+    "pr20-8-exchange-anniversarygift-productive-one-write-live");
 });
 
 test("cutover remains no-send, no-authority and non-ratifying",()=>{
@@ -89,10 +84,10 @@ test("roadmap advances only to shadow deployment observation",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   const shadow=a.anniversaryGiftExchangeShadow;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RUNNER_PREPARED_NOT_DEPLOYED");
+    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
   assert.equal(roadmap.pr20_8.nextAction,
-    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER");
-  assert.equal(a.status,"ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RUNNER_PREPARED_NOT_DEPLOYED");
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE");
+  assert.equal(a.status,"ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
   assert.equal(shadow.status,"RATIFIED_LIVE_DURABLE_SHADOW_NO_SEND");
   assert.equal(shadow.manifestCutoverPrepared,true);
   assert.equal(shadow.deployed,true);
