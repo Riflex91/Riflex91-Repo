@@ -18,9 +18,26 @@ export type CameraState = Readonly<{
   zoom: number;
 }>;
 
+export type RenderMapGeometrySummary = Readonly<{
+  available: boolean;
+  tiles: number;
+  placements: number;
+  groups: number;
+  animations: number;
+  xLines: number;
+  yLines: number;
+}>;
+
+export type RenderMapState = Readonly<{
+  id: string;
+  metadata: Readonly<Record<string, string | number | boolean | null>>;
+  geometry: RenderMapGeometrySummary;
+}>;
+
 export type GameFrameSnapshot = Readonly<{
   tick: number;
   map: string;
+  mapState?: RenderMapState;
   entities: readonly RenderEntity[];
 }>;
 
