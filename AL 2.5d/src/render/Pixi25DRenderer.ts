@@ -6,6 +6,7 @@ import {
   Texture
 } from "pixi.js";
 
+import { AssetRegistry } from "./AssetRegistry";
 import type {
   CameraState,
   GameFrameSnapshot,
@@ -17,7 +18,7 @@ import { projectWorldToScreen } from "./projection";
 type EntityVisual = {
   container: Container;
   sprite: Sprite;
-  textureId: string;
+  assetId: string;
 };
 
 const DEFAULT_CAMERA: CameraState = {
@@ -30,9 +31,11 @@ export class Pixi25DRenderer implements RenderBridge {
   private readonly app = new Application();
   private readonly world = new Container();
   private readonly visuals = new Map<string, EntityVisual>();
-  private readonly pendingTextures = new Set<string>();
+  private readonly textureLoads = new Map<string, Promise<Texture | null>>();
   private camera: CameraState = DEFAULT_CAMERA;
   private mounted = false;
+
+  constructor(private readonly assets = new AssetRegistry()) {}
 
   async mount(host: HTMLElement): Promise<void> {
     if (this.mounted) return;
@@ -52,6 +55,10 @@ export class Pixi25DRenderer implements RenderBridge {
   }
 
   setCamera(camera: CameraState): void {
+    if (camera.zoom <= 0) {
+      throw new Error("Camera zoom must be greater than zero");
+    }
+
     this.camera = camera;
     this.applyCamera();
   }
@@ -76,6 +83,7 @@ export class Pixi25DRenderer implements RenderBridge {
   destroy(): void {
     if (!this.mounted) return;
     this.visuals.clear();
+    this.textureLoads.clear();
     this.app.destroy(true, { children: true });
     this.mounted = false;
   }
@@ -94,14 +102,15 @@ export class Pixi25DRenderer implements RenderBridge {
       visual = {
         container,
         sprite,
-        textureId: ""
+        assetId: ""
       };
 
       this.visuals.set(entity.id, visual);
     }
 
-    if (visual.textureId !== entity.texture) {
-      visual.textureId = entity.texture;
+    if (visual.assetId !== entity.texture) {
+      visual.assetId = entity.texture;
+      visual.sprite.texture = Texture.WHITE;
       void this.loadTexture(visual, entity.texture);
     }
 
@@ -120,23 +129,28 @@ export class Pixi25DRenderer implements RenderBridge {
     }
   }
 
-  private async loadTexture(visual: EntityVisual, textureId: string): Promise<void> {
-    if (!textureId || this.pendingTextures.has(textureId)) return;
+  private async loadTexture(
+    visual: EntityVisual,
+    assetId: string
+  ): Promise<void> {
+    const src = this.assets.resolve(assetId);
 
-    this.pendingTextures.add(textureId);
+    if (!src) {
+      return;
+    }
 
-    try {
-      const texture = await Assets.load<Texture>(textureId);
+    let load = this.textureLoads.get(src);
 
-      // Ignore a late load if the entity switched textures while waiting.
-      if (visual.textureId === textureId) {
-        visual.sprite.texture = texture;
-      }
-    } catch {
-      // White placeholder intentionally remains. Asset loading failure must
-      // never affect gameplay state.
-    } finally {
-      this.pendingTextures.delete(textureId);
+    if (!load) {
+      load = Assets.load<Texture>(src).catch(() => null);
+      this.textureLoads.set(src, load);
+    }
+
+    const texture = await load;
+
+    // Ignore a late load if the entity switched assets while waiting.
+    if (texture && visual.assetId === assetId) {
+      visual.sprite.texture = texture;
     }
   }
 

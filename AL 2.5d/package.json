@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:upstream": "node scripts/verify-upstream-manifest.mjs",
+    "check": "npm run verify:upstream && npm test && npm run build"
   },
   "dependencies": {
     "pixi.js": "^8.13.2"

@@ -11,29 +11,37 @@ Status: in progress
 - [x] depth sorting baseline
 - [x] asset namespace policy
 - [x] projection tests
+- [x] first deterministic render snapshot fixture
+- [x] stable 2.5D asset registry
 - [ ] CI job for build/tests
-- [ ] first render snapshot fixture
 
 ## AL25D-02 — Upstream logic inventory
 
-- pin the exact Adventure Land source snapshot
-- classify files as logic / networking / persistence / rendering / assets
-- produce a parity manifest
-- identify every direct Pixi/render dependency in gameplay code
-- identify every UI call that has gameplay side effects
+Status: complete
 
-Deliverable: a machine-readable migration manifest.
+- [x] pin the exact Adventure Land source snapshot
+- [x] classify core files as logic / networking / persistence / mixed / presentation
+- [x] produce a machine-readable parity manifest
+- [x] identify initial direct Pixi/render migration hooks
+- [x] identify public CODE drawing/click APIs that must preserve behavior
+
+Deliverable: `docs/upstream-manifest.json`.
 
 ## AL25D-03 — Legacy client bridge
 
-- boot original client logic without its old scene renderer
-- translate legacy entities to immutable RenderEntity snapshots
-- preserve socket event behavior
-- preserve movement/collision coordinates
-- preserve map transitions
-- add golden tests against legacy outputs
+Status: in progress
 
-Deliverable: original game logic driving a blank/new renderer.
+- [x] translate legacy entities to immutable RenderEntity snapshots
+- [x] preserve authoritative world x/y coordinates in the snapshot
+- [x] map 2.5D pointer coordinates back to legacy world x/y
+- [x] preserve `on_map_click` callback return semantics
+- [ ] boot original client state/network logic without its old scene renderer
+- [ ] redirect `add_character` into the snapshot/render bridge
+- [ ] redirect `add_monster` into the snapshot/render bridge
+- [ ] preserve map transitions
+- [ ] add golden tests against captured legacy outputs
+
+Deliverable: original game logic driving the new renderer.
 
 ## AL25D-04 — First playable 2.5D map
 
