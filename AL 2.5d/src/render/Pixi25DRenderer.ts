@@ -169,20 +169,34 @@ export class Pixi25DRenderer implements RenderBridge {
 
     const groundSurfaces = new Graphics();
     const structures = new Graphics();
-    const textureLayer = new Container();
+    const groundTextureLayer = new Container();
+    const structureTextureLayer = new Container();
 
     for (const surface of geometry?.surfaces ?? []) {
       if (surface.layer === "ground") {
         this.drawMapSurface(groundSurfaces, surface);
-        void this.addTexturedGroundSurface(surface, textureLayer, key);
+        void this.addTexturedMapSurface(
+          surface,
+          groundTextureLayer,
+          key,
+          0
+        );
       } else {
+        const height = this.surfaceHeight(surface);
         this.drawMapSurface(structures, surface);
+        void this.addTexturedMapSurface(
+          surface,
+          structureTextureLayer,
+          key,
+          height
+        );
       }
     }
 
     this.mapLayer.addChild(groundSurfaces);
-    this.mapLayer.addChild(textureLayer);
+    this.mapLayer.addChild(groundTextureLayer);
     this.mapLayer.addChild(structures);
+    this.mapLayer.addChild(structureTextureLayer);
 
     const grid = new Graphics();
     this.drawGrid(grid, bounds);
@@ -274,7 +288,7 @@ export class Pixi25DRenderer implements RenderBridge {
     ];
     const materialColor = this.materialColor(surface.material);
     const structure = surface.layer === "structure";
-    const height = structure ? 14 + ((surface.group ?? 0) % 3) * 4 : 0;
+    const height = this.surfaceHeight(surface);
 
     if (height > 0) {
       const frontA = corners[3];
@@ -485,13 +499,19 @@ export class Pixi25DRenderer implements RenderBridge {
     return ((next >>> 0) % 1000) / 1000;
   }
 
-  private async addTexturedGroundSurface(
+  private surfaceHeight(surface: RenderMapSurface): number {
+    return surface.layer === "structure"
+      ? 14 + ((surface.group ?? 0) % 3) * 4
+      : 0;
+  }
+
+  private async addTexturedMapSurface(
     surface: RenderMapSurface,
     layer: Container,
-    mapKey: string
+    mapKey: string,
+    elevation: number
   ): Promise<void> {
     if (
-      surface.layer !== "ground" ||
       !surface.textureUrl ||
       surface.sourceX === undefined ||
       surface.sourceY === undefined ||
@@ -506,7 +526,7 @@ export class Pixi25DRenderer implements RenderBridge {
       return;
     }
 
-    const cached = this.createGroundTexture(surface, image);
+    const cached = this.createProjectedSurfaceTexture(surface, image);
     if (!cached) return;
 
     const sprite = new Sprite(cached.texture);
@@ -517,9 +537,12 @@ export class Pixi25DRenderer implements RenderBridge {
     const worldDepth = surface.maxY - surface.minY;
     const inverseRasterScale = 1 / cached.rasterScale;
 
-    sprite.position.set(origin.x - worldDepth * 0.5, origin.y);
+    sprite.position.set(
+      origin.x - worldDepth * 0.5,
+      origin.y - elevation
+    );
     sprite.scale.set(inverseRasterScale);
-    sprite.alpha = 0.9;
+    sprite.alpha = surface.layer === "structure" ? 0.98 : 0.9;
     layer.addChild(sprite);
   }
 
@@ -540,7 +563,7 @@ export class Pixi25DRenderer implements RenderBridge {
     return load;
   }
 
-  private createGroundTexture(
+  private createProjectedSurfaceTexture(
     surface: RenderMapSurface,
     image: HTMLImageElement
   ): Readonly<{ texture: Texture; rasterScale: number }> | null {
