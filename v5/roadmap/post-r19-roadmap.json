@@ -904,9 +904,14 @@
         "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json",
-        "v5/grundlage/tests/pr21-28-orchestration.test.mjs"
+        "v5/grundlage/tests/pr21-28-orchestration.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
       ],
-      "orchestrationStatus": "PREPARED_NO_WRITE"
+      "orchestrationStatus": "PREPARED_NO_WRITE",
+      "featureGateStatus": "PREPARED_NOT_RATIFIED"
     },
     {
       "id": "PR22_MULTI_CHARACTER",
@@ -922,9 +927,14 @@
         "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs",
         "v5/grundlage/quelle/koordination/pr22-coordination-shadow-workflow.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json",
-        "v5/grundlage/tests/pr21-28-orchestration.test.mjs"
+        "v5/grundlage/tests/pr21-28-orchestration.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
       ],
-      "orchestrationStatus": "PREPARED_NO_WRITE"
+      "orchestrationStatus": "PREPARED_NO_WRITE",
+      "featureGateStatus": "PREPARED_NOT_RATIFIED"
     },
     {
       "id": "PR23_FARMER",
@@ -940,9 +950,14 @@
         "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json",
-        "v5/grundlage/tests/pr21-28-orchestration.test.mjs"
+        "v5/grundlage/tests/pr21-28-orchestration.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
       ],
-      "orchestrationStatus": "PREPARED_NO_WRITE"
+      "orchestrationStatus": "PREPARED_NO_WRITE",
+      "featureGateStatus": "PREPARED_NOT_RATIFIED"
     },
     {
       "id": "PR24_GROUP_MATRIX",
@@ -958,9 +973,14 @@
         "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs",
         "v5/grundlage/quelle/gruppe/pr24-25-group-validation-suite.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json",
-        "v5/grundlage/tests/pr21-28-orchestration.test.mjs"
+        "v5/grundlage/tests/pr21-28-orchestration.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
       ],
-      "orchestrationStatus": "PREPARED_NO_WRITE"
+      "orchestrationStatus": "PREPARED_NO_WRITE",
+      "featureGateStatus": "PREPARED_NOT_RATIFIED"
     },
     {
       "id": "PR25_GROUP_LIVE_EVIDENCE",
@@ -976,9 +996,14 @@
         "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs",
         "v5/grundlage/quelle/gruppe/pr24-25-group-validation-suite.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json",
-        "v5/grundlage/tests/pr21-28-orchestration.test.mjs"
+        "v5/grundlage/tests/pr21-28-orchestration.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
       ],
-      "orchestrationStatus": "PREPARED_NO_WRITE"
+      "orchestrationStatus": "PREPARED_NO_WRITE",
+      "featureGateStatus": "PREPARED_NOT_RATIFIED"
     },
     {
       "id": "PR26_TASK_PARTY_OPTIMIZER",
@@ -994,9 +1019,14 @@
         "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs",
         "v5/grundlage/quelle/optimierung/pr26-28-autonomy-shadow-plan.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json",
-        "v5/grundlage/tests/pr21-28-orchestration.test.mjs"
+        "v5/grundlage/tests/pr21-28-orchestration.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
       ],
-      "orchestrationStatus": "PREPARED_NO_WRITE"
+      "orchestrationStatus": "PREPARED_NO_WRITE",
+      "featureGateStatus": "PREPARED_NOT_RATIFIED"
     },
     {
       "id": "PR27_ACCOUNT_PROGRESSION",
@@ -1012,9 +1042,14 @@
         "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs",
         "v5/grundlage/quelle/optimierung/pr26-28-autonomy-shadow-plan.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json",
-        "v5/grundlage/tests/pr21-28-orchestration.test.mjs"
+        "v5/grundlage/tests/pr21-28-orchestration.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
       ],
-      "orchestrationStatus": "PREPARED_NO_WRITE"
+      "orchestrationStatus": "PREPARED_NO_WRITE",
+      "featureGateStatus": "PREPARED_NOT_RATIFIED"
     },
     {
       "id": "PR28_WORLD_AUTONOMY",
@@ -1030,9 +1065,14 @@
         "v5/grundlage/tests/pr21-28-accelerated-foundations.test.mjs",
         "v5/grundlage/quelle/optimierung/pr26-28-autonomy-shadow-plan.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-accelerated-orchestration.json",
-        "v5/grundlage/tests/pr21-28-orchestration.test.mjs"
+        "v5/grundlage/tests/pr21-28-orchestration.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+        "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
       ],
-      "orchestrationStatus": "PREPARED_NO_WRITE"
+      "orchestrationStatus": "PREPARED_NO_WRITE",
+      "featureGateStatus": "PREPARED_NOT_RATIFIED"
     }
   ],
   "safePreparationBoundary": {
@@ -3266,7 +3306,36 @@
       "gameplayWritesEnabled": false,
       "rawWriteAuthorityEnabled": false,
       "normalRuntimeEnabled": false
-    }
+    },
+    "evidenceFeatureGatesBatch3": {
+      "status": "PREPARED_NO_WRITE",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
+      "featureGate": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+      "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+      "test": "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs",
+      "authorityIssuedByEvaluation": false,
+      "evidenceRatifiedByEvaluation": false,
+      "productiveGatesStillBinding": true
+    },
+    "liveTestStrategyDetailed": [
+      {
+        "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+        "stage": "PR21",
+        "targetSeconds": 900
+      },
+      {
+        "checkpointId": "POST_PR24_25_GROUP_CHECKPOINT",
+        "stage": "PR23_PR25",
+        "capabilitySeconds": 300,
+        "integrationSeconds": 900
+      },
+      {
+        "checkpointId": "POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN",
+        "stage": "PR28",
+        "minimumSeconds": 7200,
+        "targetSeconds": 10800
+      }
+    ]
   },
   "pr21": {
     "status": "BLOCKED_BY_PR20",
@@ -3283,7 +3352,11 @@
     "normalRuntimeAllowed": false,
     "nextProductiveGate": "PR20_COMPLETE_AND_15M_MERCHANT_INTEGRATION_EVIDENCE",
     "orchestrationStatus": "CONNECTED_IN_PR21_28_SHADOW_PIPELINE_NO_WRITE",
-    "orchestrationSource": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts"
+    "orchestrationSource": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
+    "featureGateStatus": "PREPARED_NOT_RATIFIED",
+    "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+    "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+    "productiveAuthorityIssued": false
   },
   "pr22": {
     "status": "BLOCKED_BY_PR21",
@@ -3301,7 +3374,11 @@
     "normalRuntimeAllowed": false,
     "nextProductiveGate": "PR21_COMPLETE_AND_PRODUCTIVE_CM_TRANSPORT_EVIDENCE",
     "orchestrationStatus": "ACK_SETTLEMENT_SHADOW_WORKFLOW_PREPARED_NO_WRITE",
-    "orchestrationSource": "v5/grundlage/quelle/koordination/pr22-coordination-shadow-workflow.ts"
+    "orchestrationSource": "v5/grundlage/quelle/koordination/pr22-coordination-shadow-workflow.ts",
+    "featureGateStatus": "PREPARED_NOT_RATIFIED",
+    "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+    "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+    "productiveAuthorityIssued": false
   },
   "pr23": {
     "status": "BLOCKED_BY_PR22",
@@ -3322,7 +3399,11 @@
     "normalRuntimeAllowed": false,
     "nextProductiveGate": "PR22_COMPLETE_AND_PER_CAPABILITY_LIVE_EVIDENCE",
     "orchestrationStatus": "CONNECTED_IN_PR21_28_SHADOW_PIPELINE_NO_WRITE",
-    "orchestrationSource": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts"
+    "orchestrationSource": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
+    "featureGateStatus": "PREPARED_NOT_RATIFIED",
+    "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+    "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+    "productiveAuthorityIssued": false
   },
   "pr24": {
     "status": "BLOCKED_BY_PR23",
@@ -3339,7 +3420,11 @@
     "normalRuntimeAllowed": false,
     "nextProductiveGate": "PR23_COMPLETE_AND_REPLAY_FAULT_MATRIX_GREEN",
     "orchestrationStatus": "MANDATORY_TOPOLOGY_FAULT_MATRIX_PREPARED_NO_WRITE",
-    "orchestrationSource": "v5/grundlage/quelle/gruppe/pr24-25-group-validation-suite.ts"
+    "orchestrationSource": "v5/grundlage/quelle/gruppe/pr24-25-group-validation-suite.ts",
+    "featureGateStatus": "PREPARED_NOT_RATIFIED",
+    "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+    "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+    "productiveAuthorityIssued": false
   },
   "pr25": {
     "status": "BLOCKED_BY_PR24",
@@ -3359,7 +3444,11 @@
     },
     "nextProductiveGate": "PR24_COMPLETE_AND_REAL_GROUP_EVIDENCE",
     "orchestrationStatus": "GROUP_EVIDENCE_EVALUATOR_PREPARED_NO_WRITE",
-    "orchestrationSource": "v5/grundlage/quelle/gruppe/pr24-25-group-validation-suite.ts"
+    "orchestrationSource": "v5/grundlage/quelle/gruppe/pr24-25-group-validation-suite.ts",
+    "featureGateStatus": "PREPARED_NOT_RATIFIED",
+    "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+    "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+    "productiveAuthorityIssued": false
   },
   "pr26": {
     "status": "BLOCKED_BY_PR25",
@@ -3377,7 +3466,11 @@
     "normalRuntimeAllowed": false,
     "nextProductiveGate": "PR25_COMPLETE_AND_REAL_GROUP_PERFORMANCE_EVIDENCE",
     "orchestrationStatus": "AUTONOMY_SHADOW_PLAN_PREPARED_NO_WRITE",
-    "orchestrationSource": "v5/grundlage/quelle/optimierung/pr26-28-autonomy-shadow-plan.ts"
+    "orchestrationSource": "v5/grundlage/quelle/optimierung/pr26-28-autonomy-shadow-plan.ts",
+    "featureGateStatus": "PREPARED_NOT_RATIFIED",
+    "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+    "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+    "productiveAuthorityIssued": false
   },
   "pr27": {
     "status": "BLOCKED_BY_PR26",
@@ -3395,7 +3488,11 @@
     "normalRuntimeAllowed": false,
     "nextProductiveGate": "PR26_COMPLETE_AND_OPTIMIZER_STABLE",
     "orchestrationStatus": "AUTONOMY_SHADOW_PLAN_PREPARED_NO_WRITE",
-    "orchestrationSource": "v5/grundlage/quelle/optimierung/pr26-28-autonomy-shadow-plan.ts"
+    "orchestrationSource": "v5/grundlage/quelle/optimierung/pr26-28-autonomy-shadow-plan.ts",
+    "featureGateStatus": "PREPARED_NOT_RATIFIED",
+    "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+    "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+    "productiveAuthorityIssued": false
   },
   "pr28": {
     "status": "BLOCKED_BY_PR27",
@@ -3414,6 +3511,10 @@
     "normalRuntimeAllowed": false,
     "nextProductiveGate": "PR27_COMPLETE_AND_WORLD_ACTION_LIVE_EVIDENCE",
     "orchestrationStatus": "AUTONOMY_SHADOW_PLAN_PREPARED_NO_WRITE",
-    "orchestrationSource": "v5/grundlage/quelle/optimierung/pr26-28-autonomy-shadow-plan.ts"
+    "orchestrationSource": "v5/grundlage/quelle/optimierung/pr26-28-autonomy-shadow-plan.ts",
+    "featureGateStatus": "PREPARED_NOT_RATIFIED",
+    "featureGateSource": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+    "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+    "productiveAuthorityIssued": false
   }
 }
