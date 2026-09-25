@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_28_RATIFICATION_GATE_PROPOSALS_BATCH_6",
+  "status": "PREPARED_NO_WRITE",
+  "sourceMain": "00ac4d8af6fe59e6adf1f09a7b2c04bc6990364d",
+  "strategy": "EXPLICIT_PACKAGE_BOUND_RATIFICATION_THEN_NON_APPLYING_GATE_PROPOSAL",
+  "ratification": {
+    "source": "v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts",
+    "genericAcknowledgementsAccepted": false,
+    "packageBoundConfirmationRequired": true,
+    "automaticRatification": false,
+    "gateAdvancedByRatification": false,
+    "authorityIssuedByRatification": false,
+    "broadRuntimeGrant": false,
+    "gesamtfreigabeRequiredSeparately": true
+  },
+  "gateAdvanceProposal": {
+    "source": "v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts",
+    "freshMainRequired": true,
+    "packageFingerprintMatchRequired": true,
+    "ratificationRequired": true,
+    "featureGateEligibilityRequired": true,
+    "gateMutationPerformed": false,
+    "authorityIssued": false,
+    "broadRuntimeGrant": false,
+    "separateApplyRequired": true
+  },
+  "safety": {
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "broadGesamtfreigabeNeverInferred": true
+  },
+  "test": "v5/grundlage/tests/pr21-28-ratification-gate-proposals.test.mjs",
+  "nextMilestone": "PREPARE_SEPARATE_STAGE_GATE_APPLY_ADAPTERS_AS_DEFAULT_OFF_TRANSACTIONS"
+}
