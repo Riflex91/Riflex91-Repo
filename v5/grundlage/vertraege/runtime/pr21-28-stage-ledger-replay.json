@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_28_STAGE_LEDGER_REPLAY_BATCH_9",
+  "status": "PREPARED_REPLAY_ONLY",
+  "sourceMain": "2e872658ca44e977b3dda5638bda4a781c53248d",
+  "source": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+  "preparationCompleteCanReachPr28": true,
+  "productiveEvidenceStillRequired": true,
+  "strictStageOrder": true,
+  "replayMutatesGate": false,
+  "replayIssuesAuthority": false,
+  "broadRuntimeGrant": false,
+  "normalRuntimeAllowed": false,
+  "test": "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
+}
