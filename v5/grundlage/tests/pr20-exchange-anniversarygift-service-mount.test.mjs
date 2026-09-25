@@ -118,8 +118,8 @@ test("roadmap ratifies service mount and restores productive one-write deploymen
   assert.equal(live.deployed,true);
   assert.equal(live.liveEvidenceObserved,true);
   assert.equal(live.latestNotificationId,2949);
-  assert.equal(live.latestGameplayWrites,0);
-  assert.equal(live.latestPublicFunctionCalls,0);
+  assert.equal(live.latestGameplayWrites,1);
+  assert.equal(live.latestPublicFunctionCalls,1);
   assert.equal(live.latestRawWriteCalls,0);
   assert.equal(live.exchangeAuthority,false);
   assert.equal(mount.status,"RATIFIED_EXCHANGE_SERVICE_REACHED_ONE_MOVEMENT");
