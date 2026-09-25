@@ -45,7 +45,7 @@ test("PR20.8 no-candidate evidence cannot silently create authority or substitut
   ]);
   assert.equal(
     review.nextAction,
-    "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
+    "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
   );
 });
 
@@ -230,6 +230,43 @@ test("PR20.8 Compound 5m evidence closes only the Compound live gate", () => {
   assert.equal(e.exchangeLive5mTested,false);
   assert.equal(e.exchangeAutonomyProductiveProven,false);
   assert.equal(e.normalRuntimeAllowed,false);
+  assert.equal(review.currentExitGateSatisfied,false);
+  assert.equal(review.mayAdvanceToPr20_9,false);
+});
+
+test("PR20.8 Exchange no-candidate closeout review authorizes only read-only observation", () => {
+  const r=review.exchangeNoCandidateCloseoutReview;
+  assert.equal(r.status,"REVIEWED_FRESH_READONLY_RESCAN_REQUIRED");
+  assert.equal(r.review,"v5/roadmap/pr20-8-exchange-no-candidate-closeout-review.json");
+  assert.equal(r.existingEvidence,"v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json");
+  assert.equal(r.existingObservedAtMs,1790278399271);
+  assert.equal(r.existingExchangeStatus,"KEIN_KANDIDAT");
+  assert.equal(r.existingExchangeCandidateCount,0);
+  assert.equal(r.compoundMutationCommittedAfterExistingObservation,true);
+  assert.equal(r.freshCurrentInventoryEvidenceRequired,true);
+  assert.equal(r.acquisitionOrMutationToCreateCandidateAllowed,false);
+  assert.equal(r.buyToCreateCandidateAllowed,false);
+  assert.equal(r.farmToCreateCandidateAllowed,false);
+  assert.equal(r.bankMutationToCreateCandidateAllowed,false);
+  assert.equal(r.exchangeWriteAuthority,false);
+  assert.equal(r.gameplayAuthority,false);
+  assert.equal(r.rawWriteAuthority,false);
+  assert.equal(r.durableIntentCreationAllowed,false);
+  assert.equal(r.normalRuntimeAllowed,false);
+  assert.equal(r.scannerTestId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(r.scannerControllerVersion,"1.0.4");
+  assert.equal(r.scannerPackage,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js");
+  assert.equal(r.scannerSourceCommit,"27e25e69dc0e26d8ae05328335718c36a6a0c659");
+  assert.equal(r.scannerPackageSha256,"0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b");
+  assert.equal(r.scannerPackageBytes,21343);
+  assert.equal(r.scannerExpectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
+  assert.equal(r.scannerMaximumGameplayWrites,0);
+  assert.equal(r.scannerMaximumPublicFunctionCalls,0);
+  assert.equal(r.scannerMaximumRawWriteCalls,0);
+  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.deployed,false);
+  assert.equal(r.evidenceObserved,false);
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
 });
