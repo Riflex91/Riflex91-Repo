@@ -53,15 +53,18 @@ test("milestone plans encode the three agreed checkpoints without runtime author
   assert.equal(merchant.segmente[0].minimumDauerSekunden,900);
   assert.equal(merchant.segmente[0].zielDauerSekunden,900);
   assert.equal(merchant.segmente[0].sampleIntervallMs,5000);
+  assert.equal(merchant.cap022FullChainRequired,false);
 
   const group=planePr21_28MilestoneRunner("POST_PR24_25_GROUP_CHECKPOINT");
   assert.equal(group.segmente.length,2);
   assert.deepEqual(group.segmente.map(x=>x.minimumDauerSekunden),[300,900]);
+  assert.equal(group.cap022FullChainRequired,true);
 
   const final=planePr21_28MilestoneRunner("POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN");
   assert.equal(final.segmente[0].minimumDauerSekunden,7200);
   assert.equal(final.segmente[0].zielDauerSekunden,10800);
   assert.equal(final.segmente[0].sampleIntervallMs,10000);
+  assert.equal(final.cap022FullChainRequired,false);
 
   for(const plan of [merchant,group,final]){
     assert.equal(plan.runtimeMussSeparatAutorisiertSein,true);
@@ -76,7 +79,11 @@ test("milestone plans encode the three agreed checkpoints without runtime author
 test("15m Merchant milestone produces ratifiable evidence without runner writes",()=>{
   const plan=planePr21_28MilestoneRunner("PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT");
   const samples=series("pr21-merchant-integration",0,900,5000);
-  const result=wertePr21_28MilestoneSamplesAus(plan,samples);
+  const result=wertePr21_28MilestoneSamplesAus(
+    plan,
+    samples,
+    {schemaVersion:1,cap022FullChainReady:true},
+  );
 
   assert.equal(result.status,"EVIDENCE_READY_TARGET_REACHED");
   assert.equal(result.sampleGaps,0);
@@ -105,7 +112,11 @@ test("group checkpoint chains 5m capability and 15m integration evidence",()=>{
     5000,
     first.length+1,
   );
-  const result=wertePr21_28MilestoneSamplesAus(plan,[...first,...second]);
+  const result=wertePr21_28MilestoneSamplesAus(
+    plan,
+    [...first,...second],
+    {schemaVersion:1,cap022FullChainReady:true},
+  );
 
   assert.equal(result.status,"EVIDENCE_READY_TARGET_REACHED");
   assert.equal(result.sampleGaps,0);
@@ -115,12 +126,44 @@ test("group checkpoint chains 5m capability and 15m integration evidence",()=>{
     bewertePr21_28LiveEvidence(x).status==="EVIDENCE_RATIFIZIERBAR"));
 });
 
+
+
+test("group milestone evaluation blockiert ohne CAP-022 Full-Chain",()=>{
+  const plan=planePr21_28MilestoneRunner("POST_PR24_25_GROUP_CHECKPOINT");
+  const first=series("pr23-capability",0,300,5000,1);
+  const second=series(
+    "pr25-group-integration",
+    305000,
+    900,
+    5000,
+    first.length+1,
+  );
+  const result=wertePr21_28MilestoneSamplesAus(
+    plan,
+    [...first,...second],
+    {schemaVersion:1,cap022FullChainReady:false},
+  );
+
+  assert.equal(result.status,"BLOCKIERT");
+  assert.equal(result.cap022FullChainRequired,true);
+  assert.equal(result.cap022FullChainSatisfied,false);
+  assert.ok(result.blocker.includes(
+    "PR21_28_MILESTONE_CAP022_FULL_CHAIN_NICHT_BEREIT",
+  ));
+  assert.equal(result.evidenceRatifiedByRunner,false);
+  assert.equal(result.authorityIssuedByRunner,false);
+  assert.equal(result.gameplayAuthority,false);
+  assert.equal(result.rawWriteAuthority,false);
+  assert.equal(result.normalRuntimeAllowed,false);
+});
+
 test("final PR28 run accepts two-hour minimum and distinguishes the three-hour target",()=>{
   const plan=planePr21_28MilestoneRunner("POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN");
 
   const minimum=wertePr21_28MilestoneSamplesAus(
     plan,
     series("pr28-full-integration",0,7200,10000),
+    {schemaVersion:1,cap022FullChainReady:true},
   );
   assert.equal(minimum.status,"EVIDENCE_READY_MINIMUM_REACHED");
   assert.equal(minimum.alleMinimaErreicht,true);
@@ -130,6 +173,7 @@ test("final PR28 run accepts two-hour minimum and distinguishes the three-hour t
   const target=wertePr21_28MilestoneSamplesAus(
     plan,
     series("pr28-full-integration",0,10800,10000),
+    {schemaVersion:1,cap022FullChainReady:true},
   );
   assert.equal(target.status,"EVIDENCE_READY_TARGET_REACHED");
   assert.equal(target.alleMinimaErreicht,true);
@@ -147,7 +191,11 @@ test("milestone runner fails closed on safety, health, recorder and sample-gap f
     samples[i]={...samples[i],beobachtetAmMs:samples[i].beobachtetAmMs+20000};
   }
 
-  const result=wertePr21_28MilestoneSamplesAus(plan,samples);
+  const result=wertePr21_28MilestoneSamplesAus(
+    plan,
+    samples,
+    {schemaVersion:1,cap022FullChainReady:true},
+  );
   assert.equal(result.status,"BLOCKIERT");
   assert.ok(result.blocker.includes("PR21_28_MILESTONE_HEALTH_NICHT_GESUND"));
   assert.ok(result.blocker.includes("PR21_28_MILESTONE_RECORDER_DROPS"));
