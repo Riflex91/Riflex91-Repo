@@ -24,7 +24,7 @@ test("controlled acquisition supersedes waiting policy without rewriting histori
 
   assert.equal(
     roadmap.pr20_8.status,
-    "EXCHANGE_CONTROLLED_ACQUISITION_DISCOVERY_PREPARED",
+    "EXCHANGE_ACQUISITION_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
   );
   assert.equal(
     roadmap.pr20_8.nextAction,
@@ -65,6 +65,12 @@ test("acquisition remains strictly separate from Exchange ratification",()=>{
   assert.equal(r.freshExistingScannerRequiredAfterAcquisition,true);
   assert.equal(r.exchangeWriteAuthority,false);
   assert.equal(r.normalRuntimeAllowed,false);
+  assert.equal(r.manifestCutoverPrepared,true);
+  assert.equal(r.sourceCommit,"3182b137957416b253dde303bbba54dd800f8b14");
+  assert.equal(r.packageSha256,"1acc8253cef6b02b33a6a5de289ce5a7095066d36bc727f9cffa77647e8778ec");
+  assert.equal(r.packageBytes,12605);
+  assert.equal(r.deployed,false);
+  assert.equal(r.evidenceObserved,false);
 });
 
 test("read-only discovery package is pinned as zero-write preparation",()=>{
@@ -84,7 +90,7 @@ test("read-only discovery package is pinned as zero-write preparation",()=>{
 test("parallel roadmap row points at controlled discovery but carries no Exchange authority",()=>{
   const row=roadmap.parallelPreparations.find(x=>x.id==="PR20.8_WERTMUTATIONEN");
   assert.ok(row);
-  assert.equal(row.status,"EXCHANGE_CONTROLLED_ACQUISITION_DISCOVERY_PREPARED");
+  assert.equal(row.status,"EXCHANGE_ACQUISITION_DISCOVERY_MANIFEST_CUTOVER_PREPARED");
   assert.equal(row.nextAction,"DEPLOY_EXCHANGE_ACQUISITION_DISCOVERY_READ_ONLY");
   assert.equal(row.gameplayAuthority,false);
   assert.equal(row.rawWriteAuthority,false);
