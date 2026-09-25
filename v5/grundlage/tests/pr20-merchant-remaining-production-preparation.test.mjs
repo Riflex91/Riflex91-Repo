@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "COMPOUND_LIVE_5M_PERFORMANCE_RECOVERY_PACKAGE_READY_NOT_DEPLOYED",
+    "COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER",
+    "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
   );
   const exit=prep.pr20_8.exitGateReview;
   assert.equal(exit.status,"BLOCKED_COMPOUND_5M_EXCHANGE_NO_CANDIDATE");
@@ -1257,7 +1257,8 @@ test("PR20.8 Compound 5m observer runner package has a separate zero-write aggre
   assert.equal(r.manifestCutoverPrepared,true);
   assert.equal(r.deployed,true);
   assert.equal(r.liveWriteEnabled,false);
-  assert.equal(r.bridgeMayDeployPinnedRunner,true);
+  assert.equal(r.bridgeMayDeployPinnedRunner,false);
+  assert.equal(r.retiredFromActiveManifest,true);
   assert.equal(r.deploymentEvidenceObserved,true);
   assert.equal(r.realFiveMinuteRunCompleted,false);
   assert.equal(r.normalRuntimeAllowed,false);
@@ -1266,12 +1267,12 @@ test("PR20.8 Compound 5m observer runner package has a separate zero-write aggre
   assert.equal(r.exchangeRatification,false);
   assert.equal(r.exchangeAutonomyProductiveProven,false);
   assert.equal(r.mayAdvanceToPr20_9,false);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER");
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN");
 });
 
 test("PR20.8 Compound 5m performance recovery package is pinned and not deployed", () => {
   const r=prep.pr20_8.compoundLive5mPerformanceRecovery;
-  assert.equal(r.status,"PACKAGE_BEREIT_NOT_DEPLOYED");
+  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M");
   assert.equal(
     r.contract,
     "grundlage/vertraege/runtime/pr20-8-compound-live-5m-performance-recovery-preparation.json",
@@ -1308,10 +1309,14 @@ test("PR20.8 Compound 5m performance recovery package is pinned and not deployed
   assert.equal(r.rawWriteAuthority,false);
   assert.equal(r.sameIntentRetry,false);
   assert.equal(r.normalRuntimeAllowed,false);
-  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.manifest,"roadmap/v5-autonomous-test-manifest.json");
+  assert.equal(r.manifestCutoverPrepared,true);
   assert.equal(r.deployed,false);
-  assert.equal(r.bridgeMayDeployPinnedRunner,false);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER");
+  assert.equal(r.bridgeMayDeployPinnedRunner,true);
+  assert.equal(r.deploymentEvidenceObserved,false);
+  assert.equal(r.realFiveMinuteRunCompleted,false);
+  assert.equal(r.liveWriteEnabled,false);
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN");
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
