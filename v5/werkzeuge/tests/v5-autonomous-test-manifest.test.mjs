@@ -713,7 +713,10 @@ test("PR20.8 candidate discovery facade recovery manifest is exact read-only and
   assert.equal("workerPackageSha256" in manifest, false);
   assert.equal("workerExpectedGlobal" in manifest, false);
   assert.equal("workerTargets" in manifest, false);
-  assert.ok(packageSource.includes("const VERSION = '1.0.4'"));
+  assert.ok(packageSource.includes("const VERSION = '1.0.5'"));
+  assert.ok(packageSource.includes("existingFacadeIsCurrent"));
+  assert.ok(packageSource.includes("current.testId === TEST_ID"));
+  assert.ok(packageSource.includes("current.version === VERSION"));
   assert.ok(packageSource.includes("publish();"));
   assert.ok(packageSource.indexOf("publish();") < packageSource.indexOf("Promise.resolve().then(run)"));
   assert.ok(packageSource.includes("for (const owner of roots())"));
