@@ -258,7 +258,7 @@ test("PR20.8 Compound 5m evidence closes only the Compound live gate", () => {
 
 test("PR20.8 Exchange closeout records the fresh v1.0.5 no-candidate evidence", () => {
   const r=review.exchangeNoCandidateCloseoutReview;
-  assert.equal(r.status,"FRESH_V1_0_5_RESCAN_CONFIRMED_NO_CANDIDATE_ZERO_WRITE");
+  assert.equal(r.status,"V1_0_5_FRESH_READONLY_RESCAN_NO_CANDIDATE_RATIFIED");
   assert.equal(r.review,"v5/roadmap/pr20-8-exchange-no-candidate-closeout-review.json");
   assert.equal(r.existingEvidence,"v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json");
   assert.equal(r.existingObservedAtMs,1790278399271);
@@ -362,7 +362,7 @@ test("PR20.8 Exchange closeout records the fresh v1.0.5 no-candidate evidence", 
 
 test("PR20.8 Exchange read-only scanner facade recovery completed the fresh zero-write rescan", () => {
   const r=review.exchangeReadonlyRescanFacadeRecovery;
-  assert.equal(r.status,"REAL_BROWSER_BLOCKIERT_NO_COMPOUND_OR_EXCHANGE_CANDIDATE_ZERO_WRITE");
+  assert.equal(r.status,"REAL_BROWSER_FRESH_RESCAN_COMPLETED_NO_CANDIDATE_ZERO_WRITE");
   assert.equal(r.contract,"v5/grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-facade-recovery-preparation.json");
   assert.equal(r.package,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js");
   assert.equal(r.test,"v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs");
@@ -415,7 +415,7 @@ test("PR20.8 Exchange read-only scanner facade recovery completed the fresh zero
   assert.equal(r.observedSameIntentRetry,false);
   assert.equal(r.observedPerformanceTrickVerification,"HOWLER_PLAYING_TRUE");
   assert.equal(r.evidence,"v5/roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json");
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
+  assert.equal(r.nextGate,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
 });
