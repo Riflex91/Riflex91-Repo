@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "EXCHANGE_READONLY_RESCAN_FACADE_RECOVERY_MANIFEST_CUTOVER_PREPARED",
+    "status": "EXCHANGE_FRESH_READONLY_RESCAN_V1_0_5_NO_CANDIDATE_RATIFIED",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -1144,7 +1144,9 @@
       "compoundLive5mBehaviorObservedPass": true,
       "compoundLive5mCompletionNotificationPersisted": true,
       "exchangeNoCandidateCloseoutReviewed": true,
-      "freshReadOnlyRescanRequired": true
+      "freshReadOnlyRescanRequired": true,
+      "freshReadOnlyRescanEvidenceObserved": true,
+      "latestFreshReadOnlyRescanEvidence": "roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json"
     },
     "compoundDurableShadow": {
       "status": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
@@ -1626,7 +1628,7 @@
       "normalRuntimeAllowed": false
     },
     "exchangeNoCandidateCloseoutReview": {
-      "status": "V1_0_4_HANDSHAKE_BLOCKED_RECOVERY_V1_0_5_MANIFEST_CUTOVER_PREPARED",
+      "status": "FRESH_V1_0_5_RESCAN_CONFIRMED_NO_CANDIDATE_ZERO_WRITE",
       "review": "roadmap/pr20-8-exchange-no-candidate-closeout-review.json",
       "existingEvidence": "roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json",
       "existingObservedAtMs": 1790278399271,
@@ -1651,8 +1653,8 @@
       "scannerMaximumPublicFunctionCalls": 0,
       "scannerMaximumRawWriteCalls": 0,
       "manifestCutoverPrepared": true,
-      "deployed": false,
-      "evidenceObserved": false,
+      "deployed": true,
+      "evidenceObserved": true,
       "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
       "bridgeMayDeployPinnedRunner": false,
@@ -1665,7 +1667,20 @@
       "observedCurrentGameplayWrites": 0,
       "observedCurrentRawWriteCalls": 0,
       "observedCurrentSameIntentRetry": false,
-      "observedCurrentIntentCount": 1
+      "observedCurrentIntentCount": 1,
+      "latestEvidence": "roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json",
+      "latestControllerVersion": "1.0.5",
+      "latestNotificationId": 2332,
+      "latestRunStartedAtMs": 1790315652844,
+      "latestObservedAtMs": 1790315653250,
+      "latestCompoundStatus": "KEIN_KANDIDAT",
+      "latestCompoundCandidateCount": 0,
+      "latestExchangeStatus": "KEIN_KANDIDAT",
+      "latestExchangeCandidateCount": 0,
+      "latestGameplayWrites": 0,
+      "latestPublicFunctionCalls": 0,
+      "latestRawWriteCalls": 0,
+      "latestSameIntentRetry": false
     },
     "activeAutonomousManifest": {
       "testId": "pr20-8-wertmutation-live-candidate-readonly",
@@ -1685,7 +1700,7 @@
       "normalRuntimeAllowed": false
     },
     "exchangeReadonlyRescanFacadeRecovery": {
-      "status": "MANIFEST_CUTOVER_PREPARED_FOR_FRESH_READONLY_RESCAN",
+      "status": "REAL_BROWSER_BLOCKIERT_NO_COMPOUND_OR_EXCHANGE_CANDIDATE_ZERO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-facade-recovery-preparation.json",
       "package": "werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js",
       "test": "werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs",
@@ -1715,11 +1730,56 @@
       "normalRuntimeAllowed": false,
       "acquisitionOrMutationToCreateCandidateAllowed": false,
       "manifestCutoverPrepared": true,
-      "deployed": false,
-      "evidenceObserved": false,
+      "deployed": true,
+      "evidenceObserved": true,
       "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
-      "bridgeMayDeployPinnedRunner": true
+      "bridgeMayDeployPinnedRunner": false,
+      "notificationId": 2332,
+      "runStartedAtMs": 1790315652844,
+      "observedAtMs": 1790315653250,
+      "observedStatus": "BLOCKIERT",
+      "observedPhase": "PR20_8_LIVE_CANDIDATE_SELECTION",
+      "observedTerminal": true,
+      "observedBlocker": "PR20_8_CANDIDATE_KEIN_COMPOUND_ODER_EXCHANGE_NORMALKANDIDAT",
+      "observedUpgradeStatus": "KANDIDAT_GEFUNDEN",
+      "observedUpgradeCandidateCount": 3,
+      "observedCompoundStatus": "KEIN_KANDIDAT",
+      "observedCompoundCandidateCount": 0,
+      "observedExchangeStatus": "KEIN_KANDIDAT",
+      "observedExchangeCandidateCount": 0,
+      "observedGameplayWrites": 0,
+      "observedPublicFunctionCalls": 0,
+      "observedRawWriteCalls": 0,
+      "observedSameIntentRetry": false,
+      "observedPerformanceTrickVerification": "HOWLER_PLAYING_TRUE",
+      "evidence": "roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json"
+    },
+    "exchangeFreshReadonlyRescanEvidence": {
+      "status": "RATIFIED_FRESH_NO_CANDIDATE_ZERO_WRITE",
+      "evidence": "roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json",
+      "controllerVersion": "1.0.5",
+      "notificationId": 2332,
+      "runStartedAtMs": 1790315652844,
+      "observedAtMs": 1790315653250,
+      "statusObserved": "BLOCKIERT",
+      "phaseObserved": "PR20_8_LIVE_CANDIDATE_SELECTION",
+      "terminalObserved": true,
+      "blocker": "PR20_8_CANDIDATE_KEIN_COMPOUND_ODER_EXCHANGE_NORMALKANDIDAT",
+      "compoundStatus": "KEIN_KANDIDAT",
+      "compoundCandidateCount": 0,
+      "exchangeStatus": "KEIN_KANDIDAT",
+      "exchangeCandidateCount": 0,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "sameIntentRetry": false,
+      "exchangeRatified": false,
+      "exchangeLive5mTested": false,
+      "exchangeAutonomyProductiveProven": false,
+      "acquisitionOrMutationToCreateCandidateAllowed": false,
+      "normalRuntimeAllowed": false,
+      "outcome": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN"
     }
   },
   "pr20_9": {
