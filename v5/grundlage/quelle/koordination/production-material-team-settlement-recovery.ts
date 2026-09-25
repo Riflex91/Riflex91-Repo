@@ -342,6 +342,32 @@ function parseSnapshot(text: string): PersistierterSnapshot {
       || sicht["normalRuntimeAllowed"] !== false) {
     throw new Error("CAP022_TEAM_BATCH_PERSISTENZ_UNGUELTIG");
   }
+  const zustand = sicht["zustand"] as ProduktionsMaterialTeamBatchZustand;
+  const recoveryVorZustand = sicht["recoveryVorZustand"]
+    as ProduktionsMaterialTeamBatchRecoveryVorZustand | null;
+  const transferIds = sicht["transferIds"] as string[];
+  const settledTransferIds = sicht["settledTransferIds"] as string[];
+  const nextSequence = sicht["nextSequence"] as number;
+  const activeTransferId = sicht["activeTransferId"] as string | null;
+  const finalCraftRescanAllowed = sicht["finalCraftRescanAllowed"] as boolean;
+  if ((zustand === "RECOVERY_PENDING" && recoveryVorZustand === null)
+      || nextSequence < 1
+      || nextSequence > transferIds.length + 1
+      || settledTransferIds.length > transferIds.length
+      || !settledTransferIds.every((id, index) => id === transferIds[index])
+      || (finalCraftRescanAllowed && zustand !== "ALLE_SETTLED")
+      || (zustand === "ALLE_SETTLED"
+        && (finalCraftRescanAllowed !== true
+          || nextSequence !== transferIds.length + 1
+          || settledTransferIds.length !== transferIds.length
+          || activeTransferId !== null))
+      || (zustand === "BATCH_BEREIT" && activeTransferId !== null)
+      || (zustand === "TRANSFER_AKTIV" && activeTransferId === null)
+      || (zustand === "RECOVERY_PENDING"
+        && recoveryVorZustand === "TRANSFER_AKTIV"
+        && activeTransferId === null)) {
+    throw new Error("CAP022_TEAM_BATCH_PERSISTENZ_UNGUELTIG");
+  }
   return Object.freeze({
     schemaVersion: 1,
     gespeichertAmMs: obj["gespeichertAmMs"] as number,
@@ -502,6 +528,10 @@ export class PersistenterProduktionsMaterialTeamBatchController {
     const transfer = batch.transfers[alt.nextSequence - 1];
     if (transfer === undefined) {
       throw new Error("CAP022_TEAM_BATCH_TRANSFER_FEHLT");
+    }
+    if (transfer.sequence > 1
+        && alt.settledTransferIds.length !== transfer.sequence - 1) {
+      throw new Error("CAP022_TEAM_BATCH_VORHERIGES_SETTLEMENT_FEHLT");
     }
     validiereQuellenEvidence(transfer, quelleEvidence);
 
