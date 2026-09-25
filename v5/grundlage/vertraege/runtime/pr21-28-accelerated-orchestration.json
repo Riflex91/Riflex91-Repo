@@ -20,6 +20,13 @@
     "autonomy": {
       "source": "v5/grundlage/quelle/optimierung/pr26-28-autonomy-shadow-plan.ts",
       "purpose": "Bind hard-filtered optimizer, progression and world gate into one no-write plan"
+    },
+    "materialAcquisition": {
+      "capability": "CAP-022",
+      "source": "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+      "orchestrator": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
+      "purpose": "Bind no-write Production FARM material objectives into the PR21-28 shadow pipeline while PR22/PR23 productive gates remain closed"
     }
   },
   "safety": {
@@ -33,8 +40,12 @@
     "worldActionAuthority": false,
     "serverHopAuthority": false,
     "normalRuntimeAllowed": false,
-    "deferredLiveEvidenceRequired": true
+    "deferredLiveEvidenceRequired": true,
+    "materialAcquisitionFoundationConnected": true,
+    "materialAcquisitionProductiveExecutionAllowed": false,
+    "currentPr20_9CandidateAcquisitionAllowed": false,
+    "foundationCountsAsCraftRatification": false
   },
   "test": "v5/grundlage/tests/pr21-28-orchestration.test.mjs",
-  "nextMilestone": "COMPLETE_ADAPTER_SHADOW_PACKAGES_WITH_PRODUCTIVE_CALLS_STILL_DISABLED"
+  "nextMilestone": "KEEP_CAP022_CONNECTED_NO_WRITE_UNTIL_PR22_PR23_PRODUCTIVE_EVIDENCE"
 }
