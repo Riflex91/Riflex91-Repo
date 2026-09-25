@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "EXCHANGE_ACQUISITION_DISCOVERY_OBSERVED_BANK_SNAPSHOT_REQUIRED_BANK_MOUNT_PREPARED",
+      "status": "EXCHANGE_ACQUISITION_BANK_MOUNT_MANIFEST_CUTOVER_PREPARED",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "MERGE_BANK_MOUNT_PACKAGE_THEN_CUTOVER",
+      "nextAction": "DEPLOY_EXCHANGE_ACQUISITION_BANK_MOUNT",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -2143,7 +2143,7 @@
     }
   },
   "pr20_8": {
-    "status": "EXCHANGE_ACQUISITION_DISCOVERY_OBSERVED_BANK_SNAPSHOT_REQUIRED_BANK_MOUNT_PREPARED",
+    "status": "EXCHANGE_ACQUISITION_BANK_MOUNT_MANIFEST_CUTOVER_PREPARED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -2193,7 +2193,7 @@
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "MERGE_BANK_MOUNT_PACKAGE_THEN_CUTOVER",
+    "nextAction": "DEPLOY_EXCHANGE_ACQUISITION_BANK_MOUNT",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -3479,7 +3479,7 @@
       "latestRawWriteCalls": 0,
       "latestSameIntentRetry": false,
       "bankMount": {
-        "status": "PACKAGE_PREPARED_NOT_DEPLOYED",
+        "status": "MANIFEST_CUTOVER_PREPARED",
         "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-bank-mount.json",
         "package": "v5/werkzeuge/pr20-8-exchange-candidate-bank-mount-v1-0-0.js",
         "test": "v5/werkzeuge/tests/pr20-8-exchange-candidate-bank-mount-v1-0-0.test.mjs",
@@ -3498,7 +3498,12 @@
         "normalRuntimeAllowed": false,
         "deployed": false,
         "evidenceObserved": false,
-        "nextAction": "CUTOVER_AFTER_PACKAGE_CI"
+        "nextAction": "DEPLOY_AND_OBSERVE_BANK_MOUNT",
+        "sourceCommit": "5c84fc95b7fed97c3591462faba0a1315289fdce",
+        "packageSha256": "94c053183363c0394922df4f6e422bede3260989e668a3b0942f3e876dbbdc54",
+        "packageBytes": 15430,
+        "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+        "manifestCutoverPrepared": true
       }
     }
   },

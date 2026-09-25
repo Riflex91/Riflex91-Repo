@@ -56,6 +56,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208ExchangeCandidateAcquisitionReadonly",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-exchange-candidate-bank-mount": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-exchange-candidate-bank-mount-v1-0-0.js",
+    expectedGlobal: "V5PR208ExchangeCandidateBankMount",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-6-mluck-autonomous-live-5m": Object.freeze({
     path: "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
     expectedGlobal: "V5PR206MluckTest",
@@ -1018,5 +1023,34 @@ test("PR20.8 Exchange acquisition discovery manifest remains exact zero-write di
   for (const marker of [
     "bank_retrieve(", "bank_store(", "smart_move(", "buy(", "buy_with_gold(",
     "exchange(", "attack(", "use_skill(", "socket.emit(", ".socket.emit(", "api_call("
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
+
+
+test("PR20.8 Exchange bank mount manifest pin is exact and retrieve-disabled", () => {
+  if (manifest.testId !== "pr20-8-exchange-candidate-bank-mount") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit, "5c84fc95b7fed97c3591462faba0a1315289fdce");
+  assert.equal(
+    manifest.packageSha256,
+    "94c053183363c0394922df4f6e422bede3260989e668a3b0942f3e876dbbdc54",
+  );
+  assert.equal(packageBytes.length, 15430);
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  assert.ok(packageSource.includes('const TEST_ID = "pr20-8-exchange-candidate-bank-mount"'));
+  assert.ok(packageSource.includes('const VERSION = "1.0.0"'));
+  assert.ok(packageSource.includes('const API_NAME = "V5PR208ExchangeCandidateBankMount"'));
+  assert.ok(packageSource.includes('const TARGET = "bank"'));
+  assert.equal((packageSource.match(/smartMove\(TARGET\)/g) ?? []).length, 1);
+  for (const marker of [
+    "bank_retrieve(",
+    "bank_store(",
+    "buy(",
+    "buy_with_gold(",
+    "exchange(",
+    "compound(",
+    "upgrade(",
+    "socket.emit(",
+    ".socket.emit(",
   ]) assert.equal(packageSource.includes(marker), false, marker);
 });

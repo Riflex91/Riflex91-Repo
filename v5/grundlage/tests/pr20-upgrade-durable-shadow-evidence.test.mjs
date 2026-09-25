@@ -83,7 +83,7 @@ test("PR20.8 Upgrade shadow evidence proves durable no-send reconciliation", () 
   assert.equal(evidence.result.performanceTrick.verification,"HOWLER_PLAYING_TRUE");
 });
 
-test("current recovery hardening evidence stays immutable while the manifest advances to Exchange acquisition discovery", () => {
+test("current recovery hardening evidence stays immutable while the manifest advances to Exchange bank mount", () => {
   assert.equal(evidence.currentRecoveryControllerVersion,"1.0.1");
   assert.equal(evidence.currentRecoverySourceCommit,
     "6d611de7fadf7a5cb3945ec25f3bc761acb14e3c");
@@ -92,12 +92,12 @@ test("current recovery hardening evidence stays immutable while the manifest adv
   assert.equal(evidence.safetyBoundary.currentRecoveryPackageMayOnlyRecoverExactTerminalNoWriteIntent,true);
   assert.equal(evidence.safetyBoundary.recoveryMayNotRewriteIntent,true);
   assert.equal(evidence.safetyBoundary.recoveryMayNotCreateGameplayWrite,true);
-  assert.equal(manifest.testId,"pr20-8-exchange-candidate-acquisition-readonly");
-  assert.equal(manifest.controllerVersion,"1.0.1");
-  assert.equal(manifest.sourceCommit,"3182b137957416b253dde303bbba54dd800f8b14");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js");
-  assert.equal(manifest.packageSha256,"1acc8253cef6b02b33a6a5de289ce5a7095066d36bc727f9cffa77647e8778ec");
-  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeCandidateAcquisitionReadonly");
+  assert.equal(manifest.testId,"pr20-8-exchange-candidate-bank-mount");
+  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(manifest.sourceCommit,"5c84fc95b7fed97c3591462faba0a1315289fdce");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-candidate-bank-mount-v1-0-0.js");
+  assert.equal(manifest.packageSha256,"94c053183363c0394922df4f6e422bede3260989e668a3b0942f3e876dbbdc54");
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeCandidateBankMount");
   assert.notEqual(manifest.testId,evidence.testId);
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
