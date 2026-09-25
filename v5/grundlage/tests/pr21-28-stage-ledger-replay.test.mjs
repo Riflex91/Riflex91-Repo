@@ -10,6 +10,7 @@ function states(overrides={}){
     foundationPrepared:true,
     orchestrationPrepared:true,
     featureGatePrepared:true,
+    cap022FullChainReady:true,
     milestoneRunnerPrepared:true,
     checkpointRunbookPrepared:true,
     ratificationRecordPrepared:true,
@@ -86,6 +87,48 @@ test("missing preparation remains distinct from missing productive evidence",()=
   const replay=replayPr21_28AdvanceChain(ledger);
   assert.equal(replay.status,"PREPARATION_INCOMPLETE");
   assert.ok(replay.blocker.includes("PR26_PREPARATION_INCOMPLETE"));
+});
+
+
+
+test("PR22/PR23 Stage-Ledger verlangt CAP-022 Full-Chain fuer Preparation",()=>{
+  const ledger=bauePr21_28StageLedger(states({
+    PR22:{cap022FullChainReady:false},
+  }));
+  assert.equal(ledger.allPreparationComplete,false);
+  assert.equal(ledger.entries[1].cap022FullChainRequired,true);
+  assert.equal(ledger.entries[1].cap022FullChainSatisfied,false);
+  assert.equal(ledger.entries[1].preparationComplete,false);
+  assert.equal(ledger.entries[1].productiveChainEligible,false);
+
+  const replay=replayPr21_28AdvanceChain(ledger);
+  assert.equal(replay.status,"PREPARATION_INCOMPLETE");
+  assert.ok(replay.blocker.includes("PR22_CAP022_FULL_CHAIN_REQUIRED"));
+  assert.ok(replay.blocker.includes("PR22_PREPARATION_INCOMPLETE"));
+  assert.equal(replay.stages[1].requiresCap022FullChain,true);
+  assert.equal(replay.replayMutatedGate,false);
+  assert.equal(replay.replayIssuedAuthority,false);
+
+  for(const row of ledger.entries.slice(2)){
+    assert.equal(row.productiveChainEligible,false,row.stage);
+  }
+
+  const directPr23=bauePr21_28StageLedger(states({
+    PR23:{cap022FullChainReady:false},
+    PR21:{
+      liveEvidenceRatified:true,
+      explicitRatificationRecorded:true,
+      gateApplyVerified:true,
+    },
+    PR22:{
+      liveEvidenceRatified:true,
+      explicitRatificationRecorded:true,
+      gateApplyVerified:true,
+    },
+  }));
+  const directReplay=replayPr21_28AdvanceChain(directPr23);
+  assert.ok(directReplay.blocker.includes("PR23_CAP022_FULL_CHAIN_REQUIRED"));
+  assert.equal(directPr23.entries[2].cap022FullChainSatisfied,false);
 });
 
 test("ledger rejects duplicate or incomplete stage sets",()=>{
