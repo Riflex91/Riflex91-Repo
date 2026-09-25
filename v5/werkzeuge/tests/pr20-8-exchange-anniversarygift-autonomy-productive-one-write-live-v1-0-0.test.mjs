@@ -398,7 +398,7 @@ test("definition drift blocks fail-closed",async()=>{
 });
 
 test("unprovable poststate is UNKNOWN fail-closed and never retries",async()=>{
-  const env=makeBox({reward:{kind:"invalid"}});
+  const env=makeBox({reward:{kind:"item",name:"not_allowed_autonomy_reward"}});
   const status=await execute(env);
   assert.equal(status.status,"UNGEKLAERT");
   assert.equal(status.phase,"RECOVERY_PENDING");
