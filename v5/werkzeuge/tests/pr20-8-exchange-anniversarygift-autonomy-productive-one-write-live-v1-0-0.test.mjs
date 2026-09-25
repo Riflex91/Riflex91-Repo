@@ -63,6 +63,7 @@ function makeBox({
   region="EU",
   identifier="I",
   store=localStorage(),
+  postExchangeMutate=null,
 }={}){
   let exchangeCalls=0;
   const size=isize ?? items.length;
@@ -145,6 +146,7 @@ function makeBox({
       throw new Error("UNKNOWN_TEST_REWARD");
     }
     box.character.esize=box.character.items.slice(0,size).filter(x=>x==null).length;
+    if(typeof postExchangeMutate === "function") postExchangeMutate(box,index);
     return {success:true,reward:reward.kind==="item"?reward.name:undefined,num:index};
   };
   box.parent=box;
@@ -413,6 +415,31 @@ test("unprovable poststate is UNKNOWN fail-closed and never retries",async()=>{
   assert.equal(status.authority.authorityConsumed,true);
   assert.equal(status.authority.exchangeAuthority,false);
   assert.equal(status.authority.gameplayAuthority,false);
+});
+
+test("poststate q movement target and mass-exchange drift stay UNKNOWN and never resend",async()=>{
+  const cases=[
+    box=>{box.character.q={other:{ms:1}};},
+    box=>{box.character.moving=true;},
+    box=>{box.character.target="goo";},
+    box=>{box.character.s={massexchange:{ms:1}};},
+    box=>{box.character.s={massexchangepp:{ms:1}};},
+  ];
+  for(const postExchangeMutate of cases){
+    const env=makeBox({reward:{kind:"gold",amount:5000},postExchangeMutate});
+    const status=await execute(env);
+    assert.equal(status.status,"UNGEKLAERT");
+    assert.equal(status.phase,"RECOVERY_PENDING");
+    assert.equal(status.terminal,false);
+    assert.equal(status.evidence.reconciliation.classification,"UNKNOWN");
+    assert.equal(status.evidence.reconciliation.postSafetyClear,false);
+    assert.equal(env.getExchangeCalls(),1);
+    assert.equal(status.gameplayWrites,1);
+    assert.equal(status.publicFunctionCalls,1);
+    assert.equal(status.rawWriteCalls,0);
+    assert.equal(status.sameIntentRetry,false);
+    assert.equal(status.authority.authorityConsumed,true);
+  }
 });
 
 test("service distance over 300 blocks even with computer before authority or send",async()=>{

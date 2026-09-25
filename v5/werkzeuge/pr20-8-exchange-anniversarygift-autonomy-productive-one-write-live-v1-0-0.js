@@ -1091,6 +1091,18 @@
     }
 
     const qActive=!!c.q?.exchange;
+    const qClear=!c.q || typeof c.q !== "object" || Object.keys(c.q).length === 0;
+    const exchangeQueueClear=!qActive;
+    const movingClear=c.moving !== true;
+    const targetClear=c.target === null || c.target === undefined || !text(c.target,192);
+    const massexchangeClear=!c.s?.massexchange;
+    const massexchangeppClear=!c.s?.massexchangepp;
+    const postSafetyClear=qClear
+      && exchangeQueueClear
+      && movingClear
+      && targetClear
+      && massexchangeClear
+      && massexchangeppClear;
     const placeholderCount=countPlaceholders(c.items);
     const candidateNow=c.items[intent.candidate.index] || null;
     const candidateQuantityNow=candidateNow?.name === ITEM_NAME
@@ -1102,16 +1114,16 @@
 
     let classification="UNRESOLVED";
     let reason="POSTCONDITION_WIDERSPRUCH";
-    if(!qActive && placeholderCount === 0 && domain.valid){
+    if(postSafetyClear && placeholderCount === 0 && domain.valid){
       classification="COMMITTED";
       reason=null;
-    } else if(!qActive
+    } else if(postSafetyClear
       && placeholderCount === 0
       && canonical(inventoryUnits(c.items)) === canonical(intent.prestate.aggregate)
       && Number(c.gold || 0) === Number(intent.prestate.gold || 0)){
       classification="NOT_APPLIED";
       reason=null;
-    } else if(qActive || placeholderCount > 0 || inputProgressObserved){
+    } else if(!postSafetyClear || placeholderCount > 0 || inputProgressObserved){
       classification="STILL_PENDING";
       reason=null;
     }
@@ -1120,6 +1132,13 @@
       classification,
       reason,
       qActive,
+      qClear,
+      exchangeQueueClear,
+      movingClear,
+      targetClear,
+      massexchangeClear,
+      massexchangeppClear,
+      postSafetyClear,
       placeholderCount,
       candidateIndex:intent.candidate.index,
       candidateQuantityBefore:intent.candidate.quantity,
