@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "COMPOUND_LIVE_5M_RUNNER_PACKAGE_READY_NOT_DEPLOYED",
+    "status": "COMPOUND_LIVE_5M_MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER",
+    "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1345,7 +1345,7 @@
       "normalRuntimeAllowed": false
     },
     "compoundLive5mPreparation": {
-      "status": "RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
       "contract": "grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json",
       "test": "grundlage/tests/pr20-compound-live-5m-preparation.test.mjs",
       "purpose": "CONTINUE_EXACT_RATIFIED_COMPOUND_TRANSACTION_WITH_FIVE_MINUTE_POSTCOMMIT_STABILITY_SOAK",
@@ -1375,7 +1375,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "liveRunnerPresent": true,
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
       "liveWriteEnabled": false,
       "normalRuntimeAllowed": false,
@@ -1384,7 +1384,7 @@
       "exchangeRatification": false,
       "exchangeAutonomyProductiveProven": false,
       "mayAdvanceToPr20_9": false,
-      "nextGate": "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER",
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
       "runnerPackage": "werkzeuge/pr20-8-compound-live-5m.js",
       "runnerTest": "werkzeuge/tests/pr20-8-compound-live-5m.test.mjs",
       "runnerContract": "grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json",
@@ -1394,10 +1394,12 @@
       "runnerSourceCommit": "61db398373d1909bc11eb883af5902ac339a123c",
       "runnerPackageSha256": "2c68619ffb7359373a6a817ac939c34278a66f5c69e7d3efba59a5ff5c00e221",
       "runnerPackageBytes": 25081,
-      "bridgeMayDeployPinnedRunner": false
+      "bridgeMayDeployPinnedRunner": true,
+      "deploymentEvidenceObserved": false,
+      "realFiveMinuteRunCompleted": false
     },
     "compoundLive5mRunner": {
-      "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
       "package": "werkzeuge/pr20-8-compound-live-5m.js",
       "test": "werkzeuge/tests/pr20-8-compound-live-5m.test.mjs",
       "contract": "grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json",
@@ -1429,17 +1431,19 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
       "liveWriteEnabled": false,
-      "bridgeMayDeployPinnedRunner": false,
+      "bridgeMayDeployPinnedRunner": true,
       "normalRuntimeAllowed": false,
       "passMaySetCompoundLive5mTested": true,
       "passDoesNotSatisfyPr20_8ExitGateByItself": true,
       "exchangeRatification": false,
       "exchangeAutonomyProductiveProven": false,
       "mayAdvanceToPr20_9": false,
-      "nextGate": "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER"
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
+      "deploymentEvidenceObserved": false,
+      "realFiveMinuteRunCompleted": false
     }
   },
   "pr20_9": {
