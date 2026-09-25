@@ -233,4 +233,4 @@ export * from "./runtime/pr21-28-readiness-snapshot.js";
 
 export * from "./merchant/pr20-8-exchange-candidate-acquisition.js";
 
-export * from "./merchant/pr20-8-exchange-seashell-farm-preparation.js";
+export * from "./merchant/pr20-8-exchange-seashell-farm-preparation.js";\nexport * from "./farmer/pr20-8-seashell-farm-shadow-admission.js";\n
