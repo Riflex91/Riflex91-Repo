@@ -736,7 +736,15 @@
     }
     while (transientGroupFaults.length) faults.push(transientGroupFaults.shift());
     if (config.group.failClosedOnFault && faults.some(function (fault) {
-      return ["ROSTER_SESSION_DRIFT", "MAP_INSTANZ_DRIFT", "FREMDES_PARTY_MITGLIED", "CAPABILITY_VERLUST"].includes(fault);
+      return [
+        "ROSTER_SESSION_DRIFT",
+        "DISCONNECT",
+        "MEMBER_FEHLT",
+        "MAP_INSTANZ_DRIFT",
+        "LEADER_MOVEMENT_DRIFT",
+        "FREMDES_PARTY_MITGLIED",
+        "CAPABILITY_VERLUST",
+      ].includes(fault);
     })) blockers.push("PR24_GROUP_FAULT_FAIL_CLOSED");
 
     return Object.freeze({
@@ -1280,9 +1288,43 @@
     return !!obs && now() >= obs.observedAtMs && now() <= obs.validUntilMs;
   }
 
+  function ensureWorldPlan(task) {
+    if (!task || !task.worldObservation) return null;
+    const obs = task.worldObservation;
+    const existing = worldPlans.get(task.id);
+    if (existing && existing.fingerprint === obs.fingerprint) return existing;
+    const plan = Object.freeze({
+      taskId: task.id,
+      art: task.type,
+      stateId: obs.stateId,
+      fingerprint: obs.fingerprint,
+      status: "PLANNED",
+      lastValidation: null,
+      actionCompleted: false,
+      createdAtMs: now(),
+      updatedAtMs: now(),
+      rawWriteAuthority: false,
+    });
+    worldPlans.set(task.id, plan);
+    if (worldPlans.size > 256) {
+      const first = worldPlans.keys().next().value;
+      worldPlans.delete(first);
+    }
+    return plan;
+  }
+
+  function setWorldPlan(task, patch) {
+    const current = ensureWorldPlan(task);
+    if (!current) return null;
+    const next = Object.freeze(Object.assign({}, current, patch || {}, { updatedAtMs: now() }));
+    worldPlans.set(task.id, next);
+    return next;
+  }
+
   function revalidateWorldObservation(task) {
     const original = task && task.worldObservation;
     if (!original) return { ok: true, status: "NOT_REQUIRED", observation: null };
+    ensureWorldPlan(task);
 
     let current = null;
     if (original.art === "EVENT") {
@@ -1306,11 +1348,27 @@
       return { ok: false, status: "BLOCKED_UNKNOWN_CONTENT", observation: original };
     }
 
-    if (!current) return { ok: false, status: "BLOCKED_UNKNOWN", observation: null };
-    if (!observationFresh(current)) return { ok: false, status: "BLOCKED_STALE", observation: current };
-    if (!current.known || current.quarantined) return { ok: false, status: "BLOCKED_UNKNOWN_CONTENT", observation: current };
-    if (!current.active) return { ok: false, status: "REPLAN_REQUIRED", observation: current };
-    if (current.fingerprint !== original.fingerprint) return { ok: false, status: "REPLAN_REQUIRED", observation: current };
+    if (!current) {
+      setWorldPlan(task, { status: "BLOCKED", lastValidation: "BLOCKED_UNKNOWN" });
+      return { ok: false, status: "BLOCKED_UNKNOWN", observation: null };
+    }
+    if (!observationFresh(current)) {
+      setWorldPlan(task, { status: "BLOCKED", lastValidation: "BLOCKED_STALE" });
+      return { ok: false, status: "BLOCKED_STALE", observation: current };
+    }
+    if (!current.known || current.quarantined) {
+      setWorldPlan(task, { status: "BLOCKED", lastValidation: "BLOCKED_UNKNOWN_CONTENT" });
+      return { ok: false, status: "BLOCKED_UNKNOWN_CONTENT", observation: current };
+    }
+    if (!current.active) {
+      setWorldPlan(task, { status: "BLOCKED", lastValidation: "REPLAN_REQUIRED" });
+      return { ok: false, status: "REPLAN_REQUIRED", observation: current };
+    }
+    if (current.fingerprint !== original.fingerprint) {
+      setWorldPlan(task, { status: "BLOCKED", lastValidation: "REPLAN_REQUIRED" });
+      return { ok: false, status: "REPLAN_REQUIRED", observation: current };
+    }
+    setWorldPlan(task, { status: "ACTION_READY", lastValidation: "VALID" });
     return { ok: true, status: "VALID", observation: current };
   }
 
@@ -1329,6 +1387,20 @@
       : number(config.optimizer.priorities && config.optimizer.priorities[obs.art], 0);
     const mode = String(obs.payload && obs.payload.mode || "").toUpperCase();
     let hardAllowed = obs.known && !obs.quarantined && observationFresh(obs);
+    const priorPlan = worldPlans.get("world:" + obs.art + ":" + obs.stateId);
+    const hasContinuation = !!(
+      obs.payload
+      && (
+        (obs.payload.monsterNames && obs.payload.monsterNames.length)
+        || obs.payload.destination
+      )
+    );
+    if (
+      priorPlan
+      && priorPlan.fingerprint === obs.fingerprint
+      && priorPlan.status === "COMPLETED"
+      && !hasContinuation
+    ) hardAllowed = false;
     if (obs.art === "DISCOVERY") hardAllowed = false;
     if (obs.art === "SERVER_HOP") {
       if (obs.payload.pvp && !config.world.allowPvp) hardAllowed = false;
@@ -1582,6 +1654,7 @@
       if (low && ratio(low.hp, low.maxHp) < config.group.healThreshold) {
         const player = low.characterId === name ? c : playerEntity(low.characterId);
         const skill = config.group.roleSkills.heal;
+        if (player && skill && !isSkillReady(skill)) transientGroupFaults.push("SHARED_COOLDOWN");
         if (player && skill && isSkillReady(skill)) {
           try {
             await executePublic("GROUP_HEAL", "use_skill", [skill, player]);
@@ -1612,6 +1685,10 @@
     if (roles.TANK === name && target) {
       const skill = config.group.roleSkills.taunt;
       const aggroTarget = String(target.target || "");
+      if (aggroTarget && aggroTarget !== name) transientGroupFaults.push("AGGRO_WECHSEL");
+      if (skill && aggroTarget && aggroTarget !== name && !isSkillReady(skill)) {
+        transientGroupFaults.push("SHARED_COOLDOWN");
+      }
       if (skill && aggroTarget && aggroTarget !== name && isSkillReady(skill)) {
         try {
           await executePublic("GROUP_TAUNT", "use_skill", [skill, target]);
@@ -1624,7 +1701,15 @@
 
     if (roles.CC === name && target) {
       const skill = config.group.roleSkills.cc;
-      if (skill && isSkillReady(skill)) {
+      const monsterDefs = globalGameData().monsters;
+      const monsterDef = monsterDefs && monsterDefs[normalizeMonsterName(target)];
+      const ccImmune = target.immune === true
+        || target.cc_immune === true
+        || !!(target.s && (target.s.immune || target.s.cc_immune))
+        || !!(monsterDef && (monsterDef.immune === true || monsterDef.cc_immune === true));
+      if (ccImmune) transientGroupFaults.push("CC_IMMUNITY");
+      if (skill && !ccImmune && !isSkillReady(skill)) transientGroupFaults.push("SHARED_COOLDOWN");
+      if (skill && !ccImmune && isSkillReady(skill)) {
         try {
           await executePublic("GROUP_CC", "use_skill", [skill, target]);
           return true;
@@ -1887,7 +1972,8 @@
   }
 
   async function executeWorldAction(task) {
-    if (!task || !task.worldObservation) return false;
+    if (!task || !task.worldObservation) return true;
+    const plan = ensureWorldPlan(task);
     const validation = revalidateWorldObservation(task);
     if (!validation.ok) {
       log("WORLD_REVALIDATION_BLOCKED", {
@@ -1898,8 +1984,27 @@
       return false;
     }
 
-    const action = task.action || validation.observation && validation.observation.payload && validation.observation.payload.action;
-    if (!action) return false;
+    const action = task.action
+      || validation.observation
+      && validation.observation.payload
+      && validation.observation.payload.action;
+
+    if (!action) {
+      setWorldPlan(task, { status: "ACTIVE_CONTINUOUS" });
+      return true;
+    }
+
+    if (plan && plan.actionCompleted === true) {
+      const hasContinuation = !!(
+        validation.observation.payload
+        && (
+          (validation.observation.payload.monsterNames && validation.observation.payload.monsterNames.length)
+          || validation.observation.payload.destination
+        )
+      );
+      setWorldPlan(task, { status: hasContinuation ? "ACTIVE_CONTINUOUS" : "COMPLETED" });
+      return hasContinuation;
+    }
 
     if (action.type === "SERVER_HOP") {
       const obs = validation.observation;
@@ -1910,7 +2015,14 @@
       if (now() - last < config.world.serverHopCooldownMs) return false;
       const c = character();
       if (!c || c.rip || c.dead || c.moving || c.target != null || queueBusy(c)) return false;
-      const intentId = ["server-hop", c.name, currentServer().region, currentServer().identifier, action.region, action.identifier].join(":");
+      const intentId = [
+        "server-hop",
+        c.name,
+        currentServer().region,
+        currentServer().identifier,
+        action.region,
+        action.identifier,
+      ].join(":");
       lastServerHopAt = now();
       try {
         await executePublic("SERVER_HOP", "change_server", [action.region, action.identifier], {
@@ -1918,27 +2030,56 @@
           irreversibleAction: true,
         });
         worldHopHistory.set(obs.stateId, now());
-        return true;
+        setWorldPlan(task, { status: "COMPLETED", actionCompleted: true });
+        return false;
       } catch (error) {
+        setWorldPlan(task, { status: "UNKNOWN", actionCompleted: false });
         log("WORLD_SERVER_HOP_FAILED", { error: String(error && error.message || error) });
         return false;
       }
     }
 
     if (action.type === "MOVE" && action.destination) {
-      return moveToDestination(action.destination, task.type);
-    }
-
-    if (action.type === "FARM_MONSTERS") {
+      const c = character();
+      const arrivalRadius = Math.max(5, number(action.arrivalRadius, 40));
+      const sameMap = !action.destination.map
+        || String(c && c.map || "") === String(action.destination.map);
+      if (sameMap && distance(c, action.destination) <= arrivalRadius) {
+        setWorldPlan(task, { status: "COMPLETED", actionCompleted: true });
+        log("WORLD_ARRIVAL_VERIFIED", { taskId: task.id, arrivalRadius: arrivalRadius });
+        return true;
+      }
+      setWorldPlan(task, { status: "TRANSPORTING" });
+      await moveToDestination(action.destination, task.type);
       return false;
     }
 
+    if (action.type === "FARM_MONSTERS") {
+      setWorldPlan(task, { status: "ACTIVE_CONTINUOUS" });
+      return true;
+    }
+
     if (action.type === "USE_SKILL" && action.skill) {
+      if (!actionGapPassed(config.actionGapMs)) return false;
       const target = action.targetName ? playerEntity(action.targetName) : null;
+      const once = action.once !== false;
+      const intentId = once
+        ? ["world-skill", task.id, validation.observation.fingerprint, action.skill].join(":")
+        : null;
       try {
-        await executePublic("WORLD_USE_SKILL", "use_skill", target ? [action.skill, target] : [action.skill]);
-        return true;
+        await executePublic(
+          "WORLD_USE_SKILL",
+          "use_skill",
+          target ? [action.skill, target] : [action.skill],
+          { intentId: intentId, irreversibleAction: once },
+        );
+        setWorldPlan(task, {
+          status: once ? "COMPLETED" : "ACTIVE_CONTINUOUS",
+          actionCompleted: once,
+        });
+        return !once;
       } catch (error) {
+        setWorldPlan(task, { status: once ? "UNKNOWN" : "ACTION_READY" });
         log("WORLD_USE_SKILL_FAILED", { error: String(error && error.message || error) });
         return false;
       }
@@ -1946,35 +2087,64 @@
 
     if (action.type === "PUBLIC_FUNCTION" && action.name) {
       if (!(config.world.allowedPublicActions || []).includes(action.name)) {
+        setWorldPlan(task, { status: "BLOCKED", lastValidation: "PUBLIC_ACTION_NOT_ALLOWLISTED" });
         log("WORLD_PUBLIC_ACTION_BLOCKED", { name: action.name, reason: "NOT_ALLOWLISTED" });
         return false;
       }
       if (!publicFunction(action.name)) {
+        setWorldPlan(task, { status: "BLOCKED", lastValidation: "PUBLIC_ACTION_UNAVAILABLE" });
         log("WORLD_PUBLIC_ACTION_BLOCKED", { name: action.name, reason: "FUNCTION_UNAVAILABLE" });
         return false;
       }
+      const once = action.once !== false;
+      const intentId = once
+        ? ["world-public", task.id, validation.observation.fingerprint, action.name].join(":")
+        : null;
       try {
-        await executePublic("WORLD_PUBLIC_ACTION", action.name, Array.isArray(action.args) ? action.args : []);
-        return true;
+        await executePublic(
+          "WORLD_PUBLIC_ACTION",
+          action.name,
+          Array.isArray(action.args) ? action.args : [],
+          { intentId: intentId, irreversibleAction: once },
+        );
+        const hasContinuation = !!(
+          validation.observation.payload
+          && (
+            (validation.observation.payload.monsterNames && validation.observation.payload.monsterNames.length)
+            || validation.observation.payload.destination
+          )
+        );
+        setWorldPlan(task, {
+          status: once
+            ? (hasContinuation ? "ENTRY_COMPLETE_CONTINUOUS" : "COMPLETED")
+            : "ACTIVE_CONTINUOUS",
+          actionCompleted: once,
+        });
+        return hasContinuation || !once;
       } catch (error) {
-        log("WORLD_PUBLIC_ACTION_FAILED", { name: action.name, error: String(error && error.message || error) });
+        setWorldPlan(task, { status: once ? "UNKNOWN" : "ACTION_READY" });
+        log("WORLD_PUBLIC_ACTION_FAILED", {
+          name: action.name,
+          error: String(error && error.message || error),
+        });
         return false;
       }
     }
 
+    setWorldPlan(task, { status: "BLOCKED", lastValidation: "ACTION_TYPE_UNSUPPORTED" });
     return false;
   }
 
   async function worldTick(task) {
-    if (!config.world.enabled || !task || !task.worldObservation) return;
+    if (!config.world.enabled || !task || !task.worldObservation) return true;
     if (task.type === "DISCOVERY") {
       log("WORLD_DISCOVERY_OBSERVED_NO_AUTHORITY", {
         stateId: task.worldObservation.stateId,
         fingerprint: task.worldObservation.fingerprint,
       });
-      return;
+      return false;
     }
-    await executeWorldAction(task);
+    return executeWorldAction(task);
   }
 
   function validateConfig(next) {
@@ -2071,9 +2241,12 @@
       if (isMerchant) {
         await merchantTick();
       } else {
-        if (task && task.worldObservation) await worldTick(task);
-        await farmerTick(task);
-        await lootTick();
+        let worldAllowed = true;
+        if (task && task.worldObservation) worldAllowed = await worldTick(task);
+        if (worldAllowed !== false) {
+          await farmerTick(task);
+          await lootTick();
+        }
       }
     } catch (error) {
       log("TICK_ERROR", { error: String(error && (error.stack || error.message) || error) });
