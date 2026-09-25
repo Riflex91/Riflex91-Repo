@@ -49,13 +49,22 @@ Persistenter Lifecycle / Restart-Recovery:
 
 Der Lifecycle persistiert ausschliesslich Evidence- und Phasenmetadaten kritisch. Jeder nichtterminale Zustand wird nach Restart zu `RECOVERY_PENDING`; eine Fortsetzung ist erst nach exakter Reconciliation der vorherigen Phase erlaubt. Same-Farm-Objective-, Same-Handoff- und Same-Craft-Rescan-Retry bleiben immer `false`.
 
+
+Multi-Farmer-Objective / Aggregation:
+
+- `grundlage/quelle/koordination/production-material-team-coordination.ts`
+- `grundlage/vertraege/runtime/pr22-23-production-material-team-objective-foundation.json`
+- `grundlage/tests/pr22-23-production-material-team-coordination.test.mjs`
+
+Die Team-Foundation behaelt den urspruenglich gebundenen Farmer als Anchor, waehlt weitere frische Farmer bounded und deterministisch auf demselben Account/Server und bindet **alle** an exakt dieselbe `objectiveId`. Frische Inventory-Evidence wird accountweit fuer das Material aggregiert. Solange Material fehlt, wird die Restmenge bounded auf die ausgewaehlten Farmer verteilt; sobald die aggregierte Zielmenge erreicht ist, wird fuer alle `farmStopRequired=true` und ein spaeterer Multi-Source-COLLECTION-Handoff verlangt.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf
 
 Der vorbereitete Pfad lautet:
 
-`Production FARM-Node -> MaterialObjective -> FARM_REQUIRED -> MATERIAL_READY_FOR_HANDOFF -> PR22-Koordination -> PR23 Movement/Combat/Loot -> Collection/Handoff -> SETTLED -> frischer Merchant-Inventar-Snapshot -> NORMAL_CRAFT_ONLY-Rescan -> spaeterer PR20.9-Durable-Shadow-Pfad`
+`Production FARM-Node -> gemeinsames MaterialObjective -> Multi-Farmer-Aggregation -> FARM_REQUIRED -> aggregate MATERIAL_READY_FOR_HANDOFF -> PR22-Koordination -> PR23 Movement/Combat/Loot -> Multi-Source Collection/Handoff -> SETTLED -> frischer Merchant-Inventar-Snapshot -> NORMAL_CRAFT_ONLY-Rescan -> spaeterer PR20.9-Durable-Shadow-Pfad`
 
 Die Foundation:
 
