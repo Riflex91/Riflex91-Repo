@@ -87,3 +87,59 @@ The hidden compatibility scene can be deleted only after tests prove parity for:
 
 Until then, preserving gameplay behavior takes priority over aggressively
 removing the legacy object model.
+
+## Live compatibility runtime
+
+AL25D-03 now has an explicit `LegacyCompatibilityRuntime` boundary.
+
+It supports two deployment modes:
+
+1. **Attached mode** — AL 2.5D is loaded into the same window as an already
+   running original Adventure Land client. The new renderer gets its own
+   overlay host, legacy canvases are made invisible, and the original
+   character/entities/socket/gameplay objects remain alive.
+2. **Embedded mode** — AL 2.5D loads a legacy client in an invisible iframe.
+   The iframe must be same-origin so the read-only mirror can access
+   `character`, `entities`, `current_map`, `G` and `map_click`.
+
+The embedded deployment route is expected to serve the pinned upstream client:
+
+`ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4`
+
+A deployment may advertise that pin through
+`window.__AL25D_UPSTREAM_COMMIT__`; if it advertises a different commit the
+runtime refuses to attach.
+
+A same-origin legacy route can be selected before AL 2.5D boots with
+`window.AL25D_LEGACY_URL` or with the `?legacy=/same-origin/path` query
+parameter. Cross-origin iframe URLs are rejected because browser isolation
+would prevent safe access to the authoritative client state.
+
+Once attached, `LegacyMirrorBridge` starts automatically. It mirrors:
+
+- `character`
+- `entities` (including character/monster/NPC ids and world x/y)
+- `current_map`
+- primitive `G.maps[current_map]` metadata
+- a read-only summary of `G.geometry[current_map]`
+
+The geometry summary intentionally contains counts rather than mutable legacy
+arrays/objects. This keeps the renderer unable to mutate authoritative map
+topology.
+
+## Pointer handoff to the original client
+
+The new canvas never implements movement itself.
+
+For a 2.5D pointer target, AL 2.5D:
+
+1. reverses the camera/projection into original world x/y,
+2. creates the PIXI-style `event.data.global` coordinates that the pinned
+   original `map_click(event)` expects,
+3. calls that original `map_click`.
+
+That means the original client still performs its own
+`call_code_function("on_map_click", x, y)`. A truthy CODE callback therefore
+still cancels the default movement path before the original socket movement
+request is emitted.
+
