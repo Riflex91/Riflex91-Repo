@@ -126,9 +126,9 @@ test("shadow package bytes are exact at the pinned source commit",()=>{
 test("roadmap ratifies scanner evidence but only prepares the no-write shadow",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
+    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_RATIFIED_PR20_8_COMPLETE");
   assert.equal(roadmap.pr20_8.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_PRODUCTIVE_ONE_WRITE");
+    "ADVANCE_TO_PR20_9_PRODUCTION");
   assert.equal(a.anniversaryGiftExceptionRescan.status,
     "RATIFIED_ANNIVERSARYGIFT_EXCHANGE_CANDIDATE_ZERO_WRITE");
   assert.equal(a.anniversaryGiftExceptionRescan.deployed,true);
