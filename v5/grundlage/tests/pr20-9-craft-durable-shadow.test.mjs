@@ -375,32 +375,23 @@ test("PR20.9 Craft durable shadow source contains no gameplay mutation bypass",(
   ]) assert.ok(source.includes(marker),marker);
 });
 
-test("PR20.9 roadmap and Merchant preparation mirror Craft durable shadow foundation",()=>{
-  assert.equal(
-    roadmap.pr20_9.status,
-    "CRAFT_DURABLE_SHADOW_FOUNDATION_BEREIT_NO_WRITE",
-  );
-  assert.equal(prep.pr20_9.status,roadmap.pr20_9.status);
-  assert.equal(
-    roadmap.pr20_9.nextAction,
-    "PR20_9_CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE",
-  );
-  assert.equal(prep.pr20_9.nextAction,roadmap.pr20_9.nextAction);
-  assert.equal(roadmap.pr20_9.liveExecutionAllowed,false);
-  assert.equal(roadmap.pr20_9.productiveCraftAuthority,false);
-  assert.equal(roadmap.pr20_9.broadGraphExecutionAuthority,false);
-  assert.equal(roadmap.pr20_9.normalRuntimeAllowed,false);
-  assert.equal(prep.pr20_9.mayExecuteLive,false);
-  assert.equal(prep.pr20_9.craftAuthority,false);
-  assert.equal(prep.pr20_9.gameplayAuthority,false);
-  assert.equal(prep.pr20_9.rawWriteAuthority,false);
+test("PR20.9 roadmap and Merchant preparation retain the durable shadow foundation after gate advancement",()=>{
+  assert.equal(roadmap.pr20_9.craftDurableShadow.status,"FOUNDATION_BEREIT_NO_WRITE");
+  assert.equal(prep.pr20_9.craftDurableShadow.status,"FOUNDATION_BEREIT_NO_WRITE");
+  assert.equal(roadmap.pr20_9.craftDurableShadow.craftAuthority,false);
+  assert.equal(roadmap.pr20_9.craftDurableShadow.gameplayAuthority,false);
+  assert.equal(roadmap.pr20_9.craftDurableShadow.rawWriteAuthority,false);
+  assert.equal(roadmap.pr20_9.craftDurableShadow.broadGraphExecutionAuthority,false);
+  assert.equal(roadmap.pr20_9.craftDurableShadow.normalRuntimeAllowed,false);
+  assert.equal(prep.pr20_9.craftDurableShadow.craftAuthority,false);
+  assert.equal(prep.pr20_9.craftDurableShadow.gameplayAuthority,false);
+  assert.equal(prep.pr20_9.craftDurableShadow.rawWriteAuthority,false);
+  assert.equal(prep.pr20_9.craftDurableShadow.normalRuntimeAllowed,false);
 
   const parallel=roadmap.parallelPreparations.find(
     x=>x?.id==="PR20.9_PRODUCTION",
   );
   assert.ok(parallel);
-  assert.equal(parallel.status,roadmap.pr20_9.status);
-  assert.equal(parallel.nextAction,roadmap.pr20_9.nextAction);
   assert.equal(parallel.liveExecutionAllowed,false);
   assert.ok(parallel.artifacts.includes(
     "v5/grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",

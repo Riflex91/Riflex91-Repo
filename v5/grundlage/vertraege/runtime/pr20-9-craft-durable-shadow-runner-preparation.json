@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "gate": "PR20.9_PRODUCTION",
+  "id": "PR20_9_CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE",
+  "status": "PACKAGE_BEREIT_NO_WRITE",
+  "testId": "pr20-9-craft-durable-shadow-no-write",
+  "controllerVersion": "1.0.0",
+  "expectedGlobal": "V5PR209CraftDurableShadowNoWrite",
+  "package": "v5/werkzeuge/pr20-9-craft-durable-shadow-no-write.js",
+  "test": "v5/werkzeuge/tests/pr20-9-craft-durable-shadow-no-write.test.mjs",
+  "packageSourceCommit": "116d762a1e1fad230cbd64a5a44d6762465501f0",
+  "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+  "scope": "NORMAL_CRAFT_ONLY",
+  "candidatePolicy": {
+    "naturalCurrentInventoryOnly": true,
+    "deterministicRecipeOrder": true,
+    "deterministicFirstSafeSingleStack": true,
+    "minimumIngredients": 2,
+    "maximumIngredients": 9,
+    "duplicateIngredientNamesAllowed": false,
+    "splitStackAllowed": false,
+    "anniversaryCraftAllowed": false,
+    "recipeOutputOverrideAllowed": false,
+    "autoCraftAllowed": false,
+    "lockedBlockedGiveawayValueProtectedAllowed": false,
+    "sufficientGoldRequired": true,
+    "conservativeOutputspaceRequired": true,
+    "serviceReachabilityRequired": true,
+    "craftsmanPoint": {
+      "map": "main",
+      "x": 92,
+      "y": 670
+    },
+    "sourcePinnedSellDistance": 400,
+    "conservativeSafetyDistanceMax": 300
+  },
+  "shadowSemantics": {
+    "durableStorage": "browser localStorage",
+    "stableDoubleObservationRequired": true,
+    "stablePostIntentReobserveRequired": true,
+    "exactPhysicalInputIndexesPinned": true,
+    "recipeFingerprintRequired": true,
+    "inventoryFingerprintRequired": true,
+    "qFingerprintRequired": true,
+    "exactTerminalRecoveryAllowed": true,
+    "conflictingExistingIntentFailsClosed": true,
+    "journalTerminalArt": "ABBRUCH",
+    "sendBoundaryState": "NICHT_GESENDET",
+    "reconciliationClassification": "NOT_APPLIED",
+    "sameIntentRetry": false
+  },
+  "authority": {
+    "authorityIssued": false,
+    "craftAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadGraphExecutionAuthority": false,
+    "normalRuntimeAllowed": false
+  },
+  "writes": {
+    "maximumGameplayWrites": 0,
+    "maximumPublicFunctionCalls": 0,
+    "maximumRawWriteCalls": 0
+  },
+  "manifest": {
+    "cutoverPrepared": false,
+    "active": false
+  },
+  "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER"
+}
