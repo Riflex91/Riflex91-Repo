@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_DURABLE_SHADOW_PREPARATION",
+  "status": "PREPARED_NO_WRITE",
+  "sourceMain": "4e04bc6e114f0f3959c562f6ff9e0571b983b371",
+  "prerequisite": {
+    "evidence": "v5/roadmap/pr20-8-exchange-anniversarygift-v1-0-7-evidence.json",
+    "requiredStatus": "RATIFIED_ANNIVERSARYGIFT_CANDIDATE_ZERO_WRITE",
+    "requiredNotificationId": 2729,
+    "exactItem": "anniversarygift",
+    "exactExchangeQuantity": 1,
+    "exactBaseGold": 100,
+    "requiredExclusiveTestException": true,
+    "requiredGameplayWrites": 0,
+    "requiredPublicFunctionCalls": 0,
+    "requiredRawWriteCalls": 0,
+    "requiredSameIntentRetry": false
+  },
+  "actionBinding": {
+    "actionContractId": "AL-ACTION-EXCHANGE",
+    "recoveryContractId": "AL-RECOVERY-EXCHANGE",
+    "verifierId": "AL-VERIFIER-EXCHANGE",
+    "publicFunction": "exchange",
+    "executionModel": "MULTI_PHASE_Q",
+    "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+    "publicWrapperSource": "v5/wissensbasis/datenbank/aktuell/AL-SRC-RUNNER.txt"
+  },
+  "exactCandidate": {
+    "name": "anniversarygift",
+    "type": "gem",
+    "level": 0,
+    "definitionBaseGold": 100,
+    "definitionExchangeQuantity": 1,
+    "definitionExclusive": true,
+    "minimumFreshQuantity": 1,
+    "observedQuantityFromEvidence": 106,
+    "observedIndexFromEvidence": 4,
+    "observedIndexCarriesWriteAuthority": false,
+    "exactPhysicalIndexReresolveRequired": true,
+    "exactMaterialReresolveRequired": true,
+    "genericExclusiveRelaxationForbidden": true
+  },
+  "preflight": {
+    "merchantCharacterRequired": "My_Merchant",
+    "expectedServerRegion": "EU",
+    "expectedServerIdentifier": "I",
+    "qMustBeFree": true,
+    "characterMustBeAlive": true,
+    "characterMustBeStationary": true,
+    "characterMustHaveNoTarget": true,
+    "noHostileTargetingMerchantRequired": true,
+    "alternativeRuntimeMustBeInactive": true,
+    "publicExchangeFunctionRequired": true,
+    "liveExchangeServiceReachabilityRequired": true,
+    "exchangeServiceCoordinateHardcodeAllowed": false,
+    "liveExchangeRoleReresolutionRequired": true,
+    "inventoryCapacityConservativePreflightRequired": true,
+    "rewardGraph": "D.drops.anniversarygift",
+    "rewardGraphFreshBoundedReconciliationRequired": true,
+    "recursiveDropMustBeBoundedBeforeAdmission": true,
+    "fullRewardDomainReconciliationRequired": true,
+    "rewardDomains": [
+      "inventory",
+      "gold",
+      "shells",
+      "account_cosmetics",
+      "empty",
+      "recursive_drop"
+    ]
+  },
+  "durableShadow": {
+    "doubleObservationRequired": true,
+    "observationIdentityMustMatch": true,
+    "durableIntentBeforeAnyFutureSendRequired": true,
+    "exactDurableReadbackRequired": true,
+    "actionChannelClaim": "character:My_Merchant:action_channel:exchange",
+    "inventoryClaim": "character:My_Merchant:inventory",
+    "qClaim": "character:My_Merchant:q",
+    "socketBudgetClaim": "character:My_Merchant:socket_call_budget",
+    "sendBoundaryState": "NICHT_GESENDET",
+    "exchangeCallSiteAllowedInShadow": false,
+    "rawSocketCallAllowed": false,
+    "sameIntentRetry": false
+  },
+  "authority": {
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "normalRuntimeAllowed": false
+  },
+  "runner": {
+    "present": false,
+    "manifestCutoverPrepared": false,
+    "deployed": false,
+    "evidenceObserved": false
+  },
+  "nextAction": "PREPARE_ANNIVERSARYGIFT_EXCHANGE_DURABLE_SHADOW_RUNNER_NO_WRITE"
+}
