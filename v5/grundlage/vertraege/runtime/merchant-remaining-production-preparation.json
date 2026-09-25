@@ -1916,7 +1916,7 @@
   },
   "pr20_9": {
     "ziel": "Craft und Production produktiv",
-    "status": "CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE_BEREIT_NO_WRITE",
+    "status": "CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-CRAFT",
@@ -1936,12 +1936,7 @@
       "Restart nichtterminal => Recovery statt Blind-Resume",
       "Production-Commit erst nach finalem Recipient Settlement"
     ],
-    "produktivBlockiertBis": [
-      "PR20.2 Bank",
-      "PR20.3 Market",
-      "PR20.4 Transfer",
-      "PR20.8 Wertmutationen"
-    ],
+    "produktivBlockiertBis": [],
     "ersteLiveKetteSpaeter": "kleinste vollstaendig beobachtbare Kette mit exakt einem neu ratifizierten mutierenden Schritt; keine breite Graph-Execution auf einmal",
     "sicherheitsGrenzen": [
       "Production Graph plant nur; er besitzt keine ActionAuthority",
@@ -1981,7 +1976,7 @@
       "normalRuntimeAllowed": false,
       "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION"
     },
-    "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER",
+    "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
     "craftDurableShadow": {
       "status": "FOUNDATION_BEREIT_NO_WRITE",
       "source": "grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
@@ -2008,7 +2003,7 @@
       "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE"
     },
     "craftDurableShadowRunner": {
-      "status": "PACKAGE_BEREIT_NO_WRITE",
+      "status": "MANIFEST_CUTOVER_PREPARED_NO_WRITE",
       "testId": "pr20-9-craft-durable-shadow-no-write",
       "controllerVersion": "1.0.0",
       "expectedGlobal": "V5PR209CraftDurableShadowNoWrite",
@@ -2032,9 +2027,14 @@
       "broadGraphExecutionAuthority": false,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "manifestCutoverPrepared": false,
-      "active": false,
-      "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER"
+      "manifestCutoverPrepared": true,
+      "active": true,
+      "nextGate": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
+      "packageSha256": "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
+      "packageBytes": 26951,
+      "manifestCutover": "grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-manifest-cutover.json",
+      "liveEvidenceObserved": false,
+      "craftRatified": false
     }
   },
   "pr21": {
