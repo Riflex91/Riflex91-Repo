@@ -221,3 +221,6 @@ export * from "./zertifizierung/pr21-28-result-package.js";
 
 export * from "./zertifizierung/pr21-28-ratification-record.js";
 export * from "./runtime/pr21-28-gate-advance-proposal.js";
+
+export * from "./runtime/pr21-28-gate-apply-transaction.js";
+export * from "./runtime/pr21-28-gate-apply-reconciliation.js";
