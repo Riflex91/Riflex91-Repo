@@ -11,12 +11,11 @@
   const TARGET = "craftsman";
   const TARGET_POINT = Object.freeze({ map: "main", x: 92, y: 670 });
   const SOURCE_COMMIT = "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4";
-  const SOURCE_MAPS_BLOB = "PR20_9_SOURCE_SNAPSHOT";
   const SOURCE_PINNED_SELL_DISTANCE = 400;
   const SAFETY_DISTANCE = 300;
   const POLL_MS = 250;
   const MOVE_TIMEOUT_MS = 120000;
-  const INTENT_KEY = "v5:" + TEST_ID + ":intent:exchange-service";
+  const INTENT_KEY = "v5:" + TEST_ID + ":intent:craft-service";
 
   const events = [];
   let seq = 0;
@@ -37,7 +36,6 @@
     target: TARGET,
     targetPoint: TARGET_POINT,
     sourceCommit: SOURCE_COMMIT,
-    sourceMapsBlob: SOURCE_MAPS_BLOB,
     movementIssued: false,
     movementCompleted: false,
     movementError: null,
@@ -303,7 +301,6 @@
       && intent.version === VERSION
       && intent.target === TARGET
       && intent.sourceCommit === SOURCE_COMMIT
-      && intent.sourceMapsBlob === SOURCE_MAPS_BLOB
       && Number.isInteger(intent.sendCount)
       && intent.sendCount >= 0
       && intent.sendCount <= 1
@@ -408,7 +405,6 @@
       target: TARGET,
       targetPoint: TARGET_POINT,
       sourceCommit: SOURCE_COMMIT,
-      sourceMapsBlob: SOURCE_MAPS_BLOB,
       createdAtMs,
       updatedAtMs: createdAtMs,
       sendCount: 0,
