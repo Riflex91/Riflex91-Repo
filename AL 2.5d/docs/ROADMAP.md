@@ -24,6 +24,7 @@ Status: complete
 - [x] produce a machine-readable parity manifest
 - [x] identify initial direct Pixi/render migration hooks
 - [x] identify public CODE drawing/click APIs that must preserve behavior
+- [x] document upstream PIXI/game-state coupling and compatibility strategy
 
 Deliverable: `docs/upstream-manifest.json`.
 
@@ -35,13 +36,15 @@ Status: in progress
 - [x] preserve authoritative world x/y coordinates in the snapshot
 - [x] map 2.5D pointer coordinates back to legacy world x/y
 - [x] preserve `on_map_click` callback return semantics
-- [ ] boot original client state/network logic without its old scene renderer
-- [ ] redirect `add_character` into the snapshot/render bridge
-- [ ] redirect `add_monster` into the snapshot/render bridge
+- [x] implement read-only mirror loop for legacy global state
+- [x] keep legacy PIXI entity objects as temporary hidden compatibility state
+- [ ] embed/start the pinned original client state/network runtime
+- [ ] hide legacy visual canvas while keeping compatibility objects alive
+- [ ] route 2.5D entity clicks to original target/click handlers
 - [ ] preserve map transitions
 - [ ] add golden tests against captured legacy outputs
 
-Deliverable: original game logic driving the new renderer.
+Deliverable: original game logic driving the visible new renderer.
 
 ## AL25D-04 — First playable 2.5D map
 

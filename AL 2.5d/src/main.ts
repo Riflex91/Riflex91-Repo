@@ -1,5 +1,9 @@
 import "./style.css";
 
+import {
+  LegacyMirrorBridge,
+  type LegacyGlobalsLike
+} from "./legacy/LegacyMirrorBridge";
 import { AssetRegistry, type AssetEntry } from "./render/AssetRegistry";
 import { viewportToWorld } from "./render/camera";
 import { Pixi25DRenderer } from "./render/Pixi25DRenderer";
@@ -19,6 +23,8 @@ declare global {
       setCamera: (camera: CameraState) => void;
       registerAssets: (entries: readonly AssetEntry[]) => void;
       mapPointerToWorld: (point: ScreenPoint, elevation?: number) => WorldPoint;
+      startLegacyMirror: (source?: LegacyGlobalsLike) => void;
+      stopLegacyMirror: () => void;
     };
   }
 }
@@ -33,6 +39,7 @@ async function boot(): Promise<void> {
   const assets = new AssetRegistry();
   const renderer = new Pixi25DRenderer(assets);
   let camera: CameraState = { x: 0, y: 0, zoom: 1 };
+  let legacyMirror: LegacyMirrorBridge | null = null;
 
   await renderer.mount(host);
 
@@ -54,7 +61,21 @@ async function boot(): Promise<void> {
           height: host.clientHeight
         },
         elevation
-      )
+      ),
+    startLegacyMirror: (source) => {
+      legacyMirror?.stop();
+
+      const readGlobals = source
+        ? () => source
+        : () => window as unknown as LegacyGlobalsLike;
+
+      legacyMirror = new LegacyMirrorBridge(renderer, readGlobals);
+      legacyMirror.start();
+    },
+    stopLegacyMirror: () => {
+      legacyMirror?.stop();
+      legacyMirror = null;
+    }
   };
 
   renderer.setCamera(camera);

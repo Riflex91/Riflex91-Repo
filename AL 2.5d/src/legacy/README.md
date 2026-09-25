@@ -1,14 +1,17 @@
 # Legacy compatibility layer
 
-This folder is the only place where the original Adventure Land client state is translated into the new 2.5D presentation model.
+This folder is the boundary between the original Adventure Land client state
+and the new AL 2.5D renderer.
 
 Rules:
 
-1. read legacy game state; never mutate it
-2. preserve original world coordinates
-3. preserve public CODE/API semantics
-4. convert visual references into stable 2.5D asset IDs
-5. keep renderer interpolation out of gameplay state
-6. keep input projection conversion at the boundary before legacy movement logic
+- read legacy gameplay state; do not own it
+- never change combat/network/persistence semantics
+- convert authoritative x/y into immutable renderer snapshots
+- convert 2.5D pointer input back into original x/y before legacy handlers
+- preserve public CODE callback signatures and return behavior
+- during migration, legacy PIXI entity objects may remain as hidden
+  compatibility state because upstream gameplay logic stores state on them
+- visual assets are resolved separately through the new asset registry
 
-The first adapter is `LegacySnapshotAdapter`, which converts the legacy `character` and `entities` structures into immutable render snapshots.
+See `docs/COMPATIBILITY_MIRROR.md`.

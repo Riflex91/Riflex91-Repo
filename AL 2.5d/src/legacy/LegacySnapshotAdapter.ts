@@ -11,10 +11,11 @@ export type LegacyEntityLike = Readonly<{
   real_x?: number;
   real_y?: number;
   z?: number;
+  map?: string;
   type?: string;
   ctype?: string;
   mtype?: string;
-  npc?: string;
+  npc?: string | boolean;
   skin?: string;
   going_x?: number;
 }>;
@@ -52,7 +53,13 @@ export class LegacySnapshotAdapter {
     this.resolveAssetId =
       options.resolveAssetId ??
       ((entity, kind) => {
-        const visualKey = entity.skin ?? entity.mtype ?? entity.type ?? entity.npc ?? entity.id;
+        const visualKey =
+          entity.skin ??
+          entity.mtype ??
+          entity.type ??
+          (typeof entity.npc === "string" ? entity.npc : undefined) ??
+          entity.id;
+
         return `asset://${kind}/${visualKey}`;
       });
   }
@@ -61,7 +68,10 @@ export class LegacySnapshotAdapter {
     const entities = new Map<string, RenderEntity>();
 
     if (source.character) {
-      entities.set(source.character.id, this.convertEntity(source.character, "player"));
+      entities.set(
+        source.character.id,
+        this.convertEntity(source.character, "player")
+      );
     }
 
     for (const entity of Object.values(source.entities ?? {})) {
@@ -79,22 +89,32 @@ export class LegacySnapshotAdapter {
   }
 
   private detectKind(entity: LegacyEntityLike): EntityKind {
-    if (entity.ctype || (entity.type && this.classTypes.has(entity.type))) {
+    if (
+      entity.ctype ||
+      (entity.type && this.classTypes.has(entity.type))
+    ) {
       return "player";
     }
 
-    if (entity.npc) {
+    if (entity.npc || entity.type === "npc") {
       return "npc";
     }
 
-    if (entity.mtype || (entity.type && this.monsterTypes.has(entity.type))) {
+    if (
+      entity.mtype ||
+      entity.type === "monster" ||
+      (entity.type && this.monsterTypes.has(entity.type))
+    ) {
       return "monster";
     }
 
     return "prop";
   }
 
-  private convertEntity(entity: LegacyEntityLike, kind: EntityKind): RenderEntity {
+  private convertEntity(
+    entity: LegacyEntityLike,
+    kind: EntityKind
+  ): RenderEntity {
     const x = entity.real_x ?? entity.x ?? 0;
     const y = entity.real_y ?? entity.y ?? 0;
 
