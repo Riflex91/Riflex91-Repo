@@ -65,10 +65,14 @@
     "publicCompoundCallSites": 0,
     "manifestCutoverPrepared": true,
     "deployed": false,
-    "bridgeMayDeployPinnedRunner": true,
+    "bridgeMayDeployPinnedRunner": false,
     "deploymentEvidenceObserved": false,
     "realFiveMinuteRunCompleted": false,
-    "compoundWriteAuthority": false
+    "compoundWriteAuthority": false,
+    "retiredFromActiveManifest": true,
+    "supersededByPerformanceRecovery": true,
+    "activeRecoveryControllerVersion": "1.0.1",
+    "activeRecoveryPackage": "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js"
   },
   "compoundLive5mRunner": {
     "status": "V1_0_0_BLOCKED_PERFORMANCE_TRICK_ZERO_WRITE",
