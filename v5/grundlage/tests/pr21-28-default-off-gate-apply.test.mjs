@@ -255,3 +255,50 @@ test("default-off gate apply sources contain no mutation or overall-grant bypass
     }
   }
 });
+
+
+test("Default-Off-Vertrag und Roadmap erhalten CAP-022 bis Reconciliation",()=>{
+  const contract=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json",
+    "utf8",
+  ));
+  const boundary=contract.cap022FullChainBoundary;
+  assert.deepEqual(boundary.requiredStages,["PR22","PR23"]);
+  assert.deepEqual(boundary.transactionFields,[
+    "cap022FullChainRequired",
+    "cap022FullChainSatisfied",
+  ]);
+  assert.equal(boundary.proposalMustCarrySatisfiedBinding,true);
+  assert.equal(boundary.transactionFingerprintIncludesBinding,true);
+  assert.equal(boundary.validationRequiresStageConsistentBinding,true);
+  assert.equal(boundary.reconciliationRequiresSatisfiedBinding,true);
+  assert.equal(boundary.applyAdapterInstalled,false);
+  assert.equal(boundary.executionEnabled,false);
+  assert.equal(boundary.gateMutationPerformed,false);
+  assert.equal(boundary.authorityIssued,false);
+  assert.equal(boundary.currentPr20_9RatificationCredit,false);
+  assert.equal(boundary.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(boundary.durableIntentCreated,false);
+  assert.equal(boundary.productiveCraftAuthorityOpened,false);
+
+  const roadmap=JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  const binding=
+    roadmap.pr23.materialAcquisitionFoundation
+      .fullChainOrchestrationReadiness.defaultOffGateApplyBinding;
+  assert.deepEqual(binding.requiredStages,["PR22","PR23"]);
+  assert.equal(binding.transactionFingerprintIncludesCap022,true);
+  assert.equal(binding.validationRequiresStageConsistentBinding,true);
+  assert.equal(binding.reconciliationRequiresSatisfiedBinding,true);
+  assert.equal(binding.applyAdapterInstalled,false);
+  assert.equal(binding.executionEnabled,false);
+  assert.equal(binding.gateMutationPerformed,false);
+  assert.equal(binding.authorityIssued,false);
+  assert.equal(binding.currentPr20_9RatificationCredit,false);
+  assert.equal(binding.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(binding.durableIntentCreated,false);
+  assert.equal(binding.productiveCraftAuthorityOpened,false);
+  assert.equal(binding.normalRuntimeAllowed,false);
+});
