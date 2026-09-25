@@ -273,3 +273,42 @@ test("checkpoint runbook and result package contain no gameplay mutation bypass"
     }
   }
 });
+
+
+test("Checkpoint-Runbook-Vertrag und Roadmap verlangen CAP-022 vor Group-Runtime",()=>{
+  const contract=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr21-28-checkpoint-runbooks.json",
+    "utf8",
+  ));
+  const boundary=contract.cap022FullChainBoundary;
+  assert.equal(boundary.requiredCheckpoint,"POST_PR24_25_GROUP_CHECKPOINT");
+  assert.equal(boundary.requiredPrecondition,"CAP022_FULL_CHAIN_READY");
+  assert.equal(boundary.runbookField,"cap022FullChainRequired");
+  assert.equal(boundary.milestoneEvaluationMustConfirmFullChain,true);
+  assert.equal(boundary.missingFullChainMayNotStartExternalRuntime,true);
+  assert.equal(boundary.manualRatificationStillRequired,true);
+  assert.equal(boundary.runnerOwnsGameplayAuthority,false);
+  assert.equal(boundary.currentPr20_9RatificationCredit,false);
+  assert.equal(boundary.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(boundary.durableIntentCreated,false);
+  assert.equal(boundary.productiveCraftAuthorityOpened,false);
+
+  const roadmap=JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  const binding=
+    roadmap.pr23.materialAcquisitionFoundation
+      .fullChainOrchestrationReadiness.checkpointRunbookBinding;
+  assert.equal(binding.requiredCheckpoint,"POST_PR24_25_GROUP_CHECKPOINT");
+  assert.equal(binding.requiredPrecondition,"CAP022_FULL_CHAIN_READY");
+  assert.equal(binding.runbookField,"cap022FullChainRequired");
+  assert.equal(binding.missingFullChainMayNotStartExternalRuntime,true);
+  assert.equal(binding.manualRatificationStillRequired,true);
+  assert.equal(binding.runnerOwnsGameplayAuthority,false);
+  assert.equal(binding.currentPr20_9RatificationCredit,false);
+  assert.equal(binding.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(binding.durableIntentCreated,false);
+  assert.equal(binding.productiveCraftAuthorityOpened,false);
+  assert.equal(binding.normalRuntimeAllowed,false);
+});
