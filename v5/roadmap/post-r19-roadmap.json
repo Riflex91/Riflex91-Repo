@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "EXCHANGE_BANK_SNAPSHOT_NO_CANDIDATE_RATIFIED_MARKET_DISCOVERY_PREPARED",
+      "status": "EXCHANGE_MARKET_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "MERGE_MARKET_DISCOVERY_PACKAGE_THEN_CUTOVER",
+      "nextAction": "DEPLOY_EXCHANGE_MARKET_DISCOVERY",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -2148,7 +2148,7 @@
     }
   },
   "pr20_8": {
-    "status": "EXCHANGE_BANK_SNAPSHOT_NO_CANDIDATE_RATIFIED_MARKET_DISCOVERY_PREPARED",
+    "status": "EXCHANGE_MARKET_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -2198,7 +2198,7 @@
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "MERGE_MARKET_DISCOVERY_PACKAGE_THEN_CUTOVER",
+    "nextAction": "DEPLOY_EXCHANGE_MARKET_DISCOVERY",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -3432,7 +3432,7 @@
       "nextGate": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN"
     },
     "exchangeCandidateAcquisition": {
-      "status": "BANK_SNAPSHOT_NO_CANDIDATE_RATIFIED_MARKET_DISCOVERY_PACKAGE_PREPARED",
+      "status": "MARKET_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
       "policy": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
       "planner": "v5/grundlage/quelle/merchant/pr20-8-exchange-candidate-acquisition.ts",
       "plannerTest": "v5/grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs",
@@ -3464,7 +3464,7 @@
       "bridgeMayDeployPinnedRunner": true,
       "deployed": true,
       "evidenceObserved": true,
-      "nextAction": "MERGE_MARKET_DISCOVERY_PACKAGE_THEN_CUTOVER",
+      "nextAction": "DEPLOY_EXCHANGE_MARKET_DISCOVERY",
       "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
       "package": "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
       "latestNotificationId": 2603,
@@ -3526,7 +3526,7 @@
         "rawWriteCalls": 0
       },
       "marketDiscovery": {
-        "status": "PACKAGE_PREPARED_NOT_DEPLOYED",
+        "status": "MANIFEST_CUTOVER_PREPARED",
         "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-market-discovery.json",
         "package": "v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js",
         "test": "v5/werkzeuge/tests/pr20-8-exchange-market-discovery-v1-0-0.test.mjs",
@@ -3546,7 +3546,10 @@
         "farmAllowed": false,
         "exchangeAllowed": false,
         "normalRuntimeAllowed": false,
-        "nextAction": "CUTOVER_AFTER_PACKAGE_CI"
+        "nextAction": "DEPLOY_EXCHANGE_MARKET_DISCOVERY",
+        "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+        "manifestCutoverPrepared": true,
+        "deployed": false
       }
     }
   },
