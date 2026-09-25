@@ -88,8 +88,7 @@
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: Der frische Post-Compound Target-Family-Rescan v1.0.5 ist persistent ratifiziert (Notification #2332) und weiterhin zero-write. Compound und Exchange haben aktuell keinen normalen Kandidaten; Exchange bleibt unratifiziert. Keine Acquisition/Mutation zur Kandidatenerzeugung; nur spaetere read-only Rescans sind zulaessig. PR20.9 und normalRuntime bleiben geschlossen.",
-    "AKTUELL: Der frische read-only Rescan v1.0.5 nach dem Compound-Commit ist mit Completion #2332 ratifiziert: Exchange und Compound haben aktuell keinen normalen Kandidaten, 0 Gameplay/Public/Raw-Writes, keine Exchange-Authority. PR20.8 bleibt an Exchange blockiert und wartet auf einen spaeteren read-only Rescan; keine Candidate-Erzeugung durch Acquisition/Mutation, PR20.9 und normalRuntime bleiben geschlossen."
+    "AKTUELL: Der frische read-only Rescan v1.0.6 ist persistent ratifiziert (Notification #2382, Debug-Batch #8306): Compound und Exchange haben weiterhin keinen normalen Kandidaten; 0 Gameplay/Public/Raw-Writes, keine Exchange-/Gameplay-/Raw-Authority, kein Durable Intent. Das eigenstaendige No-Candidate-Closeout ist auf v1.0.6 reconciliert. PR20.8 bleibt an Exchange blockiert und wartet auf einen spaeteren natuerlichen read-only Rescan; keine Candidate-Erzeugung durch Acquisition/Mutation, PR20.9 und normalRuntime bleiben geschlossen."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
