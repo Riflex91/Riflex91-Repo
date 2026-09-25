@@ -242,6 +242,38 @@ test("PR26-28 autonomy shadow binds optimizer, progression and world plan withou
   assert.ok(drift.blocker.includes("PR26_28_WORLD_TASK_BINDING_DRIFT"));
 });
 
+
+function cap022FoundationChain(overrides={}) {
+  const ids=[
+    "MATERIAL_ACQUISITION",
+    "MATERIAL_HANDOFF",
+    "POST_SETTLEMENT_CRAFT_RESCAN",
+    "PERSISTENT_LIFECYCLE",
+    "TEAM_MATERIAL_OBJECTIVE",
+    "TEAM_COLLECTION_HANDOFF",
+    "TEAM_BATCH_SETTLEMENT_RECOVERY",
+    "TEAM_ALL_SETTLED_CRAFT_RESCAN",
+    "TEAM_RESCAN_DURABLE_ADMISSION",
+  ];
+  return {
+    schemaVersion:1,
+    foundations:ids.map(id=>({
+      schemaVersion:1,
+      id,
+      status:"PREPARED_NO_WRITE",
+      productiveExecutionAllowed:false,
+      gameplayAuthority:false,
+      rawWriteAuthority:false,
+      normalRuntimeAllowed:false,
+    })),
+    currentPr20_9RatificationCredit:false,
+    candidateAcquisitionOrMutationAllowedNow:false,
+    durableIntentCreated:false,
+    productiveCraftAuthorityOpened:false,
+    ...overrides,
+  };
+}
+
 function orchestrationRequest(overrides={}) {
   return {
     schemaVersion:1,
@@ -262,6 +294,7 @@ function orchestrationRequest(overrides={}) {
       rawWriteAutoritaet:false,
       normalRuntimeAllowed:false,
     },
+    materialFoundationChain:cap022FoundationChain(),
     pr21:{
       schemaVersion:1,
       status:"BEREIT_FUER_INTEGRATIONSTEST_NO_WRITE",
@@ -345,6 +378,9 @@ test("PR21-28 orchestrator connects every foundation while productive dependency
   assert.equal(result.status,"SHADOW_PIPELINE_BEREIT_NO_WRITE");
   assert.equal(result.allFoundationsConnected,true);
   assert.equal(result.materialAcquisitionFoundationReady,true);
+  assert.equal(result.materialFoundationChainReady,true);
+  assert.equal(result.materialFoundationChainStatus,"CAP022_FULL_CHAIN_BEREIT_NO_WRITE");
+  assert.deepEqual(result.materialFoundationChainBlocker,[]);
   assert.equal(result.materialAcquisitionProductiveExecutionAllowed,false);
   assert.equal(result.highestPreparedStage,"PR28");
   assert.equal(result.stages.length,8);
@@ -375,6 +411,41 @@ test("PR21-28 orchestrator connects every foundation while productive dependency
   assert.equal(materialBlocked.materialAcquisitionProductiveExecutionAllowed,false);
   assert.ok(materialBlocked.blocker.includes(
     "PR21_28_FOUNDATION_BLOCKIERT:CAP022_MATERIAL_ACQUISITION",
+  ));
+
+  const chainMissing=cap022FoundationChain();
+  const fullChainBlocked=orchestrierePr21_28ShadowPipeline(orchestrationRequest({
+    materialFoundationChain:{
+      ...chainMissing,
+      foundations:chainMissing.foundations.filter(
+        x=>x.id!=="TEAM_RESCAN_DURABLE_ADMISSION",
+      ),
+    },
+  }));
+  assert.equal(fullChainBlocked.status,"BLOCKIERT");
+  assert.equal(fullChainBlocked.materialFoundationChainReady,false);
+  assert.equal(fullChainBlocked.materialFoundationChainStatus,"BLOCKIERT");
+  assert.ok(fullChainBlocked.blocker.includes(
+    "PR21_28_FOUNDATION_BLOCKIERT:CAP022_FULL_CHAIN",
+  ));
+  assert.ok(fullChainBlocked.blocker.includes(
+    "PR21_28_CAP022_CHAIN:CAP022_CHAIN_FOUNDATION_FEHLT:TEAM_RESCAN_DURABLE_ADMISSION",
+  ));
+
+  const chainDrift=cap022FoundationChain();
+  const authorityBlocked=orchestrierePr21_28ShadowPipeline(orchestrationRequest({
+    materialFoundationChain:{
+      ...chainDrift,
+      foundations:chainDrift.foundations.map(x=>
+        x.id==="TEAM_BATCH_SETTLEMENT_RECOVERY"
+          ? {...x,status:"BLOCKIERT"}
+          : x),
+    },
+  }));
+  assert.equal(authorityBlocked.status,"BLOCKIERT");
+  assert.equal(authorityBlocked.materialFoundationChainReady,false);
+  assert.ok(authorityBlocked.blocker.includes(
+    "PR21_28_CAP022_CHAIN:CAP022_CHAIN_FOUNDATION_BLOCKIERT:TEAM_BATCH_SETTLEMENT_RECOVERY",
   ));
 });
 
