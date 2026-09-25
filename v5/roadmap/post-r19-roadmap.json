@@ -1666,7 +1666,7 @@
     }
   },
   "pr20_8": {
-    "status": "EXCHANGE_NO_CANDIDATE_CLOSEOUT_REVIEWED_FRESH_READONLY_RESCAN_REQUIRED",
+    "status": "EXCHANGE_READONLY_RESCAN_MANIFEST_CUTOVER_PREPARED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -2608,7 +2608,11 @@
       "packageSha256": "4d9083bf163d98f15d842d64ecfc49ae4c9b8c3452b0b31a499d4b0b5687c849",
       "packageBytes": 28166,
       "expectedGlobal": "V5PR208CompoundLive5m",
-      "normalRuntimeAllowed": false
+      "normalRuntimeAllowed": false,
+      "active": false,
+      "retiredFromActiveManifest": true,
+      "supersededByTestId": "pr20-8-wertmutation-live-candidate-readonly",
+      "supersededByControllerVersion": "1.0.4"
     },
     "compoundLive5mNotificationIdentityRecovery": {
       "status": "RATIFIED_COMPLETION_PERSISTED",
@@ -2689,7 +2693,7 @@
       "normalRuntimeAllowed": false
     },
     "exchangeNoCandidateCloseoutReview": {
-      "status": "REVIEWED_FRESH_READONLY_RESCAN_REQUIRED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_FRESH_READONLY_RESCAN",
       "review": "v5/roadmap/pr20-8-exchange-no-candidate-closeout-review.json",
       "existingEvidence": "v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json",
       "existingObservedAtMs": 1790278399271,
@@ -2713,10 +2717,29 @@
       "scannerMaximumGameplayWrites": 0,
       "scannerMaximumPublicFunctionCalls": 0,
       "scannerMaximumRawWriteCalls": 0,
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
       "evidenceObserved": false,
-      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN"
+      "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+      "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+      "bridgeMayDeployPinnedRunner": true
+    },
+    "activeAutonomousManifest": {
+      "testId": "pr20-8-wertmutation-live-candidate-readonly",
+      "controllerVersion": "1.0.4",
+      "package": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js",
+      "sourceCommit": "27e25e69dc0e26d8ae05328335718c36a6a0c659",
+      "packageSha256": "0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b",
+      "packageBytes": 21343,
+      "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
+      "purpose": "FRESH_COMPOUND_EXCHANGE_TARGET_FAMILY_READONLY_RESCAN_AFTER_COMPOUND_COMMIT",
+      "maximumGameplayWrites": 0,
+      "maximumPublicFunctionCalls": 0,
+      "maximumRawWriteCalls": 0,
+      "exchangeAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false
     }
   }
 }
