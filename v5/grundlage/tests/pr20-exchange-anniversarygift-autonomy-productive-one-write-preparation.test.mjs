@@ -65,9 +65,9 @@ test("autonomy productive runner package is exact pinned and narrow",()=>{
   assert.equal(r.testId,"pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live");
   assert.equal(r.controllerVersion,"1.0.0");
   assert.equal(r.expectedGlobal,"V5PR208ExchangeAnniversarygiftAutonomyProductiveOneWriteLive");
-  assert.equal(r.sourceCommit,"8e2cac9b8e152bedce1ef491d60b5b8aa2b74c58");
-  assert.equal(r.sha256,"4705e14e793256e2fab5bec1c5119a2139c7fc889749bb9bd004299f77bfb8bf");
-  assert.equal(r.bytes,59783);
+  assert.equal(r.sourceCommit,"ec3e0d141af72e962e85ddf48edd0fbe5e0e218e");
+  assert.equal(r.sha256,"6fca304c62dfeea6fb718da6164b1e6b956d6ccdff12ccde9d80138cfc941532");
+  assert.equal(r.bytes,59537);
   assert.equal(packageBytes.length,r.bytes);
   assert.equal(crypto.createHash("sha256").update(packageBytes).digest("hex"),r.sha256);
   const pinned=execFileSync("git",["show",r.sourceCommit+":"+r.path],{
