@@ -1523,6 +1523,10 @@ test("PR20.8 Exchange closeout records the fresh v1.0.6 no-candidate evidence", 
   assert.equal(active.gameplayAuthority,false);
   assert.equal(active.rawWriteAuthority,false);
   assert.equal(active.normalRuntimeAllowed,false);
+  assert.equal(active.active,false);
+  assert.equal(active.historicalLatestPr20_8Manifest,true);
+  assert.equal(active.temporarilySupersededByTestId,"pr20-9-craft-durable-shadow-no-write");
+  assert.equal(active.restoreAfterSupersedingTerminalEvidence,true);
   const retired=prep.pr20_8.activeCompoundLive5mManifest;
   assert.equal(retired.active,false);
   assert.equal(retired.retiredFromActiveManifest,true);

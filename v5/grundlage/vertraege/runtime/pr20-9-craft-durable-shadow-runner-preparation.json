@@ -63,8 +63,15 @@
     "maximumRawWriteCalls": 0
   },
   "manifest": {
-    "cutoverPrepared": false,
-    "active": false
+    "cutoverPrepared": true,
+    "active": true,
+    "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "sourceCommit": "116d762a1e1fad230cbd64a5a44d6762465501f0",
+    "packageSha256": "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
+    "packageBytes": 26951,
+    "normalRuntimeAllowed": false
   },
-  "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER"
+  "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_REAL_BROWSER_RUN",
+  "packageSha256": "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
+  "packageBytes": 26951
 }

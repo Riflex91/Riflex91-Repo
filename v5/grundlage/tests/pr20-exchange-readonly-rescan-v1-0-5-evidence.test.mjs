@@ -10,6 +10,10 @@ const manifest=JSON.parse(fs.readFileSync(
   "roadmap/v5-autonomous-test-manifest.json",
   "utf8",
 ));
+const roadmap=JSON.parse(fs.readFileSync(
+  "roadmap/post-r19-roadmap.json",
+  "utf8",
+));
 
 test("PR20.8 fresh v1.0.5 rescan evidence is exact and persisted",()=>{
   assert.equal(evidence.status,"RATIFIED_FRESH_NO_CANDIDATE_ZERO_WRITE");
@@ -106,12 +110,33 @@ test("fresh no-candidate evidence does not satisfy Exchange or PR20.8 exit crite
   assert.equal(evidence.nextAction,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
 });
 
-test("active manifest remains the exact v1.0.6 zero-write scanner",()=>{
-  assert.equal(manifest.testId,"pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(manifest.controllerVersion,"1.0.6");
-  assert.equal(manifest.sourceCommit,"a5fd67cc9c587b2a20b163915936717c7b4e8321");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js");
-  assert.equal(manifest.packageSha256,"fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387");
-  assert.equal(manifest.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
+test("v1.0.6 remains the exact PR20.8 restore target while PR20.9 owns the no-write manifest slot",()=>{
+  assert.equal(manifest.testId,"pr20-9-craft-durable-shadow-no-write");
+  assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.normalRuntimeAllowed,false);
+
+  const historical=roadmap.pr20_8.activeAutonomousManifest;
+  assert.equal(historical.active,false);
+  assert.equal(historical.historicalLatestPr20_8Manifest,true);
+  assert.equal(
+    historical.temporarilySupersededByTestId,
+    "pr20-9-craft-durable-shadow-no-write",
+  );
+  assert.equal(historical.restoreAfterSupersedingTerminalEvidence,true);
+  assert.equal(historical.testId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(historical.controllerVersion,"1.0.6");
+  assert.equal(
+    historical.sourceCommit,
+    "a5fd67cc9c587b2a20b163915936717c7b4e8321",
+  );
+  assert.equal(
+    historical.package,
+    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js",
+  );
+  assert.equal(
+    historical.packageSha256,
+    "fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387",
+  );
+  assert.equal(historical.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
+  assert.equal(historical.normalRuntimeAllowed,false);
 });

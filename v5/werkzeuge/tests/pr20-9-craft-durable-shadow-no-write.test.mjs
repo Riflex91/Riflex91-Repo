@@ -366,7 +366,7 @@ test("PR20.9 Craft runner package contains no gameplay mutation bypass",()=>{
   ]) assert.ok(source.includes(marker),marker);
 });
 
-test("PR20.9 Craft runner contract and roadmap remain no-write and not active",()=>{
+test("PR20.9 Craft runner remains no-write after autonomous manifest cutover",()=>{
   assert.equal(contract.status,"PACKAGE_BEREIT_NO_WRITE");
   assert.equal(contract.testId,"pr20-9-craft-durable-shadow-no-write");
   assert.equal(contract.controllerVersion,"1.0.0");
@@ -389,25 +389,35 @@ test("PR20.9 Craft runner contract and roadmap remain no-write and not active",(
   assert.equal(contract.writes.maximumGameplayWrites,0);
   assert.equal(contract.writes.maximumPublicFunctionCalls,0);
   assert.equal(contract.writes.maximumRawWriteCalls,0);
-  assert.equal(contract.manifest.cutoverPrepared,false);
-  assert.equal(contract.manifest.active,false);
+  assert.equal(contract.manifest.cutoverPrepared,true);
+  assert.equal(contract.manifest.active,true);
+  assert.equal(contract.manifest.packageSha256,"a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a");
+  assert.equal(contract.manifest.packageBytes,26951);
 
   assert.equal(
     roadmap.pr20_9.status,
-    "CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE_BEREIT_NO_WRITE",
+    "CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
   );
   assert.equal(prep.pr20_9.status,roadmap.pr20_9.status);
   assert.equal(
     roadmap.pr20_9.nextAction,
-    "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER",
+    "PR20_9_CRAFT_DURABLE_SHADOW_REAL_BROWSER_RUN",
   );
   assert.equal(prep.pr20_9.nextAction,roadmap.pr20_9.nextAction);
   assert.equal(roadmap.pr20_9.liveExecutionAllowed,false);
   assert.equal(roadmap.pr20_9.productiveCraftAuthority,false);
   assert.equal(roadmap.pr20_9.broadGraphExecutionAuthority,false);
   assert.equal(roadmap.pr20_9.normalRuntimeAllowed,false);
-  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.active,false);
-  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.manifestCutoverPrepared,false);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.active,true);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.manifestCutoverPrepared,true);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.packageBytes,26951);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.packageSha256,"a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a");
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.pr20_8ManifestRestoreRequiredAfterTerminalEvidence,true);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.restoreManifest.testId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.restoreManifest.controllerVersion,"1.0.6");
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.restoreManifest.packageSha256,"fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387");
+  assert.equal(roadmap.pr20_8.activeAutonomousManifest.active,false);
+  assert.equal(roadmap.pr20_8.activeAutonomousManifest.temporarilySupersededByTestId,"pr20-9-craft-durable-shadow-no-write");
 
   const parallel=roadmap.parallelPreparations.find(x=>x?.id==="PR20.9_PRODUCTION");
   assert.ok(parallel);
