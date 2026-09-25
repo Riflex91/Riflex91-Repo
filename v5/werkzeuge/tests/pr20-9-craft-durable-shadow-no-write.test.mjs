@@ -366,7 +366,7 @@ test("PR20.9 Craft runner package contains no gameplay mutation bypass",()=>{
   ]) assert.ok(source.includes(marker),marker);
 });
 
-test("PR20.9 Craft shadow runner stays no-write and is restored active after service mount",()=>{
+test("PR20.9 Craft shadow runner stays no-write while current observation is blocked no-candidate",()=>{
   assert.equal(contract.status,"PACKAGE_BEREIT_NO_WRITE");
   assert.equal(contract.testId,"pr20-9-craft-durable-shadow-no-write");
   assert.equal(contract.controllerVersion,"1.0.0");
@@ -394,12 +394,12 @@ test("PR20.9 Craft shadow runner stays no-write and is restored active after ser
 
   assert.equal(
     roadmap.pr20_9.status,
-    "CRAFT_DURABLE_SHADOW_RESTORED_AFTER_SERVICE_MOUNT",
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
   );
   assert.equal(prep.pr20_9.status,roadmap.pr20_9.status);
   assert.equal(
     roadmap.pr20_9.nextAction,
-    "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
+    "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
   );
   assert.equal(prep.pr20_9.nextAction,roadmap.pr20_9.nextAction);
   assert.equal(roadmap.pr20_9.liveExecutionAllowed,false);
@@ -408,6 +408,14 @@ test("PR20.9 Craft shadow runner stays no-write and is restored active after ser
   assert.equal(roadmap.pr20_9.normalRuntimeAllowed,false);
   assert.equal(roadmap.pr20_9.craftDurableShadowRunner.active,true);
   assert.equal(roadmap.pr20_9.craftDurableShadowRunner.manifestCutoverPrepared,true);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.liveEvidenceObserved,true);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.craftRatified,false);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.latestObservedStatus,"BLOCKIERT");
+  assert.equal(
+    roadmap.pr20_9.craftDurableShadowRunner.latestBlocker,
+    "PR20_9_CRAFT_SHADOW_KEIN_NORMALKANDIDAT",
+  );
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.latestNotificationId,3175);
 
   const parallel=roadmap.parallelPreparations.find(x=>x?.id==="PR20.9_PRODUCTION");
   assert.ok(parallel);

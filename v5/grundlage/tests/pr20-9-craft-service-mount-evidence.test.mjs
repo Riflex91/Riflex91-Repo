@@ -45,13 +45,16 @@ test("active manifest is restored to the exact PR20.9 Craft durable shadow runne
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 
-test("roadmap restores only the no-write Craft shadow after successful movement",()=>{
+test("roadmap preserves service-mount ratification while current Craft shadow is blocked no-candidate",()=>{
   const p=roadmap.pr20_9;
-  assert.equal(p.status,"CRAFT_DURABLE_SHADOW_RESTORED_AFTER_SERVICE_MOUNT");
-  assert.equal(p.nextAction,"DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW");
+  assert.equal(p.status,"CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE");
+  assert.equal(p.nextAction,"REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE");
   assert.equal(p.craftDurableShadowRunner.active,true);
-  assert.equal(p.craftDurableShadowRunner.liveEvidenceObserved,false);
+  assert.equal(p.craftDurableShadowRunner.liveEvidenceObserved,true);
   assert.equal(p.craftDurableShadowRunner.craftRatified,false);
+  assert.equal(p.craftDurableShadowRunner.latestObservedStatus,"BLOCKIERT");
+  assert.equal(p.craftDurableShadowRunner.latestBlocker,"PR20_9_CRAFT_SHADOW_KEIN_NORMALKANDIDAT");
+  assert.equal(p.craftDurableShadowRunner.latestNotificationId,3175);
   assert.equal(p.craftServiceMount.status,"RATIFIED_BESTANDEN_ONE_SHOT_MOVEMENT");
   assert.equal(p.craftServiceMount.evidenceObserved,true);
   assert.equal(p.craftServiceMount.latestNotificationId,3170);

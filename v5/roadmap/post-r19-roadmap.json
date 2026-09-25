@@ -922,13 +922,13 @@
     },
     {
       "id": "PR20.9_PRODUCTION",
-      "status": "CRAFT_DURABLE_SHADOW_RESTORED_AFTER_SERVICE_MOUNT",
+      "status": "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
       "blockedBy": [],
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
       "liveExecutionAllowed": false,
-      "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
+      "nextAction": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
       "artifacts": [
         "v5/grundlage/quelle/produktion/production-graph.ts",
         "v5/grundlage/quelle/produktion/production-planer.ts",
@@ -950,7 +950,9 @@
         "v5/grundlage/vertraege/runtime/pr20-9-craft-service-mount.json",
         "v5/werkzeuge/pr20-9-craft-service-mount-v1-0-0.js",
         "v5/werkzeuge/tests/pr20-9-craft-service-mount-v1-0-0.test.mjs",
-        "v5/roadmap/pr20-9-craft-service-mount-evidence.json"
+        "v5/roadmap/pr20-9-craft-service-mount-evidence.json",
+        "v5/roadmap/pr20-9-craft-durable-shadow-no-candidate-evidence.json",
+        "v5/grundlage/tests/pr20-9-craft-durable-shadow-no-candidate-evidence.test.mjs"
       ]
     },
     {
@@ -4082,7 +4084,7 @@
     }
   },
   "pr20_9": {
-    "status": "CRAFT_DURABLE_SHADOW_RESTORED_AFTER_SERVICE_MOUNT",
+    "status": "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
     "ziel": "Craft und Production produktiv",
     "blockedBy": [],
     "preparationAllowedWhileBlocked": false,
@@ -4133,7 +4135,7 @@
       "newProductiveStepsHaveFiveMinuteEvidence": false,
       "satisfied": false
     },
-    "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
+    "nextAction": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
     "craftDurableShadow": {
       "status": "FOUNDATION_BEREIT_NO_WRITE",
       "source": "v5/grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
@@ -4188,12 +4190,17 @@
       "packageSha256": "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
       "packageBytes": 26951,
       "manifestCutover": "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-manifest-cutover.json",
-      "liveEvidenceObserved": false,
+      "liveEvidenceObserved": true,
       "craftRatified": false,
-      "nextGate": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
-      "latestObservedStatus": null,
-      "latestBlocker": null,
-      "serviceBlockEvidence": "v5/roadmap/pr20-9-craft-durable-shadow-service-block-evidence.json"
+      "nextGate": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
+      "latestObservedStatus": "BLOCKIERT",
+      "latestBlocker": "PR20_9_CRAFT_SHADOW_KEIN_NORMALKANDIDAT",
+      "serviceBlockEvidence": "v5/roadmap/pr20-9-craft-durable-shadow-service-block-evidence.json",
+      "latestNotificationId": 3175,
+      "latestRunStartedAtMs": 1790370242200,
+      "latestObservedAtMs": 1790370242562,
+      "noCandidateEvidence": "v5/roadmap/pr20-9-craft-durable-shadow-no-candidate-evidence.json",
+      "candidateAcquisitionOrMutationAllowed": false
     },
     "craftServiceMount": {
       "status": "RATIFIED_BESTANDEN_ONE_SHOT_MOVEMENT",
@@ -4230,6 +4237,31 @@
       "distanceToCraftsman": 286.7929328990311,
       "movementCompleted": true,
       "evidence": "v5/roadmap/pr20-9-craft-service-mount-evidence.json"
+    },
+    "craftDurableShadowNoCandidateEvidence": {
+      "status": "RATIFIED_BLOCKED_NO_NORMAL_CANDIDATE_ZERO_WRITE",
+      "evidence": "v5/roadmap/pr20-9-craft-durable-shadow-no-candidate-evidence.json",
+      "notificationId": 3175,
+      "runStartedAtMs": 1790370242200,
+      "observedAtMs": 1790370242562,
+      "terminalStatus": "BLOCKIERT",
+      "phase": "COMPLETE",
+      "terminal": true,
+      "blocker": "PR20_9_CRAFT_SHADOW_KEIN_NORMALKANDIDAT",
+      "rejectedCount": 134,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "sameIntentRetry": false,
+      "craftAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadGraphExecutionAuthority": false,
+      "durableIntentCreated": false,
+      "normalRuntimeAllowed": false,
+      "craftRatified": false,
+      "candidateAcquisitionOrMutationAllowed": false,
+      "nextGate": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE"
     }
   },
   "acceleratedImplementation": {

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "evidenceArt": "V5_PR20_9_CRAFT_DURABLE_SHADOW_NO_CANDIDATE",
+  "status": "RATIFIED_BLOCKED_NO_NORMAL_CANDIDATE_ZERO_WRITE",
+  "sourceMain": "a81ad3802980a5f9f54d831de6627d3e408609f3",
+  "testId": "pr20-9-craft-durable-shadow-no-write",
+  "controllerVersion": "1.0.0",
+  "notificationId": 3175,
+  "runStartedAtMs": 1790370242200,
+  "observedAtMs": 1790370242562,
+  "terminalStatus": "BLOCKIERT",
+  "phase": "COMPLETE",
+  "terminal": true,
+  "blocker": "PR20_9_CRAFT_SHADOW_KEIN_NORMALKANDIDAT",
+  "rejectedCount": 134,
+  "scope": {
+    "normalCraftOnly": true,
+    "naturalCurrentInventoryOnly": true,
+    "splitStackNormalCraftAllowed": false,
+    "anniversaryCraftAllowed": false,
+    "autoCraftAllowed": false
+  },
+  "safety": {
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "authorityIssued": false,
+    "craftAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadGraphExecutionAuthority": false,
+    "durableIntentCreated": false,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "conclusion": {
+    "evidenceRatified": true,
+    "craftRatified": false,
+    "productiveCraftAuthorityOpened": false,
+    "candidateAcquisitionOrMutationAllowed": false,
+    "nextAction": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE"
+  }
+}
