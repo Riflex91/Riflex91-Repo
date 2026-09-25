@@ -61,6 +61,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-exchange-anniversarygift-service-mount": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-exchange-anniversarygift-service-mount-v1-0-0.js",
+    expectedGlobal: "V5PR208ExchangeAnniversarygiftServiceMount",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-exchange-candidate-acquisition-readonly": Object.freeze({
     path: "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
     expectedGlobal: "V5PR208ExchangeCandidateAcquisitionReadonly",
@@ -744,6 +749,34 @@ test("PR20.8 candidate discovery v1.0.7 manifest is exact anniversarygift-only r
   assert.ok(packageSource.includes("publish();"));
 });
 
+
+test("PR20.8 anniversarygift Exchange service mount manifest is exact one-move no-exchange", () => {
+  if (manifest.testId !== "pr20-8-exchange-anniversarygift-service-mount") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit, "72e01a9dd911e9a21c8e6d2002851c707f130c98");
+  assert.equal(manifest.packagePath,
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-service-mount-v1-0-0.js");
+  assert.equal(manifest.packageSha256,
+    "c2a58c21a648ce17693029965380e4c343012d90de528edb43fc1b4a1946b163");
+  assert.equal(manifest.expectedGlobal,
+    "V5PR208ExchangeAnniversarygiftServiceMount");
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.ok(packageSource.includes(
+    'const TEST_ID = "pr20-8-exchange-anniversarygift-service-mount"'));
+  assert.ok(packageSource.includes('const TARGET = "exchange"'));
+  assert.ok(packageSource.includes("SOURCE_PINNED_SELL_DISTANCE = 400"));
+  assert.ok(packageSource.includes("SAFETY_DISTANCE = 300"));
+  assert.ok(packageSource.includes("sameIntentRetry: false"));
+  assert.ok(packageSource.includes("sendCount: 1"));
+  assert.equal((packageSource.match(/smartMove\(TARGET\)/g) || []).length, 1);
+  for (const marker of [
+    "globalThis.exchange(", "parent.exchange(", "socket.emit(", ".socket.emit(",
+    "api_call(", "upgrade(", "compound(", "buy(", "trade_buy(",
+    "bank_retrieve(", "bank_store(", "send_item(", "send_gold("
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
 
 test("PR20.8 anniversarygift productive Exchange manifest is exact one-write", () => {
   if (manifest.testId !== "pr20-8-exchange-anniversarygift-productive-one-write-live") return;
