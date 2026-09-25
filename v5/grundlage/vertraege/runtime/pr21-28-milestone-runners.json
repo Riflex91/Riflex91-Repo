@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_28_MILESTONE_RUNNERS_BATCH_4",
+  "status": "PREPARED_NO_WRITE",
+  "sourceMain": "97fc86ae713025b8f309c35884cd5692e24a7ef4",
+  "strategy": "OBSERVER_ONLY_MILESTONE_RUNNERS_REUSE_R11_OBSERVABILITY",
+  "components": {
+    "runner": {
+      "source": "v5/grundlage/quelle/zertifizierung/pr21-28-milestone-runner.ts",
+      "purpose": "Plan and evaluate bounded milestone samples without executing gameplay actions"
+    },
+    "observability": {
+      "source": "v5/grundlage/quelle/operations/pr21-28-milestone-observability.ts",
+      "purpose": "Reuse R11 headless health/operations/authority status for fail-closed milestone observation"
+    }
+  },
+  "checkpoints": [
+    {
+      "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+      "segments": [
+        {
+          "segmentId": "pr21-merchant-integration",
+          "stage": "PR21",
+          "minimumSeconds": 900,
+          "targetSeconds": 900,
+          "sampleIntervalMs": 5000
+        }
+      ]
+    },
+    {
+      "checkpointId": "POST_PR24_25_GROUP_CHECKPOINT",
+      "segments": [
+        {
+          "segmentId": "pr23-capability",
+          "stage": "PR23",
+          "minimumSeconds": 300,
+          "targetSeconds": 300,
+          "sampleIntervalMs": 5000
+        },
+        {
+          "segmentId": "pr25-group-integration",
+          "stage": "PR25",
+          "minimumSeconds": 900,
+          "targetSeconds": 900,
+          "sampleIntervalMs": 5000
+        }
+      ]
+    },
+    {
+      "checkpointId": "POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN",
+      "segments": [
+        {
+          "segmentId": "pr28-full-integration",
+          "stage": "PR28",
+          "minimumSeconds": 7200,
+          "targetSeconds": 10800,
+          "sampleIntervalMs": 10000
+        }
+      ]
+    }
+  ],
+  "failClosedSignals": [
+    "HEALTH_NOT_HEALTHY",
+    "OPERATIONS_STALE",
+    "RECORDER_DROPS",
+    "SAMPLE_GAPS",
+    "UNEXPECTED_GAMEPLAY_WRITE",
+    "DUPLICATE_IRREVERSIBLE_EFFECT",
+    "SAFETY_VIOLATION",
+    "SAME_INTENT_RETRY",
+    "UNRESOLVED_TRANSACTION",
+    "AUTHORITY_LEAK",
+    "RESTART_RECOVERY_FAILURE",
+    "STALE_EVIDENCE_ACTION",
+    "THRASH",
+    "PINGPONG",
+    "CRITICAL_STARVATION",
+    "UNEXPECTED_AUTHORITY"
+  ],
+  "safety": {
+    "runnerGameplayWrites": 0,
+    "runnerPublicFunctionCalls": 0,
+    "runnerRawWriteCalls": 0,
+    "runnerIssuesAuthority": false,
+    "runnerRatifiesEvidence": false,
+    "dashboardFailureBlocksGameplay": false,
+    "productiveRuntimeMustBeAuthorizedElsewhere": true,
+    "normalRuntimeAllowed": false
+  },
+  "test": "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
+  "nextMilestone": "PREPARE_CHECKPOINT_RUNBOOKS_AND_RESULT_PACKAGING_WITHOUT_STARTING_LIVE_RUNS"
+}
