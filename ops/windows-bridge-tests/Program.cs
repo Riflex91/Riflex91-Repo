@@ -597,6 +597,52 @@ Assert(!CdpAdventureLandClient.IsSafePr208CompoundLive5mPerformanceRecovery(
     true, 0, 0, false, 0),
     "V5_PR208_COMPOUND_5M_PERFORMANCE_RECOVERY_REJECTS_OTHER_DESIRED_TEST");
 
+Assert(CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.2",
+    "pr20-8-compound-live-5m", "1.0.1",
+    true, 0, 0, false, true, 1),
+    "V5_PR208_COMPOUND_5M_NOTIFICATION_IDENTITY_RECOVERY_EXACT_TERMINAL_ALLOWED");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.2",
+    "pr20-8-compound-live-5m", "1.0.1",
+    false, 0, 0, false, true, 1),
+    "V5_PR208_COMPOUND_5M_NOTIFICATION_IDENTITY_RECOVERY_REQUIRES_TERMINAL");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.2",
+    "pr20-8-compound-live-5m", "1.0.1",
+    true, 1, 0, false, true, 1),
+    "V5_PR208_COMPOUND_5M_NOTIFICATION_IDENTITY_RECOVERY_BLOCKS_GAMEPLAY_WRITE");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.2",
+    "pr20-8-compound-live-5m", "1.0.1",
+    true, 0, 1, false, true, 1),
+    "V5_PR208_COMPOUND_5M_NOTIFICATION_IDENTITY_RECOVERY_BLOCKS_RAW_WRITE");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.2",
+    "pr20-8-compound-live-5m", "1.0.1",
+    true, 0, 0, true, true, 1),
+    "V5_PR208_COMPOUND_5M_NOTIFICATION_IDENTITY_RECOVERY_BLOCKS_RETRY_DRIFT");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.2",
+    "pr20-8-compound-live-5m", "1.0.1",
+    true, 0, 0, false, true, 0),
+    "V5_PR208_COMPOUND_5M_NOTIFICATION_IDENTITY_RECOVERY_REQUIRES_ONE_SOURCE_INTENT");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.2",
+    "pr20-8-compound-live-5m", "1.0.1",
+    true, 0, 0, false, true, 2),
+    "V5_PR208_COMPOUND_5M_NOTIFICATION_IDENTITY_RECOVERY_BLOCKS_EXTRA_INTENT");
+Assert(!CdpAdventureLandClient.ShouldDeployV5AutonomousTest(
+    "pr20-8-compound-live-5m", "1.0.3",
+    "pr20-8-compound-live-5m", "1.0.1",
+    true, 0, 0, false, true, 1),
+    "V5_PR208_COMPOUND_5M_NOTIFICATION_IDENTITY_RECOVERY_REJECTS_OTHER_TARGET_VERSION");
+Assert(!CdpAdventureLandClient.IsSafePr208CompoundLive5mNotificationIdentityRecovery(
+    "other-test", "1.0.2",
+    "pr20-8-compound-live-5m", "1.0.1",
+    true, 0, 0, false, 1),
+    "V5_PR208_COMPOUND_5M_NOTIFICATION_IDENTITY_RECOVERY_REJECTS_OTHER_DESIRED_TEST");
+
 Assert(CdpAdventureLandClient.ShouldContinuePr208CandidateReadonlyContextConvergence(
     "pr20-8-wertmutation-live-candidate-readonly", "1.0.3",
     "pr20-8-wertmutation-live-candidate-readonly", "1.0.3"),

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "reviewId": "V5_PR20_8_NO_CANDIDATE_EXIT_GATE_REVIEW",
   "gate": "PR20.8_WERTMUTATIONEN",
-  "status": "BLOCKED_COMPOUND_5M_EXCHANGE_NO_CANDIDATE",
+  "status": "BLOCKED_COMPOUND_5M_NOTIFICATION_EXCHANGE_NO_CANDIDATE",
   "reviewedAgainst": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
   "reviewedAtMainCommit": "27795aed7516c7069a531beff1b5d5fa6315079d",
   "currentExitGateSatisfied": false,
@@ -16,8 +16,10 @@
       "compound": {
         "ratified": true,
         "live5mTested": false,
+        "live5mBehaviorObservedPass": true,
+        "completionNotificationPersisted": false,
         "evidence": "v5/roadmap/pr20-8-compound-productive-one-write-evidence.json",
-        "reason": "PRODUCTIVE_ONE_WRITE_RATIFIED_LIVE_5M_PENDING"
+        "reason": "REAL_5M_BEHAVIOR_BESTANDEN_NOTIFICATION_IDENTITY_RECOVERY_PENDING"
       },
       "exchange": {
         "ratified": false,
@@ -45,12 +47,12 @@
     "normalRuntimeAllowed": false
   },
   "blockers": [
-    "PR20_8_COMPOUND_5M_LIVE_NOT_RUN",
+    "PR20_8_COMPOUND_5M_COMPLETION_NOTIFICATION_NOT_PERSISTED",
     "PR20_8_EXCHANGE_NOT_RATIFIED_NO_NORMAL_CANDIDATE",
     "PR20_8_EXCHANGE_5M_LIVE_NOT_RUN",
     "PR20_8_EXCHANGE_AUTONOMY_NOT_PRODUCTIVE_PROVEN"
   ],
-  "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
+  "nextAction": "PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER",
   "mayAdvanceToPr20_9": false,
   "roadmapCriteriaRelaxed": false,
   "compoundLive5mPreparation": {
@@ -105,7 +107,7 @@
     "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN"
   },
   "compoundLive5mPerformanceRecovery": {
-    "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
+    "status": "V1_0_1_REAL_BROWSER_BESTANDEN_NOTIFICATION_PERSISTENCE_GAP",
     "controllerVersion": "1.0.1",
     "package": "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
     "sourceCommit": "51b1fc8038740f828cacffe866c6db799a447348",
@@ -123,12 +125,27 @@
     "publicCompoundCallSites": 0,
     "compoundWriteAuthority": false,
     "manifestCutoverPrepared": true,
-    "deployed": false,
+    "deployed": true,
     "maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass": true,
-    "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
-    "bridgeMayDeployPinnedRunner": true,
-    "deploymentEvidenceObserved": false,
-    "realFiveMinuteRunCompleted": false
+    "nextGate": "PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER",
+    "bridgeMayDeployPinnedRunner": false,
+    "deploymentEvidenceObserved": true,
+    "realFiveMinuteRunCompleted": true,
+    "observedStatus": "BESTANDEN",
+    "observedPhase": "COMPLETE",
+    "observedTerminal": true,
+    "observedAtMs": 1790310312453,
+    "observedDebugTelemetryBatchId": 8297,
+    "observedSamples": 60,
+    "observedDurationMs": 300545,
+    "observedSourceSendCount": 1,
+    "observedAdditionalGameplayWrites": 0,
+    "observedAdditionalPublicFunctionCalls": 0,
+    "observedAdditionalRawWriteCalls": 0,
+    "completionNotificationPersisted": false,
+    "notificationPersistenceBlocker": "RUN_STARTED_AT_MS_IDENTITY_COLLISION",
+    "observedRunStartedAtMs": 0,
+    "ratifiedCompoundLive5m": false
   },
   "activeCompoundLive5mManifest": {
     "testId": "pr20-8-compound-live-5m",
@@ -138,5 +155,34 @@
     "packageSha256": "23af77b23467e99fddfa437b9dc54873d0e3f25d783c940c819b447e44863a2b",
     "packageBytes": 26060,
     "normalRuntimeAllowed": false
+  },
+  "compoundLive5mNotificationIdentityRecovery": {
+    "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+    "controllerVersion": "1.0.2",
+    "package": "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-2.js",
+    "sourceCommit": "18568cbc9689bd7e27c5a26a4342901d470b72c0",
+    "packageSha256": "4d9083bf163d98f15d842d64ecfc49ae4c9b8c3452b0b31a499d4b0b5687c849",
+    "packageBytes": 28166,
+    "recoveryScope": "TELEMETRY_RUN_IDENTITY_ONLY",
+    "exactPreviousTerminalVersion": "1.0.1",
+    "previousTerminalSuccessRequired": true,
+    "topLevelStartedAtMsFromPersistedSoak": true,
+    "resampleExistingSuccess": false,
+    "resendAllowed": false,
+    "requiredPriorTerminal": true,
+    "requiredPriorGameplayWrites": 0,
+    "requiredPriorRawWriteCalls": 0,
+    "requiredPriorSameIntentRetry": false,
+    "requiredPriorIntentCount": 1,
+    "additionalGameplayWritesAllowed": 0,
+    "additionalPublicFunctionCallsAllowed": 0,
+    "rawWriteCallsAllowed": 0,
+    "publicCompoundCallSites": 0,
+    "compoundWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "manifestCutoverPrepared": false,
+    "deployed": false,
+    "bridgeMayDeployPinnedRunner": false,
+    "nextGate": "PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER"
   }
 }
