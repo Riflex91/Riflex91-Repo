@@ -2,7 +2,7 @@
 
 ## AL25D-01 — Foundation
 
-Status: in progress
+Status: complete
 
 - [x] project skeleton
 - [x] renderer boundary
@@ -13,7 +13,7 @@ Status: in progress
 - [x] projection tests
 - [x] first deterministic render snapshot fixture
 - [x] stable 2.5D asset registry
-- [ ] CI job for build/tests
+- [x] scoped CI job for verify/tests/build
 
 ## AL25D-02 — Upstream logic inventory
 
