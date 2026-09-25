@@ -38,8 +38,10 @@ Status: in progress
 - [x] preserve `on_map_click` callback return semantics
 - [x] implement read-only mirror loop for legacy global state
 - [x] keep legacy PIXI entity objects as temporary hidden compatibility state
-- [ ] embed/start the pinned original client state/network runtime
-- [ ] hide legacy visual canvas while keeping compatibility objects alive
+- [x] embed/attach the pinned original client state/network runtime through a same-origin compatibility host
+- [x] hide legacy visual canvas while keeping compatibility objects alive
+- [x] route 2.5D map clicks through the original `map_click` / `on_map_click` path
+- [x] mirror `current_map` plus immutable `G.maps` / `G.geometry` metadata summaries
 - [ ] route 2.5D entity clicks to original target/click handlers
 - [ ] preserve map transitions
 - [ ] add golden tests against captured legacy outputs
