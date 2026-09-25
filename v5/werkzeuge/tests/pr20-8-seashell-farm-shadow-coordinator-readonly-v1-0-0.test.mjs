@@ -7,6 +7,12 @@ const source=fs.readFileSync(
   "werkzeuge/pr20-8-seashell-farm-shadow-coordinator-readonly-v1-0-0.js",
   "utf8",
 );
+const coordinatorContract=JSON.parse(fs.readFileSync(
+  "grundlage/vertraege/runtime/pr20-8-exchange-seashell-farm-shadow-coordinator.json",
+  "utf8",
+));
+const roadmap=JSON.parse(fs.readFileSync("roadmap/post-r19-roadmap.json","utf8"));
+const manifest=JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest.json","utf8"));
 
 function farmer(name,ctype,seashells=0,overrides={}){
   const items=seashells>0
@@ -230,4 +236,58 @@ test("coordinator source contains no farmer lifecycle, gameplay or raw mutation 
   assert.ok(source.includes("rawWriteCalls:0"));
   assert.ok(source.includes("farmerWorkersInstalled:0"));
   assert.ok(source.includes("normalRuntimeAllowed:false"));
+});
+
+test("coordinator contract and current roadmap remain undeployed and zero-authority",()=>{
+  assert.equal(coordinatorContract.status,"COORDINATOR_PREPARED_READ_ONLY");
+  assert.equal(
+    coordinatorContract.coordinator.testId,
+    "pr20-8-seashell-farm-shadow-coordinator-readonly",
+  );
+  assert.equal(coordinatorContract.coordinator.controllerVersion,"1.0.0");
+  assert.equal(
+    coordinatorContract.coordinator.expectedGlobal,
+    "V5PR208SeashellFarmShadowCoordinatorReadonly",
+  );
+  assert.equal(coordinatorContract.coordinator.coordinatorCharacter,"My_Merchant");
+  assert.equal(coordinatorContract.coordinator.packagePinDeferredUntilManifestCutover,true);
+  assert.equal(coordinatorContract.noWriteBoundary.movementAuthority,false);
+  assert.equal(coordinatorContract.noWriteBoundary.combatAuthority,false);
+  assert.equal(coordinatorContract.noWriteBoundary.skillAuthority,false);
+  assert.equal(coordinatorContract.noWriteBoundary.lootAuthority,false);
+  assert.equal(coordinatorContract.noWriteBoundary.farmAuthority,false);
+  assert.equal(coordinatorContract.noWriteBoundary.handoffAuthority,false);
+  assert.equal(coordinatorContract.noWriteBoundary.exchangeAuthority,false);
+  assert.equal(coordinatorContract.noWriteBoundary.startCharacterAllowed,false);
+  assert.equal(coordinatorContract.noWriteBoundary.commandCharacterAllowed,false);
+  assert.equal(coordinatorContract.noWriteBoundary.workerInstallAllowed,false);
+  assert.equal(coordinatorContract.deployment.autonomousManifestChanged,false);
+  assert.equal(coordinatorContract.deployment.manifestCutoverPrepared,false);
+  assert.equal(coordinatorContract.deployment.deployed,false);
+  assert.equal(coordinatorContract.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_MANIFEST_CUTOVER");
+
+  assert.equal(
+    roadmap.pr20_8.status,
+    "EXCHANGE_SEASHELL_FARM_SHADOW_COORDINATOR_PREPARED_READ_ONLY",
+  );
+  assert.equal(
+    roadmap.pr20_8.nextAction,
+    "PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_MANIFEST_CUTOVER",
+  );
+  const shadow=roadmap.pr20_8.exchangeCandidateAcquisition.seashellFarmShadow;
+  assert.equal(shadow.coordinatorPrepared,true);
+  assert.equal(shadow.manifestCutoverPrepared,false);
+  assert.equal(shadow.deployed,false);
+  assert.equal(shadow.liveEvidenceObserved,false);
+});
+
+test("autonomous manifest stays on market discovery before separate coordinator cutover",()=>{
+  assert.equal(manifest.testId,"pr20-8-exchange-market-discovery");
+  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(
+    manifest.packagePath,
+    "v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js",
+  );
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeMarketDiscovery");
+  assert.equal(manifest.normalRuntimeAllowed,false);
 });
