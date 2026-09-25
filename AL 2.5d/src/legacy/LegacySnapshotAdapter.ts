@@ -1,7 +1,8 @@
 import type {
   EntityKind,
   GameFrameSnapshot,
-  RenderEntity
+  RenderEntity,
+  RenderSpriteFrame
 } from "../render/RenderBridge";
 
 export type LegacyEntityLike = Readonly<{
@@ -17,6 +18,7 @@ export type LegacyEntityLike = Readonly<{
   mtype?: string;
   npc?: string | boolean;
   skin?: string;
+  texture?: unknown;
   going_x?: number;
   name?: string;
   hp?: number;
@@ -38,6 +40,81 @@ export type LegacySnapshotAdapterOptions = Readonly<{
   monsterTypes?: ReadonlySet<string>;
   resolveAssetId?: (entity: LegacyEntityLike, kind: EntityKind) => string;
 }>;
+
+function recordValue(
+  value: unknown
+): Readonly<Record<string, unknown>> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Readonly<Record<string, unknown>>)
+    : undefined;
+}
+
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function nonEmptyString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim()
+    ? value
+    : undefined;
+}
+
+function snapshotLegacySprite(
+  textureValue: unknown
+): RenderSpriteFrame | undefined {
+  const texture = recordValue(textureValue);
+  if (!texture) return undefined;
+
+  const frame =
+    recordValue(texture.frame) ??
+    recordValue(texture._frame);
+  if (!frame) return undefined;
+
+  const sourceRecord =
+    recordValue(texture.baseTexture) ??
+    recordValue(texture.source);
+  const resource = recordValue(sourceRecord?.resource);
+  const resourceSource = recordValue(resource?.source);
+  const nestedSource = recordValue(sourceRecord?.source);
+
+  const src =
+    nonEmptyString(resource?.url) ??
+    nonEmptyString(resourceSource?.src) ??
+    nonEmptyString(nestedSource?.src) ??
+    nonEmptyString(sourceRecord?.imageUrl) ??
+    nonEmptyString(sourceRecord?.url);
+
+  const sourceX = finiteNumber(frame.x);
+  const sourceY = finiteNumber(frame.y);
+  const width =
+    finiteNumber(frame.width) ??
+    finiteNumber(frame.w);
+  const height =
+    finiteNumber(frame.height) ??
+    finiteNumber(frame.h);
+
+  if (
+    !src ||
+    sourceX === undefined ||
+    sourceY === undefined ||
+    width === undefined ||
+    height === undefined ||
+    width <= 0 ||
+    height <= 0
+  ) {
+    return undefined;
+  }
+
+  return Object.freeze({
+    src,
+    sourceX,
+    sourceY,
+    width,
+    height
+  });
+}
 
 /**
  * Converts the live legacy client state into a read-only renderer snapshot.
@@ -153,6 +230,7 @@ export class LegacySnapshotAdapter {
       (typeof entity.npc === "string" ? entity.npc : undefined) ??
       entity.mtype ??
       entity.id;
+    const legacySprite = snapshotLegacySprite(entity.texture);
     const base = {
       id: entity.id,
       kind,
@@ -160,6 +238,7 @@ export class LegacySnapshotAdapter {
       y,
       z: entity.z,
       texture: this.resolveAssetId(entity, kind),
+      ...(legacySprite ? { legacySprite } : {}),
       facing,
       name,
       ...(targeted ? { targeted: true } : {}),

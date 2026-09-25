@@ -1,5 +1,13 @@
 export type EntityKind = "player" | "monster" | "npc" | "prop" | "projectile";
 
+export type RenderSpriteFrame = Readonly<{
+  src: string;
+  sourceX: number;
+  sourceY: number;
+  width: number;
+  height: number;
+}>;
+
 export type RenderEntity = Readonly<{
   id: string;
   kind: EntityKind;
@@ -7,6 +15,7 @@ export type RenderEntity = Readonly<{
   y: number;
   z?: number;
   texture: string;
+  legacySprite?: RenderSpriteFrame;
   facing?: number;
   scale?: number;
   alpha?: number;

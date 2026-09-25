@@ -16,7 +16,8 @@ import type {
   RenderBridge,
   RenderEntity,
   RenderMapBounds,
-  RenderMapSurface
+  RenderMapSurface,
+  RenderSpriteFrame
 } from "./RenderBridge";
 import { resolveHudVisibility } from "./hudLayout";
 import { projectWorldToScreen } from "./projection";
@@ -28,6 +29,7 @@ type EntityVisual = {
   ui: Graphics;
   label: Text;
   assetId: string;
+  spriteKey: string;
   kind: EntityKind;
   uiKey: string;
 };
@@ -61,6 +63,7 @@ export class Pixi25DRenderer implements RenderBridge {
     string,
     Readonly<{ texture: Texture; rasterScale: number }>
   >();
+  private readonly legacySpriteTextureCache = new Map<string, Texture>();
   private camera: CameraState = DEFAULT_CAMERA;
   private mounted = false;
   private mapVisualKey = "";
@@ -126,6 +129,10 @@ export class Pixi25DRenderer implements RenderBridge {
       cached.texture.destroy(true);
     }
     this.groundTextureCache.clear();
+    for (const texture of this.legacySpriteTextureCache.values()) {
+      texture.destroy(true);
+    }
+    this.legacySpriteTextureCache.clear();
     this.app.destroy(true, { children: true });
     this.mounted = false;
     this.mapVisualKey = "";
@@ -759,6 +766,7 @@ export class Pixi25DRenderer implements RenderBridge {
         ui,
         label,
         assetId: "",
+        spriteKey: "",
         kind: entity.kind,
         uiKey: ""
       };
@@ -770,17 +778,40 @@ export class Pixi25DRenderer implements RenderBridge {
       this.drawFallback(visual.fallback, entity.kind, Boolean(entity.local));
     }
 
-    if (visual.assetId !== entity.texture) {
-      visual.assetId = entity.texture;
-      const src = this.assets.resolve(entity.texture);
+    if (entity.legacySprite) {
+      const spriteKey = this.legacySpriteKey(entity.legacySprite);
 
-      if (src) {
+      if (visual.spriteKey !== spriteKey) {
+        visual.spriteKey = spriteKey;
+        visual.assetId = "";
         visual.sprite.visible = false;
         visual.fallback.visible = true;
-        void this.loadTexture(visual, entity.texture);
-      } else {
+        void this.loadLegacySprite(
+          visual,
+          entity.legacySprite,
+          spriteKey
+        );
+      }
+    } else {
+      if (visual.spriteKey) {
+        visual.spriteKey = "";
+        visual.assetId = "";
         visual.sprite.visible = false;
         visual.fallback.visible = true;
+      }
+
+      if (visual.assetId !== entity.texture) {
+        visual.assetId = entity.texture;
+        const src = this.assets.resolve(entity.texture);
+
+        if (src) {
+          visual.sprite.visible = false;
+          visual.fallback.visible = true;
+          void this.loadTexture(visual, entity.texture);
+        } else {
+          visual.sprite.visible = false;
+          visual.fallback.visible = true;
+        }
       }
     }
 
@@ -995,6 +1026,64 @@ export class Pixi25DRenderer implements RenderBridge {
         entity.kind === "player" ||
         Boolean(entity.targeted);
     }
+  }
+
+  private legacySpriteKey(frame: RenderSpriteFrame): string {
+    return [
+      frame.src,
+      frame.sourceX,
+      frame.sourceY,
+      frame.width,
+      frame.height
+    ].join(":");
+  }
+
+  private async loadLegacySprite(
+    visual: EntityVisual,
+    frame: RenderSpriteFrame,
+    spriteKey: string
+  ): Promise<void> {
+    const image = await this.loadMapImage(frame.src);
+
+    if (!image || visual.spriteKey !== spriteKey) {
+      return;
+    }
+
+    let texture = this.legacySpriteTextureCache.get(spriteKey);
+
+    if (!texture) {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.ceil(frame.width));
+      canvas.height = Math.max(1, Math.ceil(frame.height));
+      const context = canvas.getContext("2d");
+
+      if (!context) return;
+
+      context.imageSmoothingEnabled = false;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(
+        image,
+        frame.sourceX,
+        frame.sourceY,
+        frame.width,
+        frame.height,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      texture = Texture.from(canvas);
+      this.legacySpriteTextureCache.set(spriteKey, texture);
+    }
+
+    if (visual.spriteKey !== spriteKey) {
+      return;
+    }
+
+    visual.sprite.texture = texture;
+    visual.sprite.visible = true;
+    visual.fallback.visible = false;
   }
 
   private async loadTexture(
