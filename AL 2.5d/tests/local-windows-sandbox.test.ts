@@ -28,6 +28,13 @@ describe("Windows local sandbox scripts", () => {
     expect(setup).not.toContain("New-Item -ItemType Junction");
   });
 
+  it("ignores stale mongodb-data folders when locating the portable mongod binary", () => {
+    const start = read("local-dev/windows/start.ps1");
+
+    expect(start).toContain("^mongodb-\\d+\\.\\d+\\.\\d+$");
+    expect(start).not.toContain('-Directory -Filter "mongodb-*"');
+  });
+
   it("downloads and runs a loopback-only portable MongoDB when none is installed", () => {
     const setup = read("local-dev/windows/setup.ps1");
     const start = read("local-dev/windows/start.ps1");
