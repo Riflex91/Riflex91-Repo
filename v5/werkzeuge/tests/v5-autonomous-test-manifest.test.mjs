@@ -51,6 +51,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208ValueMutationLiveCandidateReadonly",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-9-craft-durable-shadow-no-write": Object.freeze({
+    path: "v5/werkzeuge/pr20-9-craft-durable-shadow-no-write.js",
+    expectedGlobal: "V5PR209CraftDurableShadowNoWrite",
+    gate: "PR20.9_PRODUCTION"
+  }),
   "pr20-6-mluck-autonomous-live-5m": Object.freeze({
     path: "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
     expectedGlobal: "V5PR206MluckTest",
@@ -983,4 +988,38 @@ test("PR20.8 Compound 5m notification identity recovery manifest is exact and ze
     "sameIntentRetry: true",
     "normalRuntimeAllowed: true",
   ]) assert.equal(packageSource.includes(forbidden), false, forbidden);
+});
+
+test("PR20.9 Craft durable shadow manifest is exact, no-write and special-path closed", () => {
+  if (manifest.testId !== "pr20-9-craft-durable-shadow-no-write") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(
+    manifest.sourceCommit,
+    "116d762a1e1fad230cbd64a5a44d6762465501f0",
+  );
+  assert.equal(
+    manifest.packageSha256,
+    "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
+  );
+  assert.equal(manifest.expectedGlobal, "V5PR209CraftDurableShadowNoWrite");
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  for (const marker of [
+    "gameplayWrites:0",
+    "publicFunctionCalls:0",
+    "rawWriteCalls:0",
+    "sameIntentRetry:false",
+    "normalRuntimeAllowed:false",
+    "craftAuthority:false",
+    "broadGraphExecutionAuthority:false",
+    "journalTerminalArt:'ABBRUCH'",
+    "sendBoundaryState:'NICHT_GESENDET'",
+    "reconciliationClassification:'NOT_APPLIED'",
+    "UNSAFE_OR_SPECIAL_RECIPE",
+    "NO_SAFE_EXACT_SINGLE_STACK_INPUTS",
+    "NO_CONSERVATIVE_OUTPUTSPACE",
+  ]) assert.ok(packageSource.includes(marker), marker);
+  for (const marker of [
+    "craft(", "auto_craft(", "socket.emit(", ".socket.emit(", "api_call(",
+    "compound(", "upgrade(", "exchange(", "buy(", "send_item(", "send_gold(",
+  ]) assert.equal(packageSource.includes(marker), false, marker);
 });
