@@ -47,7 +47,7 @@ const allowedPackages = Object.freeze({
     gate: "PR20.8_WERTMUTATIONEN"
   }),
   "pr20-8-wertmutation-live-candidate-readonly": Object.freeze({
-    path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js",
+    path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js",
     expectedGlobal: "V5PR208ValueMutationLiveCandidateReadonly",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
@@ -342,7 +342,10 @@ test("bootstrap v4 keeps the legacy Windows-Bridge handshake compatible without 
   if (manifest.testId !== "pr20-6-native-updater-recovery-bootstrap-v4") return;
   assert.equal(manifest.controllerVersion, "1.0.5");
   assert.ok(packageSource.includes("const TEST_ID = 'pr20-6-native-updater-recovery-bootstrap-v4'"));
-  assert.ok(packageSource.includes("const VERSION = '1.0.4'"));
+  assert.ok(packageSource.includes("const VERSION = '1.0.5'"));
+  assert.ok(packageSource.includes("existingFacadeIsCurrent"));
+  assert.ok(packageSource.includes("current.testId === TEST_ID"));
+  assert.ok(packageSource.includes("current.version === VERSION"));
   assert.ok(packageSource.includes("updaterVersion: '1.0.6'"));
   assert.equal(packageSource.includes("use_skill("), false);
   assert.equal(packageSource.includes("start_character("), false);
@@ -695,14 +698,14 @@ test("PR20.7 offhand acquisition durable shadow manifest is exact no-send prepar
   ]) assert.equal(packageSource.includes(marker), false, marker);
 });
 
-test("PR20.8 candidate discovery manifest is exact read-only and special-path closed", () => {
+test("PR20.8 candidate discovery facade recovery manifest is exact read-only and special-path closed", () => {
   if (manifest.testId !== "pr20-8-wertmutation-live-candidate-readonly") return;
-  assert.equal(manifest.controllerVersion, "1.0.4");
-  assert.equal(manifest.sourceCommit, "27e25e69dc0e26d8ae05328335718c36a6a0c659");
+  assert.equal(manifest.controllerVersion, "1.0.5");
+  assert.equal(manifest.sourceCommit, "36bece2cc75854e7d02c6c8dc6ddaf75a74579cb");
   assert.equal(manifest.packagePath,
-    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js");
+    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js");
   assert.equal(manifest.packageSha256,
-    "0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b");
+    "e87996be9ee56b31f7737923b5bf8999a0a8af82393dea9419f5f4fd3d4b494e");
   assert.equal(manifest.expectedGlobal,
     "V5PR208ValueMutationLiveCandidateReadonly");
   assert.equal("workerVersion" in manifest, false);
