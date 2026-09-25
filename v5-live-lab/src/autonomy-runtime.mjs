@@ -404,9 +404,15 @@ export class WorldAutonomyRuntime {
         blocker.push("PR28_SERVER_HOP_SAME_SERVER");
       }
       const targetKey = String(policy.targetRegion || "") + ":" + String(policy.targetIdentifier || "");
-      const lastHop = this.#serverHopHistory.get(targetKey) ?? 0;
+      const hasHopHistory = this.#serverHopHistory.has(targetKey);
+      const lastHop = hasHopHistory ? this.#serverHopHistory.get(targetKey) : null;
       const cooldownMs = Math.max(0, Number(policy.cooldownMs || 0));
-      if (cooldownMs > 0 && nowMs - lastHop < cooldownMs) {
+      if (
+        hasHopHistory
+        && cooldownMs > 0
+        && Number.isFinite(Number(lastHop))
+        && nowMs - Number(lastHop) < cooldownMs
+      ) {
         blocker.push("PR28_SERVER_HOP_COOLDOWN");
       }
     }
