@@ -10,6 +10,10 @@ const manifest = JSON.parse(fs.readFileSync(
   "roadmap/v5-autonomous-test-manifest.json",
   "utf8",
 ));
+const roadmap = JSON.parse(fs.readFileSync(
+  "roadmap/post-r19-roadmap.json",
+  "utf8",
+));
 const packageSource = fs.readFileSync(
   "werkzeuge/pr20-8-wertmutation-live-candidate-readonly.js",
   "utf8",
@@ -121,15 +125,26 @@ test("PR20.8 evidence does not turn observed index into write authority", () => 
   assert.equal(evidence.nextGate, "PR20_8_UPGRADE_DURABLE_SHADOW_NO_WRITE");
 });
 
-test("ratified read-only evidence stays immutable when live manifest advances", () => {
-  assert.equal(manifest.gate, "PR20.8_WERTMUTATIONEN");
-  if (manifest.testId === evidence.testId && manifest.controllerVersion === evidence.controllerVersion) {
-    assert.equal(manifest.controllerVersion, evidence.controllerVersion);
-    assert.equal(manifest.sourceCommit, evidence.sourceCommit);
-    assert.equal(manifest.packagePath, evidence.packagePath);
-    assert.equal(manifest.packageSha256, evidence.packageSha256);
-  }
+test("ratified read-only evidence stays immutable when the global no-write manifest advances", () => {
   assert.equal(manifest.normalRuntimeAllowed, false);
+  const restore=roadmap.pr20_9.craftDurableShadowRunner.restoreManifest;
+  assert.equal(restore.testId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(restore.controllerVersion,"1.0.6");
+  assert.equal(restore.sourceCommit,"a5fd67cc9c587b2a20b163915936717c7b4e8321");
+  assert.equal(restore.packageSha256,"fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387");
+  assert.ok([
+    "pr20-9-craft-durable-shadow-no-write",
+    restore.testId,
+  ].includes(manifest.testId));
+  if (manifest.testId === restore.testId) {
+    assert.equal(manifest.gate,"PR20.8_WERTMUTATIONEN");
+    assert.equal(manifest.controllerVersion,restore.controllerVersion);
+    assert.equal(manifest.sourceCommit,restore.sourceCommit);
+    assert.equal(manifest.packageSha256,restore.packageSha256);
+  } else {
+    assert.equal(manifest.gate,"PR20.9_PRODUCTION");
+    assert.equal(manifest.controllerVersion,"1.0.0");
+  }
 
   for (const marker of [
     "upgrade(",
