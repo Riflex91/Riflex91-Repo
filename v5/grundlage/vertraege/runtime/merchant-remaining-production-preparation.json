@@ -1916,7 +1916,7 @@
   },
   "pr20_9": {
     "ziel": "Craft und Production produktiv",
-    "status": "CRAFT_SERVICE_MOUNT_MANIFEST_CUTOVER_PREPARED",
+    "status": "CRAFT_DURABLE_SHADOW_RESTORED_AFTER_SERVICE_MOUNT",
     "actionContracts": [
       [
         "AL-ACTION-CRAFT",
@@ -1976,7 +1976,7 @@
       "normalRuntimeAllowed": false,
       "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION"
     },
-    "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_SERVICE_MOUNT",
+    "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
     "craftDurableShadow": {
       "status": "FOUNDATION_BEREIT_NO_WRITE",
       "source": "grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
@@ -2028,19 +2028,19 @@
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
       "manifestCutoverPrepared": true,
-      "active": false,
+      "active": true,
       "nextGate": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
       "packageSha256": "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
       "packageBytes": 26951,
       "manifestCutover": "grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-manifest-cutover.json",
-      "liveEvidenceObserved": true,
+      "liveEvidenceObserved": false,
       "craftRatified": false,
-      "latestObservedStatus": "FEHLER",
-      "latestBlocker": "PR20_9_CRAFT_SHADOW_SERVICE_NICHT_ERREICHBAR",
+      "latestObservedStatus": null,
+      "latestBlocker": null,
       "serviceBlockEvidence": "roadmap/pr20-9-craft-durable-shadow-service-block-evidence.json"
     },
     "craftServiceMount": {
-      "status": "MANIFEST_CUTOVER_PREPARED",
+      "status": "RATIFIED_BESTANDEN_ONE_SHOT_MOVEMENT",
       "testId": "pr20-9-craft-service-mount",
       "controllerVersion": "1.0.0",
       "expectedGlobal": "V5PR209CraftServiceMount",
@@ -2061,7 +2061,14 @@
       "rawWriteAuthority": false,
       "broadGraphExecutionAuthority": false,
       "normalRuntimeAllowed": false,
-      "movementDoesNotCountAsCraftRatification": true
+      "movementDoesNotCountAsCraftRatification": true,
+      "evidenceObserved": true,
+      "latestNotificationId": 3170,
+      "latestRunStartedAtMs": 1790370059105,
+      "distanceToCraftsman": 286.7929328990311,
+      "movementCompleted": true,
+      "evidence": "roadmap/pr20-9-craft-service-mount-evidence.json",
+      "nextAction": "RESTORED_PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST"
     }
   },
   "pr21": {

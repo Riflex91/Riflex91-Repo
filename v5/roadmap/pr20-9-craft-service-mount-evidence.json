@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "evidenceArt": "V5_PR20_9_CRAFT_SERVICE_MOUNT_RATIFICATION",
+  "status": "RATIFIED_BESTANDEN_ONE_SHOT_MOVEMENT",
+  "sourceMain": "a4c7306ad09119f535b4daa7d0c174dbce3a846f",
+  "testId": "pr20-9-craft-service-mount",
+  "controllerVersion": "1.0.0",
+  "notificationId": 3170,
+  "runStartedAtMs": 1790370059105,
+  "terminalStatus": "BESTANDEN",
+  "phase": "COMPLETE",
+  "terminal": true,
+  "recipient": {
+    "characterName": "My_Merchant",
+    "ctype": "merchant",
+    "serverRegion": "EU",
+    "serverIdentifier": "I",
+    "map": "main",
+    "x": -8.570822139875098,
+    "y": 401.4191069808991,
+    "distanceToCraftsman": 286.7929328990311
+  },
+  "movement": {
+    "target": "craftsman",
+    "targetPoint": {
+      "map": "main",
+      "x": 92,
+      "y": 670
+    },
+    "movementIssued": true,
+    "movementCompleted": true,
+    "movementError": null,
+    "sendCount": 1,
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "durableIntentReadback": true,
+    "recoveredExistingIntent": false
+  },
+  "authority": {
+    "craftAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false
+  },
+  "conclusion": {
+    "serviceReachable": true,
+    "withinSafetyDistance300": true,
+    "movementCountsAsCraftRatification": false,
+    "productiveCraftAttempted": false,
+    "nextAction": "RESTORE_PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST"
+  }
+}

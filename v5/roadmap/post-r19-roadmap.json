@@ -922,13 +922,13 @@
     },
     {
       "id": "PR20.9_PRODUCTION",
-      "status": "CRAFT_SERVICE_MOUNT_MANIFEST_CUTOVER_PREPARED",
+      "status": "CRAFT_DURABLE_SHADOW_RESTORED_AFTER_SERVICE_MOUNT",
       "blockedBy": [],
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
       "liveExecutionAllowed": false,
-      "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_SERVICE_MOUNT",
+      "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
       "artifacts": [
         "v5/grundlage/quelle/produktion/production-graph.ts",
         "v5/grundlage/quelle/produktion/production-planer.ts",
@@ -949,7 +949,8 @@
         "v5/roadmap/pr20-9-craft-durable-shadow-service-block-evidence.json",
         "v5/grundlage/vertraege/runtime/pr20-9-craft-service-mount.json",
         "v5/werkzeuge/pr20-9-craft-service-mount-v1-0-0.js",
-        "v5/werkzeuge/tests/pr20-9-craft-service-mount-v1-0-0.test.mjs"
+        "v5/werkzeuge/tests/pr20-9-craft-service-mount-v1-0-0.test.mjs",
+        "v5/roadmap/pr20-9-craft-service-mount-evidence.json"
       ]
     },
     {
@@ -4081,7 +4082,7 @@
     }
   },
   "pr20_9": {
-    "status": "CRAFT_SERVICE_MOUNT_MANIFEST_CUTOVER_PREPARED",
+    "status": "CRAFT_DURABLE_SHADOW_RESTORED_AFTER_SERVICE_MOUNT",
     "ziel": "Craft und Production produktiv",
     "blockedBy": [],
     "preparationAllowedWhileBlocked": false,
@@ -4132,7 +4133,7 @@
       "newProductiveStepsHaveFiveMinuteEvidence": false,
       "satisfied": false
     },
-    "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_SERVICE_MOUNT",
+    "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
     "craftDurableShadow": {
       "status": "FOUNDATION_BEREIT_NO_WRITE",
       "source": "v5/grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
@@ -4183,19 +4184,19 @@
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
       "manifestCutoverPrepared": true,
-      "active": false,
+      "active": true,
       "packageSha256": "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
       "packageBytes": 26951,
       "manifestCutover": "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-manifest-cutover.json",
-      "liveEvidenceObserved": true,
+      "liveEvidenceObserved": false,
       "craftRatified": false,
       "nextGate": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
-      "latestObservedStatus": "FEHLER",
-      "latestBlocker": "PR20_9_CRAFT_SHADOW_SERVICE_NICHT_ERREICHBAR",
+      "latestObservedStatus": null,
+      "latestBlocker": null,
       "serviceBlockEvidence": "v5/roadmap/pr20-9-craft-durable-shadow-service-block-evidence.json"
     },
     "craftServiceMount": {
-      "status": "MANIFEST_CUTOVER_PREPARED",
+      "status": "RATIFIED_BESTANDEN_ONE_SHOT_MOVEMENT",
       "testId": "pr20-9-craft-service-mount",
       "controllerVersion": "1.0.0",
       "expectedGlobal": "V5PR209CraftServiceMount",
@@ -4222,8 +4223,13 @@
       "broadGraphExecutionAuthority": false,
       "normalRuntimeAllowed": false,
       "movementDoesNotCountAsCraftRatification": true,
-      "evidenceObserved": false,
-      "nextAction": "RESTORE_PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST"
+      "evidenceObserved": true,
+      "nextAction": "RESTORED_PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST",
+      "latestNotificationId": 3170,
+      "latestRunStartedAtMs": 1790370059105,
+      "distanceToCraftsman": 286.7929328990311,
+      "movementCompleted": true,
+      "evidence": "v5/roadmap/pr20-9-craft-service-mount-evidence.json"
     }
   },
   "acceleratedImplementation": {
