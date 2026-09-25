@@ -316,3 +316,92 @@ test("CAP-038 FAILED_SAFE ist persistent und terminal", async () => {
     /LOGISTIK_FAILED_SAFE_ZUSTAND_UNGUELTIG/,
   );
 });
+
+
+test("CAP-038 Settlement aggregiert mehrere physische Stacks desselben Items", async () => {
+  const speicher = new MemorySpeicher();
+  const controller = new PersistenterMerchantLogistikController(speicher);
+  const quelleMulti = quellEvidence({
+    inventoryFingerprint: "source-inventory-multi",
+    posten: [
+      {
+        physischeKennung: "farmer:7:iron-a",
+        name: "iron",
+        level: 0,
+        menge: 4,
+        itemFingerprint: "iron-item-a",
+      },
+      {
+        physischeKennung: "farmer:8:iron-b",
+        name: "iron",
+        level: 0,
+        menge: 6,
+        itemFingerprint: "iron-item-b",
+      },
+    ],
+  });
+  const plan = planeMerchantLogistik(planAnfrage({
+    logistikId: "log-38-multi",
+    quelleEvidence: quelleMulti,
+    posten: [
+      {
+        physischeKennung: "farmer:7:iron-a",
+        name: "iron",
+        level: 0,
+        menge: 4,
+        baselineEmpfaengerMenge: 1,
+        itemFingerprint: "iron-item-a",
+      },
+      {
+        physischeKennung: "farmer:8:iron-b",
+        name: "iron",
+        level: 0,
+        menge: 6,
+        baselineEmpfaengerMenge: 1,
+        itemFingerprint: "iron-item-b",
+      },
+    ],
+  }), 150);
+
+  await controller.uebernehmePlan(plan, 150);
+  await controller.beginneRendezvous("log-38-multi", 180);
+  await controller.bestaetigeRendezvous(
+    "log-38-multi",
+    frischesRendezvous(),
+    200,
+  );
+  await controller.bereiteTransferVor(
+    "log-38-multi",
+    {
+      ...quelleMulti,
+      beobachtetAmMs: 205,
+    },
+    210,
+  );
+
+  await assert.rejects(
+    () => controller.verifiziereSettlement(
+      "log-38-multi",
+      settlement({
+        beobachtetAmMs: 260,
+        inventoryFingerprint: "merchant-inventory-partial",
+        mengen: [{ name: "iron", level: 0, menge: 7 }],
+        settlementFingerprint: "settlement-partial",
+      }),
+      260,
+    ),
+    /LOGISTIK_SETTLEMENT_MENGE_FEHLT:iron/,
+  );
+
+  const settled = await controller.verifiziereSettlement(
+    "log-38-multi",
+    settlement({
+      beobachtetAmMs: 270,
+      inventoryFingerprint: "merchant-inventory-complete",
+      mengen: [{ name: "iron", level: 0, menge: 11 }],
+      settlementFingerprint: "settlement-complete",
+    }),
+    270,
+  );
+  assert.equal(settled.zustand, "SETTLED");
+});
