@@ -70,10 +70,10 @@ test("Compound one-write ratification does not relax PR20.8 remaining gates",()=
 
 test("after Compound ratification the active manifest advances to the anniversarygift Exchange service mount",()=>{
   assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write");
-  assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,"578b18dfa96fd7c4809d55aae4664eae5f37eb43");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-0.js");
-  assert.equal(manifest.packageSha256,"39084a646825c6bca6231b0968e41cebfbbf3548e8a93bba155dcb64b2fbf2be");
+  assert.equal(manifest.controllerVersion,"1.0.1");
+  assert.equal(manifest.sourceCommit,"9e1066800aaf92cccaaf088c846df1057e4a8eaa");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-1.js");
+  assert.equal(manifest.packageSha256,"9a459d62653f0420c89343196ce2469611e01d110ebab2d2717cb54bb7596604");
   assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
