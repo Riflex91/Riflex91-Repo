@@ -91,16 +91,16 @@ test("service mount bytes and pinned source commit are exact",()=>{
 test("historical service mount remains exact while active manifest returns to productive one-write",()=>{
   assert.notEqual(manifest.testId,contract.package.testId);
   assert.equal(manifest.testId,
-    "pr20-8-exchange-anniversarygift-productive-one-write-live");
+    "pr20-8-exchange-anniversarygift-live-5m");
   assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.sourceCommit,
-    "5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
+    "859c5be1067fbd5360c17ccfe0d912a98537bfc9");
   assert.equal(manifest.packagePath,
-    "v5/werkzeuge/pr20-8-exchange-anniversarygift-productive-one-write-live.js");
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-live-5m-v1-0-0.js");
   assert.equal(manifest.packageSha256,
-    "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
+    "455593d7691dc5436af27a5b89afb5fc208f2ebca4253aa87d0726821abcda94");
   assert.equal(manifest.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
+    "V5PR208ExchangeAnniversarygiftLive5m");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 
@@ -109,17 +109,17 @@ test("roadmap ratifies service mount and restores productive one-write deploymen
   const live=a.anniversaryGiftProductiveOneWrite;
   const mount=a.anniversaryGiftServiceMount;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RESTORED_AFTER_SERVICE_MOUNT");
+    "EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_MANIFEST_CUTOVER_PREPARED");
   assert.equal(roadmap.pr20_8.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_AFTER_SERVICE_MOUNT");
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_LIVE_5M");
   assert.equal(a.status,
-    "ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RESTORED_AFTER_SERVICE_MOUNT");
-  assert.equal(live.status,"MANIFEST_RESTORED_AFTER_SERVICE_MOUNT");
-  assert.equal(live.deployed,false);
-  assert.equal(live.liveEvidenceObserved,false);
-  assert.equal(live.latestNotificationId,null);
-  assert.equal(live.latestGameplayWrites,0);
-  assert.equal(live.latestPublicFunctionCalls,0);
+    "ANNIVERSARYGIFT_LIVE_5M_MANIFEST_CUTOVER_PREPARED");
+  assert.equal(live.status,"RATIFIED_COMMITTED_EXCHANGE_ONE_WRITE");
+  assert.equal(live.deployed,true);
+  assert.equal(live.liveEvidenceObserved,true);
+  assert.equal(live.latestNotificationId,2949);
+  assert.equal(live.latestGameplayWrites,1);
+  assert.equal(live.latestPublicFunctionCalls,1);
   assert.equal(live.latestRawWriteCalls,0);
   assert.equal(live.exchangeAuthority,false);
   assert.equal(mount.status,"RATIFIED_EXCHANGE_SERVICE_REACHED_ONE_MOVEMENT");

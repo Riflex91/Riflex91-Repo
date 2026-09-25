@@ -63,26 +63,20 @@ test("restore cutover requires ratified service mount and pins original producti
   assert.equal(cutover.manifest.normalRuntimeAllowed,false);
 });
 
-test("restored manifest matches exact checked-in productive bytes",()=>{
-  assert.equal(manifest.testId,cutover.manifest.testId);
-  assert.equal(manifest.controllerVersion,cutover.manifest.controllerVersion);
-  assert.equal(manifest.sourceCommit,cutover.manifest.sourceCommit);
-  assert.equal(manifest.packagePath,cutover.manifest.packagePath);
-  assert.equal(manifest.packageSha256,cutover.manifest.packageSha256);
-  assert.equal(manifest.expectedGlobal,cutover.manifest.expectedGlobal);
-  assert.equal(manifest.normalRuntimeAllowed,false);
-
-  const local=manifest.packagePath.replace(/^v5\//,"");
+test("historical restored productive bytes remain exact while active manifest advances to 5m",()=>{
+  const local=cutover.manifest.packagePath.replace(/^v5\//,"");
   const bytes=fs.readFileSync(local);
   assert.equal(bytes.length,cutover.manifest.packageBytes);
   assert.equal(
     crypto.createHash("sha256").update(bytes).digest("hex"),
-    manifest.packageSha256
+    cutover.manifest.packageSha256
   );
   const pinned=execFileSync("git",[
-    "show",manifest.sourceCommit+":"+manifest.packagePath,
+    "show",cutover.manifest.sourceCommit+":"+cutover.manifest.packagePath,
   ],{encoding:null,maxBuffer:256*1024});
   assert.deepEqual(pinned,bytes);
+  assert.notEqual(manifest.testId,cutover.manifest.testId);
+  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-live-5m");
 });
 
 test("restored productive boundary is still exactly-once and fail-closed",()=>{
@@ -108,11 +102,11 @@ test("roadmap records service mount as ratified and only restores productive dep
   const mount=a.anniversaryGiftServiceMount;
   const live=a.anniversaryGiftProductiveOneWrite;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RESTORED_AFTER_SERVICE_MOUNT");
+    "EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_MANIFEST_CUTOVER_PREPARED");
   assert.equal(roadmap.pr20_8.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_AFTER_SERVICE_MOUNT");
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_LIVE_5M");
   assert.equal(a.status,
-    "ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RESTORED_AFTER_SERVICE_MOUNT");
+    "ANNIVERSARYGIFT_LIVE_5M_MANIFEST_CUTOVER_PREPARED");
   assert.equal(mount.status,"RATIFIED_EXCHANGE_SERVICE_REACHED_ONE_MOVEMENT");
   assert.equal(mount.deployed,true);
   assert.equal(mount.liveEvidenceObserved,true);
@@ -124,9 +118,9 @@ test("roadmap records service mount as ratified and only restores productive dep
   assert.equal(mount.latestSameIntentRetry,false);
   assert.ok(mount.latestObservedDistanceToExchange<=300);
   assert.equal(mount.exchangeAuthority,false);
-  assert.equal(live.status,"MANIFEST_RESTORED_AFTER_SERVICE_MOUNT");
-  assert.equal(live.deployed,false);
-  assert.equal(live.liveEvidenceObserved,false);
+  assert.equal(live.status,"RATIFIED_COMMITTED_EXCHANGE_ONE_WRITE");
+  assert.equal(live.deployed,true);
+  assert.equal(live.liveEvidenceObserved,true);
   assert.equal(live.exchangeAuthority,false);
   assert.equal(live.gameplayAuthority,false);
   assert.equal(live.rawWriteAuthority,false);

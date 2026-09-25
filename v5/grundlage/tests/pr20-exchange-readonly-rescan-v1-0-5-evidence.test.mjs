@@ -107,11 +107,11 @@ test("fresh no-candidate evidence does not satisfy Exchange or PR20.8 exit crite
 });
 
 test("active manifest is the exact anniversarygift Exchange service mount",()=>{
-  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-productive-one-write-live");
+  assert.equal(manifest.testId,"pr20-8-exchange-anniversarygift-live-5m");
   assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,"5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-productive-one-write-live.js");
-  assert.equal(manifest.packageSha256,"eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
-  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
+  assert.equal(manifest.sourceCommit,"859c5be1067fbd5360c17ccfe0d912a98537bfc9");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-anniversarygift-live-5m-v1-0-0.js");
+  assert.equal(manifest.packageSha256,"455593d7691dc5436af27a5b89afb5fc208f2ebca4253aa87d0726821abcda94");
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeAnniversarygiftLive5m");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });

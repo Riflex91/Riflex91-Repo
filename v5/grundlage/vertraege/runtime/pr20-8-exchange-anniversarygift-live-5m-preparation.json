@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-25",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "kennung": "V5_PR20_8_EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_PREPARATION",
+  "status": "BEREIT_NO_ADDITIONAL_LIVE_WRITE",
+  "purpose": "CONTINUE_EXACT_RATIFIED_ANNIVERSARYGIFT_EXCHANGE_TRANSACTION_WITH_FIVE_MINUTE_POSTCOMMIT_STABILITY_SOAK",
+  "prerequisiteOneWriteEvidence": {
+    "evidence": "roadmap/pr20-8-exchange-anniversarygift-productive-one-write-evidence.json",
+    "status": "RATIFIED_COMMITTED_EXCHANGE_ONE_WRITE",
+    "testId": "pr20-8-exchange-anniversarygift-productive-one-write-live",
+    "controllerVersion": "1.0.0",
+    "notificationId": 2949,
+    "transactionId": "pr20-8-exchange-anniversarygift-productive-one-write-live:0c6a1129be4c9c899f88274fab97108a",
+    "reconciliationClassification": "COMMITTED",
+    "sendCount": 1,
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "authorityConsumed": true,
+    "inputQuantityBefore": 106,
+    "inputQuantityAfter": 105,
+    "rewardKind": "gold",
+    "goldDelta": 5000
+  },
+  "exactCommittedPostcondition": {
+    "recipient": {
+      "characterName": "My_Merchant",
+      "ctype": "merchant",
+      "serverRegion": "EU",
+      "serverIdentifier": "I"
+    },
+    "input": {
+      "name": "anniversarygift",
+      "inventoryIndex": 4,
+      "quantity": 105
+    },
+    "sourceIntentMustRemainTerminalCommitted": true,
+    "sourceAuthorityMustRemainConsumed": true,
+    "sourceAuthorityUses": 1,
+    "sourceAuthorityMaximumUses": 1,
+    "sourceFencesMustRemainInactive": true,
+    "semanticInventoryAggregateMustEqualCommittedAfterAggregate": true,
+    "goldMustEqualCommittedPrestatePlusReward": true,
+    "qMustBeClear": true,
+    "exchangeQueueMustBeClear": true,
+    "placeholderCount": 0,
+    "massexchangePresent": false,
+    "massexchangeppPresent": false,
+    "moving": false,
+    "targetMustBeClear": true
+  },
+  "soak": {
+    "minimumSamples": 60,
+    "intervalMs": 5000,
+    "minimumDurationMs": 299000,
+    "exactTransactionMustRemainCommitted": true,
+    "sendCountMustRemainExactlyOne": true,
+    "postconditionMustRemainStable": true,
+    "qAndPlaceholderMustRemainClear": true,
+    "noNewExchangeEffectAccepted": true,
+    "noNewAuthorityMayOpen": true,
+    "restartMayOnlyResumeObservationOfSameCommittedTransaction": true,
+    "restartMayNeverResend": true,
+    "unknownOrDrift": "BLOCK_FAIL_CLOSED"
+  },
+  "packageBoundary": {
+    "preparationOnly": true,
+    "liveRunnerPresent": false,
+    "publicExchangeCallSites": 0,
+    "maximumAdditionalGameplayWrites": 0,
+    "maximumAdditionalPublicFunctionCalls": 0,
+    "maximumAdditionalRawWriteCalls": 0,
+    "exchangeWriteAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "directSocketWriteForbidden": true,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false,
+    "manifestCutoverPrepared": false,
+    "deployed": false,
+    "liveWriteEnabled": false
+  },
+  "exitSemantics": {
+    "passMaySetExchangeLive5mTested": true,
+    "passDoesNotByItselfProveExchangeAutonomy": true,
+    "passDoesNotSatisfyPr20_8ExitGateByItself": true,
+    "mayAdvanceToPr20_9": false
+  },
+  "nextGate": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_RUNNER_PACKAGE"
+}

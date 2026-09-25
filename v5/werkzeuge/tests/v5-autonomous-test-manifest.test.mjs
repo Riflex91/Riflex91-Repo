@@ -61,6 +61,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-exchange-anniversarygift-live-5m": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-exchange-anniversarygift-live-5m-v1-0-0.js",
+    expectedGlobal: "V5PR208ExchangeAnniversarygiftLive5m",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-8-exchange-anniversarygift-service-mount": Object.freeze({
     path: "v5/werkzeuge/pr20-8-exchange-anniversarygift-service-mount-v1-0-0.js",
     expectedGlobal: "V5PR208ExchangeAnniversarygiftServiceMount",
@@ -775,6 +780,38 @@ test("PR20.8 anniversarygift Exchange service mount manifest is exact one-move n
     "globalThis.exchange(", "parent.exchange(", "socket.emit(", ".socket.emit(",
     "api_call(", "upgrade(", "compound(", "buy(", "trade_buy(",
     "bank_retrieve(", "bank_store(", "send_item(", "send_gold("
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
+
+test("PR20.8 anniversarygift Exchange 5m manifest is exact zero-additional-write observer", () => {
+  if (manifest.testId !== "pr20-8-exchange-anniversarygift-live-5m") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit, "859c5be1067fbd5360c17ccfe0d912a98537bfc9");
+  assert.equal(manifest.packagePath,
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-live-5m-v1-0-0.js");
+  assert.equal(manifest.packageSha256,
+    "455593d7691dc5436af27a5b89afb5fc208f2ebca4253aa87d0726821abcda94");
+  assert.equal(manifest.expectedGlobal,
+    "V5PR208ExchangeAnniversarygiftLive5m");
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  assert.equal("workerVersion" in manifest, false);
+  assert.equal("workerPackagePath" in manifest, false);
+  assert.ok(packageSource.includes(
+    'const TEST_ID = "pr20-8-exchange-anniversarygift-live-5m"'));
+  assert.ok(packageSource.includes('const SOAK_SAMPLES = 60'));
+  assert.ok(packageSource.includes('const SOAK_INTERVAL_MS = 5000'));
+  assert.ok(packageSource.includes('const SOAK_MIN_DURATION_MS = 299000'));
+  assert.ok(packageSource.includes('additionalGameplayWrites: 0'));
+  assert.ok(packageSource.includes('additionalPublicFunctionCalls: 0'));
+  assert.ok(packageSource.includes('additionalRawWriteCalls: 0'));
+  assert.ok(packageSource.includes('sameIntentRetry: false'));
+  assert.ok(packageSource.includes(
+    '"pr20-8-exchange-anniversarygift-productive-one-write-live:0c6a1129be4c9c899f88274fab97108a"'));
+  for (const marker of [
+    "globalThis.exchange(", "parent.exchange(", ".exchange(",
+    "socket.emit(", ".socket.emit(", "api_call(", "upgrade(", "compound(",
+    "buy(", "trade_buy(", "bank_retrieve(", "bank_store(",
+    "send_item(", "send_gold(", "smart_move(", "move("
   ]) assert.equal(packageSource.includes(marker), false, marker);
 });
 

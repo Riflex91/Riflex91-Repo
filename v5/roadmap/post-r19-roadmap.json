@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RESTORED_AFTER_SERVICE_MOUNT",
+      "status": "EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_MANIFEST_CUTOVER_PREPARED",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_AFTER_SERVICE_MOUNT",
+      "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_LIVE_5M",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -898,7 +898,12 @@
         "v5/werkzeuge/pr20-8-exchange-anniversarygift-service-mount-v1-0-0.js",
         "v5/werkzeuge/tests/pr20-8-exchange-anniversarygift-service-mount-v1-0-0.test.mjs",
         "v5/roadmap/pr20-8-exchange-anniversarygift-service-mount-evidence.json",
-        "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-productive-one-write-restore-manifest-cutover.json"
+        "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-productive-one-write-restore-manifest-cutover.json",
+        "v5/roadmap/pr20-8-exchange-anniversarygift-productive-one-write-evidence.json",
+        "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-live-5m-preparation.json",
+        "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-live-5m-manifest-cutover.json",
+        "v5/werkzeuge/pr20-8-exchange-anniversarygift-live-5m-v1-0-0.js",
+        "v5/werkzeuge/tests/pr20-8-exchange-anniversarygift-live-5m-v1-0-0.test.mjs"
       ]
     },
     {
@@ -2180,7 +2185,7 @@
     }
   },
   "pr20_8": {
-    "status": "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RESTORED_AFTER_SERVICE_MOUNT",
+    "status": "EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_MANIFEST_CUTOVER_PREPARED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -2224,13 +2229,13 @@
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
       "normalUpgrade": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS",
       "normalCompound": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_RATIFIED",
-      "normalExchange": "BLOCKIERT_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_AFTER_SERVICE_MOUNT_PENDING",
+      "normalExchange": "BLOCKIERT_ANNIVERSARYGIFT_EXCHANGE_LIVE_5M_PENDING",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_AFTER_SERVICE_MOUNT",
+    "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_LIVE_5M",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -3464,7 +3469,7 @@
       "nextGate": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN"
     },
     "exchangeCandidateAcquisition": {
-      "status": "ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RESTORED_AFTER_SERVICE_MOUNT",
+      "status": "ANNIVERSARYGIFT_LIVE_5M_MANIFEST_CUTOVER_PREPARED",
       "policy": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
       "planner": "v5/grundlage/quelle/merchant/pr20-8-exchange-candidate-acquisition.ts",
       "plannerTest": "v5/grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs",
@@ -3496,7 +3501,7 @@
       "bridgeMayDeployPinnedRunner": true,
       "deployed": true,
       "evidenceObserved": true,
-      "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_AFTER_SERVICE_MOUNT",
+      "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_LIVE_5M",
       "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
       "package": "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
       "latestNotificationId": 2603,
@@ -3782,7 +3787,7 @@
         "nextAction": "PREPARE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE"
       },
       "anniversaryGiftProductiveOneWrite": {
-        "status": "MANIFEST_RESTORED_AFTER_SERVICE_MOUNT",
+        "status": "RATIFIED_COMMITTED_EXCHANGE_ONE_WRITE",
         "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-productive-one-write-preparation.json",
         "rewardEvidence": "v5/roadmap/pr20-8-exchange-anniversarygift-reward-domain-evidence.json",
         "package": "v5/werkzeuge/pr20-8-exchange-anniversarygift-productive-one-write-live.js",
@@ -3808,22 +3813,31 @@
         "rawWriteAuthority": false,
         "normalRuntimeAllowed": false,
         "manifestCutoverPrepared": true,
-        "deployed": false,
-        "liveEvidenceObserved": false,
-        "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_AFTER_SERVICE_MOUNT",
+        "deployed": true,
+        "liveEvidenceObserved": true,
+        "nextAction": "PREPARE_ANNIVERSARYGIFT_EXCHANGE_LIVE_5M",
         "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
         "cutoverContract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-productive-one-write-manifest-cutover.json",
         "serviceBlockEvidence": "v5/roadmap/pr20-8-exchange-anniversarygift-productive-one-write-service-block-evidence.json",
-        "latestNotificationId": null,
-        "latestRunStartedAtMs": null,
-        "latestStatus": null,
-        "latestPhase": null,
+        "latestNotificationId": 2949,
+        "latestRunStartedAtMs": 1790353554072,
+        "latestStatus": "BESTANDEN",
+        "latestPhase": "COMPLETE",
         "latestBlocker": [],
-        "latestGameplayWrites": 0,
-        "latestPublicFunctionCalls": 0,
+        "latestGameplayWrites": 1,
+        "latestPublicFunctionCalls": 1,
         "latestRawWriteCalls": 0,
         "restoreCutoverContract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-productive-one-write-restore-manifest-cutover.json",
-        "serviceMountEvidence": "v5/roadmap/pr20-8-exchange-anniversarygift-service-mount-evidence.json"
+        "serviceMountEvidence": "v5/roadmap/pr20-8-exchange-anniversarygift-service-mount-evidence.json",
+        "evidence": "v5/roadmap/pr20-8-exchange-anniversarygift-productive-one-write-evidence.json",
+        "latestTransactionId": "pr20-8-exchange-anniversarygift-productive-one-write-live:0c6a1129be4c9c899f88274fab97108a",
+        "latestReconciliation": "COMMITTED",
+        "latestInputQuantityBefore": 106,
+        "latestInputQuantityAfter": 105,
+        "latestRewardKind": "gold",
+        "latestGoldDelta": 5000,
+        "latestSameIntentRetry": false,
+        "latestAuthorityConsumed": true
       },
       "anniversaryGiftServiceMount": {
         "status": "RATIFIED_EXCHANGE_SERVICE_REACHED_ONE_MOVEMENT",
@@ -3869,6 +3883,37 @@
         "latestRawWriteCalls": 0,
         "latestSameIntentRetry": false,
         "latestObservedDistanceToExchange": 298.9686417419973
+      },
+      "anniversaryGiftExchangeLive5m": {
+        "status": "MANIFEST_CUTOVER_PREPARED",
+        "preparation": "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-live-5m-preparation.json",
+        "cutoverContract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-live-5m-manifest-cutover.json",
+        "sourceEvidence": "v5/roadmap/pr20-8-exchange-anniversarygift-productive-one-write-evidence.json",
+        "package": "v5/werkzeuge/pr20-8-exchange-anniversarygift-live-5m-v1-0-0.js",
+        "test": "v5/werkzeuge/tests/pr20-8-exchange-anniversarygift-live-5m-v1-0-0.test.mjs",
+        "testId": "pr20-8-exchange-anniversarygift-live-5m",
+        "controllerVersion": "1.0.0",
+        "expectedGlobal": "V5PR208ExchangeAnniversarygiftLive5m",
+        "sourceCommit": "859c5be1067fbd5360c17ccfe0d912a98537bfc9",
+        "packageSha256": "455593d7691dc5436af27a5b89afb5fc208f2ebca4253aa87d0726821abcda94",
+        "packageBytes": 28423,
+        "sourceTransactionId": "pr20-8-exchange-anniversarygift-productive-one-write-live:0c6a1129be4c9c899f88274fab97108a",
+        "minimumSamples": 60,
+        "intervalMs": 5000,
+        "minimumDurationMs": 299000,
+        "maximumAdditionalGameplayWrites": 0,
+        "maximumAdditionalPublicFunctionCalls": 0,
+        "maximumAdditionalRawWriteCalls": 0,
+        "sameIntentRetry": false,
+        "exchangeAuthority": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false,
+        "manifestCutoverPrepared": true,
+        "deployed": false,
+        "liveEvidenceObserved": false,
+        "exchangeLive5mTested": false,
+        "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_LIVE_5M"
       }
     }
   },
