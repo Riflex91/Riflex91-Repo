@@ -4,7 +4,7 @@
   "gate": "PR20.8_WERTMUTATIONEN",
   "status": "BLOCKED_EXCHANGE_NO_CANDIDATE",
   "reviewedAgainst": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
-  "reviewedAtMainCommit": "1e3e61a49e57e078991c29b0d08102579100fddd",
+  "reviewedAtMainCommit": "f5072e112c2a25fa872627e3269d1d26e63e5f66",
   "currentExitGateSatisfied": false,
   "exitGateCriteria": {
     "eachFamilyIndividuallyRatifiedAnd5mLiveTested": {
@@ -51,7 +51,7 @@
     "PR20_8_EXCHANGE_5M_LIVE_NOT_RUN",
     "PR20_8_EXCHANGE_AUTONOMY_NOT_PRODUCTIVE_PROVEN"
   ],
-  "nextAction": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
+  "nextAction": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
   "mayAdvanceToPr20_9": false,
   "roadmapCriteriaRelaxed": false,
   "compoundLive5mPreparation": {
@@ -223,5 +223,38 @@
     "exchangeLive5mTested": false,
     "exchangeAutonomyProductiveProven": false,
     "normalRuntimeAllowed": false
+  },
+  "exchangeNoCandidateCloseoutReview": {
+    "status": "REVIEWED_FRESH_READONLY_RESCAN_REQUIRED",
+    "review": "v5/roadmap/pr20-8-exchange-no-candidate-closeout-review.json",
+    "existingEvidence": "v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json",
+    "existingObservedAtMs": 1790278399271,
+    "existingExchangeStatus": "KEIN_KANDIDAT",
+    "existingExchangeCandidateCount": 0,
+    "compoundMutationCommittedAfterExistingObservation": true,
+    "freshCurrentInventoryEvidenceRequired": true,
+    "acquisitionOrMutationToCreateCandidateAllowed": false,
+    "buyToCreateCandidateAllowed": false,
+    "farmToCreateCandidateAllowed": false,
+    "bankMutationToCreateCandidateAllowed": false,
+    "exchangeWriteAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "durableIntentCreationAllowed": false,
+    "normalRuntimeAllowed": false,
+    "scannerTestId": "pr20-8-wertmutation-live-candidate-readonly",
+    "scannerControllerVersion": "1.0.4",
+    "scannerPackage": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js",
+    "scannerSourceCommit": "27e25e69dc0e26d8ae05328335718c36a6a0c659",
+    "scannerPackageSha256": "0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b",
+    "scannerPackageBytes": 21343,
+    "scannerExpectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
+    "scannerMaximumGameplayWrites": 0,
+    "scannerMaximumPublicFunctionCalls": 0,
+    "scannerMaximumRawWriteCalls": 0,
+    "manifestCutoverPrepared": false,
+    "deployed": false,
+    "evidenceObserved": false,
+    "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN"
   }
 }
