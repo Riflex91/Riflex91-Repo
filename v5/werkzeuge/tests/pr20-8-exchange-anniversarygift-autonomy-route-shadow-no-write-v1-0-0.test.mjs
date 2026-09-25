@@ -206,7 +206,7 @@ test("ambiguous current anniversarygift stacks fail closed",async()=>{
 });
 
 test("unsafe candidate is rejected rather than silently authorized",async()=>{
-  const ctx=await run({items:inventoryAt(7,105, {locked:true})});
+  const ctx=await run({items:inventoryAt(7,105,16,{locked:true})});
   assert.equal(ctx.status.status,"BLOCKIERT");
   assert.ok(ctx.status.blocker.includes(
     "PR20_8_EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_SHADOW_EXAKTER_INPUT_FEHLT",
