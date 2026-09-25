@@ -152,25 +152,31 @@ test("shadow contract remains strictly no-write and has no runner cutover",()=>{
 test("roadmap advances only to read-only shadow-runner preparation",()=>{
   assert.equal(
     roadmap.pr20_8.status,
-    "EXCHANGE_SEASHELL_FARM_SHADOW_ADMISSION_READY_NO_WRITE",
+    "EXCHANGE_SEASHELL_FARM_SHADOW_RUNNER_PREPARED_READ_ONLY",
   );
   assert.equal(
     roadmap.pr20_8.nextAction,
     "PREPARE_SEASHELL_FARM_SHADOW_RUNNER_READ_ONLY",
   );
   const shadow=roadmap.pr20_8.exchangeCandidateAcquisition.seashellFarmShadow;
-  assert.equal(shadow.status,"ADMISSION_PREPARED_NO_WRITE");
-  assert.equal(shadow.runnerPrepared,false);
+  assert.equal(shadow.status,"RUNNER_PREPARED_READ_ONLY");
+  assert.equal(shadow.runnerPrepared,true);
+  assert.equal(shadow.runnerTestId,"pr20-8-seashell-farm-shadow-readonly");
+  assert.equal(shadow.runnerControllerVersion,"1.0.0");
+  assert.equal(shadow.runnerExpectedGlobal,"V5PR208SeashellFarmShadowReadonly");
+  assert.equal(shadow.runnerLocalFarmerOnly,true);
+  assert.equal(shadow.packagePinDeferredUntilManifestCutover,true);
+  assert.equal(shadow.alreadySatisfiedNextAction,"PREPARE_SEASHELL_HANDOFF_SHADOW_NO_WRITE");
   assert.equal(shadow.manifestCutoverPrepared,false);
   assert.equal(shadow.farmAuthority,false);
   assert.equal(shadow.exchangeAuthority,false);
   assert.equal(shadow.normalRuntimeAllowed,false);
-  assert.equal(shadow.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_RUNNER_READ_ONLY");
+  assert.equal(shadow.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_READ_ONLY");
 
   const row=roadmap.parallelPreparations.find(x=>x.id==="PR20.8_WERTMUTATIONEN");
   assert.ok(row);
-  assert.equal(row.status,"EXCHANGE_SEASHELL_FARM_SHADOW_ADMISSION_READY_NO_WRITE");
-  assert.equal(row.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_RUNNER_READ_ONLY");
+  assert.equal(row.status,"EXCHANGE_SEASHELL_FARM_SHADOW_RUNNER_PREPARED_READ_ONLY");
+  assert.equal(row.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_READ_ONLY");
   assert.equal(row.gameplayAuthority,false);
   assert.equal(row.rawWriteAuthority,false);
   assert.equal(row.normalRuntimeAllowed,false);
