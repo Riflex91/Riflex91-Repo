@@ -45,7 +45,7 @@ test("PR20.8 no-candidate evidence cannot silently create authority or substitut
   ]);
   assert.equal(
     review.nextAction,
-    "PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER",
+    "PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION",
   );
 });
 
@@ -71,8 +71,8 @@ test("PR20.8 Compound 5m preparation changes no remaining exit authority", () =>
   assert.equal(p.bridgeMayDeployPinnedRunner,false);
   assert.equal(p.retiredFromActiveManifest,true);
   assert.equal(p.supersededByPerformanceRecovery,true);
-  assert.equal(p.activeRecoveryControllerVersion,"1.0.1");
-  assert.equal(p.activeRecoveryPackage,"v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js");
+  assert.equal(p.activeRecoveryControllerVersion,"1.0.2");
+  assert.equal(p.activeRecoveryPackage,"v5/werkzeuge/pr20-8-compound-live-5m-v1-0-2.js");
   assert.equal(p.deploymentEvidenceObserved,false);
   assert.equal(p.realFiveMinuteRunCompleted,false);
   assert.equal(review.currentExitGateSatisfied,false);
@@ -145,14 +145,16 @@ test("PR20.8 Compound 5m performance recovery records observed pass but awaits p
   assert.equal(r.observedRunStartedAtMs,0);
   assert.equal(r.ratifiedCompoundLive5m,false);
   assert.equal(r.maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass,true);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER");
+  assert.equal(r.retiredFromActiveManifest,true);
+  assert.equal(r.supersededByNotificationIdentityRecovery,true);
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION");
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
 });
 
-test("PR20.8 Compound 5m notification identity recovery stays authority-closed before cutover", () => {
+test("PR20.8 Compound 5m notification identity recovery is authority-closed at manifest cutover", () => {
   const r=review.compoundLive5mNotificationIdentityRecovery;
-  assert.equal(r.status,"PACKAGE_BEREIT_NOT_DEPLOYED");
+  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_COMPLETION_NOTIFICATION_CONFIRMATION");
   assert.equal(r.controllerVersion,"1.0.2");
   assert.equal(r.package,"v5/werkzeuge/pr20-8-compound-live-5m-v1-0-2.js");
   assert.equal(r.sourceCommit,"18568cbc9689bd7e27c5a26a4342901d470b72c0");
@@ -175,10 +177,21 @@ test("PR20.8 Compound 5m notification identity recovery stays authority-closed b
   assert.equal(r.publicCompoundCallSites,0);
   assert.equal(r.compoundWriteAuthority,false);
   assert.equal(r.normalRuntimeAllowed,false);
-  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.manifestCutoverPrepared,true);
   assert.equal(r.deployed,false);
-  assert.equal(r.bridgeMayDeployPinnedRunner,false);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER");
+  assert.equal(r.bridgeMayDeployPinnedRunner,true);
+  assert.equal(r.deploymentEvidenceObserved,false);
+  assert.equal(r.completionNotificationPersisted,false);
+  assert.equal(r.liveWriteEnabled,false);
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION");
+  const active=review.activeCompoundLive5mManifest;
+  assert.equal(active.testId,"pr20-8-compound-live-5m");
+  assert.equal(active.controllerVersion,"1.0.2");
+  assert.equal(active.package,"v5/werkzeuge/pr20-8-compound-live-5m-v1-0-2.js");
+  assert.equal(active.sourceCommit,"18568cbc9689bd7e27c5a26a4342901d470b72c0");
+  assert.equal(active.packageSha256,"4d9083bf163d98f15d842d64ecfc49ae4c9b8c3452b0b31a499d4b0b5687c849");
+  assert.equal(active.packageBytes,28166);
+  assert.equal(active.normalRuntimeAllowed,false);
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
 });

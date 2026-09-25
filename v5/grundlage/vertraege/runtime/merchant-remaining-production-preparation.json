@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "COMPOUND_LIVE_5M_V1_0_1_BESTANDEN_NOTIFICATION_IDENTITY_RECOVERY_PACKAGE_READY",
+    "status": "COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER_PREPARED",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER",
+    "nextAction": "PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1401,8 +1401,8 @@
       "realFiveMinuteRunCompleted": false,
       "retiredFromActiveManifest": true,
       "supersededByPerformanceRecovery": true,
-      "activeRecoveryControllerVersion": "1.0.1",
-      "activeRecoveryPackage": "werkzeuge/pr20-8-compound-live-5m-v1-0-1.js"
+      "activeRecoveryControllerVersion": "1.0.2",
+      "activeRecoveryPackage": "werkzeuge/pr20-8-compound-live-5m-v1-0-2.js"
     },
     "compoundLive5mRunner": {
       "status": "V1_0_0_BLOCKED_PERFORMANCE_TRICK_ZERO_WRITE",
@@ -1502,7 +1502,7 @@
       "manifestCutoverPrepared": true,
       "deployed": true,
       "bridgeMayDeployPinnedRunner": false,
-      "nextGate": "PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER",
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION",
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
       "deploymentEvidenceObserved": true,
       "realFiveMinuteRunCompleted": true,
@@ -1525,20 +1525,22 @@
       "notificationPersistenceBlocker": "RUN_STARTED_AT_MS_IDENTITY_COLLISION",
       "notificationUniqueConstraint": "UNIQUE (bot_id, test_id, run_started_at_ms)",
       "observedRunStartedAtMs": 0,
-      "ratifiedCompoundLive5m": false
+      "ratifiedCompoundLive5m": false,
+      "retiredFromActiveManifest": true,
+      "supersededByNotificationIdentityRecovery": true
     },
     "activeCompoundLive5mManifest": {
       "testId": "pr20-8-compound-live-5m",
-      "controllerVersion": "1.0.1",
-      "sourceCommit": "51b1fc8038740f828cacffe866c6db799a447348",
-      "package": "werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
-      "packageSha256": "23af77b23467e99fddfa437b9dc54873d0e3f25d783c940c819b447e44863a2b",
-      "packageBytes": 26060,
+      "controllerVersion": "1.0.2",
+      "sourceCommit": "18568cbc9689bd7e27c5a26a4342901d470b72c0",
+      "package": "werkzeuge/pr20-8-compound-live-5m-v1-0-2.js",
+      "packageSha256": "4d9083bf163d98f15d842d64ecfc49ae4c9b8c3452b0b31a499d4b0b5687c849",
+      "packageBytes": 28166,
       "expectedGlobal": "V5PR208CompoundLive5m",
       "normalRuntimeAllowed": false
     },
     "compoundLive5mNotificationIdentityRecovery": {
-      "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_COMPLETION_NOTIFICATION_CONFIRMATION",
       "contract": "grundlage/vertraege/runtime/pr20-8-compound-live-5m-notification-identity-recovery-preparation.json",
       "package": "werkzeuge/pr20-8-compound-live-5m-v1-0-2.js",
       "test": "werkzeuge/tests/pr20-8-compound-live-5m-v1-0-2.test.mjs",
@@ -1570,10 +1572,14 @@
       "rawWriteAuthority": false,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
-      "bridgeMayDeployPinnedRunner": false,
-      "nextGate": "PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER"
+      "bridgeMayDeployPinnedRunner": true,
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION",
+      "manifest": "roadmap/v5-autonomous-test-manifest.json",
+      "deploymentEvidenceObserved": false,
+      "completionNotificationPersisted": false,
+      "liveWriteEnabled": false
     }
   },
   "pr20_9": {

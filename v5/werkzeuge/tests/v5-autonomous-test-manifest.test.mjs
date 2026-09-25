@@ -12,7 +12,7 @@ const allowedPackages = Object.freeze({
     gate: "PR20.8_WERTMUTATIONEN"
   }),
   "pr20-8-compound-live-5m": Object.freeze({
-    path: "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
+    path: "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-2.js",
     expectedGlobal: "V5PR208CompoundLive5m",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
@@ -922,20 +922,20 @@ test("PR20.8 productive Compound one-write manifest is exact, one-shot and runti
   assert.equal(packageSource.includes("api_call("), false);
 });
 
-test("PR20.8 Compound 5m recovery manifest is exact, zero-write and postcommit-only", () => {
+test("PR20.8 Compound 5m notification identity recovery manifest is exact and zero-write", () => {
   if (manifest.testId !== "pr20-8-compound-live-5m") return;
-  assert.equal(manifest.controllerVersion, "1.0.1");
+  assert.equal(manifest.controllerVersion, "1.0.2");
   assert.equal(
     manifest.sourceCommit,
-    "51b1fc8038740f828cacffe866c6db799a447348",
+    "18568cbc9689bd7e27c5a26a4342901d470b72c0",
   );
   assert.equal(
     manifest.packagePath,
-    "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
+    "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-2.js",
   );
   assert.equal(
     manifest.packageSha256,
-    "23af77b23467e99fddfa437b9dc54873d0e3f25d783c940c819b447e44863a2b",
+    "4d9083bf163d98f15d842d64ecfc49ae4c9b8c3452b0b31a499d4b0b5687c849",
   );
   assert.equal(manifest.expectedGlobal, "V5PR208CompoundLive5m");
   assert.equal(manifest.normalRuntimeAllowed, false);
@@ -946,7 +946,12 @@ test("PR20.8 Compound 5m recovery manifest is exact, zero-write and postcommit-o
   assert.equal("workerTargets" in manifest, false);
 
   for (const marker of [
-    'const VERSION = "1.0.1"',
+    'const VERSION = "1.0.2"',
+    'const PREVIOUS_VERSION = "1.0.1"',
+    'startedAtMs: Date.now()',
+    'function validPreviousTerminalProgress(value)',
+    'telemetryIdentityRecoveredFromVersion: PREVIOUS_VERSION',
+    'startedAtMs: Number(progress.soakStartedAtMs)',
     'const TEST_ID = "pr20-8-compound-live-5m"',
     'const API_NAME = "V5PR208CompoundLive5m"',
     'const SOAK_SAMPLES = 60',
