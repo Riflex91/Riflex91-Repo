@@ -2239,6 +2239,25 @@
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
         "normalRuntimeAllowed": false
+      },
+      "teamMaterialObjectiveFoundation": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "grundlage/quelle/koordination/production-material-team-coordination.ts",
+        "contract": "grundlage/vertraege/runtime/pr22-23-production-material-team-objective-foundation.json",
+        "test": "grundlage/tests/pr22-23-production-material-team-coordination.test.mjs",
+        "anchorFarmerRequired": true,
+        "sameAccountAndServerRequired": true,
+        "maximumFarmers": 8,
+        "aggregateFarmerHeldMaterial": true,
+        "allWorkersSameProductionObjective": true,
+        "splitAcrossProductionObjectives": false,
+        "farmStopWhenAggregateReady": true,
+        "multiSourceCollectionHandoffRequiredAfterAggregateReady": true,
+        "currentPr20_9RatificationCredit": false,
+        "productiveExecutionAllowed": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
       }
     }
   },

@@ -96,7 +96,8 @@
     "CAP-022 Production-Material-Acquisition ist in die PR21-28 Shadow-Pipeline eingebunden; BLOCKIERT-Evidence sperrt die Pipeline, produktive Material-Ausfuehrung sowie PR20.9-Candidate-Acquisition bleiben false.",
     "CAP-022 Material-Handoff ist NO-WRITE bis zur bestehenden COLLECTION/Rendezvous-Logistik geplant: MATERIAL_READY_FOR_HANDOFF stoppt Farming, pinnt einen physischen Stack und verlangt nach spaeterem Settlement einen frischen PR20.9-Craft-Rescan; die Planung selbst zaehlt nicht als Craft-Kandidat oder Ratifizierung.",
     "CAP-022 besitzt jetzt auch die NO-WRITE-Bruecke vom spaeter real verifizierten COLLECTION-Settlement zu einem frischen NORMAL_CRAFT_ONLY-Rescan. Geplante oder synthetische Settlements duerfen PR20.9 nicht fortschreiben; nur reale Settlement-Evidence plus frischer Post-Settlement-Inventarstand darf einen neuen Craft-Preflight triggern.",
-    "CAP-022 hat jetzt einen persistenten NO-WRITE-Lifecycle. Jeder nichtterminale Materialzustand wird nach Restart zuerst RECOVERY_PENDING; Blind-Resume und Same-Farm-/Same-Handoff-/Same-Rescan-Retry bleiben verboten. Produktive PR22/PR23-/Collection-/Craft-Authority bleibt geschlossen."
+    "CAP-022 hat jetzt einen persistenten NO-WRITE-Lifecycle. Jeder nichtterminale Materialzustand wird nach Restart zuerst RECOVERY_PENDING; Blind-Resume und Same-Farm-/Same-Handoff-/Same-Rescan-Retry bleiben verboten. Produktive PR22/PR23-/Collection-/Craft-Authority bleibt geschlossen.",
+    "CAP-022 Multi-Farmer-Objective ist NO-WRITE vorbereitet: alle ausgewaehlten Farmer bleiben auf exakt demselben Production-Objective, gehaltene Mengen werden aggregiert und Aggregate-READY stoppt Farming fuer alle. Danach ist ein Multi-Source-COLLECTION-Handoff no-write vorzubereiten."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -964,7 +965,10 @@
         "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
         "v5/grundlage/quelle/koordination/production-material-lifecycle.ts",
         "v5/grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
-        "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs"
+        "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs",
+        "v5/grundlage/quelle/koordination/production-material-team-coordination.ts",
+        "v5/grundlage/vertraege/runtime/pr22-23-production-material-team-objective-foundation.json",
+        "v5/grundlage/tests/pr22-23-production-material-team-coordination.test.mjs"
       ],
       "deferredAutomaticMaterialRecheck": {
         "status": "WAITING_FOR_FUTURE_PRODUCTIVE_MATERIAL_ACQUISITION",
@@ -1050,6 +1054,25 @@
           "sameCraftRescanRetryAllowed": false,
           "productiveExecutionAllowed": false,
           "executionAuthority": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
+        },
+        "teamMaterialObjectiveFoundation": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/koordination/production-material-team-coordination.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-team-objective-foundation.json",
+          "test": "v5/grundlage/tests/pr22-23-production-material-team-coordination.test.mjs",
+          "anchorFarmerRequired": true,
+          "sameAccountAndServerRequired": true,
+          "maximumFarmers": 8,
+          "aggregateFarmerHeldMaterial": true,
+          "allWorkersSameProductionObjective": true,
+          "splitAcrossProductionObjectives": false,
+          "farmStopWhenAggregateReady": true,
+          "multiSourceCollectionHandoffRequiredAfterAggregateReady": true,
+          "currentPr20_9RatificationCredit": false,
+          "productiveExecutionAllowed": false,
           "gameplayAuthority": false,
           "rawWriteAuthority": false,
           "normalRuntimeAllowed": false
@@ -1166,7 +1189,10 @@
         "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
         "v5/grundlage/quelle/koordination/production-material-lifecycle.ts",
         "v5/grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
-        "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs"
+        "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs",
+        "v5/grundlage/quelle/koordination/production-material-team-coordination.ts",
+        "v5/grundlage/vertraege/runtime/pr22-23-production-material-team-objective-foundation.json",
+        "v5/grundlage/tests/pr22-23-production-material-team-coordination.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1246,6 +1272,25 @@
           "gameplayAuthority": false,
           "rawWriteAuthority": false,
           "normalRuntimeAllowed": false
+        },
+        "teamMaterialObjectiveFoundation": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/koordination/production-material-team-coordination.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-team-objective-foundation.json",
+          "test": "v5/grundlage/tests/pr22-23-production-material-team-coordination.test.mjs",
+          "anchorFarmerRequired": true,
+          "sameAccountAndServerRequired": true,
+          "maximumFarmers": 8,
+          "aggregateFarmerHeldMaterial": true,
+          "allWorkersSameProductionObjective": true,
+          "splitAcrossProductionObjectives": false,
+          "farmStopWhenAggregateReady": true,
+          "multiSourceCollectionHandoffRequiredAfterAggregateReady": true,
+          "currentPr20_9RatificationCredit": false,
+          "productiveExecutionAllowed": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
         }
       }
     },
@@ -1304,7 +1349,10 @@
         "v5/grundlage/tests/pr22-23-production-material-craft-rescan.test.mjs",
         "v5/grundlage/quelle/koordination/production-material-lifecycle.ts",
         "v5/grundlage/vertraege/runtime/pr22-23-production-material-lifecycle-foundation.json",
-        "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs"
+        "v5/grundlage/tests/pr22-23-production-material-lifecycle.test.mjs",
+        "v5/grundlage/quelle/koordination/production-material-team-coordination.ts",
+        "v5/grundlage/vertraege/runtime/pr22-23-production-material-team-objective-foundation.json",
+        "v5/grundlage/tests/pr22-23-production-material-team-coordination.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1384,6 +1432,25 @@
           "sameCraftRescanRetryAllowed": false,
           "productiveExecutionAllowed": false,
           "executionAuthority": false,
+          "gameplayAuthority": false,
+          "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
+        },
+        "teamMaterialObjectiveFoundation": {
+          "status": "PREPARED_NO_WRITE",
+          "source": "v5/grundlage/quelle/koordination/production-material-team-coordination.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-team-objective-foundation.json",
+          "test": "v5/grundlage/tests/pr22-23-production-material-team-coordination.test.mjs",
+          "anchorFarmerRequired": true,
+          "sameAccountAndServerRequired": true,
+          "maximumFarmers": 8,
+          "aggregateFarmerHeldMaterial": true,
+          "allWorkersSameProductionObjective": true,
+          "splitAcrossProductionObjectives": false,
+          "farmStopWhenAggregateReady": true,
+          "multiSourceCollectionHandoffRequiredAfterAggregateReady": true,
+          "currentPr20_9RatificationCredit": false,
+          "productiveExecutionAllowed": false,
           "gameplayAuthority": false,
           "rawWriteAuthority": false,
           "normalRuntimeAllowed": false
@@ -4651,6 +4718,25 @@
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
         "normalRuntimeAllowed": false
+      },
+      "teamMaterialObjectiveFoundation": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "v5/grundlage/quelle/koordination/production-material-team-coordination.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-team-objective-foundation.json",
+        "test": "v5/grundlage/tests/pr22-23-production-material-team-coordination.test.mjs",
+        "anchorFarmerRequired": true,
+        "sameAccountAndServerRequired": true,
+        "maximumFarmers": 8,
+        "aggregateFarmerHeldMaterial": true,
+        "allWorkersSameProductionObjective": true,
+        "splitAcrossProductionObjectives": false,
+        "farmStopWhenAggregateReady": true,
+        "multiSourceCollectionHandoffRequiredAfterAggregateReady": true,
+        "currentPr20_9RatificationCredit": false,
+        "productiveExecutionAllowed": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
       }
     }
   },
@@ -4960,6 +5046,25 @@
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
         "normalRuntimeAllowed": false
+      },
+      "teamMaterialObjectiveFoundation": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "v5/grundlage/quelle/koordination/production-material-team-coordination.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-team-objective-foundation.json",
+        "test": "v5/grundlage/tests/pr22-23-production-material-team-coordination.test.mjs",
+        "anchorFarmerRequired": true,
+        "sameAccountAndServerRequired": true,
+        "maximumFarmers": 8,
+        "aggregateFarmerHeldMaterial": true,
+        "allWorkersSameProductionObjective": true,
+        "splitAcrossProductionObjectives": false,
+        "farmStopWhenAggregateReady": true,
+        "multiSourceCollectionHandoffRequiredAfterAggregateReady": true,
+        "currentPr20_9RatificationCredit": false,
+        "productiveExecutionAllowed": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
       }
     }
   },
@@ -5085,6 +5190,25 @@
         "sameCraftRescanRetryAllowed": false,
         "productiveExecutionAllowed": false,
         "executionAuthority": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
+      },
+      "teamMaterialObjectiveFoundation": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "v5/grundlage/quelle/koordination/production-material-team-coordination.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-team-objective-foundation.json",
+        "test": "v5/grundlage/tests/pr22-23-production-material-team-coordination.test.mjs",
+        "anchorFarmerRequired": true,
+        "sameAccountAndServerRequired": true,
+        "maximumFarmers": 8,
+        "aggregateFarmerHeldMaterial": true,
+        "allWorkersSameProductionObjective": true,
+        "splitAcrossProductionObjectives": false,
+        "farmStopWhenAggregateReady": true,
+        "multiSourceCollectionHandoffRequiredAfterAggregateReady": true,
+        "currentPr20_9RatificationCredit": false,
+        "productiveExecutionAllowed": false,
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
         "normalRuntimeAllowed": false

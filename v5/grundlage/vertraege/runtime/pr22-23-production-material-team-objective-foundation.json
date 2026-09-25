@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "CAP022_TEAM_MATERIAL_OBJECTIVE_FOUNDATION",
+  "status": "PREPARED_NO_WRITE",
+  "capability": "CAP-022",
+  "name": "Shared Multi-Farmer Production Material Objective",
+  "source": "v5/grundlage/quelle/koordination/production-material-team-coordination.ts",
+  "test": "v5/grundlage/tests/pr22-23-production-material-team-coordination.test.mjs",
+  "historicalInvariant": {
+    "allFarmersRemainOnOneProductionObjective": true,
+    "aggregateFarmerHeldMaterial": true,
+    "farmStopWhenAggregateReady": true,
+    "source": "v3/PRODUCTION_GRAPH_CERTIFICATION.md"
+  },
+  "planning": {
+    "anchorFarmerMustRemainFresh": true,
+    "sameAccountRequired": true,
+    "sameServerRequired": true,
+    "sourceSupportRequired": true,
+    "movementPreparedRequired": true,
+    "combatPreparedRequired": true,
+    "lootPreparedRequired": true,
+    "freshInventoryEvidencePerSelectedFarmerRequired": true,
+    "maximumFarmers": 8,
+    "selection": "ANCHOR_FIRST_THEN_CHARACTER_ID",
+    "remainingQuantityDistribution": "BOUNDED_BALANCED_INTEGER_SPLIT",
+    "allWorkersSameProductionObjective": true,
+    "splitAcrossProductionObjectives": false
+  },
+  "readyBoundary": {
+    "aggregateHeldQuantityAtLeastRequired": true,
+    "farmStopAllSelectedWorkers": true,
+    "handoffBatchRequired": true,
+    "singleFarmerHandoffDoesNotCoverMultiFarmerBatch": true
+  },
+  "safetyBoundary": {
+    "productiveExecutionAllowed": false,
+    "movementAuthority": false,
+    "combatAuthority": false,
+    "lootAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "currentPr20_9RatificationCredit": false,
+    "candidateAcquisitionOrMutationAllowedNow": false
+  },
+  "productiveDependencies": {
+    "pr22CoordinationRequired": true,
+    "pr23FarmerActionsRequired": true,
+    "multiSourceCollectionHandoffRequiredAfterAggregateReady": true
+  },
+  "nextAction": "PREPARE_MULTI_SOURCE_COLLECTION_HANDOFF_NO_WRITE"
+}
