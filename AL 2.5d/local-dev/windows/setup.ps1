@@ -77,7 +77,13 @@ Ensure-Junction (Join-Path $AdventureDir "secretsandconfig") $ConfigDir
 
 $OptionsPath = Join-Path $ConfigDir "options.js"
 $Options = Get-Content $OptionsPath -Raw
-foreach ($Required in @("Dev: true", "Local: true", "unsecure_admin: true")) {
+foreach ($Required in @(
+  "Dev: true",
+  "Local: true",
+  "unsecure_admin: true",
+  "ip_limit: 3",
+  "character_limit: 3"
+)) {
   if (-not $Options.Contains($Required)) {
     throw "Local safety requirement missing from options.js: $Required"
   }
