@@ -112,11 +112,11 @@ test("roadmap advances only to productive deployment observation",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   const live=a.anniversaryGiftProductiveOneWrite;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RESTORED_AFTER_SERVICE_MOUNT");
+    "EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_MANIFEST_CUTOVER_PREPARED");
   assert.equal(roadmap.pr20_8.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_AFTER_SERVICE_MOUNT");
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_LIVE_5M");
   assert.equal(a.status,
-    "ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RESTORED_AFTER_SERVICE_MOUNT");
+    "ANNIVERSARYGIFT_LIVE_5M_MANIFEST_CUTOVER_PREPARED");
   assert.equal(live.status,"MANIFEST_RESTORED_AFTER_SERVICE_MOUNT");
   assert.equal(live.manifestCutoverPrepared,true);
   assert.equal(live.deployed,false);
