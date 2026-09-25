@@ -67,12 +67,12 @@ test("PR20.8 terminal recovery package remains immutable and no-write", () => {
 });
 
 test("terminal recovery evidence stays immutable while the current manifest advances to the read-only Exchange acquisition discovery", () => {
-  assert.equal(manifest.testId, "pr20-8-exchange-candidate-acquisition-readonly");
-  assert.equal(manifest.controllerVersion, "1.0.1");
-  assert.equal(manifest.sourceCommit, "3182b137957416b253dde303bbba54dd800f8b14");
-  assert.equal(manifest.packagePath, "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js");
-  assert.equal(manifest.packageSha256, "1acc8253cef6b02b33a6a5de289ce5a7095066d36bc727f9cffa77647e8778ec");
-  assert.equal(manifest.expectedGlobal, "V5PR208ExchangeCandidateAcquisitionReadonly");
+  assert.equal(manifest.testId,"pr20-8-exchange-candidate-acquisition-readonly");
+  assert.equal(manifest.controllerVersion,"1.0.1");
+  assert.equal(manifest.sourceCommit,"3182b137957416b253dde303bbba54dd800f8b14");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js");
+  assert.equal(manifest.packageSha256,"1acc8253cef6b02b33a6a5de289ce5a7095066d36bc727f9cffa77647e8778ec");
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeCandidateAcquisitionReadonly");
   assert.equal(manifest.normalRuntimeAllowed, false);
   assert.equal(evidence.nextGate, "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
 });
