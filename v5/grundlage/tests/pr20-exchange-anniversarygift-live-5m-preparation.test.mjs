@@ -123,15 +123,16 @@ test("active manifest is the exact zero-additional-write 5m observer",()=>{
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 
-test("roadmap ratifies one-write and advances only to Exchange 5m observation",()=>{
+test("roadmap ratifies one-write and Exchange 5m, then advances only to autonomy preparation",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   const live=a.anniversaryGiftProductiveOneWrite;
   const soak=a.anniversaryGiftExchangeLive5m;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_MANIFEST_CUTOVER_PREPARED");
+    "EXCHANGE_ANNIVERSARYGIFT_LIVE_5M_RATIFIED_AUTONOMY_PREPARED_NO_WRITE");
   assert.equal(roadmap.pr20_8.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_LIVE_5M");
-  assert.equal(a.status,"ANNIVERSARYGIFT_LIVE_5M_MANIFEST_CUTOVER_PREPARED");
+    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
+  assert.equal(a.status,
+    "ANNIVERSARYGIFT_LIVE_5M_RATIFIED_AUTONOMY_PREPARED_NO_WRITE");
   assert.equal(live.status,"RATIFIED_COMMITTED_EXCHANGE_ONE_WRITE");
   assert.equal(live.deployed,true);
   assert.equal(live.liveEvidenceObserved,true);
@@ -146,7 +147,7 @@ test("roadmap ratifies one-write and advances only to Exchange 5m observation",(
   assert.equal(live.latestSameIntentRetry,false);
   assert.equal(live.latestAuthorityConsumed,true);
   assert.equal(live.exchangeAuthority,false);
-  assert.equal(soak.status,"MANIFEST_CUTOVER_PREPARED");
+  assert.equal(soak.status,"RATIFIED_BESTANDEN_ZERO_ADDITIONAL_MUTATION");
   assert.equal(soak.minimumSamples,60);
   assert.equal(soak.minimumDurationMs,299000);
   assert.equal(soak.maximumAdditionalGameplayWrites,0);
@@ -154,7 +155,14 @@ test("roadmap ratifies one-write and advances only to Exchange 5m observation",(
   assert.equal(soak.maximumAdditionalRawWriteCalls,0);
   assert.equal(soak.exchangeAuthority,false);
   assert.equal(soak.manifestCutoverPrepared,true);
-  assert.equal(soak.deployed,false);
-  assert.equal(soak.liveEvidenceObserved,false);
-  assert.equal(soak.exchangeLive5mTested,false);
+  assert.equal(soak.deployed,true);
+  assert.equal(soak.liveEvidenceObserved,true);
+  assert.equal(soak.exchangeLive5mTested,true);
+  assert.equal(soak.latestNotificationId,2986);
+  assert.equal(soak.latestSamples,60);
+  assert.equal(soak.latestDurationMs,299012);
+  assert.equal(soak.latestAdditionalGameplayWrites,0);
+  assert.equal(soak.latestAdditionalPublicFunctionCalls,0);
+  assert.equal(soak.latestAdditionalRawWriteCalls,0);
+  assert.equal(soak.latestSameIntentRetry,false);
 });
