@@ -2258,6 +2258,29 @@
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
         "normalRuntimeAllowed": false
+      },
+      "teamCollectionHandoffFoundation": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "grundlage/quelle/koordination/production-material-team-handoff.ts",
+        "contract": "grundlage/vertraege/runtime/pr22-23-production-material-team-handoff-foundation.json",
+        "test": "grundlage/tests/pr22-23-production-material-team-handoff.test.mjs",
+        "aggregateReadyRequired": true,
+        "exactPhysicalStacksPinnedPerSource": true,
+        "sourceInventoryFingerprintMustMatchTeamObservation": true,
+        "transferSequenceFixed": true,
+        "parallelTransferAllowed": false,
+        "eachTransferMustSettleBeforeNext": true,
+        "freshMerchantBaselineBeforeEachTransferRequired": true,
+        "freshMerchantRendezvousBeforeEachTransferRequired": true,
+        "finalCraftRescanOnlyAfterAllSettled": true,
+        "sameTransferRetryAllowed": false,
+        "batchSettlementRecoveryRequiredBeforeProductiveUse": true,
+        "currentPr20_9RatificationCredit": false,
+        "productiveExecutionAllowed": false,
+        "transferAuthority": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
       }
     }
   },
