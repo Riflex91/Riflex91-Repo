@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_8_EXCHANGE_PLAYER_MARKET_DISCOVERY",
+  "status": "PACKAGE_PREPARED_NOT_DEPLOYED",
+  "sourceMain": "1afb29733ee20915966bdcdf242419414d9869e4",
+  "prerequisite": {
+    "evidence": "v5/roadmap/pr20-8-exchange-candidate-bank-mount-evidence.json",
+    "requiredStatus": "RATIFIED_BANK_SNAPSHOT_NO_CANDIDATE_ONE_MOVEMENT",
+    "requiredInventoryCandidateCount": 0,
+    "requiredBankCandidateCount": 0,
+    "requiredBankSnapshotAvailable": true,
+    "requiredSameIntentRetry": false
+  },
+  "package": {
+    "testId": "pr20-8-exchange-market-discovery",
+    "controllerVersion": "1.0.0",
+    "path": "v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js",
+    "test": "v5/werkzeuge/tests/pr20-8-exchange-market-discovery-v1-0-0.test.mjs",
+    "sourceCommit": "d977684f56ebe24f021cd46ae7efc502c406ecc6",
+    "sha256": "175adb93980af0e7cefe19835101255473031ac51bcc70369e5a4b7d521609cd",
+    "bytes": 12657,
+    "expectedGlobal": "V5PR208ExchangeMarketDiscovery"
+  },
+  "selectionPolicy": {
+    "scannerCriteriaMustRemainCompatible": true,
+    "maxExchangeBaseGold": 50000,
+    "maxTotalAcquisitionGold": 50000,
+    "minimumGoldReserve": 1000,
+    "maxTradeDistance": 400,
+    "specialExchangeNamesExcluded": [
+      "sixcake"
+    ],
+    "sellListingsOnly": true,
+    "giveawayListingsExcluded": true,
+    "nonEmptyRidRequired": true,
+    "sufficientFreshListingQuantityRequired": true,
+    "sameMapRequired": true,
+    "visibleLiveSellerRequired": true
+  },
+  "movementBoundary": {
+    "moveOnlyWhenCurrentlyInBank": true,
+    "exactTarget": "main",
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "maximumRawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "timeoutOutcome": "RECONCILE_MOVEMENT_OUTCOME_NO_RETRY"
+  },
+  "prohibitedInThisStage": {
+    "tradeBuy": true,
+    "npcBuy": true,
+    "farm": true,
+    "attack": true,
+    "skill": true,
+    "loot": true,
+    "exchange": true,
+    "rawSocketWrite": true
+  },
+  "nextByOutcome": {
+    "eligibleListingFound": "PREPARE_EXACT_TRADE_BUY_ONE_SHOT",
+    "noEligibleListing": "PREPARE_SEASHELL_FARM_STAGE"
+  },
+  "evidenceSeparation": {
+    "movementDoesNotCountAsExchangeRatification": true,
+    "discoveryDoesNotCountAsExchangeRatification": true,
+    "freshExistingExchangeScannerRequiredAfterAcquisition": true,
+    "tradeBuyAuthority": false,
+    "farmAuthority": false,
+    "exchangeWriteAuthority": false,
+    "normalRuntimeAllowed": false
+  },
+  "nextAction": "MERGE_MARKET_DISCOVERY_PACKAGE_THEN_CUTOVER"
+}
