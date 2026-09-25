@@ -731,11 +731,11 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "COMPOUND_LIVE_5M_V1_0_1_BESTANDEN_NOTIFICATION_IDENTITY_RECOVERY_PACKAGE_READY",
+    "COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER_PREPARED",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER",
+    "PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION",
   );
   const exit=prep.pr20_8.exitGateReview;
   assert.equal(exit.status,"BLOCKED_COMPOUND_5M_NOTIFICATION_EXCHANGE_NO_CANDIDATE");
@@ -1338,12 +1338,14 @@ test("PR20.8 Compound 5m v1.0.1 behavior passed but notification persistence rem
   assert.equal(r.notificationPersistenceBlocker,"RUN_STARTED_AT_MS_IDENTITY_COLLISION");
   assert.equal(r.observedRunStartedAtMs,0);
   assert.equal(r.ratifiedCompoundLive5m,false);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER");
+  assert.equal(r.retiredFromActiveManifest,true);
+  assert.equal(r.supersededByNotificationIdentityRecovery,true);
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION");
 });
 
-test("PR20.8 Compound 5m notification identity recovery v1.0.2 is prepared but not deployed", () => {
+test("PR20.8 Compound 5m notification identity recovery v1.0.2 manifest cutover is prepared", () => {
   const r=prep.pr20_8.compoundLive5mNotificationIdentityRecovery;
-  assert.equal(r.status,"PACKAGE_BEREIT_NOT_DEPLOYED");
+  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_COMPLETION_NOTIFICATION_CONFIRMATION");
   assert.equal(r.contract,"grundlage/vertraege/runtime/pr20-8-compound-live-5m-notification-identity-recovery-preparation.json");
   assert.equal(r.package,"werkzeuge/pr20-8-compound-live-5m-v1-0-2.js");
   assert.equal(r.test,"werkzeuge/tests/pr20-8-compound-live-5m-v1-0-2.test.mjs");
@@ -1375,10 +1377,14 @@ test("PR20.8 Compound 5m notification identity recovery v1.0.2 is prepared but n
   assert.equal(r.rawWriteAuthority,false);
   assert.equal(r.sameIntentRetry,false);
   assert.equal(r.normalRuntimeAllowed,false);
-  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.manifest,"roadmap/v5-autonomous-test-manifest.json");
+  assert.equal(r.manifestCutoverPrepared,true);
   assert.equal(r.deployed,false);
-  assert.equal(r.bridgeMayDeployPinnedRunner,false);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER");
+  assert.equal(r.bridgeMayDeployPinnedRunner,true);
+  assert.equal(r.deploymentEvidenceObserved,false);
+  assert.equal(r.completionNotificationPersisted,false);
+  assert.equal(r.liveWriteEnabled,false);
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION");
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
