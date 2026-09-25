@@ -6,6 +6,10 @@ const review=JSON.parse(fs.readFileSync(
   "roadmap/pr20-8-no-candidate-exit-gate-review.json",
   "utf8",
 ));
+const roadmap=JSON.parse(fs.readFileSync(
+  "roadmap/post-r19-roadmap.json",
+  "utf8",
+));
 
 test("PR20.8 no-candidate review keeps the roadmap exit gate blocked", () => {
   assert.equal(review.status,"BLOCKED_EXCHANGE_NO_CANDIDATE");
@@ -531,3 +535,29 @@ test("PR20.8 v1.0.6 rescan epoch records real deployment without authority widen
   assert.equal(e.nextGate,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
 });
 
+
+test("PR20.8 parallel preparation index mirrors the canonical current Exchange wait state", () => {
+  const parallel=roadmap.parallelPreparations.find(x=>x?.id==="PR20.8_WERTMUTATIONEN");
+  assert.ok(parallel);
+  assert.equal(parallel.status,roadmap.pr20_8.status);
+  assert.equal(parallel.nextAction,roadmap.pr20_8.nextAction);
+  assert.equal(
+    parallel.status,
+    "EXCHANGE_CURRENT_INVENTORY_NO_CANDIDATE_RATIFIED_WAIT_FUTURE_READONLY_RESCAN",
+  );
+  assert.equal(
+    parallel.nextAction,
+    "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN",
+  );
+  for (const artifact of [
+    "v5/roadmap/pr20-8-compound-live-5m-evidence.json",
+    "v5/roadmap/pr20-8-exchange-no-candidate-closeout-review.json",
+    "v5/roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json",
+    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js",
+    "v5/roadmap/pr20-8-exchange-readonly-rescan-v1-0-6-evidence.json",
+  ]) {
+    assert.ok(parallel.artifacts.includes(artifact), `missing parallel PR20.8 artifact: ${artifact}`);
+  }
+  assert.equal(roadmap.pr20_8.exitGateReview.currentExitGateSatisfied,false);
+  assert.equal(roadmap.pr20_8.exitGateReview.mayAdvanceToPr20_9,false);
+});
