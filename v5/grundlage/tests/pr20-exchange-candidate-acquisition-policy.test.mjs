@@ -24,11 +24,11 @@ test("controlled acquisition supersedes waiting policy without rewriting histori
 
   assert.equal(
     roadmap.pr20_8.status,
-    "EXCHANGE_ACQUISITION_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
+    "EXCHANGE_ACQUISITION_DISCOVERY_OBSERVED_BANK_SNAPSHOT_REQUIRED_BANK_MOUNT_PREPARED",
   );
   assert.equal(
     roadmap.pr20_8.nextAction,
-    "DEPLOY_EXCHANGE_ACQUISITION_DISCOVERY_READ_ONLY",
+    "MERGE_BANK_MOUNT_PACKAGE_THEN_CUTOVER",
   );
 });
 
@@ -90,12 +90,35 @@ test("read-only discovery package is pinned as zero-write preparation",()=>{
 test("parallel roadmap row points at controlled discovery but carries no Exchange authority",()=>{
   const row=roadmap.parallelPreparations.find(x=>x.id==="PR20.8_WERTMUTATIONEN");
   assert.ok(row);
-  assert.equal(row.status,"EXCHANGE_ACQUISITION_DISCOVERY_MANIFEST_CUTOVER_PREPARED");
-  assert.equal(row.nextAction,"DEPLOY_EXCHANGE_ACQUISITION_DISCOVERY_READ_ONLY");
+  assert.equal(row.status,"EXCHANGE_ACQUISITION_DISCOVERY_OBSERVED_BANK_SNAPSHOT_REQUIRED_BANK_MOUNT_PREPARED");
+  assert.equal(row.nextAction,"MERGE_BANK_MOUNT_PACKAGE_THEN_CUTOVER");
   assert.equal(row.gameplayAuthority,false);
   assert.equal(row.rawWriteAuthority,false);
   assert.equal(row.normalRuntimeAllowed,false);
   assert.ok(row.artifacts.includes(
     "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json"
   ));
+});
+
+
+test("bank-mount contract is one-shot movement only and cannot retrieve",()=>{
+  const mount=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr20-8-exchange-candidate-bank-mount.json","utf8"
+  ));
+  assert.equal(mount.status,"PACKAGE_PREPARED_NOT_DEPLOYED");
+  assert.equal(mount.prerequisite.priorTestId,"pr20-8-exchange-candidate-acquisition-readonly");
+  assert.equal(mount.prerequisite.requiredPriorBlocker,"PR20_8_ACQUISITION_BANK_SNAPSHOT_REQUIRED");
+  assert.equal(mount.movementBoundary.exactPublicFunction,"smart_move");
+  assert.equal(mount.movementBoundary.exactArgument,"bank");
+  assert.equal(mount.movementBoundary.maximumGameplayWrites,1);
+  assert.equal(mount.movementBoundary.maximumPublicFunctionCalls,1);
+  assert.equal(mount.movementBoundary.maximumRawWriteCalls,0);
+  assert.equal(mount.movementBoundary.sameIntentRetry,false);
+  assert.equal(mount.prohibitedInThisStage.bankRetrieve,true);
+  assert.equal(mount.prohibitedInThisStage.buy,true);
+  assert.equal(mount.prohibitedInThisStage.farm,true);
+  assert.equal(mount.prohibitedInThisStage.exchange,true);
+  assert.equal(mount.evidenceSeparation.exactBankRetrieveRequiresSeparatePreparation,true);
+  assert.equal(mount.evidenceSeparation.exchangeWriteAuthority,false);
+  assert.equal(mount.evidenceSeparation.normalRuntimeAllowed,false);
 });
