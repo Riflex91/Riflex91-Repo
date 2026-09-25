@@ -168,7 +168,10 @@ function settle(planung, baselineFp, beforeMenge, afterMenge, fp, observed) {
   ledger.beginneRendezvous(planung.logistik.plan.logistikId);
   ledger.bestaetigeRendezvous(
     planung.logistik.plan.logistikId,
-    rendezvous(planung.logistik.plan.erstelltAmMs),
+    {
+      ...rendezvous(planung.logistik.plan.erstelltAmMs),
+      freshnessFingerprint: planung.logistik.plan.zielFreshnessFingerprint,
+    },
   );
   ledger.beginneTransfer(planung.logistik.plan.logistikId);
   const evidence = {
@@ -432,4 +435,52 @@ test("CAP-022 Batch-Recovery besitzt keinen direkten Gameplay-Write-Bypass", () 
   ]) {
     assert.equal(sourceText.includes(marker), false, marker);
   }
+});
+
+
+test("CAP-022 Batch-Recovery-Vertrag und Roadmap halten PR20.9 geschlossen", () => {
+  const contract = JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr22-23-production-material-team-settlement-recovery-foundation.json",
+    "utf8",
+  ));
+  assert.equal(contract.status, "PREPARED_NO_WRITE");
+  assert.equal(contract.sequenceBoundary.exactlyOneActiveTransfer, true);
+  assert.equal(contract.sequenceBoundary.parallelTransferAllowed, false);
+  assert.equal(contract.sequenceBoundary.previousTransferMustBeSettledBeforeNext, true);
+  assert.equal(contract.settlementBoundary.sameItemMultiStackRequirementAggregated, true);
+  assert.equal(contract.settlementBoundary.finalCraftRescanOnlyAfterAllSettled, true);
+  assert.equal(contract.restartBoundary.nonterminalBecomesRecoveryPending, true);
+  assert.equal(contract.restartBoundary.blindResumeAllowed, false);
+  assert.equal(contract.safetyBoundary.productiveExecutionAllowed, false);
+  assert.equal(contract.safetyBoundary.transferAuthority, false);
+  assert.equal(contract.safetyBoundary.gameplayAuthority, false);
+  assert.equal(contract.safetyBoundary.rawWriteAuthority, false);
+  assert.equal(contract.safetyBoundary.normalRuntimeAllowed, false);
+  assert.equal(contract.safetyBoundary.currentPr20_9RatificationCredit, false);
+
+  const roadmap = JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+  );
+  assert.equal(
+    roadmap.pr20_9.craftDurableShadowRunner.candidateAcquisitionOrMutationAllowed,
+    false,
+  );
+  const recovery =
+    roadmap.pr20_9.deferredAutomaticMaterialRecheck.teamBatchSettlementRecovery;
+  assert.equal(recovery.status, "PREPARED_NO_WRITE");
+  assert.equal(recovery.exactlyOneActiveTransfer, true);
+  assert.equal(recovery.parallelTransferAllowed, false);
+  assert.equal(recovery.previousTransferMustSettleBeforeNext, true);
+  assert.equal(recovery.sameItemMultiStackRequirementAggregated, true);
+  assert.equal(recovery.finalCraftRescanOnlyAfterAllSettled, true);
+  assert.equal(recovery.productiveExecutionAllowed, false);
+  assert.equal(recovery.transferAuthority, false);
+  assert.equal(recovery.gameplayAuthority, false);
+  assert.equal(recovery.rawWriteAuthority, false);
+  assert.equal(recovery.normalRuntimeAllowed, false);
 });
