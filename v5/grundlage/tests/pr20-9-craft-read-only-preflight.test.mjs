@@ -8,6 +8,14 @@ const contract=JSON.parse(fs.readFileSync(
   "grundlage/vertraege/runtime/pr20-9-craft-read-only-preflight.json",
   "utf8",
 ));
+const roadmap=JSON.parse(fs.readFileSync(
+  "roadmap/post-r19-roadmap.json",
+  "utf8",
+));
+const prep=JSON.parse(fs.readFileSync(
+  "grundlage/vertraege/runtime/merchant-remaining-production-preparation.json",
+  "utf8",
+));
 
 const SOURCE_COMMIT="ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4";
 
@@ -176,4 +184,32 @@ test("PR20.9 Craft contract keeps special paths and all write authority disabled
   assert.equal(contract.writes.maximumRawWriteCalls,0);
   assert.equal(contract.writes.sameIntentRetry,false);
   assert.equal(contract.nextGate,"PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION");
+});
+
+test("PR20.9 roadmap and merchant preparation expose the same no-write Craft preflight stage",()=>{
+  assert.equal(roadmap.pr20_9.status,"CRAFT_READONLY_PREFLIGHT_BEREIT_NO_WRITE");
+  assert.equal(prep.pr20_9.status,roadmap.pr20_9.status);
+  assert.equal(roadmap.pr20_9.liveExecutionAllowed,false);
+  assert.equal(roadmap.pr20_9.productiveCraftAuthority,false);
+  assert.equal(roadmap.pr20_9.broadGraphExecutionAuthority,false);
+  assert.equal(roadmap.pr20_9.normalRuntimeAllowed,false);
+  assert.equal(prep.pr20_9.mayExecuteLive,false);
+  assert.equal(prep.pr20_9.craftAuthority,false);
+  assert.equal(prep.pr20_9.gameplayAuthority,false);
+  assert.equal(prep.pr20_9.rawWriteAuthority,false);
+  assert.equal(
+    roadmap.pr20_9.nextAction,
+    "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION",
+  );
+  assert.equal(prep.pr20_9.nextAction,roadmap.pr20_9.nextAction);
+
+  const parallel=roadmap.parallelPreparations.find(x=>x?.id==="PR20.9_PRODUCTION");
+  assert.ok(parallel);
+  assert.equal(parallel.status,roadmap.pr20_9.status);
+  assert.equal(parallel.nextAction,roadmap.pr20_9.nextAction);
+  assert.equal(parallel.liveExecutionAllowed,false);
+  assert.ok(parallel.blockedBy.includes("PR20.8"));
+  assert.ok(parallel.artifacts.includes(
+    "v5/grundlage/quelle/produktion/pr20-9-craft-read-only-preflight.ts",
+  ));
 });
