@@ -2,8 +2,10 @@
   "use strict";
 
   const PROFILE_ID = "V5_LIVE_LAB_PR28";
-  const VERSION = "0.2.0";
-  const SOURCE_MAIN_SHA = "a240cdb63679f36d92b7eb5583831e159fe2a3f5";
+  const VERSION = "0.3.0";
+  const SOURCE_MAIN_SHA = "a04c0aaf706fff7e535de56c5d0769266c315909";
+  const BUILD_CHANNEL = "chatgpt/v5-live-lab-pr28-r3";
+  const BUILD_ID = "V5_LIVE_LAB_PR28_R3_GUI_1";
   const START_ACK = "V5_LIVE_LAB_START";
   const MAX_LOGS = 4000;
   const MAX_PERSISTED_INTENTS = 512;
@@ -247,6 +249,10 @@
   const transientGroupFaults = [];
   const evidenceSegments = [];
   let activeEvidenceSegment = null;
+  let guiTimer = null;
+  let guiPanel = null;
+  let guiCollapsed = false;
+  let guiNoticeTimer = null;
   let restartDetected = false;
   let restartReconciled = true;
   let persistenceAvailable = false;
@@ -2573,10 +2579,650 @@
     return api.status();
   }
 
+
+  function guiDocument() {
+    try {
+      if (root.parent && root.parent.document) return root.parent.document;
+    } catch (_) {}
+    try {
+      if (root.document) return root.document;
+    } catch (_) {}
+    try {
+      if (typeof document !== "undefined") return document;
+    } catch (_) {}
+    return null;
+  }
+
+  function guiNavigator() {
+    try {
+      if (root.navigator) return root.navigator;
+    } catch (_) {}
+    try {
+      if (root.parent && root.parent.navigator) return root.parent.navigator;
+    } catch (_) {}
+    try {
+      if (typeof navigator !== "undefined") return navigator;
+    } catch (_) {}
+    return null;
+  }
+
+  function guiWindow() {
+    try {
+      if (root.parent && root.parent.window) return root.parent.window;
+    } catch (_) {}
+    try {
+      if (root.window) return root.window;
+    } catch (_) {}
+    return root;
+  }
+
+  function htmlEscape(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function short(value, max) {
+    const source = String(value == null ? "" : value);
+    const limit = Number.isFinite(Number(max)) ? Number(max) : 56;
+    return source.length > limit ? source.slice(0, Math.max(0, limit - 1)) + "…" : source;
+  }
+
+  function guiSetText(id, value) {
+    const doc = guiDocument();
+    if (!doc) return;
+    const node = doc.getElementById(id);
+    if (node) node.textContent = String(value == null ? "—" : value);
+  }
+
+  function guiSetClass(id, className) {
+    const doc = guiDocument();
+    if (!doc) return;
+    const node = doc.getElementById(id);
+    if (node) node.className = className;
+  }
+
+  function guiNotice(message, kind) {
+    const doc = guiDocument();
+    if (!doc) return;
+    const node = doc.getElementById("v5-live-lab-gui-notice");
+    if (!node) return;
+    node.textContent = String(message || "");
+    node.className = "v5ll-notice " + String(kind || "info");
+    if (guiNoticeTimer) {
+      try { clearTimeout(guiNoticeTimer); } catch (_) {}
+      guiNoticeTimer = null;
+    }
+    try {
+      guiNoticeTimer = setTimeout(function () {
+        node.textContent = "";
+        node.className = "v5ll-notice";
+      }, 3000);
+    } catch (_) {}
+  }
+
+  function formatRoles(roles) {
+    if (!roles || typeof roles !== "object") return "—";
+    const preferred = ["TANK", "HEAL", "AOE", "CC", "KITE", "REVIVE"];
+    const parts = [];
+    for (const role of preferred) {
+      if (roles[role]) parts.push(role + "=" + roles[role]);
+    }
+    if (Array.isArray(roles.DPS) && roles.DPS.length) {
+      parts.push("DPS=" + roles.DPS.join(","));
+    }
+    return parts.length ? parts.join(" · ") : "—";
+  }
+
+  function latestImportantLog() {
+    const important = new Set([
+      "TICK_ERROR",
+      "ACTION_UNKNOWN",
+      "ACTION_FAILED",
+      "WORLD_REVALIDATION_BLOCKED",
+      "GROUP_RUNTIME_BLOCKED",
+      "MERCHANT_PINGPONG_BLOCKED",
+      "MOVEMENT_THRASH_BLOCKED",
+      "AOE_BLOCKED_HARD_CAP",
+      "EMERGENCY_STOP",
+    ]);
+    for (let i = logs.length - 1; i >= 0; i -= 1) {
+      if (important.has(logs[i].event)) return logs[i];
+    }
+    return null;
+  }
+
+  function deriveBugAreas(status) {
+    const areas = new Set();
+    const taskType = String(status && status.currentTask && status.currentTask.type || "");
+    const group = status && status.group;
+    const last = latestImportantLog();
+
+    if (group && (
+      (group.faults && group.faults.length)
+      || (group.blocker && group.blocker.length)
+    )) areas.add("area:party");
+
+    if (status && status.lastService) {
+      areas.add("area:merchant");
+      if (["bank", "exchange"].includes(String(status.lastService))) {
+        areas.add("area:bank-exchange");
+      }
+    }
+
+    if (["EVENT", "QUEST", "RARE_BOSS", "SERVER_HOP", "DISCOVERY"].includes(taskType)) {
+      areas.add("area:core-state");
+    }
+    if (taskType === "FARM" || taskType === "GROUP_ASSIST") {
+      areas.add("area:farming");
+      areas.add("area:combat");
+    }
+    if (status && status.movementInFlight) areas.add("area:movement");
+    if (status && status.progression && status.progression.selectedCharacter) {
+      areas.add("area:performance");
+    }
+    if (last && String(last.event).includes("MOVEMENT")) areas.add("area:movement");
+    if (last && String(last.event).includes("MERCHANT")) areas.add("area:merchant");
+    if (!areas.size) areas.add("area:core-state");
+    return Array.from(areas);
+  }
+
+  function buildBugReportText() {
+    const bundle = api.exportBugBundle();
+    const status = bundle.status || {};
+    const group = status.group || {};
+    const optimizer = status.optimizer || {};
+    const progression = status.progression || {};
+    const evidence = status.evidence || {};
+    const world = status.world || {};
+    const important = latestImportantLog();
+    const areas = deriveBugAreas(status);
+    const relevantLogs = bundle.logs.slice(-250);
+
+    const titleArea = areas[0] ? areas[0].replace(/^area:/, "") : "core-state";
+    const suggestedTitle = "[V5-LIVE][UNTRIAGED][" + titleArea + "] Live-Runtime-Auffälligkeit";
+
+    const lines = [
+      "# V5 Live-Test Bug",
+      "",
+      "## Suggested issue title",
+      suggestedTitle,
+      "",
+      "## Summary",
+      "[Bitte in 1-2 Sätzen beschreiben, was im Spiel falsch gelaufen ist.]",
+      "",
+      "## Observed behavior",
+      "[Bitte kurz beschreiben, was du gesehen hast. Die technischen Daten darunter sind bereits ausgefüllt.]",
+      "",
+      "## Expected behavior",
+      "[Was hätte der Bot stattdessen tun sollen?]",
+      "",
+      "## Build / Version",
+      "- Profile: " + PROFILE_ID,
+      "- Runtime version: " + VERSION,
+      "- Build ID: " + BUILD_ID,
+      "- Build channel: " + BUILD_CHANNEL,
+      "- Source main SHA: " + SOURCE_MAIN_SHA,
+      "- Runtime session ID: " + String(status.runtimeSessionId || "—"),
+      "- Observed at: " + new Date(bundle.observedAtMs).toISOString(),
+      "- Persistence available: " + String(status.persistenceAvailable === true),
+      "- Restart detected/reconciled: " + String(status.restartDetected === true) + "/" + String(status.restartReconciled === true),
+      "",
+      "## Game context",
+      "- Character: " + String(bundle.character || "—"),
+      "- Class: " + String(bundle.ctype || "—"),
+      "- Server: " + String(bundle.server && bundle.server.region || "—") + " " + String(bundle.server && bundle.server.identifier || "—"),
+      "- Map: " + String(status.map || (bundle.status && bundle.status.map) || "—"),
+      "- Running: " + String(status.running === true),
+      "- Live execution/gameplay/normal runtime: "
+        + String(status.liveExecutionAllowed === true) + "/"
+        + String(status.gameplayAuthority === true) + "/"
+        + String(status.normalRuntimeAllowed === true),
+      "- rawWriteAuthority: " + String(status.rawWriteAuthority === true),
+      "",
+      "## Current task / PR26 party selection",
+      "- Task: " + String(status.currentTask && status.currentTask.type || "—")
+        + " / " + String(status.currentTask && status.currentTask.id || "—"),
+      "- Target ID: " + String(status.currentTask && status.currentTask.targetId || status.currentTargetId || "—"),
+      "- Selected party: " + String(status.currentTask && status.currentTask.partyId || "—"),
+      "- Selected party members: "
+        + (
+          status.currentTask
+          && Array.isArray(status.currentTask.partyMemberIds)
+          && status.currentTask.partyMemberIds.length
+            ? status.currentTask.partyMemberIds.join(", ")
+            : "—"
+        ),
+      "- Optimizer status: " + String(optimizer.status || "—"),
+      "- Learning can relax hard filter: " + String(optimizer.learningCanRelaxHardFilter === true),
+      "",
+      "## PR24/25 group + evidence",
+      "- Group status: " + String(group.status || "—"),
+      "- Topology: " + String(group.topologyId || "—"),
+      "- Roles: " + formatRoles(group.roles),
+      "- Faults: " + (Array.isArray(group.faults) && group.faults.length ? group.faults.join(", ") : "—"),
+      "- Blockers: " + (Array.isArray(group.blocker) && group.blocker.length ? group.blocker.join(", ") : "—"),
+      "- Evidence status: " + String(evidence.status || "—"),
+      "- Evidence segments: capability=" + String(evidence.capabilitySegmente || 0)
+        + ", integration=" + String(evidence.integrationsSegmente || 0)
+        + ", totalSeconds=" + String(evidence.gesamteDauerSekunden || 0),
+      "",
+      "## PR27 progression",
+      "- Selected character: " + String(progression.selectedCharacter || "—"),
+      "- Progression status: " + String(progression.status || "—"),
+      "- Starvation guard: " + String(progression.progressionStarvationGuard === true),
+      "",
+      "## PR28 world autonomy",
+      "- World plans: " + String(Array.isArray(world.plans) ? world.plans.length : 0),
+      "- Quarantined discoveries: " + String(Array.isArray(world.quarantine) ? world.quarantine.length : 0),
+      "- Server-hop history entries: " + String(Array.isArray(world.hopHistory) ? world.hopHistory.length : 0),
+      "",
+      "## Merchant / inventory",
+      "- Last service: " + String(status.lastService || "—"),
+      "- Free inventory slots: " + String(status.freeInventorySlots == null ? "—" : status.freeInventorySlots),
+      "",
+      "## Triage hints",
+      "- Severity: UNCLASSIFIED (set during triage; do not infer automatically)",
+      "- Suggested areas: " + areas.join(", "),
+      "- Latest important runtime event: " + (
+        important
+          ? String(important.event) + " @ " + new Date(important.atMs).toISOString()
+          : "—"
+      ),
+      "- Log entries in bundle: " + String(bundle.logs.length),
+      "",
+      "## Reproduction",
+      "- Reproducible: unknown",
+      "- Frequency: unknown",
+      "- Known trigger: infer from the context/logs below",
+      "",
+      "## Test focus for parallel test chat",
+      "Reproduce the same build/configuration and runtime state, then assert the reported symptom does not recur while all existing PR24-28 safety gates remain intact.",
+      "",
+      "## Relevant log excerpt (last 250 entries)",
+      "\`\`\`json",
+      JSON.stringify(relevantLogs, null, 2),
+      "\`\`\`",
+      "",
+      "## Full V5LiveLab Bug Bundle",
+      "\`\`\`json",
+      JSON.stringify(bundle, null, 2),
+      "\`\`\`",
+      "",
+      "## Occurrence history",
+      "- Occurrence #1",
+      "- Build ID: " + BUILD_ID,
+      "- Runtime version: " + VERSION,
+      "- Observed: " + new Date(bundle.observedAtMs).toISOString(),
+      "- Same signature: unknown",
+    ];
+
+    return lines.join("\n");
+  }
+
+  async function copyTextToClipboard(value) {
+    const textValue = String(value);
+    const nav = guiNavigator();
+    if (nav && nav.clipboard && typeof nav.clipboard.writeText === "function") {
+      try {
+        await nav.clipboard.writeText(textValue);
+        return true;
+      } catch (_) {}
+    }
+
+    const doc = guiDocument();
+    if (!doc || !doc.body || typeof doc.createElement !== "function") return false;
+    const textarea = doc.createElement("textarea");
+    textarea.value = textValue;
+    textarea.setAttribute("readonly", "readonly");
+    textarea.style.position = "fixed";
+    textarea.style.left = "-10000px";
+    textarea.style.top = "0";
+    doc.body.appendChild(textarea);
+    try {
+      textarea.focus();
+      textarea.select();
+      if (typeof textarea.setSelectionRange === "function") {
+        textarea.setSelectionRange(0, textarea.value.length);
+      }
+      const ok = typeof doc.execCommand === "function" && doc.execCommand("copy");
+      textarea.remove();
+      return !!ok;
+    } catch (_) {
+      try { textarea.remove(); } catch (_) {}
+      return false;
+    }
+  }
+
+  async function copyBugReportToClipboard() {
+    const report = buildBugReportText();
+    const ok = await copyTextToClipboard(report);
+    log("BUG_REPORT_COPY", {
+      ok: ok,
+      chars: report.length,
+      buildId: BUILD_ID,
+    });
+    return Object.freeze({
+      ok: ok,
+      chars: report.length,
+      report: report,
+    });
+  }
+
+  function guiStatusSummary(status) {
+    if (status.emergencyStop) return { text: "NOTHALT", cls: "danger" };
+    if (status.running && status.liveExecutionAllowed) return { text: "LIVE", cls: "live" };
+    if (status.running) return { text: "BLOCKIERT", cls: "warn" };
+    return { text: "GESTOPPT", cls: "stopped" };
+  }
+
+  function refreshGui() {
+    const doc = guiDocument();
+    if (!doc || !guiPanel || !doc.getElementById("v5-live-lab-gui")) return false;
+
+    let status;
+    try {
+      status = api.status();
+    } catch (error) {
+      guiSetText("v5ll-runtime", "STATUS ERROR");
+      guiNotice(String(error && error.message || error), "danger");
+      return false;
+    }
+
+    const summary = guiStatusSummary(status);
+    guiSetText("v5ll-state", summary.text);
+    guiSetClass("v5ll-state", "v5ll-badge " + summary.cls);
+
+    guiSetText(
+      "v5ll-runtime",
+      String(status.character || "—")
+        + " · " + String(status.ctype || "—")
+        + " · " + String(status.server && status.server.region || "—")
+        + " " + String(status.server && status.server.identifier || "—")
+    );
+
+    const task = status.currentTask;
+    guiSetText(
+      "v5ll-task",
+      task
+        ? String(task.type || "—") + " · " + short(task.id || "—", 48)
+        : "Kein Task"
+    );
+    guiSetText("v5ll-target", task && task.targetId || status.currentTargetId || "—");
+    guiSetText(
+      "v5ll-party",
+      task && task.partyId
+        ? String(task.partyId)
+          + (
+            Array.isArray(task.partyMemberIds) && task.partyMemberIds.length
+              ? " [" + task.partyMemberIds.join(", ") + "]"
+              : ""
+          )
+        : "—"
+    );
+
+    const progression = status.progression || {};
+    guiSetText("v5ll-progression", progression.selectedCharacter || "—");
+
+    const group = status.group || {};
+    guiSetText("v5ll-group-status", group.status || "—");
+    guiSetText("v5ll-roles", formatRoles(group.roles));
+    guiSetText(
+      "v5ll-faults",
+      Array.isArray(group.faults) && group.faults.length
+        ? group.faults.join(", ")
+        : "—"
+    );
+    guiSetText(
+      "v5ll-blockers",
+      Array.isArray(group.blocker) && group.blocker.length
+        ? group.blocker.join(", ")
+        : "—"
+    );
+
+    const world = status.world || {};
+    guiSetText(
+      "v5ll-world",
+      "Plans " + String(Array.isArray(world.plans) ? world.plans.length : 0)
+        + " · Quarantäne " + String(Array.isArray(world.quarantine) ? world.quarantine.length : 0)
+        + " · Hops " + String(Array.isArray(world.hopHistory) ? world.hopHistory.length : 0)
+    );
+
+    guiSetText(
+      "v5ll-merchant",
+      String(status.lastService || "idle")
+        + " · freie Slots " + String(status.freeInventorySlots == null ? "—" : status.freeInventorySlots)
+    );
+
+    const evidence = status.evidence || {};
+    guiSetText(
+      "v5ll-evidence",
+      String(evidence.status || "—")
+        + " · C" + String(evidence.capabilitySegmente || 0)
+        + " / I" + String(evidence.integrationsSegmente || 0)
+    );
+
+    guiSetText(
+      "v5ll-authority",
+      "Exec " + (status.liveExecutionAllowed ? "✓" : "×")
+        + " · Gameplay " + (status.gameplayAuthority ? "✓" : "×")
+        + " · Normal " + (status.normalRuntimeAllowed ? "✓" : "×")
+        + " · Raw " + (status.rawWriteAuthority ? "✓" : "×")
+    );
+
+    const important = latestImportantLog();
+    guiSetText(
+      "v5ll-last-error",
+      important
+        ? String(important.event) + " · " + short(
+            important.error || important.status || important.blocker || "",
+            70
+          )
+        : "—"
+    );
+
+    guiSetText(
+      "v5ll-meta",
+      "v" + VERSION + " · " + BUILD_ID
+        + " · ticks " + String(status.tickSeq || 0)
+        + " · logs " + String(status.logEntries || 0)
+    );
+
+    const body = doc.getElementById("v5ll-body");
+    if (body) body.style.display = guiCollapsed ? "none" : "block";
+    const toggle = doc.getElementById("v5ll-collapse");
+    if (toggle) toggle.textContent = guiCollapsed ? "+" : "−";
+    return true;
+  }
+
+  function installGuiStyle(doc) {
+    if (doc.getElementById("v5-live-lab-gui-style")) return;
+    const style = doc.createElement("style");
+    style.id = "v5-live-lab-gui-style";
+    style.textContent = [
+      "#v5-live-lab-gui{position:fixed;top:72px;right:14px;width:390px;z-index:2147483646;",
+      "font:12px/1.35 Arial,Helvetica,sans-serif;color:#e8eef7;background:rgba(9,14,22,.96);",
+      "border:1px solid rgba(120,170,220,.42);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.45);",
+      "overflow:hidden;user-select:text}",
+      "#v5-live-lab-gui *{box-sizing:border-box}",
+      "#v5-live-lab-gui .v5ll-head{display:flex;align-items:center;gap:8px;padding:9px 10px;",
+      "background:rgba(24,38,56,.98);border-bottom:1px solid rgba(120,170,220,.25)}",
+      "#v5-live-lab-gui .v5ll-title{font-weight:700;flex:1;letter-spacing:.2px}",
+      "#v5-live-lab-gui .v5ll-badge{font-weight:700;padding:2px 7px;border-radius:999px;font-size:11px}",
+      "#v5-live-lab-gui .v5ll-badge.live{background:#123c2a;color:#8dffc1}",
+      "#v5-live-lab-gui .v5ll-badge.warn{background:#493a10;color:#ffe18b}",
+      "#v5-live-lab-gui .v5ll-badge.danger{background:#561a1a;color:#ffaaaa}",
+      "#v5-live-lab-gui .v5ll-badge.stopped{background:#252c35;color:#bac6d4}",
+      "#v5-live-lab-gui .v5ll-icon{border:0;background:transparent;color:#d8e6f5;cursor:pointer;",
+      "font-weight:700;font-size:17px;line-height:18px;padding:0 3px}",
+      "#v5-live-lab-gui .v5ll-controls{display:grid;grid-template-columns:1fr 1fr 1.15fr 1.7fr;gap:6px;padding:8px 10px;",
+      "border-bottom:1px solid rgba(120,170,220,.18)}",
+      "#v5-live-lab-gui button.v5ll-btn{border:1px solid rgba(130,170,210,.32);border-radius:6px;",
+      "background:#1c2a3a;color:#ecf5ff;padding:7px 6px;cursor:pointer;font-weight:700;font-size:11px}",
+      "#v5-live-lab-gui button.v5ll-btn:hover{filter:brightness(1.18)}",
+      "#v5-live-lab-gui button.v5ll-start{background:#143f2c}",
+      "#v5-live-lab-gui button.v5ll-stop{background:#3c321b}",
+      "#v5-live-lab-gui button.v5ll-emergency{background:#641c1c;color:#ffd2d2}",
+      "#v5-live-lab-gui button.v5ll-report{background:#203e64}",
+      "#v5-live-lab-gui .v5ll-body{padding:8px 10px;max-height:62vh;overflow:auto}",
+      "#v5-live-lab-gui .v5ll-section{padding:6px 0;border-bottom:1px solid rgba(120,170,220,.12)}",
+      "#v5-live-lab-gui .v5ll-section:last-child{border-bottom:0}",
+      "#v5-live-lab-gui .v5ll-label{display:block;color:#8fa8c2;font-size:10px;text-transform:uppercase;",
+      "letter-spacing:.55px;margin-bottom:2px}",
+      "#v5-live-lab-gui .v5ll-value{display:block;color:#f2f6fa;overflow-wrap:anywhere}",
+      "#v5-live-lab-gui .v5ll-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}",
+      "#v5-live-lab-gui .v5ll-notice{min-height:0;padding:0 10px;text-align:center;font-weight:700}",
+      "#v5-live-lab-gui .v5ll-notice.info:not(:empty){padding:5px 10px;color:#badaff;background:#132941}",
+      "#v5-live-lab-gui .v5ll-notice.success:not(:empty){padding:5px 10px;color:#adffd1;background:#123924}",
+      "#v5-live-lab-gui .v5ll-notice.danger:not(:empty){padding:5px 10px;color:#ffc1c1;background:#551c1c}",
+      "#v5-live-lab-gui .v5ll-meta{padding:6px 10px;background:rgba(17,26,38,.9);color:#8094aa;",
+      "font-size:10px;border-top:1px solid rgba(120,170,220,.15)}"
+    ].join("");
+    (doc.head || doc.documentElement || doc.body).appendChild(style);
+  }
+
+  function wireGuiButton(doc, id, handler) {
+    const button = doc.getElementById(id);
+    if (!button) return;
+    button.onclick = function () {
+      Promise.resolve()
+        .then(handler)
+        .catch(function (error) {
+          guiNotice(String(error && error.message || error), "danger");
+          refreshGui();
+        });
+    };
+  }
+
+  function mountGui() {
+    const doc = guiDocument();
+    if (!doc || !doc.body || typeof doc.createElement !== "function") return false;
+
+    const old = doc.getElementById("v5-live-lab-gui");
+    if (old) {
+      guiPanel = old;
+      refreshGui();
+      return true;
+    }
+
+    installGuiStyle(doc);
+    const panel = doc.createElement("div");
+    panel.id = "v5-live-lab-gui";
+    panel.innerHTML = [
+      '<div class="v5ll-head">',
+      '<div class="v5ll-title">V5 Live Lab</div>',
+      '<span id="v5ll-state" class="v5ll-badge stopped">GESTOPPT</span>',
+      '<button id="v5ll-collapse" class="v5ll-icon" type="button" title="Ein-/Ausklappen">−</button>',
+      '</div>',
+      '<div id="v5ll-controls" class="v5ll-controls">',
+      '<button id="v5ll-start" class="v5ll-btn v5ll-start" type="button">START</button>',
+      '<button id="v5ll-stop" class="v5ll-btn v5ll-stop" type="button">STOP</button>',
+      '<button id="v5ll-emergency" class="v5ll-btn v5ll-emergency" type="button">NOTHALT</button>',
+      '<button id="v5ll-report" class="v5ll-btn v5ll-report" type="button">FEHLER MELDEN</button>',
+      '</div>',
+      '<div id="v5-live-lab-gui-notice" class="v5ll-notice"></div>',
+      '<div id="v5ll-body" class="v5ll-body">',
+      '<div class="v5ll-section"><span class="v5ll-label">Runtime</span><span id="v5ll-runtime" class="v5ll-value">—</span></div>',
+      '<div class="v5ll-section v5ll-grid">',
+      '<div><span class="v5ll-label">Task</span><span id="v5ll-task" class="v5ll-value">—</span></div>',
+      '<div><span class="v5ll-label">Target</span><span id="v5ll-target" class="v5ll-value">—</span></div>',
+      '<div><span class="v5ll-label">PR26 Party</span><span id="v5ll-party" class="v5ll-value">—</span></div>',
+      '<div><span class="v5ll-label">PR27 Progression</span><span id="v5ll-progression" class="v5ll-value">—</span></div>',
+      '</div>',
+      '<div class="v5ll-section"><span class="v5ll-label">Gruppe</span><span id="v5ll-group-status" class="v5ll-value">—</span>',
+      '<span class="v5ll-label" style="margin-top:5px">Rollen</span><span id="v5ll-roles" class="v5ll-value">—</span></div>',
+      '<div class="v5ll-section v5ll-grid">',
+      '<div><span class="v5ll-label">Faults</span><span id="v5ll-faults" class="v5ll-value">—</span></div>',
+      '<div><span class="v5ll-label">Blocker</span><span id="v5ll-blockers" class="v5ll-value">—</span></div>',
+      '</div>',
+      '<div class="v5ll-section v5ll-grid">',
+      '<div><span class="v5ll-label">PR28 World</span><span id="v5ll-world" class="v5ll-value">—</span></div>',
+      '<div><span class="v5ll-label">Merchant</span><span id="v5ll-merchant" class="v5ll-value">—</span></div>',
+      '<div><span class="v5ll-label">PR25 Evidence</span><span id="v5ll-evidence" class="v5ll-value">—</span></div>',
+      '<div><span class="v5ll-label">Authority</span><span id="v5ll-authority" class="v5ll-value">—</span></div>',
+      '</div>',
+      '<div class="v5ll-section"><span class="v5ll-label">Letztes wichtiges Ereignis</span>',
+      '<span id="v5ll-last-error" class="v5ll-value">—</span></div>',
+      '</div>',
+      '<div id="v5ll-meta" class="v5ll-meta">—</div>'
+    ].join("");
+
+    doc.body.appendChild(panel);
+    guiPanel = panel;
+
+    wireGuiButton(doc, "v5ll-start", async function () {
+      api.start({ ack: START_ACK });
+      guiNotice("Live Lab gestartet.", "success");
+    });
+    wireGuiButton(doc, "v5ll-stop", async function () {
+      api.stop("GUI_STOP");
+      guiNotice("Live Lab gestoppt.", "info");
+    });
+    wireGuiButton(doc, "v5ll-emergency", async function () {
+      api.emergencyStop("GUI_EMERGENCY_STOP");
+      guiNotice("NOTHALT ausgelöst.", "danger");
+    });
+    wireGuiButton(doc, "v5ll-report", async function () {
+      const result = await copyBugReportToClipboard();
+      if (result.ok) {
+        guiNotice(
+          "Fehlerreport kopiert (" + result.chars + " Zeichen). In ChatGPT einfügen.",
+          "success"
+        );
+      } else {
+        guiNotice(
+          "Zwischenablage blockiert. V5LiveLab.buildBugReportText() manuell kopieren.",
+          "danger"
+        );
+      }
+    });
+    wireGuiButton(doc, "v5ll-collapse", async function () {
+      guiCollapsed = !guiCollapsed;
+      refreshGui();
+    });
+
+    if (guiTimer) {
+      try { clearInterval(guiTimer); } catch (_) {}
+      guiTimer = null;
+    }
+    try {
+      guiTimer = setInterval(refreshGui, 500);
+    } catch (_) {}
+    refreshGui();
+    return true;
+  }
+
+  function unmountGui() {
+    const doc = guiDocument();
+    if (guiTimer) {
+      try { clearInterval(guiTimer); } catch (_) {}
+      guiTimer = null;
+    }
+    if (guiNoticeTimer) {
+      try { clearTimeout(guiNoticeTimer); } catch (_) {}
+      guiNoticeTimer = null;
+    }
+    if (doc) {
+      const node = doc.getElementById("v5-live-lab-gui");
+      if (node) {
+        try { node.remove(); } catch (_) {
+          if (node.parentNode) node.parentNode.removeChild(node);
+        }
+      }
+    }
+    guiPanel = null;
+    return true;
+  }
+
   const api = Object.freeze({
     profileId: PROFILE_ID,
     version: VERSION,
     sourceMainSha: SOURCE_MAIN_SHA,
+    buildChannel: BUILD_CHANNEL,
+    buildId: BUILD_ID,
     startAck: START_ACK,
 
     configure: configure,
@@ -2584,6 +3230,11 @@
     stop: stop,
     emergencyStop: triggerEmergencyStop,
     tickNow: function () { return tick(); },
+    mountGui: mountGui,
+    unmountGui: unmountGui,
+    refreshGui: refreshGui,
+    buildBugReportText: buildBugReportText,
+    copyBugReportToClipboard: copyBugReportToClipboard,
 
     startEvidenceSegment: function (options) {
       options = options || {};
@@ -2600,6 +3251,8 @@
         schemaVersion: 2,
         profileId: PROFILE_ID,
         version: VERSION,
+        buildId: BUILD_ID,
+        buildChannel: BUILD_CHANNEL,
         sourceMainSha: SOURCE_MAIN_SHA,
         running: running,
         stopReason: stopReason,
@@ -2669,6 +3322,8 @@
         issueSchema: "V5 Live-Test Bug",
         profileId: PROFILE_ID,
         version: VERSION,
+        buildId: BUILD_ID,
+        buildChannel: BUILD_CHANNEL,
         sourceMainSha: SOURCE_MAIN_SHA,
         observedAtMs: now(),
         character: c && c.name || null,
@@ -2709,6 +3364,7 @@
 
   root.V5LiveLab = api;
   persistRuntimeState();
+  mountGui();
   log("RUNTIME_INSTALLED", {
     liveExecutionAllowed: false,
     gameplayAuthority: false,
