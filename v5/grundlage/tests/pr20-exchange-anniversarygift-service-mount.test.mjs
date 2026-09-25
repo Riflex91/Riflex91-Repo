@@ -17,7 +17,7 @@ test("service-unreachable live evidence is exact zero-write",()=>{
   assert.equal(evidence.status,"RATIFIED_ZERO_WRITE_SERVICE_UNREACHABLE");
   assert.equal(evidence.sourceMain,"0c96fdf5ab513c7f1b12a779acc7c27477eb0c61");
   assert.equal(evidence.testId,
-    "pr20-8-exchange-anniversarygift-productive-one-write-live");
+    "pr20-8-exchange-anniversarygift-live-5m");
   assert.equal(evidence.controllerVersion,"1.0.0");
   assert.deepEqual(evidence.observations.map(x=>x.notificationId),[2811,2813]);
   for(const o of evidence.observations){
@@ -91,16 +91,16 @@ test("service mount bytes and pinned source commit are exact",()=>{
 test("historical service mount remains exact while active manifest returns to productive one-write",()=>{
   assert.notEqual(manifest.testId,contract.package.testId);
   assert.equal(manifest.testId,
-    "pr20-8-exchange-anniversarygift-productive-one-write-live");
+    "pr20-8-exchange-anniversarygift-live-5m");
   assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.sourceCommit,
-    "5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
+    "859c5be1067fbd5360c17ccfe0d912a98537bfc9");
   assert.equal(manifest.packagePath,
-    "v5/werkzeuge/pr20-8-exchange-anniversarygift-productive-one-write-live.js");
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-live-5m.js");
   assert.equal(manifest.packageSha256,
-    "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
+    "455593d7691dc5436af27a5b89afb5fc208f2ebca4253aa87d0726821abcda94");
   assert.equal(manifest.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
+    "V5PR208ExchangeAnniversarygiftLive5m");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 
