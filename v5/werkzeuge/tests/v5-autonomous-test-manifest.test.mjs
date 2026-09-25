@@ -922,9 +922,9 @@ test("PR20.8 productive Compound one-write manifest is exact, one-shot and runti
   assert.equal(packageSource.includes("api_call("), false);
 });
 
-test("PR20.8 Compound 5m manifest is exact, zero-write and postcommit-only", () => {
+test("PR20.8 Compound 5m recovery manifest is exact, zero-write and postcommit-only", () => {
   if (manifest.testId !== "pr20-8-compound-live-5m") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.controllerVersion, "1.0.1");
   assert.equal(
     manifest.sourceCommit,
     "51b1fc8038740f828cacffe866c6db799a447348",
