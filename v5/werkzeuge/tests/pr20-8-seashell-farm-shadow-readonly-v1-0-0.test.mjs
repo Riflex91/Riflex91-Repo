@@ -254,13 +254,15 @@ test("runner contract and current roadmap remain read-only and undeployed",()=>{
   assert.equal(shadow.alreadySatisfiedNextAction,"PREPARE_SEASHELL_HANDOFF_SHADOW_NO_WRITE");
 });
 
-test("autonomous manifest remains on market discovery until a separate cutover stage",()=>{
-  assert.equal(manifest.testId,"pr20-8-exchange-market-discovery");
-  assert.equal(manifest.controllerVersion,"1.0.0");
+test("autonomous manifest is cut over to the anniversarygift exception rescan",()=>{
+  assert.equal(manifest.testId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(manifest.controllerVersion,"1.0.7");
+  assert.equal(manifest.sourceCommit,"5ae7e2699ca38381df4e90ea385732241cfbcd55");
   assert.equal(
     manifest.packagePath,
-    "v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js",
+    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-7.js",
   );
-  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeMarketDiscovery");
+  assert.equal(manifest.packageSha256,"00e2f5ed379f27a489af1c1a87f142cd7efe7fb7617d1e814d3033563137dbf9");
+  assert.equal(manifest.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
