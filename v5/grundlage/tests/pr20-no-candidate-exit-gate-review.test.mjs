@@ -43,7 +43,7 @@ test("PR20.8 no-candidate evidence cannot silently create authority or substitut
   ]);
   assert.equal(
     review.nextAction,
-    "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER",
+    "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
   );
 });
 
@@ -90,7 +90,8 @@ test("PR20.8 Compound 5m runner package remains authority-closed before manifest
   assert.equal(r.compoundWriteAuthority,false);
   assert.equal(r.manifestCutoverPrepared,true);
   assert.equal(r.deployed,true);
-  assert.equal(r.bridgeMayDeployPinnedRunner,true);
+  assert.equal(r.bridgeMayDeployPinnedRunner,false);
+  assert.equal(r.retiredFromActiveManifest,true);
   assert.equal(r.deploymentEvidenceObserved,true);
   assert.equal(r.realFiveMinuteRunCompleted,false);
   assert.equal(r.maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass,true);
@@ -100,7 +101,7 @@ test("PR20.8 Compound 5m runner package remains authority-closed before manifest
 
 test("PR20.8 Compound 5m performance recovery remains zero-write before cutover", () => {
   const r=review.compoundLive5mPerformanceRecovery;
-  assert.equal(r.status,"PACKAGE_BEREIT_NOT_DEPLOYED");
+  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M");
   assert.equal(r.controllerVersion,"1.0.1");
   assert.equal(r.package,"v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js");
   assert.equal(r.sourceCommit,"51b1fc8038740f828cacffe866c6db799a447348");
@@ -117,10 +118,13 @@ test("PR20.8 Compound 5m performance recovery remains zero-write before cutover"
   assert.equal(r.rawWriteCallsAllowed,0);
   assert.equal(r.publicCompoundCallSites,0);
   assert.equal(r.compoundWriteAuthority,false);
-  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.manifestCutoverPrepared,true);
   assert.equal(r.deployed,false);
+  assert.equal(r.bridgeMayDeployPinnedRunner,true);
+  assert.equal(r.deploymentEvidenceObserved,false);
+  assert.equal(r.realFiveMinuteRunCompleted,false);
   assert.equal(r.maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass,true);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER");
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN");
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
 });
