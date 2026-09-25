@@ -36,7 +36,7 @@ test("anniversarygift shadow cutover pins the exact prepared no-send package",()
 });
 
 test("historical shadow cutover package bytes remain exact after later manifest advance",()=>{
-  const packagePath=cutover.manifest.packagePath.replace(/^v5\\//,"");
+  const packagePath=cutover.manifest.packagePath.replace(/^v5\//,"");
   const bytes=fs.readFileSync(packagePath);
   assert.equal(bytes.length,cutover.manifest.packageBytes);
   assert.equal(
