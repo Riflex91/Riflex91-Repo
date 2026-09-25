@@ -97,6 +97,8 @@ export interface ProduktionsMaterialFortschritt {
   readonly status: "FARM_REQUIRED" | "MATERIAL_READY_FOR_HANDOFF";
   readonly beobachteteMenge: number;
   readonly restMenge: number;
+  readonly beobachtetAmMs: number;
+  readonly gueltigBisMs: number;
   readonly farmStopErforderlich: boolean;
   readonly handoffErforderlich: boolean;
   readonly pr22KoordinationErforderlich: true;
@@ -436,6 +438,8 @@ export function bewerteProductionMaterialFortschritt(
     status: bereit ? "MATERIAL_READY_FOR_HANDOFF" : "FARM_REQUIRED",
     beobachteteMenge: evidence.menge,
     restMenge: Math.max(0, ziel.menge - evidence.menge),
+    beobachtetAmMs: evidence.beobachtetAmMs,
+    gueltigBisMs: evidence.gueltigBisMs,
     farmStopErforderlich: bereit,
     handoffErforderlich: bereit,
     pr22KoordinationErforderlich: true,
