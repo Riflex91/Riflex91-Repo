@@ -121,15 +121,15 @@ test("one-write authority is bounded to one public exchange call and no raw writ
 
 test("runner bytes and source commit are exact",()=>{
   assert.equal(contract.runner.testId,
-    "pr20-8-exchange-anniversarygift-productive-one-write-live");
+    "pr20-8-exchange-anniversarygift-service-mount");
   assert.equal(contract.runner.controllerVersion,"1.0.0");
   assert.equal(contract.runner.sourceCommit,
-    "5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
+    "72e01a9dd911e9a21c8e6d2002851c707f130c98");
   assert.equal(contract.runner.sha256,
-    "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
+    "c2a58c21a648ce17693029965380e4c343012d90de528edb43fc1b4a1946b163");
   assert.equal(contract.runner.bytes,50047);
   assert.equal(contract.runner.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
+    "V5PR208ExchangeAnniversarygiftServiceMount");
   assert.equal(contract.runner.maximumGameplayWrites,1);
   assert.equal(contract.runner.maximumPublicFunctionCalls,1);
   assert.equal(contract.runner.maximumRawWriteCalls,0);
@@ -165,10 +165,10 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
   assert.equal(a.anniversaryGiftExchangeShadow.latestNotificationId,2752);
   assert.equal(a.anniversaryGiftRewardDomain.status,
     "RATIFIED_SCOPED_CURRENT_SOURCE_REVALIDATION");
-  assert.equal(live.status,"MANIFEST_CUTOVER_PREPARED");
+  assert.equal(live.status,"BLOCKED_LIVE_SERVICE_UNREACHABLE_ZERO_WRITE");
   assert.equal(live.manifestCutoverPrepared,true);
-  assert.equal(live.deployed,false);
-  assert.equal(live.liveEvidenceObserved,false);
+  assert.equal(live.deployed,true);
+  assert.equal(live.liveEvidenceObserved,true);
   assert.equal(live.exchangeAuthority,false);
   assert.equal(live.gameplayAuthority,false);
   assert.equal(live.rawWriteAuthority,false);
@@ -177,14 +177,14 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
 
 test("active autonomous manifest is cut over to the productive one-write runner",()=>{
   assert.equal(manifest.testId,
-    "pr20-8-exchange-anniversarygift-productive-one-write-live");
+    "pr20-8-exchange-anniversarygift-service-mount");
   assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.sourceCommit,
-    "5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
+    "72e01a9dd911e9a21c8e6d2002851c707f130c98");
   assert.equal(manifest.packageSha256,
-    "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
+    "c2a58c21a648ce17693029965380e4c343012d90de528edb43fc1b4a1946b163");
   assert.equal(manifest.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
+    "V5PR208ExchangeAnniversarygiftServiceMount");
   assert.equal(manifest.normalRuntimeAllowed,false);
   assert.equal(shadow.status,"PREPARED_NO_WRITE");
 });
