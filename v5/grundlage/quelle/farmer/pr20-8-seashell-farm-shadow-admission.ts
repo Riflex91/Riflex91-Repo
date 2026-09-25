@@ -54,7 +54,7 @@ export interface Pr208SeashellFarmShadowAdmission {
   readonly freshExistingExchangeScannerRequiredAfterAcquisition: true;
   readonly nextAction:
     | "PREPARE_SEASHELL_FARM_SHADOW_RUNNER_READ_ONLY"
-    | "RUN_EXISTING_EXCHANGE_SCANNER"
+    | "PREPARE_SEASHELL_HANDOFF_SHADOW_NO_WRITE"
     | "REMAIN_BLOCKED";
 }
 
@@ -178,7 +178,7 @@ export function pruefePr208SeashellFarmShadowAdmission(
     nextAction:status==="READY_NO_WRITE"
       ?"PREPARE_SEASHELL_FARM_SHADOW_RUNNER_READ_ONLY"
       :status==="ALREADY_SATISFIED_NO_WRITE"
-        ?"RUN_EXISTING_EXCHANGE_SCANNER"
+        ?"PREPARE_SEASHELL_HANDOFF_SHADOW_NO_WRITE"
         :"REMAIN_BLOCKED",
   });
 }

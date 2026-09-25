@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "EXCHANGE_SEASHELL_FARM_SHADOW_ADMISSION_READY_NO_WRITE",
+      "status": "EXCHANGE_SEASHELL_FARM_SHADOW_RUNNER_PREPARED_READ_ONLY",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_RUNNER_READ_ONLY",
+      "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_READ_ONLY",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -873,7 +873,10 @@
         "v5/grundlage/tests/pr20-exchange-seashell-farm-preparation.test.mjs",
         "v5/grundlage/quelle/farmer/pr20-8-seashell-farm-shadow-admission.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-seashell-farm-shadow.json",
-        "v5/grundlage/tests/pr20-exchange-seashell-farm-shadow.test.mjs"
+        "v5/grundlage/tests/pr20-exchange-seashell-farm-shadow.test.mjs",
+        "v5/grundlage/vertraege/runtime/pr20-8-exchange-seashell-farm-shadow-runner.json",
+        "v5/werkzeuge/pr20-8-seashell-farm-shadow-readonly-v1-0-0.js",
+        "v5/werkzeuge/tests/pr20-8-seashell-farm-shadow-readonly-v1-0-0.test.mjs"
       ]
     },
     {
@@ -2155,7 +2158,7 @@
     }
   },
   "pr20_8": {
-    "status": "EXCHANGE_SEASHELL_FARM_SHADOW_ADMISSION_READY_NO_WRITE",
+    "status": "EXCHANGE_SEASHELL_FARM_SHADOW_RUNNER_PREPARED_READ_ONLY",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -2199,13 +2202,13 @@
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
       "normalUpgrade": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS",
       "normalCompound": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_RATIFIED",
-      "normalExchange": "BLOCKIERT_SEASHELL_FARM_SHADOW_ADMISSION_READY_NO_WRITE",
+      "normalExchange": "BLOCKIERT_SEASHELL_FARM_SHADOW_RUNNER_PREPARED_READ_ONLY",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_RUNNER_READ_ONLY",
+    "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_READ_ONLY",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -3439,7 +3442,7 @@
       "nextGate": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN"
     },
     "exchangeCandidateAcquisition": {
-      "status": "SEASHELL_FARM_SHADOW_ADMISSION_READY_NO_WRITE",
+      "status": "SEASHELL_FARM_SHADOW_RUNNER_PREPARED_READ_ONLY",
       "policy": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
       "planner": "v5/grundlage/quelle/merchant/pr20-8-exchange-candidate-acquisition.ts",
       "plannerTest": "v5/grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs",
@@ -3471,7 +3474,7 @@
       "bridgeMayDeployPinnedRunner": true,
       "deployed": true,
       "evidenceObserved": true,
-      "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_RUNNER_READ_ONLY",
+      "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_READ_ONLY",
       "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
       "package": "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
       "latestNotificationId": 2603,
@@ -3603,7 +3606,7 @@
         "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_NO_WRITE"
       },
       "seashellFarmShadow": {
-        "status": "ADMISSION_PREPARED_NO_WRITE",
+        "status": "RUNNER_PREPARED_READ_ONLY",
         "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-seashell-farm-shadow.json",
         "source": "v5/grundlage/quelle/farmer/pr20-8-seashell-farm-shadow-admission.ts",
         "test": "v5/grundlage/tests/pr20-exchange-seashell-farm-shadow.test.mjs",
@@ -3613,7 +3616,7 @@
         "requiredQuantity": 20,
         "sourceMonster": "croc",
         "minimumHpRatio": 0.8,
-        "runnerPrepared": false,
+        "runnerPrepared": true,
         "manifestCutoverPrepared": false,
         "movementAuthority": false,
         "combatAuthority": false,
@@ -3629,7 +3632,18 @@
         "sameIntentRetry": false,
         "normalRuntimeAllowed": false,
         "freshExistingExchangeScannerRequiredAfterAcquisition": true,
-        "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_RUNNER_READ_ONLY"
+        "nextAction": "PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_READ_ONLY",
+        "runnerContract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-seashell-farm-shadow-runner.json",
+        "runnerPackage": "v5/werkzeuge/pr20-8-seashell-farm-shadow-readonly-v1-0-0.js",
+        "runnerTest": "v5/werkzeuge/tests/pr20-8-seashell-farm-shadow-readonly-v1-0-0.test.mjs",
+        "runnerTestId": "pr20-8-seashell-farm-shadow-readonly",
+        "runnerControllerVersion": "1.0.0",
+        "runnerExpectedGlobal": "V5PR208SeashellFarmShadowReadonly",
+        "runnerLocalFarmerOnly": true,
+        "packagePinDeferredUntilManifestCutover": true,
+        "deployed": false,
+        "liveEvidenceObserved": false,
+        "alreadySatisfiedNextAction": "PREPARE_SEASHELL_HANDOFF_SHADOW_NO_WRITE"
       }
     }
   },
