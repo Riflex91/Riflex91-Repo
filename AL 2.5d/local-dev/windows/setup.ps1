@@ -61,16 +61,29 @@ function Checkout-PinnedRepo(
   }
 }
 
-function Ensure-Junction([string]$Path, [string]$Target) {
+function Sync-DirectoryCopy([string]$Path, [string]$Source) {
   if (Test-Path $Path) {
     $Item = Get-Item $Path -Force
-    if ($Item.LinkType -eq "Junction" -and $Item.Target -contains $Target) {
-      return
+
+    if (($Item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+      & cmd.exe /c rmdir "$Path" | Out-Null
+      if ($LASTEXITCODE -ne 0) {
+        throw "Unable to remove existing link at $Path."
+      }
+    } else {
+      Remove-Item $Path -Recurse -Force
     }
-    Remove-Item $Path -Recurse -Force
   }
 
-  New-Item -ItemType Junction -Path $Path -Target $Target | Out-Null
+  New-Item -ItemType Directory -Force -Path $Path | Out-Null
+
+  foreach ($Entry in Get-ChildItem -LiteralPath $Source -Force) {
+    if ($Entry.Name -eq ".git") {
+      continue
+    }
+
+    Copy-Item -LiteralPath $Entry.FullName -Destination $Path -Recurse -Force
+  }
 }
 
 function Test-Mongo {
@@ -92,8 +105,9 @@ Checkout-PinnedRepo "https://github.com/kaansoral/adventureland_mongodb.git" $Ad
 Checkout-PinnedRepo "https://github.com/kaansoral/common_engine.git" $CommonDir $CommonCommit
 Checkout-PinnedRepo "https://github.com/kaansoral/adventureland_secretsandconfig.git" $ConfigDir $ConfigCommit
 
-Ensure-Junction (Join-Path $AdventureDir "common") $CommonDir
-Ensure-Junction (Join-Path $AdventureDir "secretsandconfig") $ConfigDir
+Write-Host "==> Copying pinned common/config trees into the runtime"
+Sync-DirectoryCopy (Join-Path $AdventureDir "common") $CommonDir
+Sync-DirectoryCopy (Join-Path $AdventureDir "secretsandconfig") $ConfigDir
 
 $OptionsPath = Join-Path $ConfigDir "options.js"
 $Options = Get-Content $OptionsPath -Raw
