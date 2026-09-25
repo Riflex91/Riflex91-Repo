@@ -39,7 +39,7 @@ test("anniversarygift productive cutover pins the exact one-write package",()=>{
 });
 
 test("historical productive cutover package bytes remain exact after service-recovery advance",()=>{
-  const localPath=cutover.manifest.packagePath.replace(/^v5\\//,"");
+  const localPath=cutover.manifest.packagePath.replace(/^v5\//,"");
   const bytes=fs.readFileSync(localPath);
   assert.equal(bytes.length,cutover.manifest.packageBytes);
   assert.equal(
