@@ -24,6 +24,14 @@
       "items": {
         "path": "design/items.js",
         "blobSha": "ca41b524c8bd795db40836525f7efd9626982c70"
+      },
+      "serverFunctions": {
+        "path": "node/server_functions.js",
+        "blobSha": "650797b87de128e85b2d01d574d5321a7144bef7"
+      },
+      "maps": {
+        "path": "design/maps.js",
+        "blobSha": "78350dac1a18c4eb0e7c6f545ebf08bb3d6729e4"
       }
     }
   },
@@ -353,7 +361,14 @@
     "placeholderSlotRecordedInQExchange": true,
     "placeholderClearedBeforeRewardGeneration": true,
     "rewardGeneratedOnlyAfterPlaceholderClear": true,
-    "qExchangeDeletedBeforeRewardGeneration": true
+    "qExchangeDeletedBeforeRewardGeneration": true,
+    "rewardFunctionFile": "node/server_functions.js",
+    "socketLifecycleFile": "node/server.js",
+    "exchangeServicePoint": {
+      "map": "main",
+      "x": -25,
+      "y": -478
+    }
   },
   "runnerSemantics": {
     "publicFunction": "exchange",
