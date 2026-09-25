@@ -88,7 +88,7 @@
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: Compound 5m v1.0.0 wurde real-browser fail-safe mit PERFORMANCE_TRICK_NICHT_AKTIV und 0/0/0 zusaetzlichen Writes beendet. Zero-Write Recovery v1.0.1 ist SHA-gepinnt und offline bereit; naechster separater Gate ist der Recovery-Manifest-Cutover. Exchange und PR20.9 bleiben geschlossen."
+    "AKTUELL: Compound 5m Recovery v1.0.1 ist jetzt SHA-gepinnt im Autonomous-Test-Manifest. Der Bridge darf nur den exakt terminalen 0-Write-v1.0.0-Zustand auf v1.0.1 anheben. Naechster Gate: kontrollierter Real-Browser-Retry; Exchange und PR20.9 bleiben geschlossen."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "COMPOUND_LIVE_5M_PERFORMANCE_RECOVERY_PACKAGE_READY_NOT_DEPLOYED",
+      "status": "COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER",
+      "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RETRY",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -1666,7 +1666,7 @@
     }
   },
   "pr20_8": {
-    "status": "COMPOUND_LIVE_5M_PERFORMANCE_RECOVERY_PACKAGE_READY_NOT_DEPLOYED",
+    "status": "COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1709,14 +1709,14 @@
     "remainingGates": {
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
       "normalUpgrade": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS",
-      "normalCompound": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_V1_0_0_BLOCKED_ZERO_WRITE_RECOVERY_PACKAGE_READY",
+      "normalCompound": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_RECOVERY_MANIFEST_CUTOVER_PREPARED",
       "normalExchange": "BLOCKIERT_KEIN_NORMALKANDIDAT_AUTHORITY_CLOSED",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER",
+    "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RETRY",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -2528,7 +2528,7 @@
       }
     },
     "compoundLive5mPerformanceRecovery": {
-      "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
       "contract": "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-performance-recovery-preparation.json",
       "package": "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
       "test": "v5/werkzeuge/tests/pr20-8-compound-live-5m-v1-0-1.test.mjs",
@@ -2559,10 +2559,23 @@
       "rawWriteAuthority": false,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
-      "bridgeMayDeployPinnedRunner": false,
-      "nextGate": "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER"
+      "bridgeMayDeployPinnedRunner": true,
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RETRY",
+      "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+      "deploymentEvidenceObserved": false,
+      "realFiveMinuteRunCompleted": false
+    },
+    "activeCompoundLive5mManifest": {
+      "testId": "pr20-8-compound-live-5m",
+      "controllerVersion": "1.0.1",
+      "sourceCommit": "51b1fc8038740f828cacffe866c6db799a447348",
+      "package": "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
+      "packageSha256": "23af77b23467e99fddfa437b9dc54873d0e3f25d783c940c819b447e44863a2b",
+      "packageBytes": 26060,
+      "expectedGlobal": "V5PR208CompoundLive5m",
+      "normalRuntimeAllowed": false
     }
   }
 }
