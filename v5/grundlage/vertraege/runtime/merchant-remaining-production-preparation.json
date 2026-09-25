@@ -2126,7 +2126,26 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "broadGraphExecutionAuthority": false,
-      "normalRuntimeAllowed": false
+      "normalRuntimeAllowed": false,
+      "materialHandoffFoundation": {
+        "status": "PREPARED_NO_WRITE",
+        "source": "grundlage/quelle/koordination/production-material-handoff.ts",
+        "contract": "grundlage/vertraege/runtime/pr22-23-production-material-handoff-foundation.json",
+        "test": "grundlage/tests/pr22-23-production-material-handoff.test.mjs",
+        "logisticsArt": "COLLECTION",
+        "singlePhysicalStackPinned": true,
+        "exactItemFingerprintPinned": true,
+        "farmStopRequired": true,
+        "productiveTransferAuthorityRequired": true,
+        "handoffPlanCountsAsNaturalCurrentInventoryCandidate": false,
+        "foundationCountsAsCraftRatification": false,
+        "settledFutureHandoffRequiresFreshCraftRescan": true,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
+      },
+      "automaticMaterialPathPreparedThroughCollectionPlanning": true,
+      "freshCraftRescanAfterSettledHandoffRequired": true
     }
   },
   "pr21": {
