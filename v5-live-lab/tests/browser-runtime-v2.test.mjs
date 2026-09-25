@@ -373,8 +373,8 @@ test("PR26 hard filter rejects unsafe high-priority learning candidate", async (
   const status = env.box.V5LiveLab.status();
   assert.equal(status.currentTask.type, "FARM");
   assert.ok(
-    status.optimizer.rejectedCandidateIds.includes(
-      "world:EVENT:unsafeevent",
+    status.optimizer.rejectedCandidateIds.some(
+      (id) => id.startsWith("world:EVENT:unsafeevent:party:"),
     ),
   );
   assert.equal(status.optimizer.learningCanRelaxHardFilter, false);
