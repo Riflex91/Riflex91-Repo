@@ -257,6 +257,7 @@
   let restartReconciled = true;
   let persistenceAvailable = false;
   let runtimeSessionId = null;
+  let runtimeStartedAtMs = null;
 
   function now() {
     return Date.now();
@@ -2526,6 +2527,7 @@
     emergencyStop = false;
     stopReason = null;
     runtimeSessionId = PROFILE_ID + ":" + now() + ":" + String(seq + 1);
+    runtimeStartedAtMs = now();
     installCmHandler();
     lastTrainingTickAt = now();
     persistRuntimeState();
@@ -2767,6 +2769,12 @@
       "- Build channel: " + BUILD_CHANNEL,
       "- Source main SHA: " + SOURCE_MAIN_SHA,
       "- Runtime session ID: " + String(status.runtimeSessionId || "—"),
+      "- Runtime started at: " + (
+        status.runtimeStartedAtMs
+          ? new Date(status.runtimeStartedAtMs).toISOString()
+          : "—"
+      ),
+      "- Runtime uptime ms: " + String(status.runtimeUptimeMs || 0),
       "- Observed at: " + new Date(bundle.observedAtMs).toISOString(),
       "- Persistence available: " + String(status.persistenceAvailable === true),
       "- Restart detected/reconciled: " + String(status.restartDetected === true) + "/" + String(status.restartReconciled === true),
@@ -2775,7 +2783,8 @@
       "- Character: " + String(bundle.character || "—"),
       "- Class: " + String(bundle.ctype || "—"),
       "- Server: " + String(bundle.server && bundle.server.region || "—") + " " + String(bundle.server && bundle.server.identifier || "—"),
-      "- Map: " + String(status.map || (bundle.status && bundle.status.map) || "—"),
+      "- Map: " + String(bundle.map || "—"),
+      "- Current PR range: Live Lab PR24-PR28 integrated runtime",
       "- Running: " + String(status.running === true),
       "- Live execution/gameplay/normal runtime: "
         + String(status.liveExecutionAllowed === true) + "/"
@@ -3265,8 +3274,11 @@
         restartDetected: restartDetected,
         restartReconciled: restartReconciled,
         runtimeSessionId: runtimeSessionId,
+        runtimeStartedAtMs: runtimeStartedAtMs,
+        runtimeUptimeMs: runtimeStartedAtMs ? Math.max(0, now() - runtimeStartedAtMs) : 0,
         character: c && c.name || null,
         ctype: c && (c.ctype || c.type) || null,
+        map: c && c.map || null,
         server: currentServer(),
         tickSeq: tickSeq,
         currentTask: currentTask ? {
@@ -3352,13 +3364,20 @@
 
   hydrateRuntimeState();
 
-  if (root.V5LiveLab && typeof root.V5LiveLab.stop === "function") {
+  if (root.V5LiveLab) {
     try {
-      root.V5LiveLab.stop(
-        root.V5LiveLab.version === VERSION
-          ? "REINSTALL_V2"
-          : "UPGRADE_TO_V2"
-      );
+      if (typeof root.V5LiveLab.stop === "function") {
+        root.V5LiveLab.stop(
+          root.V5LiveLab.version === VERSION
+            ? "REINSTALL_V2"
+            : "UPGRADE_TO_V2"
+        );
+      }
+    } catch (_) {}
+    try {
+      if (typeof root.V5LiveLab.unmountGui === "function") {
+        root.V5LiveLab.unmountGui();
+      }
     } catch (_) {}
   }
 
