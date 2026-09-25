@@ -101,7 +101,10 @@ test("acquisition remains strictly separate from Exchange ratification",()=>{
   assert.equal(r.marketDiscovery.status,"RATIFIED_NO_ELIGIBLE_MARKET_CANDIDATE_ONE_MOVEMENT");
   assert.equal(r.marketDiscovery.testId,"pr20-8-exchange-market-discovery");
   assert.equal(r.marketDiscovery.manifestCutoverPrepared,true);
-  assert.equal(r.marketDiscovery.deployed,true);\n  assert.equal(r.marketDiscovery.evidenceObserved,true);\n  assert.equal(r.marketDiscovery.notificationId,2673);\n  assert.equal(r.marketDiscovery.eligibleListingCount,0);
+  assert.equal(r.marketDiscovery.deployed,true);
+  assert.equal(r.marketDiscovery.evidenceObserved,true);
+  assert.equal(r.marketDiscovery.notificationId,2673);
+  assert.equal(r.marketDiscovery.eligibleListingCount,0);
   assert.equal(r.marketDiscovery.tradeBuyAllowed,false);
   assert.equal(r.marketDiscovery.farmAllowed,false);
   assert.equal(r.marketDiscovery.exchangeAllowed,false);
