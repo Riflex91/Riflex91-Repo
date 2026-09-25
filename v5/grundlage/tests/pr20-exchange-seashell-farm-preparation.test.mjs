@@ -158,8 +158,8 @@ test("market evidence or source drift blocks before any farm preparation",()=>{
 });
 
 test("current roadmap advances only to read-only Seashell farm shadow-runner preparation",()=>{
-  assert.equal(roadmap.pr20_8.status,"EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE");
-  assert.equal(roadmap.pr20_8.nextAction,"DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
+  assert.equal(roadmap.pr20_8.status,"EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_START_RECOVERY_MANIFEST_CUTOVER_PREPARED_NO_WRITE");
+  assert.equal(roadmap.pr20_8.nextAction,"DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_START_RECOVERY_V1_0_1");
   const prep=roadmap.pr20_8.exchangeCandidateAcquisition.seashellFarmPreparation;
   assert.equal(prep.status,"PREPARED_NO_WRITE");
   assert.equal(prep.targetItem,"seashell");
@@ -172,8 +172,8 @@ test("current roadmap advances only to read-only Seashell farm shadow-runner pre
 
   const row=roadmap.parallelPreparations.find(x=>x.id==="PR20.8_WERTMUTATIONEN");
   assert.ok(row);
-  assert.equal(row.status,"EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE");
-  assert.equal(row.nextAction,"DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
+  assert.equal(row.status,"EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_START_RECOVERY_MANIFEST_CUTOVER_PREPARED_NO_WRITE");
+  assert.equal(row.nextAction,"DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_START_RECOVERY_V1_0_1");
   assert.equal(row.gameplayAuthority,false);
   assert.equal(row.rawWriteAuthority,false);
   assert.equal(row.normalRuntimeAllowed,false);
