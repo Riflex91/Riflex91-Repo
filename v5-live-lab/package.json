@@ -1,0 +1,11 @@
+{
+  "name": "adventure-land-v5-live-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated live-runtime overlay for early integrated V5 gameplay testing through PR28.",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check src/authority-profile.mjs && node --test tests/*.test.mjs"
+  }
+}
