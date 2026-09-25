@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "id": "CAP022_PRODUCTION_MATERIAL_ACQUISITION_FOUNDATION",
+  "status": "PREPARED_NO_WRITE",
+  "capability": "CAP-022",
+  "name": "Production Material Handoff / Acquisition",
+  "source": "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
+  "test": "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs",
+  "migrationSource": "v3/src/party/production-material-acquisition.js",
+  "migrationDecision": "NEU_BAUEN",
+  "purpose": [
+    "FARM-Nodes aus dem V5 Production Planner in gebundene Materialziele ueberfuehren",
+    "frische Farm-Source- und Farmer-Evidence fail-closed binden",
+    "bei erreichter Materialmenge Farming logisch stoppen und Handoff verlangen",
+    "spaetere PR22-Koordination und PR23-Farmer-Ausfuehrung explizit koppeln"
+  ],
+  "supportedFlow": "PRODUCTION_FARM_NODE -> MATERIAL_OBJECTIVE -> MATERIAL_READY_FOR_HANDOFF -> PR22_COORDINATION -> PR23_FARMER_ACTIONS -> COLLECTION_HANDOFF -> FUTURE_PR20_9_RECHECK",
+  "safetyBoundary": {
+    "planningOnly": true,
+    "productiveGameplayWritesAllowed": false,
+    "executionAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "sendCmAuthority": false,
+    "movementAuthority": false,
+    "combatAuthority": false,
+    "lootAuthority": false,
+    "broadGraphExecutionAuthority": false,
+    "sameIntentRetry": false
+  },
+  "gates": {
+    "pr22ProductiveCoordinationRequired": true,
+    "pr23ProductiveFarmerRequired": true,
+    "pr23RequiredCapabilities": [
+      "MOVEMENT",
+      "COMBAT",
+      "LOOT"
+    ],
+    "productiveMaterialAcquisitionBeforePr22Pr23EvidenceAllowed": false
+  },
+  "pr20_9Boundary": {
+    "currentStatusRemains": "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+    "candidateAcquisitionOrMutationAllowedNow": false,
+    "foundationCountsAsCraftRatification": false,
+    "plannedFarmMaterialCountsAsNaturalCurrentInventoryCandidate": false,
+    "futureRecheckAllowedAfterProductiveNaturalMaterialAcquisition": true,
+    "craftAuthorityOpened": false,
+    "normalRuntimeAllowed": false
+  },
+  "historicalRiskClosure": {
+    "risk": "Farmer farmt nach READY weiter",
+    "materialReadyState": "MATERIAL_READY_FOR_HANDOFF",
+    "farmStopRequiredWhenReady": true,
+    "handoffRequiredWhenReady": true
+  },
+  "nextAction": "KEEP_NO_WRITE_UNTIL_PR22_AND_PR23_PRODUCTIVE_GATES_ARE_RATIFIED"
+}
