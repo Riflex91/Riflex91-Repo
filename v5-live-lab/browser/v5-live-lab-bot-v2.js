@@ -3371,7 +3371,7 @@
       active: !!situationWriterTimer && situationPermission === "granted",
       lastWriteAtMs: situationLastWriteAtMs,
       lastWriteError: situationLastWriteError,
-      requestedWindowsPath: "D:\\\\v5-Test\\\\" + SITUATION_FILE_NAME,
+      requestedWindowsPath: "D:\\v5-Test\\" + SITUATION_FILE_NAME,
     });
   }
 
