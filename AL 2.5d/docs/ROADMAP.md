@@ -53,6 +53,8 @@ Deliverable: original game logic driving the visible new renderer.
 Status: in progress
 
 - [ ] new Main/Town visual asset set
+- [x] mirrored immutable tile placements/groups from G.geometry
+- [x] materialized 2.5D Main/Town surface massing from original placement footprints
 - [x] procedural 2.5D ground/grid from immutable map bounds
 - [x] projected collision-wall visualization from copied G.geometry lines
 - [x] visible procedural fallbacks for characters, NPCs, monsters and props

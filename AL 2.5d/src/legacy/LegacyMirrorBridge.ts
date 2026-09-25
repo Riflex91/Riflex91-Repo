@@ -3,7 +3,8 @@ import type {
   RenderBridge,
   RenderCollisionLine,
   RenderMapBounds,
-  RenderMapState
+  RenderMapState,
+  RenderMapSurface
 } from "../render/RenderBridge";
 import {
   LegacySnapshotAdapter,
@@ -68,6 +69,97 @@ function snapshotCollisionLines(value: unknown): readonly RenderCollisionLine[] 
   }
 
   return Object.freeze(lines);
+}
+
+function tileDefinition(
+  value: unknown
+): Readonly<{ material: string; width: number; height: number }> | undefined {
+  if (!Array.isArray(value) || value.length < 5) return undefined;
+
+  const width = finiteNumber(value[3]);
+  const height = finiteNumber(value[4]) ?? width;
+  if (width === undefined || height === undefined || width <= 0 || height <= 0) {
+    return undefined;
+  }
+
+  const material =
+    typeof value[0] === "string" && value[0]
+      ? value[0]
+      : "default";
+
+  return Object.freeze({ material, width, height });
+}
+
+function snapshotSurfacePlacements(
+  tilesValue: unknown,
+  placementsValue: unknown,
+  layer: "ground" | "structure",
+  group?: number
+): readonly RenderMapSurface[] {
+  if (!Array.isArray(tilesValue) || !Array.isArray(placementsValue)) {
+    return Object.freeze([]);
+  }
+
+  const surfaces: RenderMapSurface[] = [];
+
+  for (const candidate of placementsValue) {
+    if (!Array.isArray(candidate) || candidate.length < 3) continue;
+
+    const tile = finiteNumber(candidate[0]);
+    const x = finiteNumber(candidate[1]);
+    const y = finiteNumber(candidate[2]);
+    if (tile === undefined || x === undefined || y === undefined) continue;
+
+    const definition = tileDefinition(tilesValue[tile]);
+    if (!definition) continue;
+
+    const repeatX = finiteNumber(candidate[3]) ?? x;
+    const repeatY = finiteNumber(candidate[4]) ?? y;
+    const minX = Math.min(x, repeatX);
+    const minY = Math.min(y, repeatY);
+    const maxX = Math.max(x, repeatX) + definition.width;
+    const maxY = Math.max(y, repeatY) + definition.height;
+
+    surfaces.push(
+      Object.freeze({
+        tile,
+        material: definition.material,
+        minX,
+        minY,
+        maxX,
+        maxY,
+        layer,
+        ...(group === undefined ? {} : { group })
+      })
+    );
+  }
+
+  return Object.freeze(surfaces);
+}
+
+function snapshotMapSurfaces(
+  visualGeometry: Readonly<Record<string, unknown>> | undefined
+): readonly RenderMapSurface[] {
+  if (!visualGeometry) return Object.freeze([]);
+
+  const tiles = visualGeometry.tiles;
+  const surfaces: RenderMapSurface[] = [
+    ...snapshotSurfacePlacements(
+      tiles,
+      visualGeometry.placements,
+      "ground"
+    )
+  ];
+
+  if (Array.isArray(visualGeometry.groups)) {
+    visualGeometry.groups.forEach((group, index) => {
+      surfaces.push(
+        ...snapshotSurfacePlacements(tiles, group, "structure", index)
+      );
+    });
+  }
+
+  return Object.freeze(surfaces);
 }
 
 function inferBounds(
@@ -154,6 +246,7 @@ export function snapshotLegacyMapState(
   const rawYLines = geometryRecord?.y_lines ?? visualGeometry?.y_lines;
   const xLines = snapshotCollisionLines(rawXLines);
   const yLines = snapshotCollisionLines(rawYLines);
+  const surfaces = snapshotMapSurfaces(visualGeometry);
 
   return Object.freeze({
     id: mapId,
@@ -168,7 +261,8 @@ export function snapshotLegacyMapState(
       yLines: countCollection(rawYLines),
       bounds: inferBounds(geometryRecord ?? visualGeometry, xLines, yLines),
       collisionXLines: xLines,
-      collisionYLines: yLines
+      collisionYLines: yLines,
+      surfaces
     })
   });
 }

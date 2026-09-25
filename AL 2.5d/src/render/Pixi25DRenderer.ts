@@ -15,7 +15,8 @@ import type {
   GameFrameSnapshot,
   RenderBridge,
   RenderEntity,
-  RenderMapBounds
+  RenderMapBounds,
+  RenderMapSurface
 } from "./RenderBridge";
 import { resolveHudVisibility } from "./hudLayout";
 import { projectWorldToScreen } from "./projection";
@@ -118,6 +119,7 @@ export class Pixi25DRenderer implements RenderBridge {
       snapshot.map,
       geometry?.xLines ?? 0,
       geometry?.yLines ?? 0,
+      geometry?.surfaces.length ?? 0,
       bounds.minX,
       bounds.minY,
       bounds.maxX,
@@ -144,8 +146,17 @@ export class Pixi25DRenderer implements RenderBridge {
       .fill({ color: 0x17231f, alpha: 1 })
       .stroke({ color: 0x315045, width: 2, alpha: 0.9 });
 
-    this.drawGrid(floor, bounds);
     this.mapLayer.addChild(floor);
+
+    const surfaces = new Graphics();
+    for (const surface of geometry?.surfaces ?? []) {
+      this.drawMapSurface(surfaces, surface);
+    }
+    this.mapLayer.addChild(surfaces);
+
+    const grid = new Graphics();
+    this.drawGrid(grid, bounds);
+    this.mapLayer.addChild(grid);
 
     const walls = new Graphics();
     for (const [x, y1, y2] of geometry?.collisionXLines ?? []) {
@@ -217,6 +228,95 @@ export class Pixi25DRenderer implements RenderBridge {
         .lineTo(b.x, b.y)
         .stroke({ color: 0x294038, width: 1, alpha: 0.45 });
     }
+  }
+
+  private drawMapSurface(
+    graphics: Graphics,
+    surface: RenderMapSurface
+  ): void {
+    const corners = [
+      projectWorldToScreen({ x: surface.minX, y: surface.minY }),
+      projectWorldToScreen({ x: surface.maxX, y: surface.minY }),
+      projectWorldToScreen({ x: surface.maxX, y: surface.maxY }),
+      projectWorldToScreen({ x: surface.minX, y: surface.maxY })
+    ];
+    const materialColor = this.materialColor(surface.material);
+    const structure = surface.layer === "structure";
+    const height = structure ? 9 + ((surface.group ?? 0) % 3) * 3 : 0;
+
+    if (height > 0) {
+      const frontA = corners[3];
+      const frontB = corners[2];
+      graphics
+        .poly([
+          frontA.x,
+          frontA.y,
+          frontB.x,
+          frontB.y,
+          frontB.x,
+          frontB.y - height,
+          frontA.x,
+          frontA.y - height
+        ])
+        .fill({ color: this.shadeColor(materialColor, 0.66), alpha: 0.86 });
+
+      const sideA = corners[1];
+      const sideB = corners[2];
+      graphics
+        .poly([
+          sideA.x,
+          sideA.y,
+          sideB.x,
+          sideB.y,
+          sideB.x,
+          sideB.y - height,
+          sideA.x,
+          sideA.y - height
+        ])
+        .fill({ color: this.shadeColor(materialColor, 0.52), alpha: 0.86 });
+    }
+
+    const top = corners.flatMap((point) => [point.x, point.y - height]);
+    graphics
+      .poly(top)
+      .fill({
+        color: materialColor,
+        alpha: structure ? 0.88 : 0.72
+      })
+      .stroke({
+        color: this.shadeColor(materialColor, structure ? 1.18 : 0.92),
+        width: structure ? 1.1 : 0.55,
+        alpha: structure ? 0.62 : 0.3
+      });
+  }
+
+  private materialColor(material: string): number {
+    const palette = [
+      0x274239,
+      0x304a3f,
+      0x3a4d42,
+      0x465344,
+      0x3b4c4e,
+      0x4a463b,
+      0x2f4848,
+      0x4b503f
+    ];
+
+    let hash = 2166136261;
+    for (let index = 0; index < material.length; index += 1) {
+      hash ^= material.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+
+    return palette[(hash >>> 0) % palette.length];
+  }
+
+  private shadeColor(color: number, factor: number): number {
+    const red = Math.max(0, Math.min(255, Math.round(((color >> 16) & 255) * factor)));
+    const green = Math.max(0, Math.min(255, Math.round(((color >> 8) & 255) * factor)));
+    const blue = Math.max(0, Math.min(255, Math.round((color & 255) * factor)));
+
+    return (red << 16) | (green << 8) | blue;
   }
 
   private drawCollisionWall(

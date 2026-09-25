@@ -34,6 +34,17 @@ export type RenderMapBounds = Readonly<{
   maxY: number;
 }>;
 
+export type RenderMapSurface = Readonly<{
+  tile: number;
+  material: string;
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+  layer: "ground" | "structure";
+  group?: number;
+}>;
+
 export type RenderMapGeometrySummary = Readonly<{
   available: boolean;
   tiles: number;
@@ -45,6 +56,7 @@ export type RenderMapGeometrySummary = Readonly<{
   bounds?: RenderMapBounds;
   collisionXLines: readonly RenderCollisionLine[];
   collisionYLines: readonly RenderCollisionLine[];
+  surfaces: readonly RenderMapSurface[];
 }>;
 
 export type RenderMapState = Readonly<{

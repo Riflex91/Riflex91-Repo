@@ -93,6 +93,18 @@ describe("LegacyMirrorBridge", () => {
             min_y: -50,
             max_x: 300,
             max_y: 250,
+            tiles: Object.freeze([
+              Object.freeze(["town_floor", 0, 0, 32, 32]),
+              Object.freeze(["town_wall", 32, 0, 16, 16])
+            ]),
+            placements: Object.freeze([
+              Object.freeze([0, 0, 0, 64, 32])
+            ]),
+            groups: Object.freeze([
+              Object.freeze([
+                Object.freeze([1, 100, 100])
+              ])
+            ]),
             x_lines: Object.freeze([
               Object.freeze([10, 20, 40])
             ]),
@@ -126,6 +138,27 @@ describe("LegacyMirrorBridge", () => {
     });
     expect(snapshot.mapState?.geometry.collisionXLines).toEqual([[10, 20, 40]]);
     expect(snapshot.mapState?.geometry.collisionYLines).toEqual([[50, 60, 90]]);
+    expect(snapshot.mapState?.geometry.surfaces).toEqual([
+      {
+        tile: 0,
+        material: "town_floor",
+        minX: 0,
+        minY: 0,
+        maxX: 96,
+        maxY: 64,
+        layer: "ground"
+      },
+      {
+        tile: 1,
+        material: "town_wall",
+        minX: 100,
+        minY: 100,
+        maxX: 116,
+        maxY: 116,
+        layer: "structure",
+        group: 0
+      }
+    ]);
     expect(renderer.frames).toHaveLength(1);
   });
 
