@@ -28,6 +28,17 @@ describe("Windows local sandbox scripts", () => {
     expect(setup).not.toContain("New-Item -ItemType Junction");
   });
 
+  it("keeps the Windows start script structurally singular after scripted updates", () => {
+    const start = read("local-dev/windows/start.ps1");
+
+    expect(start.match(/\$ErrorActionPreference/g)?.length).toBe(1);
+    expect(start.match(/function Verify-GameServerApi/g)?.length).toBe(1);
+    expect(start.match(/Start-Process \$Url/g)?.length).toBe(1);
+    expect(start).toContain(
+      "Where-Object { $_.Name -match '^mongodb-\\d+\\.\\d+\\.\\d+$' }"
+    );
+  });
+
   it("ignores stale mongodb-data folders when locating the portable mongod binary", () => {
     const start = read("local-dev/windows/start.ps1");
 
