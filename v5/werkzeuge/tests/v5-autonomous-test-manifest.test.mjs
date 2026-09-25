@@ -1041,7 +1041,7 @@ test("PR20.8 Exchange bank mount manifest pin is exact and retrieve-disabled", (
   assert.ok(packageSource.includes('const VERSION = "1.0.0"'));
   assert.ok(packageSource.includes('const API_NAME = "V5PR208ExchangeCandidateBankMount"'));
   assert.ok(packageSource.includes('const TARGET = "bank"'));
-  assert.equal((packageSource.match(/smartMove\\(TARGET\\)/g) ?? []).length, 1);
+  assert.equal((packageSource.match(/smartMove\(TARGET\)/g) ?? []).length, 1);
   for (const marker of [
     "bank_retrieve(",
     "bank_store(",
