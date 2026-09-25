@@ -12,6 +12,8 @@ export interface Pr21_28GateApplyTransactionBasis {
   readonly sourceMainCommit: string;
   readonly packageFingerprint: string;
   readonly ratificationFingerprint: string;
+  readonly cap022FullChainRequired: boolean;
+  readonly cap022FullChainSatisfied: true;
   readonly preparedAtMs: number;
   readonly status: "PREPARED_DEFAULT_OFF";
   readonly freshMainCheckRequiredAtApply: true;
@@ -38,6 +40,8 @@ export interface Pr21_28GateApplyValidation {
   readonly status: "READY_DEFAULT_OFF" | "BLOCKIERT";
   readonly blocker: readonly string[];
   readonly transactionFingerprint: string;
+  readonly cap022FullChainRequired: boolean;
+  readonly cap022FullChainSatisfied: boolean;
   readonly applyAdapterInstalled: false;
   readonly executionEnabled: false;
   readonly gateMutationPerformed: false;
@@ -68,7 +72,10 @@ export function bereitePr21_28GateApplyTransaktionVor(
       || proposal.gameplayAuthority !== false
       || proposal.rawWriteAuthority !== false
       || proposal.broadRuntimeGrant !== false
-      || proposal.gesamtfreigabeRequiredSeparately !== true) {
+      || proposal.gesamtfreigabeRequiredSeparately !== true
+      || proposal.cap022FullChainSatisfied !== true
+      || proposal.cap022FullChainRequired
+        !== (proposal.stage === "PR22" || proposal.stage === "PR23")) {
     throw new Error("PR21_28_GATE_APPLY_PROPOSAL_NICHT_BEREIT");
   }
   text(transactionId, "PR21_28_GATE_APPLY_TRANSACTION_ID_UNGUELTIG");
@@ -91,6 +98,8 @@ export function bereitePr21_28GateApplyTransaktionVor(
     sourceMainCommit: proposal.sourceMainCommit,
     packageFingerprint: proposal.packageFingerprint,
     ratificationFingerprint: proposal.ratificationFingerprint,
+    cap022FullChainRequired: proposal.cap022FullChainRequired,
+    cap022FullChainSatisfied: true,
     preparedAtMs,
     status: "PREPARED_DEFAULT_OFF",
     freshMainCheckRequiredAtApply: true,
@@ -145,6 +154,12 @@ export function validierePr21_28GateApplyTransaktion(
   if (transaction.ratificationFingerprint !== expectedRatificationFingerprint) {
     blocker.push("PR21_28_GATE_APPLY_RATIFICATION_FP_DRIFT");
   }
+  const cap022FullChainRequired =
+    expectedStage === "PR22" || expectedStage === "PR23";
+  if (transaction.cap022FullChainRequired !== cap022FullChainRequired
+      || transaction.cap022FullChainSatisfied !== true) {
+    blocker.push("PR21_28_GATE_APPLY_CAP022_BINDING_UNGUELTIG");
+  }
   if (transaction.applyAdapterInstalled !== false
       || transaction.executionEnabled !== false
       || transaction.gateMutationPerformed !== false
@@ -166,6 +181,8 @@ export function validierePr21_28GateApplyTransaktion(
     sourceMainCommit: transaction.sourceMainCommit,
     packageFingerprint: transaction.packageFingerprint,
     ratificationFingerprint: transaction.ratificationFingerprint,
+    cap022FullChainRequired: transaction.cap022FullChainRequired,
+    cap022FullChainSatisfied: transaction.cap022FullChainSatisfied,
     preparedAtMs: transaction.preparedAtMs,
     status: transaction.status,
     freshMainCheckRequiredAtApply: transaction.freshMainCheckRequiredAtApply,
@@ -190,6 +207,10 @@ export function validierePr21_28GateApplyTransaktion(
     status: blocker.length === 0 ? "READY_DEFAULT_OFF" : "BLOCKIERT",
     blocker: Object.freeze([...new Set(blocker)]),
     transactionFingerprint: transaction.transactionFingerprint,
+    cap022FullChainRequired,
+    cap022FullChainSatisfied:
+      transaction.cap022FullChainRequired === cap022FullChainRequired
+      && transaction.cap022FullChainSatisfied === true,
     applyAdapterInstalled: false,
     executionEnabled: false,
     gateMutationPerformed: false,
