@@ -1,9 +1,9 @@
 {
   "name": "adventure-land-v5-live-lab",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
-  "description": "Isolated V5 Live Lab through PR28 with in-game HUD, clipboard bug reporting, persistent capability evidence and a 30-second current-situation file.",
+  "description": "V5 Live Lab through PR28 with local Adventure Land 2.5D legacy-runtime routing, in-game HUD, capability evidence and 30-second situation file.",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "check": "node --check src/authority-profile.mjs && node --check src/stage-authority.mjs && node --check src/adventure-land-ports.mjs && node --check src/live-runtime-controller.mjs && node --check src/group-runtime.mjs && node --check src/autonomy-runtime.mjs && node --check browser/v5-live-lab-bot-v1.js && node --check browser/v5-live-lab-bot-v2.js && node --test tests/*.test.mjs"
