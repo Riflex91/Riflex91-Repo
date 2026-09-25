@@ -1916,7 +1916,7 @@
   },
   "pr20_9": {
     "ziel": "Craft und Production produktiv",
-    "status": "CRAFT_DURABLE_SHADOW_RESTORED_AFTER_SERVICE_MOUNT",
+    "status": "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
     "actionContracts": [
       [
         "AL-ACTION-CRAFT",
@@ -1976,7 +1976,7 @@
       "normalRuntimeAllowed": false,
       "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION"
     },
-    "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
+    "nextAction": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
     "craftDurableShadow": {
       "status": "FOUNDATION_BEREIT_NO_WRITE",
       "source": "grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
@@ -2000,7 +2000,16 @@
       "rawWriteAuthority": false,
       "broadGraphExecutionAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE"
+      "nextGate": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
+      "liveEvidenceObserved": true,
+      "craftRatified": false,
+      "latestObservedStatus": "BLOCKIERT",
+      "latestBlocker": "PR20_9_CRAFT_SHADOW_KEIN_NORMALKANDIDAT",
+      "latestNotificationId": 3175,
+      "latestRunStartedAtMs": 1790370242200,
+      "latestObservedAtMs": 1790370242562,
+      "noCandidateEvidence": "roadmap/pr20-9-craft-durable-shadow-no-candidate-evidence.json",
+      "candidateAcquisitionOrMutationAllowed": false
     },
     "craftDurableShadowRunner": {
       "status": "MANIFEST_CUTOVER_PREPARED_NO_WRITE",
@@ -2069,6 +2078,31 @@
       "movementCompleted": true,
       "evidence": "roadmap/pr20-9-craft-service-mount-evidence.json",
       "nextAction": "RESTORED_PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST"
+    },
+    "craftDurableShadowNoCandidateEvidence": {
+      "status": "RATIFIED_BLOCKED_NO_NORMAL_CANDIDATE_ZERO_WRITE",
+      "evidence": "roadmap/pr20-9-craft-durable-shadow-no-candidate-evidence.json",
+      "notificationId": 3175,
+      "runStartedAtMs": 1790370242200,
+      "observedAtMs": 1790370242562,
+      "terminalStatus": "BLOCKIERT",
+      "phase": "COMPLETE",
+      "terminal": true,
+      "blocker": "PR20_9_CRAFT_SHADOW_KEIN_NORMALKANDIDAT",
+      "rejectedCount": 134,
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "sameIntentRetry": false,
+      "craftAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadGraphExecutionAuthority": false,
+      "durableIntentCreated": false,
+      "normalRuntimeAllowed": false,
+      "craftRatified": false,
+      "candidateAcquisitionOrMutationAllowed": false,
+      "nextGate": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE"
     }
   },
   "pr21": {
