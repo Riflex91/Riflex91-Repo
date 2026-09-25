@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_28_DEFERRED_EVIDENCE_FEATURE_GATES_BATCH_3",
+  "status": "PREPARED_NO_WRITE",
+  "sourceMain": "1e739ce46e1daa90fe8a2eac9afe2b1e45b96e78",
+  "purpose": "Prebuild productive eligibility gates and milestone evidence evaluation while keeping authority issuance separate",
+  "featureGate": "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
+  "evidenceEvaluator": "v5/grundlage/quelle/zertifizierung/pr21-28-live-evidence.ts",
+  "checkpoints": [
+    {
+      "id": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+      "target": "PR21",
+      "art": "MERCHANT_INTEGRATION_15M",
+      "minimumSeconds": 900,
+      "targetSeconds": 900
+    },
+    {
+      "id": "POST_PR24_25_GROUP_CHECKPOINT",
+      "target": "PR23_PR25",
+      "capabilityMinimumSeconds": 300,
+      "integrationMinimumSeconds": 900
+    },
+    {
+      "id": "POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN",
+      "target": "PR28",
+      "art": "FULL_INTEGRATION_MULTI_HOUR",
+      "minimumSeconds": 7200,
+      "targetSeconds": 10800
+    }
+  ],
+  "safety": {
+    "gateEvaluationIssuesAuthority": false,
+    "evidenceEvaluationRatifiesEvidence": false,
+    "productivePredecessorChainRequired": true,
+    "restartReconciliationRequired": true,
+    "zeroSafetyViolationsRequired": true,
+    "zeroDuplicateIrreversibleEffectsRequired": true,
+    "zeroUnresolvedTransactionsRequired": true,
+    "zeroAuthorityLeaksRequired": true,
+    "zeroSameIntentRetriesRequired": true,
+    "normalRuntimeAllowed": false
+  },
+  "test": "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs",
+  "nextMilestone": "PREPARE_MILESTONE_RUNNERS_AND_OBSERVABILITY_WITHOUT_ENABLING_PRODUCTIVE_AUTHORITY"
+}
