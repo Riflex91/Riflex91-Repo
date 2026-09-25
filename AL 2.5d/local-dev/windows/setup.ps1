@@ -24,6 +24,8 @@ $MongoDataDir = Join-Path $MongoLocalRoot "data"
 $MongoLogDir = Join-Path $MongoLocalRoot "log"
 $MongoPidFile = Join-Path $RuntimeRoot "mongodb.pid"
 $LocalSecretsPath = Join-Path $RuntimeRoot "local-secrets.json"
+$MongoReplicaSet = "al25d-rs"
+$MongoUri = "mongodb://127.0.0.1:27017/adventureland?replicaSet=$MongoReplicaSet"
 
 function Require-Command([string]$Name) {
   if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
@@ -133,6 +135,15 @@ function Write-SharedLocalKeys([string]$KeysPath) {
 
     $Keys = $Updated
   }
+
+  $MongoPattern = '(?m)^(\s*mongodb_uri\s*:\s*)"[^"]*"(\s*,)'
+  $MongoReplacement = '$1"' + $MongoUri + '"$2'
+  $MongoRegex = New-Object System.Text.RegularExpressions.Regex $MongoPattern
+  $UpdatedMongo = $MongoRegex.Replace($Keys, $MongoReplacement, 1)
+  if ($UpdatedMongo -eq $Keys) {
+    throw "Unable to pin local MongoDB replica-set URI in $KeysPath."
+  }
+  $Keys = $UpdatedMongo
 
   Set-Content -Path $KeysPath -Value $Keys -Encoding UTF8
 }
@@ -270,23 +281,136 @@ function Get-PortableMongoExe {
   return $Mongod.FullName
 }
 
-function Start-PortableMongo {
-  if (Test-Mongo) {
-    return
+function Stop-PortableMongo {
+  if (-not (Test-Path $MongoPidFile)) {
+    return $false
   }
 
-  if (Test-Path $MongoPidFile) {
-    $PreviousPidRaw = Get-Content $MongoPidFile -Raw -ErrorAction SilentlyContinue
-    $PreviousPid = 0
-    if ([int]::TryParse(($PreviousPidRaw -as [string]), [ref]$PreviousPid)) {
-      $PreviousProcess = Get-Process -Id $PreviousPid -ErrorAction SilentlyContinue
-      if ($PreviousProcess) {
-        Write-Host "==> Stopping stale portable MongoDB process ($PreviousPid)"
-        Stop-Process -Id $PreviousPid -Force -ErrorAction SilentlyContinue
-        Start-Sleep -Milliseconds 500
+  $PreviousPidRaw = Get-Content $MongoPidFile -Raw -ErrorAction SilentlyContinue
+  $PreviousPid = 0
+  if (-not [int]::TryParse(($PreviousPidRaw -as [string]), [ref]$PreviousPid)) {
+    Remove-Item $MongoPidFile -Force -ErrorAction SilentlyContinue
+    return $false
+  }
+
+  $PreviousProcess = Get-Process -Id $PreviousPid -ErrorAction SilentlyContinue
+  if ($PreviousProcess) {
+    Write-Host "==> Stopping portable MongoDB process ($PreviousPid)"
+    Stop-Process -Id $PreviousPid -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Milliseconds 800
+  }
+
+  Remove-Item $MongoPidFile -Force -ErrorAction SilentlyContinue
+  return $true
+}
+
+function Test-MongoReplicaSet {
+  if (-not (Test-Mongo)) {
+    return $false
+  }
+
+  $Probe = @'
+const { MongoClient } = require("mongodb");
+(async () => {
+  const client = new MongoClient("mongodb://127.0.0.1:27017/?directConnection=true", {
+    serverSelectionTimeoutMS: 2000
+  });
+  try {
+    await client.connect();
+    const hello = await client.db("admin").command({ hello: 1 });
+    process.exit(hello.setName === "al25d-rs" ? 0 : 2);
+  } finally {
+    await client.close().catch(() => {});
+  }
+})().catch(() => process.exit(3));
+'@
+
+  Push-Location $AdventureDir
+  try {
+    $Probe | node -
+    return ($LASTEXITCODE -eq 0)
+  } finally {
+    Pop-Location
+  }
+}
+
+function Initialize-MongoReplicaSet {
+  Write-Host "==> Ensuring single-node MongoDB replica set '$MongoReplicaSet'"
+
+  $Initializer = @'
+const { MongoClient } = require("mongodb");
+const uri = "mongodb://127.0.0.1:27017/?directConnection=true";
+const setName = "al25d-rs";
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+(async () => {
+  const client = new MongoClient(uri, { serverSelectionTimeoutMS: 3000 });
+  await client.connect();
+  const admin = client.db("admin");
+
+  let hello = await admin.command({ hello: 1 });
+  if (hello.setName !== setName) {
+    try {
+      await admin.command({
+        replSetInitiate: {
+          _id: setName,
+          members: [{ _id: 0, host: "127.0.0.1:27017" }]
+        }
+      });
+    } catch (error) {
+      if (error.codeName !== "AlreadyInitialized" && error.code !== 23) {
+        throw error;
       }
     }
-    Remove-Item $MongoPidFile -Force -ErrorAction SilentlyContinue
+  }
+
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    try {
+      hello = await admin.command({ hello: 1 });
+      if (hello.setName === setName && hello.isWritablePrimary === true) {
+        console.log("MongoDB replica set is PRIMARY.");
+        await client.close();
+        return;
+      }
+    } catch (_) {}
+    await sleep(500);
+  }
+
+  throw new Error("MongoDB replica set did not become PRIMARY within 30 seconds.");
+})().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
+'@
+
+  Push-Location $AdventureDir
+  try {
+    $Initializer | node -
+    if ($LASTEXITCODE -ne 0) {
+      throw "MongoDB replica-set initialization failed."
+    }
+  } finally {
+    Pop-Location
+  }
+}
+
+function Start-PortableMongo {
+  if (Test-Mongo) {
+    if (Test-MongoReplicaSet) {
+      return
+    }
+
+    if (-not (Stop-PortableMongo)) {
+      throw "Port 27017 is occupied by MongoDB without the expected '$MongoReplicaSet' replica set, and it is not the managed portable process."
+    }
+
+    for ($i = 0; $i -lt 20 -and (Test-Mongo); $i++) {
+      Start-Sleep -Milliseconds 250
+    }
+    if (Test-Mongo) {
+      throw "Managed MongoDB did not stop cleanly before replica-set restart."
+    }
   }
 
   $MongodExe = Get-PortableMongoExe
@@ -295,16 +419,20 @@ function Start-PortableMongo {
 
   $MongoLogPath = Join-Path $MongoLogDir "mongod.log"
   Write-Host "==> MongoDB data path: $MongoDataDir"
-  Write-Host "==> Starting portable MongoDB on 127.0.0.1:27017"
+  Write-Host "==> Starting portable MongoDB replica set on 127.0.0.1:27017"
 
-  $MongoArguments = "--dbpath `"$MongoDataDir`" --bind_ip 127.0.0.1 --port 27017 --logpath `"$MongoLogPath`" --logappend"
+  $MongoArguments = "--dbpath `"$MongoDataDir`" --bind_ip 127.0.0.1 --port 27017 --replSet $MongoReplicaSet --logpath `"$MongoLogPath`" --logappend"
   $MongoProcess = Start-Process -FilePath $MongodExe -PassThru -WindowStyle Hidden -ArgumentList $MongoArguments
 
   Set-Content -Path $MongoPidFile -Value $MongoProcess.Id -Encoding ASCII
 
   for ($i = 0; $i -lt 90; $i++) {
     if (Test-Mongo) {
-      Write-Host "==> Portable MongoDB is ready."
+      Initialize-MongoReplicaSet
+      if (-not (Test-MongoReplicaSet)) {
+        throw "MongoDB is reachable but the '$MongoReplicaSet' replica set is not active."
+      }
+      Write-Host "==> Portable MongoDB replica set is ready."
       return
     }
 
@@ -381,9 +509,7 @@ if (-not $SkipInstall) {
   npm --prefix $ProjectRoot install
 }
 
-if (-not (Test-Mongo)) {
-  Start-PortableMongo
-}
+Start-PortableMongo
 
 if (-not $SkipSeed) {
   if (-not (Test-Path $RdbmsPath)) {
@@ -399,7 +525,7 @@ if (-not $SkipSeed) {
     throw "pymongo installation failed."
   }
 
-  $env:MONGO_URI = "mongodb://127.0.0.1:27017/"
+  $env:MONGO_URI = "mongodb://127.0.0.1:27017/?replicaSet=al25d-rs"
   $env:MONGO_DB = "adventureland"
   $env:RDBMS_PATH = $RdbmsPath
   Push-Location (Join-Path $AdventureDir "agentic")
