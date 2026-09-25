@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-25",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "evidenceArt": "V5_PR20_8_EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_RATIFICATION",
+  "status": "RATIFIED_BESTANDEN_AUTONOMY_ROUTE_ZERO_WRITE",
+  "manifestMainCommit": "3fde62bd75aaed495b60cc71b1cfc4c197af4316",
+  "package": {
+    "testId": "pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write",
+    "controllerVersion": "1.0.0",
+    "sourceCommit": "578b18dfa96fd7c4809d55aae4664eae5f37eb43",
+    "path": "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write-v1-0-0.js",
+    "sha256": "39084a646825c6bca6231b0968e41cebfbbf3548e8a93bba155dcb64b2fbf2be",
+    "bytes": 32638,
+    "expectedGlobal": "V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite"
+  },
+  "liveTelemetry": {
+    "statusTable": "public.aio_v5_test_status",
+    "notificationTable": "public.aio_v5_test_notifications",
+    "latestTelemetryTable": "public.aio_debug_telemetry_latest",
+    "botId": "pi-main",
+    "notificationId": 3020,
+    "runStartedAtMs": 1790361264446,
+    "observedAtMs": 1790361265162,
+    "notificationCreatedAt": "2026-09-25T18:39:38.145943+00:00",
+    "completionNotificationPersisted": true,
+    "emailStatus": "SENT",
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "terminal": true,
+    "processRunningAfterCompletion": true,
+    "restartCountAfterCompletion": 0
+  },
+  "autonomousSelection": {
+    "exactItem": "anniversarygift",
+    "observedCandidateIndex": 4,
+    "observedQuantity": 105,
+    "exchangeQuantity": 1,
+    "baseGold": 100,
+    "exclusive": true,
+    "selectionMode": "AUTONOMOUS_FRESH_CURRENT_INVENTORY_SCAN",
+    "manualPinnedInventoryIndex": false,
+    "observedIndexCarriesAuthority": false,
+    "priorCommittedTransactionGrantsAuthority": false
+  },
+  "routeAdmission": {
+    "recipient": {
+      "characterName": "My_Merchant",
+      "sessionId": "My_Merchant",
+      "ctype": "merchant",
+      "serverRegion": "EU",
+      "serverIdentifier": "I"
+    },
+    "serviceReachable": true,
+    "visibleEmptySlots": 20,
+    "esize": 20,
+    "performanceTrickActive": true,
+    "performanceTrickVerification": "HOWLER_PLAYING_TRUE",
+    "stableDoubleObservationRequiredByRunner": true,
+    "terminalCompletionObserved": true
+  },
+  "durableDecision": {
+    "storage": "LOCAL_STORAGE_SHADOW_ONLY",
+    "createdThisRun": true,
+    "durableReadback": true,
+    "terminalArt": "ABBRUCH",
+    "sendBoundaryState": "NICHT_GESENDET",
+    "authorityIssued": false,
+    "sameIntentRetry": false,
+    "recoveredExistingTerminal": false,
+    "freshCandidateReresolutionRequiredBeforeFutureSend": true
+  },
+  "noWriteCounters": {
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "durableStorageWrites": 1,
+    "startCalls": 0,
+    "disconnectCalls": 0,
+    "farmerWorkersInstalled": 0
+  },
+  "safetyBoundary": {
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "movementAuthority": false,
+    "normalRuntimeAllowed": false,
+    "normalExchangeWriteRatification": false,
+    "productiveAutonomyProven": false,
+    "exchangeAutonomyProductiveProven": false,
+    "pr20_8ExitGateSatisfied": false,
+    "mayAdvanceToPr20_9": false
+  },
+  "conclusion": {
+    "autonomousRouteShadowProven": true,
+    "autonomousCandidateSelectionProven": true,
+    "noGameplaySendObserved": true,
+    "oldCommittedTransactionReusedForAuthority": false,
+    "productiveAutonomyStillPending": true
+  },
+  "nextGate": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_ONE_WRITE_PREPARATION"
+}

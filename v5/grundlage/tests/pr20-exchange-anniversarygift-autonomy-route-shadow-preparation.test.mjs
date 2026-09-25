@@ -111,18 +111,18 @@ test("roadmap advances only to shadow manifest cutover and leaves productive aut
   const p=roadmap.pr20_8;
   assert.equal(
     p.status,
-    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_RATIFIED_NO_WRITE",
   );
   assert.equal(
     p.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE",
+    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_PRODUCTIVE_ONE_WRITE",
   );
   assert.equal(
     p.remainingGates.normalExchange,
     "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_RATIFIED_AUTONOMY_PENDING",
   );
   const s=p.exchangeCandidateAcquisition.anniversaryGiftExchangeAutonomyRouteShadow;
-  assert.equal(s.status,"MANIFEST_CUTOVER_PREPARED_NO_WRITE");
+  assert.equal(s.status,"RATIFIED_BESTANDEN_AUTONOMY_ROUTE_ZERO_WRITE");
   assert.equal(s.testId,"pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write");
   assert.equal(s.selectionMode,"AUTONOMOUS_FRESH_CURRENT_INVENTORY_SCAN");
   assert.equal(s.manualPinnedInventoryIndex,false);
@@ -131,8 +131,8 @@ test("roadmap advances only to shadow manifest cutover and leaves productive aut
   assert.equal(s.maximumRawWriteCalls,0);
   assert.equal(s.exchangeAuthority,false);
   assert.equal(s.manifestCutoverPrepared,true);
-  assert.equal(s.deployed,false);
-  assert.equal(s.liveEvidenceObserved,false);
+  assert.equal(s.deployed,true);
+  assert.equal(s.liveEvidenceObserved,true);
   assert.equal(s.productiveAutonomyProven,false);
   assert.equal(p.exitGateReview.exchangeAutonomyProductiveProven,false);
   assert.equal(p.exitGateReview.currentExitGateSatisfied,false);
