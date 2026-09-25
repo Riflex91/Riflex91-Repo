@@ -90,7 +90,7 @@ test("roadmap closes Exchange 5m but keeps autonomy and PR20.9 blocked",()=>{
   const live=a.anniversaryGiftExchangeLive5m;
   const exit=roadmap.pr20_8.exitGateReview;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
+    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_RATIFIED_PR20_8_COMPLETE");
   assert.equal(live.status,"RATIFIED_BESTANDEN_ZERO_ADDITIONAL_MUTATION");
   assert.equal(live.deployed,true);
   assert.equal(live.liveEvidenceObserved,true);
@@ -103,7 +103,7 @@ test("roadmap closes Exchange 5m but keeps autonomy and PR20.9 blocked",()=>{
   assert.equal(live.latestAdditionalRawWriteCalls,0);
   assert.equal(exit.exchangeRatified,true);
   assert.equal(exit.exchangeLive5mTested,true);
-  assert.equal(exit.exchangeAutonomyProductiveProven,false);
-  assert.equal(exit.currentExitGateSatisfied,false);
-  assert.equal(exit.mayAdvanceToPr20_9,false);
+  assert.equal(exit.exchangeAutonomyProductiveProven,true);
+  assert.equal(exit.currentExitGateSatisfied,true);
+  assert.equal(exit.mayAdvanceToPr20_9,true);
 });

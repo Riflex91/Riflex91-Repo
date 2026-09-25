@@ -543,11 +543,11 @@ test("PR20.8 parallel preparation index mirrors the superseding controlled acqui
   assert.equal(parallel.nextAction,roadmap.pr20_8.nextAction);
   assert.equal(
     parallel.status,
-    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED",
+    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_RATIFIED_PR20_8_COMPLETE",
   );
   assert.equal(
     parallel.nextAction,
-    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_PRODUCTIVE_ONE_WRITE",
+    "ADVANCE_TO_PR20_9_PRODUCTION",
   );
   for (const artifact of [
     "v5/roadmap/pr20-8-compound-live-5m-evidence.json",
@@ -571,8 +571,8 @@ test("PR20.8 parallel preparation index mirrors the superseding controlled acqui
   assert.equal(roadmap.pr20_8.exchangeCandidateAcquisition.controlledBankMutationToCreateCandidateAllowed,true);
   assert.equal(roadmap.pr20_8.exchangeCandidateAcquisition.buyToCreateCandidateAllowed,false);
   assert.equal(roadmap.pr20_8.exchangeCandidateAcquisition.farmToCreateCandidateAllowed,false);
-  assert.equal(roadmap.pr20_8.exitGateReview.currentExitGateSatisfied,false);
-  assert.equal(roadmap.pr20_8.exitGateReview.mayAdvanceToPr20_9,false);
+  assert.equal(roadmap.pr20_8.exitGateReview.currentExitGateSatisfied,true);
+  assert.equal(roadmap.pr20_8.exitGateReview.mayAdvanceToPr20_9,true);
 });
 
 test("PR20.8 current parallel preparation artifact index contains only existing files", () => {

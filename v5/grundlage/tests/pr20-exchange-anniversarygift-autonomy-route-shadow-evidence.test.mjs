@@ -106,8 +106,8 @@ test("ratified route-shadow evidence stays immutable while active manifest advan
 
   const p=roadmap.pr20_8;
   const s=p.exchangeCandidateAcquisition.anniversaryGiftExchangeAutonomyRouteShadow;
-  assert.equal(p.status,"EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
-  assert.equal(p.nextAction,"DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_PRODUCTIVE_ONE_WRITE");
+  assert.equal(p.status,"EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_RATIFIED_PR20_8_COMPLETE");
+  assert.equal(p.nextAction,"ADVANCE_TO_PR20_9_PRODUCTION");
   assert.equal(s.status,"RATIFIED_BESTANDEN_AUTONOMY_ROUTE_ZERO_WRITE");
   assert.equal(s.deployed,true);
   assert.equal(s.liveEvidenceObserved,true);
@@ -119,7 +119,7 @@ test("ratified route-shadow evidence stays immutable while active manifest advan
   assert.equal(s.latestRawWriteCalls,0);
   assert.equal(s.latestAuthorityIssued,false);
   assert.equal(s.productiveAutonomyProven,false);
-  assert.equal(p.exitGateReview.exchangeAutonomyProductiveProven,false);
-  assert.equal(p.exitGateReview.currentExitGateSatisfied,false);
-  assert.equal(p.exitGateReview.mayAdvanceToPr20_9,false);
+  assert.equal(p.exitGateReview.exchangeAutonomyProductiveProven,true);
+  assert.equal(p.exitGateReview.currentExitGateSatisfied,true);
+  assert.equal(p.exitGateReview.mayAdvanceToPr20_9,true);
 });

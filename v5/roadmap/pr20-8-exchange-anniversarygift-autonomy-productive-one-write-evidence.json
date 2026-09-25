@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-25",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "evidenceArt": "V5_PR20_8_EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_ONE_WRITE_RATIFICATION",
+  "status": "RATIFIED_BESTANDEN_COMMITTED_AUTONOMOUS_ONE_WRITE",
+  "manifestMainCommit": "a04c0aaf706fff7e535de56c5d0769266c315909",
+  "package": {
+    "testId": "pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live",
+    "controllerVersion": "1.0.0",
+    "sourceCommit": "3b2c7ad641bda34838f6fe4a1b1a277bebf6b88c",
+    "path": "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live-v1-0-0.js",
+    "sha256": "65dcf3892501f5181bf9a2ab02995cad87132738f8fb2d64a1f14d7b9b9d9b2a",
+    "bytes": 60226,
+    "expectedGlobal": "V5PR208ExchangeAnniversarygiftAutonomyProductiveOneWriteLive"
+  },
+  "liveTelemetry": {
+    "statusTable": "public.aio_v5_test_status",
+    "notificationTable": "public.aio_v5_test_notifications",
+    "botId": "pi-main",
+    "notificationId": 3080,
+    "runStartedAtMs": 1790365138987,
+    "notificationCreatedAt": "2026-09-25T19:39:07.439910+00:00",
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "terminal": true,
+    "completionNotificationPersisted": true
+  },
+  "autonomousDecision": {
+    "createdThisRun": true,
+    "selectionMode": "AUTONOMOUS_FRESH_CURRENT_INVENTORY_SCAN",
+    "exactItem": "anniversarygift",
+    "candidateIndexObserved": 4,
+    "candidateQuantityBefore": 105,
+    "exchangeQuantity": 1,
+    "exclusive": true,
+    "manualPinnedInventoryIndex": false,
+    "observedIndexCarriesAuthority": false,
+    "priorCommittedTransactionGrantsAuthority": false,
+    "durableReadback": true
+  },
+  "transaction": {
+    "transactionId": "pr20-8-exchange-anniversarygift-autonomy-productive-one-write-live:130707521321031d66051cfe6d7f10b9",
+    "journalStatus": "COMMITTED",
+    "sendCount": 1,
+    "publicFunction": "exchange",
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "durableIntentReadback": true
+  },
+  "authority": {
+    "issued": true,
+    "consumed": true,
+    "maximumUses": 1,
+    "historicalIndexAuthority": false,
+    "priorCommittedTransactionAuthority": false,
+    "movementAuthority": false
+  },
+  "reconciliation": {
+    "classification": "COMMITTED",
+    "candidateQuantityBefore": 105,
+    "candidateQuantityAfter": 104,
+    "inputDelta": -1,
+    "rewardKind": "gold",
+    "goldDelta": 5000,
+    "noOtherNegative": true,
+    "inputConsumedExactly": true,
+    "rewardDomainValid": true,
+    "qClear": true,
+    "exchangeQueueClear": true,
+    "placeholderCount": 0,
+    "massexchangeClear": true,
+    "massexchangeppClear": true,
+    "movingClear": true,
+    "targetClear": true,
+    "serviceReachable": true,
+    "serviceDistance": 46.01086828130937,
+    "serviceSafetyLimit": 300
+  },
+  "recoveryObservation": {
+    "notifications": [
+      3082,
+      3085
+    ],
+    "sameTransaction": true,
+    "recoveredExisting": true,
+    "sendCountStillOne": true,
+    "noResendObserved": true,
+    "processRunning": true,
+    "restartCount": 0
+  },
+  "safetyBoundary": {
+    "exchangeRatified": true,
+    "exchangeLive5mTested": true,
+    "exchangeAutonomyProductiveProven": true,
+    "pr20_8ExitGateSatisfied": true,
+    "mayAdvanceToPr20_9": true,
+    "normalRuntimeAllowed": false,
+    "rawWriteAuthority": false,
+    "genericExclusivePolicyRelaxed": false
+  },
+  "nextGate": "PR20_9_PRODUCTION"
+}
