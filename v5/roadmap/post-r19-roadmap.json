@@ -927,7 +927,10 @@
         "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json",
-        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs"
+        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -939,7 +942,8 @@
       "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
-      "gateRollbackStatus": "PREPARED_DEFAULT_OFF"
+      "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
     },
     {
       "id": "PR22_MULTI_CHARACTER",
@@ -970,7 +974,10 @@
         "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json",
-        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs"
+        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -979,7 +986,8 @@
       "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
-      "gateRollbackStatus": "PREPARED_DEFAULT_OFF"
+      "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
     },
     {
       "id": "PR23_FARMER",
@@ -1018,7 +1026,10 @@
         "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json",
-        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs"
+        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1030,7 +1041,8 @@
       "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
-      "gateRollbackStatus": "PREPARED_DEFAULT_OFF"
+      "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
     },
     {
       "id": "PR24_GROUP_MATRIX",
@@ -1061,7 +1073,10 @@
         "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json",
-        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs"
+        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1070,7 +1085,8 @@
       "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
-      "gateRollbackStatus": "PREPARED_DEFAULT_OFF"
+      "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
     },
     {
       "id": "PR25_GROUP_LIVE_EVIDENCE",
@@ -1109,7 +1125,10 @@
         "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json",
-        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs"
+        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1121,7 +1140,8 @@
       "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
-      "gateRollbackStatus": "PREPARED_DEFAULT_OFF"
+      "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
     },
     {
       "id": "PR26_TASK_PARTY_OPTIMIZER",
@@ -1152,7 +1172,10 @@
         "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json",
-        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs"
+        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1161,7 +1184,8 @@
       "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
-      "gateRollbackStatus": "PREPARED_DEFAULT_OFF"
+      "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
     },
     {
       "id": "PR27_ACCOUNT_PROGRESSION",
@@ -1192,7 +1216,10 @@
         "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json",
-        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs"
+        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1201,7 +1228,8 @@
       "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
-      "gateRollbackStatus": "PREPARED_DEFAULT_OFF"
+      "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
     },
     {
       "id": "PR28_WORLD_AUTONOMY",
@@ -1240,7 +1268,10 @@
         "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json",
-        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs"
+        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1252,7 +1283,8 @@
       "gateApplyTransactionStatus": "PREPARED_DEFAULT_OFF",
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
-      "gateRollbackStatus": "PREPARED_DEFAULT_OFF"
+      "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
     }
   ],
   "safePreparationBoundary": {
@@ -3580,6 +3612,17 @@
       "rollbackExecutionEnabled": false,
       "sameIntentRetryAllowed": false,
       "broadRuntimeGrant": false
+    },
+    "stageLedgerReplayBatch9": {
+      "status": "PREPARED_REPLAY_ONLY",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+      "source": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+      "test": "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+      "preparationCanCompleteThrough": "PR28",
+      "productiveEvidenceStillRequired": true,
+      "replayMutatesGate": false,
+      "replayIssuesAuthority": false,
+      "broadRuntimeGrant": false
     }
   },
   "pr21": {
@@ -3624,7 +3667,9 @@
     "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
     "gateSettlementRollbackSource": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
     "rollbackAdapterInstalled": false,
-    "rollbackExecutionEnabled": false
+    "rollbackExecutionEnabled": false,
+    "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
   },
   "pr22": {
     "status": "BLOCKED_BY_PR21",
@@ -3663,7 +3708,9 @@
     "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
     "gateSettlementRollbackSource": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
     "rollbackAdapterInstalled": false,
-    "rollbackExecutionEnabled": false
+    "rollbackExecutionEnabled": false,
+    "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
   },
   "pr23": {
     "status": "BLOCKED_BY_PR22",
@@ -3711,7 +3758,9 @@
     "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
     "gateSettlementRollbackSource": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
     "rollbackAdapterInstalled": false,
-    "rollbackExecutionEnabled": false
+    "rollbackExecutionEnabled": false,
+    "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
   },
   "pr24": {
     "status": "BLOCKED_BY_PR23",
@@ -3749,7 +3798,9 @@
     "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
     "gateSettlementRollbackSource": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
     "rollbackAdapterInstalled": false,
-    "rollbackExecutionEnabled": false
+    "rollbackExecutionEnabled": false,
+    "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
   },
   "pr25": {
     "status": "BLOCKED_BY_PR24",
@@ -3796,7 +3847,9 @@
     "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
     "gateSettlementRollbackSource": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
     "rollbackAdapterInstalled": false,
-    "rollbackExecutionEnabled": false
+    "rollbackExecutionEnabled": false,
+    "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
   },
   "pr26": {
     "status": "BLOCKED_BY_PR25",
@@ -3835,7 +3888,9 @@
     "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
     "gateSettlementRollbackSource": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
     "rollbackAdapterInstalled": false,
-    "rollbackExecutionEnabled": false
+    "rollbackExecutionEnabled": false,
+    "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
   },
   "pr27": {
     "status": "BLOCKED_BY_PR26",
@@ -3874,7 +3929,9 @@
     "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
     "gateSettlementRollbackSource": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
     "rollbackAdapterInstalled": false,
-    "rollbackExecutionEnabled": false
+    "rollbackExecutionEnabled": false,
+    "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
   },
   "pr28": {
     "status": "BLOCKED_BY_PR27",
@@ -3920,6 +3977,8 @@
     "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
     "gateSettlementRollbackSource": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
     "rollbackAdapterInstalled": false,
-    "rollbackExecutionEnabled": false
+    "rollbackExecutionEnabled": false,
+    "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
   }
 }

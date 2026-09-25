@@ -99,12 +99,22 @@ async function run(env) {
   vm.runInContext(source,env.box,{
     filename:"pr20-8-compound-durable-shadow-no-write.js",
   });
-  for(let i=0;i<320;i+=1) {
-    await new Promise(resolve=>setImmediate(resolve));
+  const deadline=Date.now()+5000;
+  let lastStatus=null;
+  while(Date.now()<deadline) {
+    await new Promise(resolve=>setTimeout(resolve,1));
     const status=env.box.V5PR208CompoundDurableShadowNoWrite?.status?.();
+    if(status) lastStatus=status;
     if(status?.terminal) return status;
   }
-  throw new Error("TEST_DID_NOT_TERMINATE");
+  throw new Error(
+    "TEST_DID_NOT_TERMINATE:"+JSON.stringify({
+      status:lastStatus?.status??null,
+      phase:lastStatus?.phase??null,
+      terminal:lastStatus?.terminal??null,
+      blocker:lastStatus?.blocker??null,
+    }),
+  );
 }
 
 function liveItems(indexes=[1,22,23],scrollIndex=14) {
