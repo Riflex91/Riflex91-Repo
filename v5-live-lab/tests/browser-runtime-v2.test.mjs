@@ -706,6 +706,93 @@ test("PR28 known NORMAL server hop executes once and enters cooldown history", a
   env.box.V5LiveLab.stop();
 });
 
+test("restart reconciliation persists irreversible fences and fails the first group tick closed", async () => {
+  const rows = new Map();
+  const localStorage = {
+    getItem(key) {
+      return rows.has(key) ? rows.get(key) : null;
+    },
+    setItem(key, value) {
+      rows.set(key, String(value));
+    },
+  };
+
+  rows.set(
+    "v5-live-lab:v2:Ranger",
+    JSON.stringify({
+      schemaVersion: 1,
+      profileId: "V5_LIVE_LAB_PR28",
+      version: "0.2.0",
+      character: "Ranger",
+      lastServer: {
+        region: "EU",
+        identifier: "I",
+      },
+      updatedAtMs: 999000,
+      session: {
+        running: true,
+        sessionId: "old-session",
+      },
+      irreversible: [[
+        "exchange:Ranger:gift:7:10",
+        {
+          status: "IN_FLIGHT",
+          kind: "EXCHANGE",
+          startedAtMs: 998000,
+        },
+      ]],
+      worldHopHistory: [["EU:II", 900000]],
+      trainingMs: [["Ranger", 120000]],
+    }),
+  );
+
+  const env = makeEnv({
+    root: {
+      localStorage,
+    },
+  });
+
+  let status = env.box.V5LiveLab.status();
+  assert.equal(status.restartDetected, true);
+  assert.equal(status.restartReconciled, true);
+  assert.equal(status.persistenceAvailable, true);
+  assert.equal(
+    status.irreversibleIntents[0].status,
+    "UNKNOWN",
+  );
+  assert.equal(
+    status.irreversibleIntents[0].error,
+    "RESTART_DURING_IRREVERSIBLE_ACTION",
+  );
+
+  env.box.V5LiveLab.configure({
+    farm: { enabled: false },
+    group: {
+      enabled: true,
+      topologyId: "solo",
+      knownMemberIds: ["Ranger"],
+    },
+  });
+
+  await startAndSettle(env);
+  status = env.box.V5LiveLab.status();
+  assert.equal(status.group.status, "BLOCKED");
+  assert.ok(status.group.faults.includes("RESTART"));
+
+  await tickAndSettle(env);
+  status = env.box.V5LiveLab.status();
+  assert.equal(status.group.status, "LIVE_GROUP_READY");
+  assert.equal(status.group.faults.includes("RESTART"), false);
+
+  const persisted = JSON.parse(
+    localStorage.getItem("v5-live-lab:v2:Ranger"),
+  );
+  assert.equal(persisted.session.running, true);
+  assert.equal(persisted.irreversible[0][1].status, "UNKNOWN");
+
+  env.box.V5LiveLab.stop();
+});
+
 test("v2 source contains no raw socket or api_call mutation bypass", () => {
   for (const marker of [
     "socket.emit(",
