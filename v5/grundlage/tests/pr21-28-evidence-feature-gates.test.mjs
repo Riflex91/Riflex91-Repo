@@ -15,6 +15,7 @@ function gateRows(overrides={}) {
     stage,
     foundationPrepared:true,
     orchestrationPrepared:true,
+    cap022FullChainReady:true,
     predecessorProductiveComplete:true,
     requiredLiveEvidenceRatified:true,
     restartReconciliationRatified:true,
@@ -34,6 +35,12 @@ test("PR21-28 feature gates evaluate eligibility without issuing authority",()=>
   assert.ok(result.stages.every(x=>x.authorityIssued===false));
   assert.ok(result.stages.every(x=>x.gameplayAuthority===false));
   assert.ok(result.stages.every(x=>x.rawWriteAuthority===false));
+  assert.deepEqual(result.cap022FullChainRequiredStages,["PR22","PR23"]);
+  assert.equal(result.stages[0].cap022FullChainRequired,false);
+  assert.equal(result.stages[1].cap022FullChainRequired,true);
+  assert.equal(result.stages[1].cap022FullChainSatisfied,true);
+  assert.equal(result.stages[2].cap022FullChainRequired,true);
+  assert.equal(result.stages[2].cap022FullChainSatisfied,true);
   assert.equal(result.authorityIssuedByGateEvaluation,false);
 });
 
@@ -49,6 +56,40 @@ test("PR21-28 feature gate closes the dependency chain after missing evidence",(
     assert.equal(row.productiveEligible,false,row.stage);
     assert.ok(row.blocker.includes(row.stage+"_VORGAENGER_KETTE_GESCHLOSSEN"),row.stage);
   }
+});
+
+
+
+test("PR22/PR23 Feature Gates verlangen CAP-022 Full-Chain explizit",()=>{
+  const result=bewertePr21_28FeatureGates(gateRows({
+    PR22:{cap022FullChainReady:false},
+  }));
+  assert.equal(result.allThroughPr28Eligible,false);
+  assert.equal(result.highestProductiveEligibleStage,"PR21");
+
+  const pr22=result.stages[1];
+  assert.equal(pr22.cap022FullChainRequired,true);
+  assert.equal(pr22.cap022FullChainSatisfied,false);
+  assert.equal(pr22.productiveEligible,false);
+  assert.ok(pr22.blocker.includes("PR22_CAP022_FULL_CHAIN_NICHT_BEREIT"));
+
+  for(const row of result.stages.slice(2)){
+    assert.equal(row.productiveEligible,false,row.stage);
+    assert.ok(
+      row.blocker.includes(row.stage+"_VORGAENGER_KETTE_GESCHLOSSEN"),
+      row.stage,
+    );
+  }
+
+  const pr23Direct=bewertePr21_28FeatureGates(gateRows({
+    PR23:{cap022FullChainReady:false},
+  }));
+  assert.equal(pr23Direct.highestProductiveEligibleStage,"PR22");
+  assert.ok(
+    pr23Direct.stages[2].blocker.includes(
+      "PR23_CAP022_FULL_CHAIN_NICHT_BEREIT",
+    ),
+  );
 });
 
 test("PR21-28 feature gates reject safety, duplicate-effect and unresolved-transaction evidence",()=>{
@@ -191,4 +232,47 @@ test("PR21-28 evidence and feature-gate source contains no authority or gameplay
       assert.equal(source.includes(marker),false,path+" -> "+marker);
     }
   }
+});
+
+
+test("Feature-Gate-Vertrag und Roadmap binden PR22/PR23 an CAP-022 Full-Chain",()=>{
+  const contract=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
+    "utf8",
+  ));
+  const boundary=contract.cap022FullChainBoundary;
+  assert.deepEqual(boundary.requiredStages,["PR22","PR23"]);
+  assert.equal(boundary.inputField,"cap022FullChainReady");
+  assert.equal(boundary.orchestrationPreparedAloneInsufficient,true);
+  assert.equal(boundary.predecessorChainClosesAfterFailure,true);
+  assert.equal(boundary.currentPr20_9RatificationCredit,false);
+  assert.equal(boundary.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(boundary.durableIntentCreated,false);
+  assert.equal(boundary.productiveCraftAuthorityOpened,false);
+  assert.equal(boundary.gateEvaluationIssuesAuthority,false);
+  assert.equal(contract.safety.cap022FullChainRequiredForPr22Pr23,true);
+  assert.equal(contract.safety.orchestrationPreparedCannotBypassCap022,true);
+
+  const roadmap=JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+  );
+  const binding=
+    roadmap.pr22.materialAcquisitionFoundation
+      .fullChainOrchestrationReadiness.featureGateBinding;
+  assert.deepEqual(binding.requiredStages,["PR22","PR23"]);
+  assert.equal(binding.orchestrationPreparedAloneInsufficient,true);
+  assert.equal(binding.predecessorChainClosesAfterFailure,true);
+  assert.equal(binding.currentPr20_9RatificationCredit,false);
+  assert.equal(binding.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(binding.durableIntentCreated,false);
+  assert.equal(binding.productiveCraftAuthorityOpened,false);
+  assert.equal(binding.authorityIssued,false);
+  assert.equal(binding.gameplayAuthority,false);
+  assert.equal(binding.rawWriteAuthority,false);
+  assert.equal(binding.normalRuntimeAllowed,false);
 });
