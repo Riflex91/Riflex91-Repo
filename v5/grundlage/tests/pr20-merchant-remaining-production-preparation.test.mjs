@@ -731,7 +731,7 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "EXCHANGE_FRESH_READONLY_RESCAN_V1_0_5_NO_CANDIDATE_RATIFIED",
+    "EXCHANGE_CURRENT_INVENTORY_NO_CANDIDATE_RATIFIED_WAIT_FUTURE_READONLY_RESCAN",
   );
   assert.equal(
     prep.pr20_8.nextAction,
@@ -818,7 +818,7 @@ test("PR20.8 updater persistence bootstrap v2 remains confirmed persisted and ze
   assert.equal(b.rawWriteCalls,0);
   assert.equal(b.sameIntentRetry,false);
   assert.equal(b.normalRuntimeAllowed,false);
-  assert.equal(b.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
+  assert.equal(b.nextGate,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
 });
 
 test("PR20.8 bridge handshake and terminal recovery are confirmed zero-write", () => {
@@ -836,7 +836,7 @@ test("PR20.8 bridge handshake and terminal recovery are confirmed zero-write", (
   assert.equal(b.rawWriteCalls,0);
   assert.equal(b.sameIntentRetry,false);
   assert.equal(b.normalRuntimeAllowed,false);
-  assert.equal(b.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
+  assert.equal(b.nextGate,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
 
   const r=b.terminalRecovery;
   assert.equal(r.status,"BESTANDEN_REAL_BROWSER_ZERO_WRITE");
@@ -1433,7 +1433,7 @@ test("PR20.8 Compound 5m evidence is ratified with zero additional mutation", ()
 
 test("PR20.8 Exchange closeout records the fresh v1.0.5 no-candidate evidence", () => {
   const r=prep.pr20_8.exchangeNoCandidateCloseoutReview;
-  assert.equal(r.status,"FRESH_V1_0_5_RESCAN_CONFIRMED_NO_CANDIDATE_ZERO_WRITE");
+  assert.equal(r.status,"V1_0_5_FRESH_READONLY_RESCAN_NO_CANDIDATE_RATIFIED");
   assert.equal(r.review,"roadmap/pr20-8-exchange-no-candidate-closeout-review.json");
   assert.equal(r.existingEvidence,"roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json");
   assert.equal(r.existingObservedAtMs,1790278399271);
@@ -1532,7 +1532,7 @@ test("PR20.8 Exchange closeout records the fresh v1.0.5 no-candidate evidence", 
 
 test("PR20.8 Exchange read-only scanner v1.0.5 completed fresh zero-write no-candidate rescan", () => {
   const r=prep.pr20_8.exchangeReadonlyRescanFacadeRecovery;
-  assert.equal(r.status,"REAL_BROWSER_BLOCKIERT_NO_COMPOUND_OR_EXCHANGE_CANDIDATE_ZERO_WRITE");
+  assert.equal(r.status,"REAL_BROWSER_FRESH_RESCAN_COMPLETED_NO_CANDIDATE_ZERO_WRITE");
   assert.equal(r.contract,"grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-facade-recovery-preparation.json");
   assert.equal(r.package,"werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js");
   assert.equal(r.test,"werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs");
@@ -1585,7 +1585,7 @@ test("PR20.8 Exchange read-only scanner v1.0.5 completed fresh zero-write no-can
   assert.equal(r.observedSameIntentRetry,false);
   assert.equal(r.observedPerformanceTrickVerification,"HOWLER_PLAYING_TRUE");
   assert.equal(r.evidence,"roadmap/pr20-8-exchange-readonly-rescan-v1-0-5-evidence.json");
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
+  assert.equal(r.nextGate,"REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN");
 });
 
 test("PR20.8 fresh Exchange read-only rescan evidence keeps Exchange and PR20.9 blocked", () => {
