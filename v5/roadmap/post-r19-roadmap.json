@@ -88,7 +88,7 @@
     "Offering/scroll4/Mass-Exchange/rekursive oder spezielle Outputpfade bleiben getrennte Spaeter-Gates",
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
-    "AKTUELL: Compound 5m Postcommit-Observer v1.0.0 ist SHA-gepinnt und offline als Zero-Write Runner-Paket vorbereitet: 60 Samples / 5s / >=299s, exakt dieselbe COMMITTED Transaction, 0 zusaetzliche Gameplay-/Public-/Raw-Writes und kein Sendpfad. Naechstes separates Gate: Manifest-Cutover; Exchange und PR20.9 bleiben geschlossen."
+    "AKTUELL: Compound 5m Postcommit-Observer v1.0.0 ist SHA-gepinnt im Autonomous-Test-Manifest; der Bridge darf ausschliesslich diesen Zero-Write-Observer deployen. Naechster Gate: kontrollierter Real-Browser-5m-Lauf; 0 zusaetzliche Gameplay-/Public-/Raw-Writes, Exchange und PR20.9 bleiben geschlossen."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "COMPOUND_PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_PENDING",
+      "status": "COMPOUND_LIVE_5M_MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PR20_8_COMPOUND_LIVE_5M_PREPARATION",
+      "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -1666,7 +1666,7 @@
     }
   },
   "pr20_8": {
-    "status": "COMPOUND_LIVE_5M_RUNNER_PACKAGE_READY_NOT_DEPLOYED",
+    "status": "COMPOUND_LIVE_5M_MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -1709,14 +1709,14 @@
     "remainingGates": {
       "durableOneShotFoundations": "BEREIT_NO_WRITE",
       "normalUpgrade": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS",
-      "normalCompound": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_RUNNER_PACKAGE_READY",
+      "normalCompound": "PRODUCTIVE_ONE_WRITE_COMMITTED_SUCCESS_RATIFIED_LIVE_5M_MANIFEST_CUTOVER_PREPARED",
       "normalExchange": "BLOCKIERT_KEIN_NORMALKANDIDAT_AUTHORITY_CLOSED",
       "specialPaths": "OFFEN_SEPARATE_RATIFICATION",
       "readOnlyPreflights": "BEREIT_NO_WRITE",
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER",
+    "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -2412,7 +2412,7 @@
       "normalRuntimeAllowed": false
     },
     "compoundLive5mPreparation": {
-      "status": "RUNNER_PACKAGE_BEREIT_NOT_DEPLOYED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
       "contract": "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-preparation.json",
       "test": "v5/grundlage/tests/pr20-compound-live-5m-preparation.test.mjs",
       "purpose": "CONTINUE_EXACT_RATIFIED_COMPOUND_TRANSACTION_WITH_FIVE_MINUTE_POSTCOMMIT_STABILITY_SOAK",
@@ -2442,7 +2442,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "liveRunnerPresent": true,
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
       "liveWriteEnabled": false,
       "normalRuntimeAllowed": false,
@@ -2451,7 +2451,7 @@
       "exchangeRatification": false,
       "exchangeAutonomyProductiveProven": false,
       "mayAdvanceToPr20_9": false,
-      "nextGate": "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER",
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
       "runnerPackage": "v5/werkzeuge/pr20-8-compound-live-5m.js",
       "runnerTest": "v5/werkzeuge/tests/pr20-8-compound-live-5m.test.mjs",
       "runnerContract": "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json",
@@ -2461,10 +2461,12 @@
       "runnerSourceCommit": "61db398373d1909bc11eb883af5902ac339a123c",
       "runnerPackageSha256": "2c68619ffb7359373a6a817ac939c34278a66f5c69e7d3efba59a5ff5c00e221",
       "runnerPackageBytes": 25081,
-      "bridgeMayDeployPinnedRunner": false
+      "bridgeMayDeployPinnedRunner": true,
+      "deploymentEvidenceObserved": false,
+      "realFiveMinuteRunCompleted": false
     },
     "compoundLive5mRunner": {
-      "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
       "package": "v5/werkzeuge/pr20-8-compound-live-5m.js",
       "test": "v5/werkzeuge/tests/pr20-8-compound-live-5m.test.mjs",
       "contract": "v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json",
@@ -2496,17 +2498,19 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
-      "manifestCutoverPrepared": false,
+      "manifestCutoverPrepared": true,
       "deployed": false,
       "liveWriteEnabled": false,
-      "bridgeMayDeployPinnedRunner": false,
+      "bridgeMayDeployPinnedRunner": true,
       "normalRuntimeAllowed": false,
       "passMaySetCompoundLive5mTested": true,
       "passDoesNotSatisfyPr20_8ExitGateByItself": true,
       "exchangeRatification": false,
       "exchangeAutonomyProductiveProven": false,
       "mayAdvanceToPr20_9": false,
-      "nextGate": "PR20_8_COMPOUND_LIVE_5M_MANIFEST_CUTOVER"
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
+      "deploymentEvidenceObserved": false,
+      "realFiveMinuteRunCompleted": false
     }
   }
 }
