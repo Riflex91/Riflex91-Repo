@@ -177,7 +177,7 @@ Verify-GameServerApi
 
 if (-not (Test-Port 5173)) {
   Write-Host "==> Starting AL 2.5D renderer"
-  $Process = Start-DevWindow "AL 2.5D - Renderer" $ProjectRoot "npm run dev -- --host localhost --port 5173"
+  $Process = Start-DevWindow "AL 2.5D - Renderer" $ProjectRoot "npm run dev -- --host 127.0.0.1 --port 5173"
   $Started.renderer = $Process.Id
   Wait-Port 5173 "AL 2.5D renderer"
 } else {
@@ -186,7 +186,7 @@ if (-not (Test-Port 5173)) {
 
 $Started | ConvertTo-Json | Set-Content -Path $PidFile -Encoding UTF8
 
-$Url = "http://localhost:5173/?localAdmin=1&legacy=/legacy/"
+$Url = "http://127.0.0.1:5173/?localAdmin=1&legacy=/legacy/"
 Write-Host ""
 Write-Host "Opening local AL 2.5D admin sandbox:"
 Write-Host $Url
