@@ -84,6 +84,7 @@ on:
       - 'v5/grundlage/tests/pr20-compound-live-5m-performance-recovery-preparation.test.mjs'
       - 'v5/grundlage/tests/pr20-compound-live-5m-notification-identity-recovery-preparation.test.mjs'
       - 'v5/grundlage/tests/pr20-compound-live-5m-evidence.test.mjs'
+      - 'v5/grundlage/tests/pr20-exchange-no-candidate-closeout-review.test.mjs'
       - 'v5/grundlage/tests/pr20-compound-productive-one-write-runner-preparation.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-durable-shadow-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-preparation.json'
@@ -93,6 +94,7 @@ on:
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-performance-recovery-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-notification-identity-recovery-preparation.json'
       - 'v5/roadmap/pr20-8-compound-live-5m-evidence.json'
+      - 'v5/roadmap/pr20-8-exchange-no-candidate-closeout-review.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-bridge-handshake-probe-preparation.json'
       - 'v5/roadmap/pr20-8-bridge-handshake-terminal-recovery-evidence.json'
       - 'v5/grundlage/tests/pr20-bridge-handshake-terminal-recovery-evidence.test.mjs'
@@ -187,6 +189,7 @@ on:
       - 'v5/grundlage/tests/pr20-compound-live-5m-performance-recovery-preparation.test.mjs'
       - 'v5/grundlage/tests/pr20-compound-live-5m-notification-identity-recovery-preparation.test.mjs'
       - 'v5/grundlage/tests/pr20-compound-live-5m-evidence.test.mjs'
+      - 'v5/grundlage/tests/pr20-exchange-no-candidate-closeout-review.test.mjs'
       - 'v5/grundlage/tests/pr20-compound-productive-one-write-runner-preparation.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-durable-shadow-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-productive-one-write-preparation.json'
@@ -196,6 +199,7 @@ on:
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-performance-recovery-preparation.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-compound-live-5m-notification-identity-recovery-preparation.json'
       - 'v5/roadmap/pr20-8-compound-live-5m-evidence.json'
+      - 'v5/roadmap/pr20-8-exchange-no-candidate-closeout-review.json'
       - 'v5/grundlage/vertraege/runtime/pr20-8-bridge-handshake-probe-preparation.json'
       - 'v5/roadmap/pr20-8-bridge-handshake-terminal-recovery-evidence.json'
       - 'v5/grundlage/tests/pr20-bridge-handshake-terminal-recovery-evidence.test.mjs'
@@ -256,3 +260,5 @@ jobs:
         run: node --check werkzeuge/pr20-8-compound-live-5m-v1-0-2.js && node --test werkzeuge/tests/pr20-8-compound-live-5m-v1-0-2.test.mjs grundlage/tests/pr20-compound-live-5m-notification-identity-recovery-preparation.test.mjs
       - name: Verify PR20.8 Compound 5m ratification evidence
         run: node --test grundlage/tests/pr20-compound-live-5m-evidence.test.mjs
+      - name: Verify PR20.8 Exchange no-candidate closeout review
+        run: node --test grundlage/tests/pr20-exchange-no-candidate-closeout-review.test.mjs
