@@ -1882,7 +1882,7 @@
   },
   "pr20_9": {
     "ziel": "Craft und Production produktiv",
-    "status": "CRAFT_READONLY_PREFLIGHT_BEREIT_NO_WRITE",
+    "status": "CRAFT_DURABLE_SHADOW_FOUNDATION_BEREIT_NO_WRITE",
     "actionContracts": [
       [
         "AL-ACTION-CRAFT",
@@ -1947,7 +1947,32 @@
       "normalRuntimeAllowed": false,
       "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION"
     },
-    "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION"
+    "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE",
+    "craftDurableShadow": {
+      "status": "FOUNDATION_BEREIT_NO_WRITE",
+      "source": "grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
+      "contract": "grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-preparation.json",
+      "test": "grundlage/tests/pr20-9-craft-durable-shadow.test.mjs",
+      "durableStorage": "SpeicherPort critical write",
+      "exactReadbackRequired": true,
+      "existingExactTerminalRecoveryAllowed": true,
+      "recoveryRewritesIntent": false,
+      "conflictingExistingIntentFailsClosed": true,
+      "maximumPlanTtlMs": 1500,
+      "journalTerminalArt": "ABBRUCH",
+      "sendBoundaryState": "NICHT_GESENDET",
+      "reconciliationClassification": "NOT_APPLIED",
+      "sameIntentRetry": false,
+      "maximumGameplayWrites": 0,
+      "maximumPublicFunctionCalls": 0,
+      "maximumRawWriteCalls": 0,
+      "craftAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadGraphExecutionAuthority": false,
+      "normalRuntimeAllowed": false,
+      "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE"
+    }
   },
   "pr21": {
     "ziel": "Merchant Gesamtintegration",

@@ -4,13 +4,16 @@ on:
   push:
     paths:
       - 'v5/grundlage/quelle/produktion/pr20-9-craft-read-only-preflight.ts'
+      - 'v5/grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts'
       - 'v5/grundlage/quelle/produktion/production-graph.ts'
       - 'v5/grundlage/quelle/produktion/production-planer.ts'
       - 'v5/grundlage/quelle/produktion/production-controller.ts'
       - 'v5/grundlage/quelle/index.ts'
       - 'v5/grundlage/vertraege/runtime/pr20-9-craft-read-only-preflight.json'
+      - 'v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-preparation.json'
       - 'v5/grundlage/vertraege/runtime/merchant-remaining-production-preparation.json'
       - 'v5/grundlage/tests/pr20-9-craft-read-only-preflight.test.mjs'
+      - 'v5/grundlage/tests/pr20-9-craft-durable-shadow.test.mjs'
       - 'v5/grundlage/tests/r15-production-capabilities.test.mjs'
       - 'v5/grundlage/tests/pr20-merchant-remaining-production-preparation.test.mjs'
       - 'v5/roadmap/post-r19-roadmap.json'
@@ -19,13 +22,16 @@ on:
   pull_request:
     paths:
       - 'v5/grundlage/quelle/produktion/pr20-9-craft-read-only-preflight.ts'
+      - 'v5/grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts'
       - 'v5/grundlage/quelle/produktion/production-graph.ts'
       - 'v5/grundlage/quelle/produktion/production-planer.ts'
       - 'v5/grundlage/quelle/produktion/production-controller.ts'
       - 'v5/grundlage/quelle/index.ts'
       - 'v5/grundlage/vertraege/runtime/pr20-9-craft-read-only-preflight.json'
+      - 'v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-preparation.json'
       - 'v5/grundlage/vertraege/runtime/merchant-remaining-production-preparation.json'
       - 'v5/grundlage/tests/pr20-9-craft-read-only-preflight.test.mjs'
+      - 'v5/grundlage/tests/pr20-9-craft-durable-shadow.test.mjs'
       - 'v5/grundlage/tests/r15-production-capabilities.test.mjs'
       - 'v5/grundlage/tests/pr20-merchant-remaining-production-preparation.test.mjs'
       - 'v5/roadmap/post-r19-roadmap.json'
