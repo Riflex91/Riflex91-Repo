@@ -363,3 +363,46 @@ test("milestone runner and observability sources contain no gameplay mutation by
     }
   }
 });
+
+
+test("Milestone-Vertrag und Roadmap binden Group-Checkpoint an CAP-022 Full-Chain",()=>{
+  const contract=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr21-28-milestone-runners.json",
+    "utf8",
+  ));
+  const boundary=contract.cap022FullChainBoundary;
+  assert.equal(boundary.requiredCheckpoint,"POST_PR24_25_GROUP_CHECKPOINT");
+  assert.deepEqual(boundary.requiredStages,["PR23"]);
+  assert.equal(boundary.planField,"cap022FullChainRequired");
+  assert.equal(boundary.evaluationInputField,"cap022FullChainReady");
+  assert.equal(
+    boundary.blocker,
+    "PR21_28_MILESTONE_CAP022_FULL_CHAIN_NICHT_BEREIT",
+  );
+  assert.equal(boundary.evaluationWithoutFullChainStatus,"BLOCKIERT");
+  assert.equal(boundary.runnerRatifiesEvidence,false);
+  assert.equal(boundary.runnerIssuesAuthority,false);
+  assert.equal(boundary.currentPr20_9RatificationCredit,false);
+  assert.equal(boundary.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(boundary.durableIntentCreated,false);
+  assert.equal(boundary.productiveCraftAuthorityOpened,false);
+
+  const roadmap=JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  const binding=
+    roadmap.pr23.materialAcquisitionFoundation
+      .fullChainOrchestrationReadiness.milestoneRunnerBinding;
+  assert.equal(binding.requiredCheckpoint,"POST_PR24_25_GROUP_CHECKPOINT");
+  assert.deepEqual(binding.requiredStages,["PR23"]);
+  assert.equal(binding.evaluationInputField,"cap022FullChainReady");
+  assert.equal(binding.missingFullChainStatus,"BLOCKIERT");
+  assert.equal(binding.runnerRatifiesEvidence,false);
+  assert.equal(binding.runnerIssuesAuthority,false);
+  assert.equal(binding.currentPr20_9RatificationCredit,false);
+  assert.equal(binding.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(binding.durableIntentCreated,false);
+  assert.equal(binding.productiveCraftAuthorityOpened,false);
+  assert.equal(binding.normalRuntimeAllowed,false);
+});
