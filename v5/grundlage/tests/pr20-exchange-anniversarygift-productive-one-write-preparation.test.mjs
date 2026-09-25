@@ -165,10 +165,10 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
   assert.equal(a.anniversaryGiftExchangeShadow.latestNotificationId,2752);
   assert.equal(a.anniversaryGiftRewardDomain.status,
     "RATIFIED_SCOPED_CURRENT_SOURCE_REVALIDATION");
-  assert.equal(live.status,"MANIFEST_RESTORED_AFTER_SERVICE_MOUNT");
+  assert.equal(live.status,"RATIFIED_COMMITTED_EXCHANGE_ONE_WRITE");
   assert.equal(live.manifestCutoverPrepared,true);
-  assert.equal(live.deployed,false);
-  assert.equal(live.liveEvidenceObserved,false);
+  assert.equal(live.deployed,true);
+  assert.equal(live.liveEvidenceObserved,true);
   assert.equal(live.exchangeAuthority,false);
   assert.equal(live.gameplayAuthority,false);
   assert.equal(live.rawWriteAuthority,false);
