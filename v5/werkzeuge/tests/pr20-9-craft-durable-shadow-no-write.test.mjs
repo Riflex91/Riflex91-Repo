@@ -412,6 +412,12 @@ test("PR20.9 Craft runner remains no-write after autonomous manifest cutover",()
   assert.equal(roadmap.pr20_9.craftDurableShadowRunner.manifestCutoverPrepared,true);
   assert.equal(roadmap.pr20_9.craftDurableShadowRunner.packageBytes,26951);
   assert.equal(roadmap.pr20_9.craftDurableShadowRunner.packageSha256,"a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a");
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.pr20_8ManifestRestoreRequiredAfterTerminalEvidence,true);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.restoreManifest.testId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.restoreManifest.controllerVersion,"1.0.6");
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.restoreManifest.packageSha256,"fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387");
+  assert.equal(roadmap.pr20_8.activeAutonomousManifest.active,false);
+  assert.equal(roadmap.pr20_8.activeAutonomousManifest.temporarilySupersededByTestId,"pr20-9-craft-durable-shadow-no-write");
 
   const parallel=roadmap.parallelPreparations.find(x=>x?.id==="PR20.9_PRODUCTION");
   assert.ok(parallel);
