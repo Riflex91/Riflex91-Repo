@@ -1,0 +1,128 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import {bauePr21_28StageLedger,bauePr21_28ReadinessSnapshot} from "../../erzeugt/index.js";
+
+const STAGES=["PR21","PR22","PR23","PR24","PR25","PR26","PR27","PR28"];
+
+function states(overrides={}){
+  return STAGES.map(stage=>({
+    stage,
+    foundationPrepared:true,
+    orchestrationPrepared:true,
+    featureGatePrepared:true,
+    milestoneRunnerPrepared:true,
+    checkpointRunbookPrepared:true,
+    ratificationRecordPrepared:true,
+    gateApplyTransactionPrepared:true,
+    gateSettlementPrepared:true,
+    liveEvidenceRatified:false,
+    explicitRatificationRecorded:false,
+    gateApplyVerified:false,
+    ...(overrides[stage]??{}),
+  }));
+}
+
+function checkpoints(overrides={}){
+  return [
+    {checkpointId:"PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",state:"NOT_READY"},
+    {checkpointId:"POST_PR24_25_GROUP_CHECKPOINT",state:"NOT_READY"},
+    {checkpointId:"POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN",state:"NOT_READY"},
+  ].map(x=>({...x,...(overrides[x.checkpointId]??{})}));
+}
+
+test("snapshot reports technical preparation through PR28 while live evidence is pending",()=>{
+  const ledger=bauePr21_28StageLedger(states());
+  const snapshot=bauePr21_28ReadinessSnapshot({
+    schemaVersion:1,
+    mainCommit:"6b7828d06b440ddc2fbce5fd0e22bb544674e8fb",
+    ledger,
+    checkpoints:checkpoints({
+      PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT:{state:"READY_TO_RUN"},
+    }),
+  });
+  assert.equal(snapshot.status,"TECHNICALLY_PREPARED_LIVE_EVIDENCE_PENDING");
+  assert.equal(snapshot.preparationThroughPr28Complete,true);
+  assert.equal(snapshot.liveEvidenceBoundaryReached,true);
+  assert.equal(snapshot.highestPreparationCompleteStage,"PR28");
+  assert.equal(snapshot.highestProductiveEligibleStage,null);
+  assert.equal(snapshot.nextRequiredCheckpoint,"PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT");
+  assert.ok(snapshot.stages.every(x=>x.preparationComplete));
+  assert.ok(snapshot.stages.every(x=>x.productiveEligible===false));
+  assert.ok(snapshot.stages[0].missing.includes("LIVE_EVIDENCE"));
+  assert.equal(snapshot.gateMutationPerformed,false);
+  assert.equal(snapshot.authorityIssued,false);
+  assert.equal(snapshot.normalRuntimeAllowed,false);
+});
+
+test("snapshot advances the next checkpoint only after prior checkpoint ratification",()=>{
+  const ledger=bauePr21_28StageLedger(states({
+    PR21:{liveEvidenceRatified:true,explicitRatificationRecorded:true,gateApplyVerified:true},
+  }));
+  const snapshot=bauePr21_28ReadinessSnapshot({
+    schemaVersion:1,
+    mainCommit:"6b7828d06b440ddc2fbce5fd0e22bb544674e8fb",
+    ledger,
+    checkpoints:checkpoints({
+      PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT:{state:"RATIFIED"},
+      POST_PR24_25_GROUP_CHECKPOINT:{state:"READY_TO_RUN"},
+    }),
+  });
+  assert.equal(snapshot.nextRequiredCheckpoint,"POST_PR24_25_GROUP_CHECKPOINT");
+  assert.equal(snapshot.highestProductiveEligibleStage,"PR21");
+});
+
+test("fully hypothetical ratified chain reports productive eligibility without changing authority",()=>{
+  const all=Object.fromEntries(STAGES.map(stage=>[stage,{
+    liveEvidenceRatified:true,
+    explicitRatificationRecorded:true,
+    gateApplyVerified:true,
+  }]));
+  const ledger=bauePr21_28StageLedger(states(all));
+  const snapshot=bauePr21_28ReadinessSnapshot({
+    schemaVersion:1,
+    mainCommit:"6b7828d06b440ddc2fbce5fd0e22bb544674e8fb",
+    ledger,
+    checkpoints:checkpoints({
+      PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT:{state:"RATIFIED"},
+      POST_PR24_25_GROUP_CHECKPOINT:{state:"RATIFIED"},
+      POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN:{state:"RATIFIED"},
+    }),
+  });
+  assert.equal(snapshot.status,"PRODUCTIVE_CHAIN_ELIGIBLE");
+  assert.equal(snapshot.highestProductiveEligibleStage,"PR28");
+  assert.equal(snapshot.nextRequiredCheckpoint,null);
+  assert.equal(snapshot.gateMutationPerformed,false);
+  assert.equal(snapshot.authorityIssued,false);
+});
+
+test("partial preparation remains distinct from live-evidence boundary",()=>{
+  const partial=states({PR28:{gateSettlementPrepared:false}});
+  const snapshot=bauePr21_28ReadinessSnapshot({
+    schemaVersion:1,
+    mainCommit:"6b7828d06b440ddc2fbce5fd0e22bb544674e8fb",
+    ledger:bauePr21_28StageLedger(partial),
+    checkpoints:checkpoints(),
+  });
+  assert.equal(snapshot.status,"PARTIALLY_PREPARED");
+  assert.equal(snapshot.preparationThroughPr28Complete,false);
+  assert.equal(snapshot.liveEvidenceBoundaryReached,false);
+  assert.ok(snapshot.stages.at(-1).missing.includes("PREPARATION_INCOMPLETE"));
+});
+
+test("readiness snapshot rejects incomplete checkpoint set",()=>{
+  const ledger=bauePr21_28StageLedger(states());
+  assert.throws(()=>bauePr21_28ReadinessSnapshot({
+    schemaVersion:1,
+    mainCommit:"6b7828d06b440ddc2fbce5fd0e22bb544674e8fb",
+    ledger,
+    checkpoints:checkpoints().slice(0,2),
+  }),/PR21_28_READINESS_SNAPSHOT_CHECKPOINTS_UNVOLLSTAENDIG/);
+});
+
+test("readiness snapshot source contains no mutation bypass",()=>{
+  const source=fs.readFileSync("grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts","utf8");
+  for(const marker of ["socket.emit(","send_cm(","smart_move(","attack(","use_skill(","loot(","respawn(","change_server(","craft(","exchange(","upgrade(","compound(","V5 GESAMTFREIGABE ERTEILEN"]){
+    assert.equal(source.includes(marker),false,marker);
+  }
+});

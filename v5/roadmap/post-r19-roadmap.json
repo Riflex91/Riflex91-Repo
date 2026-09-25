@@ -930,7 +930,10 @@
         "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
-        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
+        "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -943,7 +946,8 @@
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
       "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
-      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+      "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY"
     },
     {
       "id": "PR22_MULTI_CHARACTER",
@@ -977,7 +981,10 @@
         "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
-        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
+        "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -987,7 +994,8 @@
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
       "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
-      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+      "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY"
     },
     {
       "id": "PR23_FARMER",
@@ -1029,7 +1037,10 @@
         "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
-        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
+        "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1042,7 +1053,8 @@
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
       "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
-      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+      "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY"
     },
     {
       "id": "PR24_GROUP_MATRIX",
@@ -1076,7 +1088,10 @@
         "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
-        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
+        "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1086,7 +1101,8 @@
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
       "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
-      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+      "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY"
     },
     {
       "id": "PR25_GROUP_LIVE_EVIDENCE",
@@ -1128,7 +1144,10 @@
         "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
-        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
+        "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1141,7 +1160,8 @@
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
       "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
-      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+      "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY"
     },
     {
       "id": "PR26_TASK_PARTY_OPTIMIZER",
@@ -1175,7 +1195,10 @@
         "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
-        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
+        "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1185,7 +1208,8 @@
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
       "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
-      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+      "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY"
     },
     {
       "id": "PR27_ACCOUNT_PROGRESSION",
@@ -1219,7 +1243,10 @@
         "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
-        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
+        "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1229,7 +1256,8 @@
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
       "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
-      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+      "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY"
     },
     {
       "id": "PR28_WORLD_AUTONOMY",
@@ -1271,7 +1299,10 @@
         "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
-        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
+        "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1284,7 +1315,8 @@
       "gateApplyAdapterInstalled": false,
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
       "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
-      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY"
+      "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
+      "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY"
     }
   ],
   "safePreparationBoundary": {
@@ -3623,6 +3655,25 @@
       "replayMutatesGate": false,
       "replayIssuesAuthority": false,
       "broadRuntimeGrant": false
+    },
+    "readinessSnapshotBatch10": {
+      "status": "PREPARED_REPLAY_ONLY",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
+      "source": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+      "test": "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs",
+      "preparationThroughPr28CanBeComplete": true,
+      "productiveEvidenceStillRequired": true,
+      "nextBoundary": "REAL_LIVE_EVIDENCE",
+      "gateMutationPerformed": false,
+      "authorityIssued": false,
+      "normalRuntimeAllowed": false
+    },
+    "acceleratedBuildBoundary": {
+      "status": "TECHNICALLY_PREPARED_THROUGH_PR28_PENDING_REAL_LIVE_EVIDENCE",
+      "stopFurtherDefaultOffArchitectureChurn": true,
+      "nextRequiredCheckpoint": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+      "then": "POST_PR24_25_GROUP_CHECKPOINT",
+      "final": "POST_PR28_MULTI_HOUR_FULL_INTEGRATION_RUN"
     }
   },
   "pr21": {
@@ -3669,7 +3720,9 @@
     "rollbackAdapterInstalled": false,
     "rollbackExecutionEnabled": false,
     "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
-    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+    "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
+    "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts"
   },
   "pr22": {
     "status": "BLOCKED_BY_PR21",
@@ -3710,7 +3763,9 @@
     "rollbackAdapterInstalled": false,
     "rollbackExecutionEnabled": false,
     "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
-    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+    "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
+    "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts"
   },
   "pr23": {
     "status": "BLOCKED_BY_PR22",
@@ -3760,7 +3815,9 @@
     "rollbackAdapterInstalled": false,
     "rollbackExecutionEnabled": false,
     "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
-    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+    "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
+    "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts"
   },
   "pr24": {
     "status": "BLOCKED_BY_PR23",
@@ -3800,7 +3857,9 @@
     "rollbackAdapterInstalled": false,
     "rollbackExecutionEnabled": false,
     "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
-    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+    "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
+    "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts"
   },
   "pr25": {
     "status": "BLOCKED_BY_PR24",
@@ -3849,7 +3908,9 @@
     "rollbackAdapterInstalled": false,
     "rollbackExecutionEnabled": false,
     "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
-    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+    "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
+    "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts"
   },
   "pr26": {
     "status": "BLOCKED_BY_PR25",
@@ -3890,7 +3951,9 @@
     "rollbackAdapterInstalled": false,
     "rollbackExecutionEnabled": false,
     "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
-    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+    "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
+    "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts"
   },
   "pr27": {
     "status": "BLOCKED_BY_PR26",
@@ -3931,7 +3994,9 @@
     "rollbackAdapterInstalled": false,
     "rollbackExecutionEnabled": false,
     "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
-    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+    "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
+    "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts"
   },
   "pr28": {
     "status": "BLOCKED_BY_PR27",
@@ -3979,6 +4044,8 @@
     "rollbackAdapterInstalled": false,
     "rollbackExecutionEnabled": false,
     "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
-    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts"
+    "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+    "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
+    "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts"
   }
 }
