@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-25",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "evidenceArt": "V5_PR20_8_COMPOUND_LIVE_5M_POSTCOMMIT_RATIFICATION",
+  "status": "RATIFIED_BESTANDEN_ZERO_ADDITIONAL_MUTATION",
+  "manifestMainCommit": "1e3e61a49e57e078991c29b0d08102579100fddd",
+  "package": {
+    "testId": "pr20-8-compound-live-5m",
+    "controllerVersion": "1.0.2",
+    "sourceCommit": "18568cbc9689bd7e27c5a26a4342901d470b72c0",
+    "path": "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-2.js",
+    "sha256": "4d9083bf163d98f15d842d64ecfc49ae4c9b8c3452b0b31a499d4b0b5687c849",
+    "bytes": 28166,
+    "expectedGlobal": "V5PR208CompoundLive5m"
+  },
+  "liveTelemetry": {
+    "statusTable": "public.aio_v5_test_status",
+    "notificationTable": "public.aio_v5_test_notifications",
+    "botId": "pi-main",
+    "notificationId": 2272,
+    "runStartedAtMs": 1790310011908,
+    "observedAtMs": 1790311955056,
+    "updatedAt": "2026-09-25T04:52:41.705Z",
+    "notificationCreatedAt": "2026-09-25T04:52:41.896315Z",
+    "completionNotificationPersisted": true,
+    "runIdentityNonZero": true
+  },
+  "controller": {
+    "status": "BESTANDEN",
+    "phase": "COMPLETE",
+    "terminal": true,
+    "startedAtMs": 1790310011908,
+    "normalRuntimeAllowed": false
+  },
+  "soak": {
+    "status": "BESTANDEN",
+    "samples": 60,
+    "minimumSamples": 60,
+    "intervalMs": 5000,
+    "durationMs": 300545,
+    "minimumDurationMs": 299000,
+    "restartCount": 0
+  },
+  "sourceTransaction": {
+    "testId": "pr20-8-compound-productive-one-write-live",
+    "transactionId": "pr20-8-compound-productive-one-write-live:ff08418e6003250471c98f5893dec8dd",
+    "status": "COMMITTED",
+    "terminal": true,
+    "sendCount": 1,
+    "reconciliation": "COMMITTED_SUCCESS",
+    "authorityConsumed": true,
+    "authorityUses": 1,
+    "authorityMaximumUses": 1,
+    "activeFences": 0
+  },
+  "additionalMutationCounters": {
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "noResendPathPresent": true
+  },
+  "historicalMutationCounters": {
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0
+  },
+  "postcondition": {
+    "stable": true,
+    "recipient": {
+      "characterName": "My_Merchant",
+      "sessionId": "My_Merchant",
+      "ctype": "merchant",
+      "serverRegion": "EU",
+      "serverIdentifier": "I"
+    },
+    "resultItem": {
+      "name": "hpamulet",
+      "index": 1,
+      "level": 1
+    },
+    "consumedInputIndexes": [
+      22,
+      23
+    ],
+    "consumedInputsEmpty": true,
+    "scroll": {
+      "name": "cscroll0",
+      "index": 18,
+      "quantity": 19
+    },
+    "qClear": true,
+    "compoundQueueClear": true,
+    "placeholderCount": 0,
+    "compoundEffectsClear": true,
+    "massproductionPresent": false,
+    "massproductionppPresent": false
+  },
+  "performanceTrick": {
+    "active": true,
+    "called": true,
+    "available": true,
+    "audioFound": true,
+    "playing": true,
+    "cplaying": true,
+    "verification": "HOWLER_PLAYING_TRUE",
+    "error": null
+  },
+  "notificationIdentityRecovery": {
+    "fromControllerVersion": "1.0.1",
+    "priorSuccessfulBehaviorObserved": true,
+    "priorRunStartedAtMs": 0,
+    "priorCompletionNotificationPersisted": false,
+    "priorCollisionNotificationId": 2221,
+    "uniqueConstraint": "UNIQUE (bot_id, test_id, run_started_at_ms)",
+    "recoveredWithoutResampling": true,
+    "recoveredWithoutResend": true,
+    "recoveredTerminalEvent": "PR20_8_COMPOUND_5M_TERMINAL_RECOVERED",
+    "stableRunIdentityFromPersistedSoakStartedAtMs": true
+  },
+  "safetyBoundary": {
+    "compoundWriteRatified": true,
+    "compoundLive5mTested": true,
+    "live5mCriterionRelaxed": false,
+    "noDuplicateValueChangingEffectObserved": true,
+    "exactAdditionalGameplayWritesObserved": 0,
+    "exactAdditionalPublicFunctionCallsObserved": 0,
+    "exactAdditionalRawWriteCallsObserved": 0,
+    "exchangeRatification": false,
+    "exchangeLive5mTested": false,
+    "exchangeAutonomyProductiveProven": false,
+    "exchangeWriteAuthority": false,
+    "pr20_8ExitGateSatisfied": false,
+    "mayAdvanceToPr20_9": false,
+    "acquisitionOrMutationToCreateExchangeCandidateAllowed": false,
+    "normalRuntimeAllowed": false
+  },
+  "nextGate": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW"
+}
