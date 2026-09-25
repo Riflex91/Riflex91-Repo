@@ -96,11 +96,21 @@ describe("Windows local sandbox scripts", () => {
     }
   });
 
+  it("aligns the Vite bind address with the IPv4 renderer health probe", () => {
+    const vite = read("vite.config.ts");
+    const start = read("local-dev/windows/start.ps1");
+
+    expect(vite).toContain('host: "127.0.0.1"');
+    expect(vite).toContain('"http://127.0.0.1:8090"');
+    expect(start).toContain("--host 127.0.0.1 --port 5173");
+    expect(start).toContain("http://127.0.0.1:5173/");
+  });
+
   it("starts only localhost services and opts into the local admin browser mode", () => {
     const start = read("local-dev/windows/start.ps1");
 
     expect(start).toContain("127.0.0.1");
-    expect(start).toContain("localhost:5173");
+    expect(start).toContain("127.0.0.1:5173");
     expect(start).toContain("localAdmin=1");
     expect(start).toContain("legacy=/legacy/");
     expect(start).not.toContain("https://adventure.land");
