@@ -122,7 +122,7 @@ test("bank-mount contract is one-shot movement only and cannot retrieve",()=>{
   const mount=JSON.parse(fs.readFileSync(
     "grundlage/vertraege/runtime/pr20-8-exchange-candidate-bank-mount.json","utf8"
   ));
-  assert.equal(mount.status,"PACKAGE_PREPARED_NOT_DEPLOYED");
+  assert.equal(mount.status,"MANIFEST_CUTOVER_PREPARED");
   assert.equal(mount.prerequisite.priorTestId,"pr20-8-exchange-candidate-acquisition-readonly");
   assert.equal(mount.prerequisite.requiredPriorBlocker,"PR20_8_ACQUISITION_BANK_SNAPSHOT_REQUIRED");
   assert.equal(mount.movementBoundary.exactPublicFunction,"smart_move");
@@ -138,4 +138,11 @@ test("bank-mount contract is one-shot movement only and cannot retrieve",()=>{
   assert.equal(mount.evidenceSeparation.exactBankRetrieveRequiresSeparatePreparation,true);
   assert.equal(mount.evidenceSeparation.exchangeWriteAuthority,false);
   assert.equal(mount.evidenceSeparation.normalRuntimeAllowed,false);
+  assert.equal(mount.manifestCutover.prepared,true);
+  assert.equal(mount.manifestCutover.sourceCommit,"5c84fc95b7fed97c3591462faba0a1315289fdce");
+  assert.equal(mount.manifestCutover.packageSha256,"94c053183363c0394922df4f6e422bede3260989e668a3b0942f3e876dbbdc54");
+  assert.equal(mount.manifestCutover.packageBytes,15430);
+  assert.equal(mount.manifestCutover.deployed,false);
+  assert.equal(mount.manifestCutover.evidenceObserved,false);
+  assert.equal(mount.nextAction,"DEPLOY_AND_OBSERVE_BANK_MOUNT");
 });
