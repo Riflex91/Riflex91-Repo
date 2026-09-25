@@ -17,7 +17,7 @@ test("service-unreachable live evidence is exact zero-write",()=>{
   assert.equal(evidence.status,"RATIFIED_ZERO_WRITE_SERVICE_UNREACHABLE");
   assert.equal(evidence.sourceMain,"0c96fdf5ab513c7f1b12a779acc7c27477eb0c61");
   assert.equal(evidence.testId,
-    "pr20-8-exchange-anniversarygift-live-5m");
+    "pr20-8-exchange-anniversarygift-productive-one-write-live");
   assert.equal(evidence.controllerVersion,"1.0.0");
   assert.deepEqual(evidence.observations.map(x=>x.notificationId),[2811,2813]);
   for(const o of evidence.observations){
