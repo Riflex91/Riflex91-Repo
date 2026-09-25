@@ -43,8 +43,23 @@
     "runnerRawWriteCalls": 0,
     "normalRuntimeAllowed": false,
     "automaticRatification": false,
-    "automaticAuthorityIssue": false
+    "automaticAuthorityIssue": false,
+    "cap022FullChainPreconditionRequiredForGroupCheckpoint": true,
+    "runbookCannotAuthorizeMissingCap022": true
   },
   "test": "v5/grundlage/tests/pr21-28-checkpoint-runbooks.test.mjs",
-  "nextMilestone": "PREPARE_RATIFICATION_RECORDS_AND_GATE_ADVANCE_TRANSACTIONS_WITHOUT_EXECUTING_THEM"
+  "nextMilestone": "PREPARE_RATIFICATION_RECORDS_AND_GATE_ADVANCE_TRANSACTIONS_WITH_CAP022_BOUNDARY_WITHOUT_EXECUTING_THEM",
+  "cap022FullChainBoundary": {
+    "requiredCheckpoint": "POST_PR24_25_GROUP_CHECKPOINT",
+    "requiredPrecondition": "CAP022_FULL_CHAIN_READY",
+    "runbookField": "cap022FullChainRequired",
+    "milestoneEvaluationMustConfirmFullChain": true,
+    "missingFullChainMayNotStartExternalRuntime": true,
+    "manualRatificationStillRequired": true,
+    "runnerOwnsGameplayAuthority": false,
+    "currentPr20_9RatificationCredit": false,
+    "candidateAcquisitionOrMutationAllowedNow": false,
+    "durableIntentCreated": false,
+    "productiveCraftAuthorityOpened": false
+  }
 }
