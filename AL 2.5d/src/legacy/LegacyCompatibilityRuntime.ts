@@ -19,8 +19,11 @@ export type LegacyMapClickEvent = Readonly<{
 export type LegacyCompatibilitySource = LegacyGlobalsLike & {
   map_click?: (event: LegacyMapClickEvent) => unknown;
   monster_click?: (event: LegacyMapClickEvent) => unknown;
+  monster_attack?: (event?: LegacyMapClickEvent) => unknown;
   player_click?: (event: LegacyMapClickEvent) => unknown;
+  player_right_click?: (event?: LegacyMapClickEvent) => unknown;
   npc_right_click?: (event: LegacyMapClickEvent) => unknown;
+  on_skill?: (key: string, event?: unknown) => unknown;
   enter_selected_character?: (name: string, id: string) => unknown;
   socket?: Readonly<{ connected?: boolean }>;
   socket_welcomed?: boolean;
@@ -133,6 +136,36 @@ export function dispatchLegacyEntityClick(
 
   if (typeof handler !== "function") {
     throw new Error(`Legacy click handler is not available for ${entityId}`);
+  }
+
+  return handler.call(entity, event);
+}
+
+export function dispatchLegacyEntityRightClick(
+  entityId: string,
+  source: LegacyCompatibilitySource
+): unknown {
+  const entity = source.entities?.[entityId];
+
+  if (!entity) {
+    throw new Error(`Legacy entity ${entityId} is not available`);
+  }
+
+  const x = finiteNumber(entity.real_x, finiteNumber(entity.x, 0));
+  const y = finiteNumber(entity.real_y, finiteNumber(entity.y, 0));
+  const event = createLegacyMapClickEvent({ x, y }, source);
+
+  const handler =
+    entity.npc || entity.type === "npc"
+      ? source.npc_right_click
+      : entity.mtype || entity.type === "monster"
+        ? source.monster_attack
+        : source.player_right_click;
+
+  if (typeof handler !== "function") {
+    throw new Error(
+      `Legacy right-click handler is not available for ${entityId}`
+    );
   }
 
   return handler.call(entity, event);
@@ -306,6 +339,20 @@ export class LegacyCompatibilityRuntime {
 
   dispatchEntityClick(entityId: string): unknown {
     return dispatchLegacyEntityClick(entityId, this.requireSource());
+  }
+
+  dispatchEntityRightClick(entityId: string): unknown {
+    return dispatchLegacyEntityRightClick(entityId, this.requireSource());
+  }
+
+  dispatchHotbarKey(key: string): unknown {
+    const source = this.requireSource();
+
+    if (typeof source.on_skill !== "function") {
+      throw new Error("Legacy on_skill is not available");
+    }
+
+    return source.on_skill.call(source, key);
   }
 
   setGraphicsMode(mode: GraphicsMode): void {

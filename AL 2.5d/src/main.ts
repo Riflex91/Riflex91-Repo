@@ -95,7 +95,24 @@ async function boot(): Promise<void> {
 
   await renderer.mount(host);
 
-  const hud = new HudOverlay(document.body);
+  const hud = new HudOverlay(
+    {
+      onHotbar: (key) => {
+        if (!legacyRuntime?.ready) return;
+        try {
+          const result = legacyRuntime.dispatchHotbarKey(key);
+          if (result instanceof Promise) {
+            void result.catch((error) =>
+              console.warn("AL 2.5D hotbar action failed", error)
+            );
+          }
+        } catch (error) {
+          console.warn("AL 2.5D hotbar action was not dispatched", error);
+        }
+      }
+    },
+    document.body
+  );
   hud.setMode(graphicsMode);
 
   graphicsToggle = new GraphicsModeToggle((nextMode) => {
@@ -214,13 +231,11 @@ async function boot(): Promise<void> {
 
   window.AL25D = api;
 
-  host.addEventListener("pointerup", (event) => {
-    if (!legacyRuntime?.ready) return;
-
+  const findEntityHit = (clientX: number, clientY: number) => {
     const rect = host.getBoundingClientRect();
     const point = {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top
+      x: clientX - rect.left,
+      y: clientY - rect.top
     };
     const viewport = {
       width: rect.width,
@@ -241,6 +256,14 @@ async function boot(): Promise<void> {
       .filter((candidate) => candidate.score <= 1)
       .sort((a, b) => a.score - b.score)[0];
 
+    return { rect, point, viewport, hit };
+  };
+
+  host.addEventListener("pointerup", (event) => {
+    if (!legacyRuntime?.ready || event.button !== 0) return;
+
+    const { rect, point, viewport, hit } =
+      findEntityHit(event.clientX, event.clientY);
     try {
       if (hit) {
         legacyRuntime.dispatchEntityClick(hit.entity.id);
@@ -252,6 +275,24 @@ async function boot(): Promise<void> {
       legacyRuntime.dispatchWorldClick(world);
     } catch (error) {
       console.warn("AL 2.5D legacy pointer action was not dispatched", error);
+    }
+  });
+
+  host.addEventListener("contextmenu", (event) => {
+    if (!legacyRuntime?.ready || graphicsMode !== "2.5d") return;
+
+    event.preventDefault();
+
+    const { hit } = findEntityHit(event.clientX, event.clientY);
+    if (!hit) return;
+
+    try {
+      legacyRuntime.dispatchEntityRightClick(hit.entity.id);
+    } catch (error) {
+      console.warn(
+        "AL 2.5D legacy right-click action was not dispatched",
+        error
+      );
     }
   });
 

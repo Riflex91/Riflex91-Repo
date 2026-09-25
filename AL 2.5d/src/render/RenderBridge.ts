@@ -84,10 +84,48 @@ export type RenderMapState = Readonly<{
   geometry: RenderMapGeometrySummary;
 }>;
 
+export type RenderInventorySlot = Readonly<{
+  index: number;
+  name?: string;
+  displayName?: string;
+  level?: number;
+  quantity?: number;
+}>;
+
+export type RenderEquipmentSlot = Readonly<{
+  slot: string;
+  name: string;
+  displayName: string;
+  level?: number;
+  quantity?: number;
+}>;
+
+export type RenderHotbarEntry = Readonly<{
+  key: string;
+  action: string;
+  label: string;
+}>;
+
+export type RenderSkillEntry = Readonly<{
+  name: string;
+  label: string;
+  key?: string;
+  requiredLevel?: number;
+  mp?: number;
+}>;
+
+export type RenderPlayerUi = Readonly<{
+  inventory: readonly RenderInventorySlot[];
+  equipment: readonly RenderEquipmentSlot[];
+  hotbar: readonly RenderHotbarEntry[];
+  skills: readonly RenderSkillEntry[];
+}>;
+
 export type GameFrameSnapshot = Readonly<{
   tick: number;
   map: string;
   mapState?: RenderMapState;
+  playerUi?: RenderPlayerUi;
   entities: readonly RenderEntity[];
 }>;
 

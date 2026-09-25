@@ -28,6 +28,8 @@ export type LegacyEntityLike = Readonly<{
   level?: number;
   xp?: number;
   max_xp?: number;
+  items?: readonly unknown[];
+  slots?: Readonly<Record<string, unknown>>;
 }>;
 
 export type LegacySnapshotSource = Readonly<{

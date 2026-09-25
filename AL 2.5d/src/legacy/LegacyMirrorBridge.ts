@@ -4,7 +4,12 @@ import type {
   RenderCollisionLine,
   RenderMapBounds,
   RenderMapState,
-  RenderMapSurface
+  RenderMapSurface,
+  RenderPlayerUi,
+  RenderInventorySlot,
+  RenderEquipmentSlot,
+  RenderHotbarEntry,
+  RenderSkillEntry
 } from "../render/RenderBridge";
 import {
   LegacySnapshotAdapter,
@@ -15,6 +20,8 @@ export type LegacyGameDataLike = Readonly<{
   maps?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   geometry?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   tilesets?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  items?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  skills?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }>;
 
 export type LegacyGlobalsLike = Readonly<{
@@ -23,6 +30,8 @@ export type LegacyGlobalsLike = Readonly<{
   entities?: Readonly<Record<string, LegacyEntityLike>>;
   ctarget?: LegacyEntityLike | null;
   xtarget?: LegacyEntityLike | null;
+  skillbar?: readonly string[];
+  keymap?: Readonly<Record<string, unknown>>;
   G?: LegacyGameDataLike;
 }>;
 
@@ -299,6 +308,155 @@ function inferBounds(
   });
 }
 
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim()
+    ? value
+    : undefined;
+}
+
+function displayNameFor(
+  name: string,
+  definitions: Readonly<Record<string, Readonly<Record<string, unknown>>>> | undefined
+): string {
+  const definition = definitions?.[name];
+  return stringValue(definition?.name) ?? name;
+}
+
+function itemSnapshot(
+  value: unknown,
+  index: number,
+  definitions: Readonly<Record<string, Readonly<Record<string, unknown>>>> | undefined
+): RenderInventorySlot {
+  const item = recordValue(value);
+  const name = stringValue(item?.name);
+
+  if (!name) {
+    return Object.freeze({ index });
+  }
+
+  const level = finiteNumber(item?.level);
+  const quantity = finiteNumber(item?.q);
+
+  return Object.freeze({
+    index,
+    name,
+    displayName: displayNameFor(name, definitions),
+    ...(level === undefined ? {} : { level }),
+    ...(quantity === undefined ? {} : { quantity })
+  });
+}
+
+function actionName(value: unknown): string | undefined {
+  if (typeof value === "string") return value;
+  const record = recordValue(value);
+  return stringValue(record?.name);
+}
+
+function actionLabel(
+  action: string,
+  skills: Readonly<Record<string, Readonly<Record<string, unknown>>>> | undefined
+): string {
+  if (action === "use_hp") return "HP Potion";
+  if (action === "use_mp") return "MP Potion";
+  if (action === "attack") return "Attack";
+  return displayNameFor(action, skills);
+}
+
+function snapshotLegacyPlayerUi(
+  globals: LegacyGlobalsLike,
+  character: LegacyEntityLike | null
+): RenderPlayerUi | undefined {
+  if (!character) return undefined;
+
+  const itemDefinitions = globals.G?.items;
+  const skillDefinitions = globals.G?.skills;
+  const inventory: RenderInventorySlot[] = Array.isArray(character.items)
+    ? character.items.map((item, index) =>
+        itemSnapshot(item, index, itemDefinitions)
+      )
+    : [];
+
+  const equipment: RenderEquipmentSlot[] = [];
+  for (const [slot, raw] of Object.entries(character.slots ?? {})) {
+    const item = recordValue(raw);
+    const name = stringValue(item?.name);
+    if (!name) continue;
+
+    const level = finiteNumber(item?.level);
+    const quantity = finiteNumber(item?.q);
+    equipment.push(
+      Object.freeze({
+        slot,
+        name,
+        displayName: displayNameFor(name, itemDefinitions),
+        ...(level === undefined ? {} : { level }),
+        ...(quantity === undefined ? {} : { quantity })
+      })
+    );
+  }
+
+  const keymap = globals.keymap ?? {};
+  const hotbar: RenderHotbarEntry[] = [];
+  const boundKeys = new Map<string, string>();
+
+  for (const key of globals.skillbar ?? []) {
+    const action = actionName(keymap[key]);
+    if (!action) continue;
+    boundKeys.set(action, key);
+    hotbar.push(
+      Object.freeze({
+        key,
+        action,
+        label: actionLabel(action, skillDefinitions)
+      })
+    );
+  }
+
+  for (const [key, rawAction] of Object.entries(keymap)) {
+    const action = actionName(rawAction);
+    if (action && !boundKeys.has(action)) {
+      boundKeys.set(action, key);
+    }
+  }
+
+  const skills: RenderSkillEntry[] = [];
+  const ctype = character.ctype;
+
+  for (const [name, definition] of Object.entries(skillDefinitions ?? {})) {
+    const classes = Array.isArray(definition.class)
+      ? definition.class.filter((entry): entry is string => typeof entry === "string")
+      : [];
+
+    if (!classes.length || !ctype || !classes.includes(ctype)) continue;
+
+    const requiredLevel = finiteNumber(definition.level);
+    const mp = finiteNumber(definition.mp);
+    const key = boundKeys.get(name);
+
+    skills.push(
+      Object.freeze({
+        name,
+        label: stringValue(definition.name) ?? name,
+        ...(key ? { key } : {}),
+        ...(requiredLevel === undefined ? {} : { requiredLevel }),
+        ...(mp === undefined ? {} : { mp })
+      })
+    );
+  }
+
+  skills.sort((a, b) =>
+    (a.requiredLevel ?? 0) - (b.requiredLevel ?? 0) ||
+    a.label.localeCompare(b.label)
+  );
+
+  return Object.freeze({
+    inventory: Object.freeze(inventory),
+    equipment: Object.freeze(equipment),
+    hotbar: Object.freeze(hotbar),
+    skills: Object.freeze(skills)
+  });
+}
+
 function snapshotPrimitiveMetadata(
   source: Readonly<Record<string, unknown>> | undefined
 ): Readonly<Record<string, string | number | boolean | null>> {
@@ -398,9 +556,15 @@ export class LegacyMirrorBridge {
       targetId: globals.xtarget?.id ?? globals.ctarget?.id ?? null
     });
     const mapState = snapshotLegacyMapState(globals, map);
-    const snapshot: GameFrameSnapshot = mapState
-      ? Object.freeze({ ...entitySnapshot, mapState })
-      : entitySnapshot;
+    const playerUi = snapshotLegacyPlayerUi(globals, character);
+    const snapshot: GameFrameSnapshot =
+      mapState || playerUi
+        ? Object.freeze({
+            ...entitySnapshot,
+            ...(mapState ? { mapState } : {}),
+            ...(playerUi ? { playerUi } : {})
+          })
+        : entitySnapshot;
 
     this.onSnapshot?.(snapshot);
     this.renderer.renderFrame(snapshot);

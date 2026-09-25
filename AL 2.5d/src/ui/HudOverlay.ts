@@ -1,16 +1,29 @@
 import type { GraphicsMode } from "../legacy/LegacyCompatibilityRuntime";
-import type { GameFrameSnapshot } from "../render/RenderBridge";
+import type {
+  GameFrameSnapshot,
+  RenderEquipmentSlot,
+  RenderHotbarEntry,
+  RenderInventorySlot,
+  RenderPlayerUi,
+  RenderSkillEntry
+} from "../render/RenderBridge";
 import {
   buildHudModel,
   type HudBarModel,
   type HudModel
 } from "./HudModel";
 
+export type HudActions = Readonly<{
+  onHotbar?: (key: string) => void;
+}>;
+
 type BarElements = Readonly<{
   root: HTMLDivElement;
   fill: HTMLElement;
   label: HTMLSpanElement;
 }>;
+
+type PanelName = "inventory" | "equipment" | "skills";
 
 function createBar(kind: "hp" | "mp" | "xp"): BarElements {
   const root = document.createElement("div");
@@ -34,6 +47,28 @@ function setBar(
   elements.label.textContent = model?.text ?? fallbackLabel;
 }
 
+function shortLabel(value: string, length = 10): string {
+  return value.length <= length
+    ? value
+    : value.slice(0, Math.max(1, length - 1)) + "…";
+}
+
+function itemText(item: RenderInventorySlot | RenderEquipmentSlot): string {
+  const name =
+    "displayName" in item && item.displayName
+      ? item.displayName
+      : item.name ?? "Empty";
+  const level =
+    item.level !== undefined && item.level > 0
+      ? ` +${item.level}`
+      : "";
+  const quantity =
+    item.quantity !== undefined && item.quantity > 1
+      ? ` ×${item.quantity}`
+      : "";
+  return `${name}${level}${quantity}`;
+}
+
 export class HudOverlay {
   private readonly root = document.createElement("div");
   private readonly playerFrame = document.createElement("section");
@@ -50,9 +85,20 @@ export class HudOverlay {
   private readonly targetMeta = document.createElement("span");
   private readonly targetHp = createBar("hp");
 
-  private lastKey = "";
+  private readonly menu = document.createElement("nav");
+  private readonly panel = document.createElement("section");
+  private readonly panelTitle = document.createElement("strong");
+  private readonly panelBody = document.createElement("div");
+  private readonly hotbar = document.createElement("div");
 
-  constructor(owner: HTMLElement = document.body) {
+  private lastKey = "";
+  private latestPlayerUi: RenderPlayerUi | undefined;
+  private openPanel: PanelName | null = null;
+
+  constructor(
+    private readonly actions: HudActions = {},
+    owner: HTMLElement = document.body
+  ) {
     this.root.id = "al25d-hud";
     this.root.hidden = true;
 
@@ -86,9 +132,47 @@ export class HudOverlay {
     const targetHeading = document.createElement("div");
     targetHeading.className = "al25d-hud-heading";
     targetHeading.append(this.targetName, this.targetMeta);
-
     this.targetFrame.append(targetHeading, this.targetHp.root);
-    this.root.append(this.playerFrame, this.targetFrame);
+
+    this.menu.id = "al25d-menu";
+    this.menu.setAttribute("aria-label", "AL 2.5D Menus");
+    for (const [panel, label] of [
+      ["inventory", "INV"],
+      ["equipment", "GEAR"],
+      ["skills", "SKILLS"]
+    ] as const) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.panel = panel;
+      button.textContent = label;
+      button.addEventListener("click", () => this.togglePanel(panel));
+      this.menu.appendChild(button);
+    }
+
+    this.panel.id = "al25d-panel";
+    this.panel.className = "al25d-hud-frame";
+    this.panel.hidden = true;
+    const panelHeader = document.createElement("header");
+    this.panelTitle.className = "al25d-panel-title";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "al25d-panel-close";
+    close.textContent = "×";
+    close.setAttribute("aria-label", "Panel schließen");
+    close.addEventListener("click", () => this.togglePanel(null));
+    panelHeader.append(this.panelTitle, close);
+    this.panelBody.className = "al25d-panel-body";
+    this.panel.append(panelHeader, this.panelBody);
+
+    this.hotbar.id = "al25d-hotbar";
+
+    this.root.append(
+      this.playerFrame,
+      this.targetFrame,
+      this.menu,
+      this.panel,
+      this.hotbar
+    );
     owner.appendChild(this.root);
   }
 
@@ -98,19 +182,197 @@ export class HudOverlay {
 
   render(snapshot: GameFrameSnapshot): void {
     const model = buildHudModel(snapshot);
-    const key = JSON.stringify(model);
+    const playerUiKey = JSON.stringify(snapshot.playerUi ?? null);
+    const key = JSON.stringify(model) + playerUiKey;
+
     if (key === this.lastKey) return;
     this.lastKey = key;
+    this.latestPlayerUi = snapshot.playerUi;
     this.renderModel(model);
+    this.renderHotbar(snapshot.playerUi?.hotbar ?? []);
+
+    if (this.openPanel) {
+      this.renderPanel(this.openPanel);
+    }
   }
 
   clear(): void {
     this.lastKey = "";
+    this.latestPlayerUi = undefined;
+    this.openPanel = null;
+    this.panel.hidden = true;
     this.renderModel({ player: null, target: null });
+    this.renderHotbar([]);
   }
 
   destroy(): void {
     this.root.remove();
+  }
+
+  private togglePanel(panel: PanelName | null): void {
+    this.openPanel =
+      panel && panel !== this.openPanel
+        ? panel
+        : null;
+    this.panel.hidden = this.openPanel === null;
+
+    for (const button of this.menu.querySelectorAll<HTMLButtonElement>("button")) {
+      button.dataset.active = String(button.dataset.panel === this.openPanel);
+    }
+
+    if (this.openPanel) {
+      this.renderPanel(this.openPanel);
+    }
+  }
+
+  private renderHotbar(entries: readonly RenderHotbarEntry[]): void {
+    this.hotbar.replaceChildren();
+
+    for (const entry of entries) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "al25d-hotbar-slot";
+      button.title = `${entry.key}: ${entry.label}`;
+      button.addEventListener("click", () => this.actions.onHotbar?.(entry.key));
+
+      const key = document.createElement("kbd");
+      key.textContent = entry.key;
+      const label = document.createElement("span");
+      label.textContent = shortLabel(entry.label, 11);
+      button.append(key, label);
+      this.hotbar.appendChild(button);
+    }
+  }
+
+  private renderPanel(panel: PanelName): void {
+    const playerUi = this.latestPlayerUi;
+    this.panelBody.replaceChildren();
+
+    if (!playerUi) {
+      this.panelTitle.textContent = "Loading";
+      this.panelBody.textContent = "Spielzustand wird geladen …";
+      return;
+    }
+
+    if (panel === "inventory") {
+      this.panelTitle.textContent = "Inventory";
+      this.renderInventory(playerUi.inventory);
+      return;
+    }
+
+    if (panel === "equipment") {
+      this.panelTitle.textContent = "Equipment";
+      this.renderEquipment(playerUi.equipment);
+      return;
+    }
+
+    this.panelTitle.textContent = "Skills";
+    this.renderSkills(playerUi.skills);
+  }
+
+  private renderInventory(items: readonly RenderInventorySlot[]): void {
+    const grid = document.createElement("div");
+    grid.className = "al25d-inventory-grid";
+
+    for (const item of items) {
+      const cell = document.createElement("div");
+      cell.className = "al25d-item-cell";
+      cell.dataset.empty = String(!item.name);
+      cell.title = item.name ? itemText(item) : `Slot ${item.index + 1}`;
+
+      const index = document.createElement("small");
+      index.textContent = String(item.index + 1);
+      const label = document.createElement("span");
+      label.textContent = item.name
+        ? shortLabel(item.displayName ?? item.name, 9)
+        : "";
+      const detail = document.createElement("em");
+      detail.textContent = item.name
+        ? [
+            item.level !== undefined && item.level > 0
+              ? `+${item.level}`
+              : "",
+            item.quantity !== undefined && item.quantity > 1
+              ? `×${item.quantity}`
+              : ""
+          ].filter(Boolean).join(" ")
+        : "";
+
+      cell.append(index, label, detail);
+      grid.appendChild(cell);
+    }
+
+    this.panelBody.appendChild(grid);
+  }
+
+  private renderEquipment(items: readonly RenderEquipmentSlot[]): void {
+    const grid = document.createElement("div");
+    grid.className = "al25d-equipment-grid";
+
+    if (!items.length) {
+      const empty = document.createElement("p");
+      empty.className = "al25d-panel-empty";
+      empty.textContent = "Keine Ausrüstung gespiegelt.";
+      grid.appendChild(empty);
+    }
+
+    for (const item of items) {
+      const row = document.createElement("div");
+      row.className = "al25d-equipment-row";
+      row.title = itemText(item);
+
+      const slot = document.createElement("strong");
+      slot.textContent = item.slot.toUpperCase();
+      const name = document.createElement("span");
+      name.textContent = itemText(item);
+      row.append(slot, name);
+      grid.appendChild(row);
+    }
+
+    this.panelBody.appendChild(grid);
+  }
+
+  private renderSkills(skills: readonly RenderSkillEntry[]): void {
+    const list = document.createElement("div");
+    list.className = "al25d-skill-list";
+
+    if (!skills.length) {
+      const empty = document.createElement("p");
+      empty.className = "al25d-panel-empty";
+      empty.textContent = "Keine klassenspezifischen Skills gespiegelt.";
+      list.appendChild(empty);
+    }
+
+    for (const skill of skills) {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "al25d-skill-row";
+      row.disabled = !skill.key;
+      row.title = skill.key
+        ? `${skill.label} [${skill.key}]`
+        : `${skill.label} ist aktuell keinem Original-Hotkey zugeordnet`;
+
+      const name = document.createElement("strong");
+      name.textContent = skill.label;
+      const meta = document.createElement("span");
+      meta.textContent = [
+        skill.key ? `[${skill.key}]` : null,
+        skill.requiredLevel !== undefined
+          ? `Lv. ${skill.requiredLevel}`
+          : null,
+        skill.mp !== undefined ? `${skill.mp} MP` : null
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
+      row.append(name, meta);
+      if (skill.key) {
+        row.addEventListener("click", () => this.actions.onHotbar?.(skill.key!));
+      }
+      list.appendChild(row);
+    }
+
+    this.panelBody.appendChild(list);
   }
 
   private renderModel(model: HudModel): void {
