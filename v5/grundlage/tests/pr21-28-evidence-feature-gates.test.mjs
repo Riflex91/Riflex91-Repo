@@ -15,6 +15,7 @@ function gateRows(overrides={}) {
     stage,
     foundationPrepared:true,
     orchestrationPrepared:true,
+    cap022FullChainReady:true,
     predecessorProductiveComplete:true,
     requiredLiveEvidenceRatified:true,
     restartReconciliationRatified:true,
@@ -34,6 +35,12 @@ test("PR21-28 feature gates evaluate eligibility without issuing authority",()=>
   assert.ok(result.stages.every(x=>x.authorityIssued===false));
   assert.ok(result.stages.every(x=>x.gameplayAuthority===false));
   assert.ok(result.stages.every(x=>x.rawWriteAuthority===false));
+  assert.deepEqual(result.cap022FullChainRequiredStages,["PR22","PR23"]);
+  assert.equal(result.stages[0].cap022FullChainRequired,false);
+  assert.equal(result.stages[1].cap022FullChainRequired,true);
+  assert.equal(result.stages[1].cap022FullChainSatisfied,true);
+  assert.equal(result.stages[2].cap022FullChainRequired,true);
+  assert.equal(result.stages[2].cap022FullChainSatisfied,true);
   assert.equal(result.authorityIssuedByGateEvaluation,false);
 });
 
@@ -49,6 +56,40 @@ test("PR21-28 feature gate closes the dependency chain after missing evidence",(
     assert.equal(row.productiveEligible,false,row.stage);
     assert.ok(row.blocker.includes(row.stage+"_VORGAENGER_KETTE_GESCHLOSSEN"),row.stage);
   }
+});
+
+
+
+test("PR22/PR23 Feature Gates verlangen CAP-022 Full-Chain explizit",()=>{
+  const result=bewertePr21_28FeatureGates(gateRows({
+    PR22:{cap022FullChainReady:false},
+  }));
+  assert.equal(result.allThroughPr28Eligible,false);
+  assert.equal(result.highestProductiveEligibleStage,"PR21");
+
+  const pr22=result.stages[1];
+  assert.equal(pr22.cap022FullChainRequired,true);
+  assert.equal(pr22.cap022FullChainSatisfied,false);
+  assert.equal(pr22.productiveEligible,false);
+  assert.ok(pr22.blocker.includes("PR22_CAP022_FULL_CHAIN_NICHT_BEREIT"));
+
+  for(const row of result.stages.slice(2)){
+    assert.equal(row.productiveEligible,false,row.stage);
+    assert.ok(
+      row.blocker.includes(row.stage+"_VORGAENGER_KETTE_GESCHLOSSEN"),
+      row.stage,
+    );
+  }
+
+  const pr23Direct=bewertePr21_28FeatureGates(gateRows({
+    PR23:{cap022FullChainReady:false},
+  }));
+  assert.equal(pr23Direct.highestProductiveEligibleStage,"PR22");
+  assert.ok(
+    pr23Direct.stages[2].blocker.includes(
+      "PR23_CAP022_FULL_CHAIN_NICHT_BEREIT",
+    ),
+  );
 });
 
 test("PR21-28 feature gates reject safety, duplicate-effect and unresolved-transaction evidence",()=>{
