@@ -233,13 +233,17 @@ export class PersistenterProduktionsMaterialLifecycle {
 
     this.#eintraege = Object.freeze(snapshot.eintraege.map(row => {
       if (terminal(row.zustand)) return friere(row);
-      const recoveryVorZustand = row.zustand === "RECOVERY_PENDING"
+      const recoveryKandidat = row.zustand === "RECOVERY_PENDING"
         ? row.recoveryVorZustand
         : row.zustand;
-      if (recoveryVorZustand === null
-          || !RECOVERY_FAehIG.includes(recoveryVorZustand)) {
+      if (recoveryKandidat === null
+          || !RECOVERY_FAehIG.includes(
+            recoveryKandidat as ProduktionsMaterialRecoveryVorZustand,
+          )) {
         throw new Error("CAP022_LIFECYCLE_RECOVERY_URSPRUNG_UNGUELTIG");
       }
+      const recoveryVorZustand =
+        recoveryKandidat as ProduktionsMaterialRecoveryVorZustand;
       return friere({
         ...row,
         zustand: "RECOVERY_PENDING",
