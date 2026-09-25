@@ -231,6 +231,10 @@ test("PR20.8 Compound 5m notification identity recovery is persisted and remains
   assert.equal(active.packageSha256,"4d9083bf163d98f15d842d64ecfc49ae4c9b8c3452b0b31a499d4b0b5687c849");
   assert.equal(active.packageBytes,28166);
   assert.equal(active.normalRuntimeAllowed,false);
+  assert.equal(active.active,false);
+  assert.equal(active.historicalLatestPr20_8Manifest,true);
+  assert.equal(active.temporarilySupersededByTestId,"pr20-9-craft-durable-shadow-no-write");
+  assert.equal(active.restoreAfterSupersedingTerminalEvidence,true);
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
 });
