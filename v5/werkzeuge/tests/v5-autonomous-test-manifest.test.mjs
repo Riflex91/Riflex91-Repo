@@ -47,7 +47,7 @@ const allowedPackages = Object.freeze({
     gate: "PR20.8_WERTMUTATIONEN"
   }),
   "pr20-8-wertmutation-live-candidate-readonly": Object.freeze({
-    path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js",
+    path: "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js",
     expectedGlobal: "V5PR208ValueMutationLiveCandidateReadonly",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
@@ -698,14 +698,14 @@ test("PR20.7 offhand acquisition durable shadow manifest is exact no-send prepar
   ]) assert.equal(packageSource.includes(marker), false, marker);
 });
 
-test("PR20.8 candidate discovery facade recovery manifest is exact read-only and special-path closed", () => {
+test("PR20.8 candidate discovery v1.0.6 rescan manifest is exact read-only and special-path closed", () => {
   if (manifest.testId !== "pr20-8-wertmutation-live-candidate-readonly") return;
-  assert.equal(manifest.controllerVersion, "1.0.5");
-  assert.equal(manifest.sourceCommit, "36bece2cc75854e7d02c6c8dc6ddaf75a74579cb");
+  assert.equal(manifest.controllerVersion, "1.0.6");
+  assert.equal(manifest.sourceCommit, "a5fd67cc9c587b2a20b163915936717c7b4e8321");
   assert.equal(manifest.packagePath,
-    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js");
+    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-6.js");
   assert.equal(manifest.packageSha256,
-    "e87996be9ee56b31f7737923b5bf8999a0a8af82393dea9419f5f4fd3d4b494e");
+    "fb2395104beee0e611e5150c44183c95976eab188e451c23401271d1ae02e387");
   assert.equal(manifest.expectedGlobal,
     "V5PR208ValueMutationLiveCandidateReadonly");
   assert.equal("workerVersion" in manifest, false);
@@ -713,7 +713,7 @@ test("PR20.8 candidate discovery facade recovery manifest is exact read-only and
   assert.equal("workerPackageSha256" in manifest, false);
   assert.equal("workerExpectedGlobal" in manifest, false);
   assert.equal("workerTargets" in manifest, false);
-  assert.ok(packageSource.includes("const VERSION = '1.0.5'"));
+  assert.ok(packageSource.includes("const VERSION = '1.0.6'"));
   assert.ok(packageSource.includes("existingFacadeIsCurrent"));
   assert.ok(packageSource.includes("current.testId === TEST_ID"));
   assert.ok(packageSource.includes("current.version === VERSION"));
