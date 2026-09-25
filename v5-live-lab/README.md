@@ -2,7 +2,7 @@
 
 Experimental live-runtime workspace derived from official V5 at:
 
-`a240cdb63679f36d92b7eb5583831e159fe2a3f5`
+`0fa25598787fe373ee0531b90071f3c73431e94e`
 
 Current integrated browser runtime:
 
@@ -10,9 +10,9 @@ Current integrated browser runtime:
 
 Current runtime version/build:
 
-- `0.4.0`
-- `V5_LIVE_LAB_PR28_R4_LIVE_EVIDENCE_1`
-- branch `chatgpt/v5-live-lab-pr28-r4`
+- `0.5.0`
+- `V5_LIVE_LAB_AL25D_R6_1`
+- branch `chatgpt/v5-live-lab-al25d-r6`
 
 Live Lab is intentionally isolated from the official V5 verification track. The official `main:v5/` roadmap, historical evidence, dependency gates and step-by-step automated tests remain authoritative and are not modified by Live Lab operation.
 
@@ -175,7 +175,7 @@ An irreversible public call that throws after dispatch is classified as `UNKNOWN
 
 ## In-game GUI
 
-The v0.4.0 runtime mounts an in-game HUD automatically when the runner is loaded.
+The v0.5.0 runtime mounts an in-game HUD automatically when the runner is loaded.
 
 The HUD provides:
 
@@ -242,7 +242,7 @@ V5LiveLab.unmountGui()
 
 ## 30-second current-situation file
 
-Live Lab v0.4.0 can maintain one continuously updated file for later analysis:
+Live Lab v0.5.0 can maintain one continuously updated file for later analysis:
 
 `D:\\v5-Test\\V5-Live-Situation.md`
 
@@ -339,6 +339,112 @@ Check the writer with:
 ```js
 V5LiveLab.situationWriterStatus()
 ```
+
+## Local Adventure Land 2.5D compatibility
+
+Live Lab v0.5.0 is compatible with the local **AL 2.5D** client architecture used by
+`chatgpt/al-2.5d-local-sandbox-v7`.
+
+That client deliberately keeps the pinned original Adventure Land gameplay runtime authoritative
+and renders the new 2.5D presentation above it. In embedded mode the original client runs in a
+same-origin iframe marked:
+
+```html
+iframe[data-al25d-legacy-runtime="true"]
+```
+
+V5 Live Lab therefore separates its surfaces:
+
+- **gameplay state and actions** come from the original legacy Adventure Land window;
+- **HUD, clipboard, localStorage/IndexedDB and LOG-ORDNER** use the visible AL 2.5D host window.
+
+The bot never sends gameplay actions to the Pixi 2.5D renderer itself.
+
+### Supported runtime layouts
+
+The same browser runner automatically detects these layouts:
+
+- `ADVENTURE_LAND_DIRECT` — normal/direct Adventure Land runtime;
+- `AL25D_ATTACHED` — 2.5D renderer attached in the original Adventure Land window;
+- `AL25D_HOST_TO_LEGACY_IFRAME` — runner loaded in the visible 2.5D host and gameplay routed into the embedded legacy iframe;
+- `AL25D_LEGACY_FRAME` — runner executing directly in the legacy game frame;
+- `AL25D_CODE_RUNNER_TO_LEGACY` — original Adventure Land CODE runner nested below the legacy game frame inside the 2.5D host.
+
+The final layout is important for the local sandbox because the original Adventure Land CODE
+mechanism may execute user code in its own runner frame. Live Lab walks only readable same-origin
+ancestors, locates the visible AL 2.5D host, and locates the authoritative gameplay window
+separately.
+
+Inspect the detected environment with:
+
+```js
+V5LiveLab.runtimeEnvironment()
+```
+
+or:
+
+```js
+V5LiveLab.status().runtimeEnvironment
+```
+
+### Routed Adventure Land surfaces
+
+In AL 2.5D mode the following are read from the legacy gameplay window:
+
+- `character`
+- `entities`
+- `G`
+- `S`
+- `server_region` / `server_identifier`
+- party/player queries
+- `on_cm`
+- all public gameplay functions used by the Live Lab, including attack, skills, movement,
+  loot, respawn, Merchant/economy actions, transfers, bank operations and server changes.
+
+The existing public-function safety boundary remains in force. AL 2.5D compatibility does **not**
+introduce a raw `socket.emit(...)` or `api_call(...)` bypass.
+
+If the legacy iframe is recreated or reloaded, the next Live Lab tick resolves the new
+`contentWindow`, removes its CM handler from the old window, installs it on the new legacy
+runtime and continues against the fresh authoritative state.
+
+### Upstream compatibility pin
+
+The current AL 2.5D compatibility layer is based on the pinned original Adventure Land client:
+
+`ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4`
+
+If a local AL 2.5D runtime explicitly advertises a different
+`__AL25D_UPSTREAM_COMMIT__`, Live Lab refuses to start. An unadvertised commit remains accepted
+because the current local client does not require that global to be present.
+
+### Local sandbox workflow
+
+Start the AL 2.5D sandbox as documented by the client:
+
+```powershell
+cd "AL 2.5d"
+npm run local:start
+```
+
+The visible client opens at:
+
+`http://127.0.0.1:5173/?localAdmin=1&legacy=/legacy/`
+
+Create/select the character through the original Adventure Land UI. Load the Live Lab runner
+through the normal CODE workflow or into the visible host. Then verify:
+
+```js
+V5LiveLab.runtimeEnvironment()
+V5LiveLab.inspectPorts()
+```
+
+For an embedded local run, `character` and the gameplay ports must resolve from the legacy
+runtime while the Live Lab HUD stays visible over the 2.5D client.
+
+The 30-second `D:\\v5-Test\\V5-Live-Situation.md` writer continues to work in this mode.
+Its browser file picker, clipboard and persistent directory handle are intentionally taken from
+the visible AL 2.5D host rather than the hidden legacy client.
 
 ## Loading and starting the browser runtime
 
