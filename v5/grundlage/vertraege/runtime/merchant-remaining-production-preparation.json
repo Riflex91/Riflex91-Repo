@@ -2103,6 +2103,30 @@
       "craftRatified": false,
       "candidateAcquisitionOrMutationAllowed": false,
       "nextGate": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE"
+    },
+    "deferredAutomaticMaterialAcquisition": {
+      "capability": "CAP-022",
+      "status": "PREPARED_NO_WRITE",
+      "source": "grundlage/quelle/koordination/production-material-acquisition.ts",
+      "contract": "grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+      "test": "grundlage/tests/pr22-23-production-material-acquisition.test.mjs",
+      "currentCandidateAcquisitionOrMutationAllowed": false,
+      "foundationCountsAsCraftRatification": false,
+      "plannedFarmMaterialCountsAsNaturalCurrentInventoryCandidate": false,
+      "pr22ProductiveCoordinationRequired": true,
+      "pr23ProductiveFarmerRequired": true,
+      "requiredFarmerCapabilities": [
+        "MOVEMENT",
+        "COMBAT",
+        "LOOT"
+      ],
+      "farmStopOnMaterialReady": true,
+      "handoffAfterMaterialReady": true,
+      "futurePr20_9RecheckTrigger": "NATURAL_NORMAL_CRAFT_CANDIDATE_AFTER_PRODUCTIVE_MATERIAL_ACQUISITION",
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadGraphExecutionAuthority": false,
+      "normalRuntimeAllowed": false
     }
   },
   "pr21": {
