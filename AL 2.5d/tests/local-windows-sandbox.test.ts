@@ -28,6 +28,20 @@ describe("Windows local sandbox scripts", () => {
     expect(setup).not.toContain("New-Item -ItemType Junction");
   });
 
+  it("downloads and runs a loopback-only portable MongoDB when none is installed", () => {
+    const setup = read("local-dev/windows/setup.ps1");
+    const start = read("local-dev/windows/start.ps1");
+    const stop = read("local-dev/windows/stop.ps1");
+
+    expect(setup).toContain("mongodb-windows-x86_64-$MongoVersion.zip");
+    expect(setup).toContain("fastdl.mongodb.org");
+    expect(setup).toContain('"--bind_ip", "127.0.0.1"');
+    expect(setup).not.toContain("Docker Desktop");
+    expect(start).toContain("mongod.exe");
+    expect(start).toContain('"--bind_ip", "127.0.0.1"');
+    expect(stop).toContain("mongodb.pid");
+  });
+
   it("scrubs imported player/account collections after seeding map data", () => {
     const setup = read("local-dev/windows/setup.ps1");
 
