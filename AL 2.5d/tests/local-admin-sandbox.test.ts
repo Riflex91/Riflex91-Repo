@@ -1,8 +1,9 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
   isLoopbackHostname,
-  LOCAL_ADMIN_CHARACTER,
   LOCAL_ADMIN_EMAIL
 } from "../src/local/LocalAdminSandbox";
 
@@ -20,6 +21,15 @@ describe("LocalAdminSandbox", () => {
 
   it("uses an obviously non-production local identity", () => {
     expect(LOCAL_ADMIN_EMAIL.endsWith(".invalid")).toBe(true);
-    expect(LOCAL_ADMIN_CHARACTER).toBe("LocalAdmin");
+  });
+
+  it("does not auto-create characters so the original creation UI stays testable", () => {
+    const source = readFileSync(
+      resolve(process.cwd(), "src/local/LocalAdminSandbox.ts"),
+      "utf8"
+    );
+
+    expect(source).not.toContain('postApi("create_character"');
+    expect(source).not.toContain("LOCAL_TEST_CHARACTERS");
   });
 });
