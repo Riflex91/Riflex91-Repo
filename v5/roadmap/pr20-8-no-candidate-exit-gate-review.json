@@ -51,7 +51,7 @@
     "PR20_8_EXCHANGE_5M_LIVE_NOT_RUN",
     "PR20_8_EXCHANGE_AUTONOMY_NOT_PRODUCTIVE_PROVEN"
   ],
-  "nextAction": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+  "nextAction": "PR20_8_EXCHANGE_READONLY_RESCAN_FACADE_RECOVERY_MANIFEST_CUTOVER",
   "mayAdvanceToPr20_9": false,
   "roadmapCriteriaRelaxed": false,
   "compoundLive5mPreparation": {
@@ -229,7 +229,7 @@
     "normalRuntimeAllowed": false
   },
   "exchangeNoCandidateCloseoutReview": {
-    "status": "MANIFEST_CUTOVER_PREPARED_FOR_FRESH_READONLY_RESCAN",
+    "status": "V1_0_4_DEPLOYMENT_HANDSHAKE_BLOCKED",
     "review": "v5/roadmap/pr20-8-exchange-no-candidate-closeout-review.json",
     "existingEvidence": "v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json",
     "existingObservedAtMs": 1790278399271,
@@ -259,9 +259,19 @@
     "manifestCutoverPrepared": true,
     "deployed": false,
     "evidenceObserved": false,
-    "nextGate": "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
+    "nextGate": "PR20_8_EXCHANGE_READONLY_RESCAN_FACADE_RECOVERY_MANIFEST_CUTOVER",
     "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
-    "bridgeMayDeployPinnedRunner": true
+    "bridgeMayDeployPinnedRunner": false,
+    "bridgeState": "ERROR",
+    "bridgeError": "InvalidOperationException: V5_TEST_DEPLOYMENT_HANDSHAKE_FAILED",
+    "observedAtMs": 1790314474502,
+    "observedCurrentTestId": "pr20-8-compound-live-5m",
+    "observedCurrentControllerVersion": "1.0.2",
+    "observedCurrentTerminal": true,
+    "observedCurrentGameplayWrites": 0,
+    "observedCurrentRawWriteCalls": 0,
+    "observedCurrentSameIntentRetry": false,
+    "observedCurrentIntentCount": 1
   },
   "activeAutonomousManifest": {
     "testId": "pr20-8-wertmutation-live-candidate-readonly",
@@ -279,5 +289,40 @@
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false
+  },
+  "exchangeReadonlyRescanFacadeRecovery": {
+    "status": "RECOVERY_PACKAGE_READY_NOT_DEPLOYED",
+    "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-facade-recovery-preparation.json",
+    "package": "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js",
+    "test": "v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs",
+    "contractTest": "v5/grundlage/tests/pr20-exchange-readonly-rescan-facade-recovery-preparation.test.mjs",
+    "testId": "pr20-8-wertmutation-live-candidate-readonly",
+    "fromControllerVersion": "1.0.4",
+    "controllerVersion": "1.0.5",
+    "sourceCommit": "36bece2cc75854e7d02c6c8dc6ddaf75a74579cb",
+    "packageSha256": "e87996be9ee56b31f7737923b5bf8999a0a8af82393dea9419f5f4fd3d4b494e",
+    "packageBytes": 21688,
+    "expectedGlobal": "V5PR208ValueMutationLiveCandidateReadonly",
+    "recoveryScope": "TELEMETRY_FACADE_IDEMPOTENCY_ONLY",
+    "markerAloneSufficient": false,
+    "existingStatusMustMatchTestId": true,
+    "existingStatusMustMatchVersion": true,
+    "staleForeignStatusForcesFacadeReplacement": true,
+    "gameplaySelectionLogicChanged": false,
+    "candidatePolicyChanged": false,
+    "bridgeAdmissionChanged": false,
+    "maximumGameplayWrites": 0,
+    "maximumPublicFunctionCalls": 0,
+    "maximumRawWriteCalls": 0,
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "durableIntentCreated": false,
+    "normalRuntimeAllowed": false,
+    "acquisitionOrMutationToCreateCandidateAllowed": false,
+    "manifestCutoverPrepared": false,
+    "deployed": false,
+    "evidenceObserved": false,
+    "nextGate": "PR20_8_EXCHANGE_READONLY_RESCAN_FACADE_RECOVERY_MANIFEST_CUTOVER"
   }
 }
