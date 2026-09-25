@@ -12,7 +12,7 @@ const allowedPackages = Object.freeze({
     gate: "PR20.8_WERTMUTATIONEN"
   }),
   "pr20-8-compound-live-5m": Object.freeze({
-    path: "v5/werkzeuge/pr20-8-compound-live-5m.js",
+    path: "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
     expectedGlobal: "V5PR208CompoundLive5m",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
@@ -922,20 +922,20 @@ test("PR20.8 productive Compound one-write manifest is exact, one-shot and runti
   assert.equal(packageSource.includes("api_call("), false);
 });
 
-test("PR20.8 Compound 5m manifest is exact, zero-write and postcommit-only", () => {
+test("PR20.8 Compound 5m recovery manifest is exact, zero-write and postcommit-only", () => {
   if (manifest.testId !== "pr20-8-compound-live-5m") return;
-  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.controllerVersion, "1.0.1");
   assert.equal(
     manifest.sourceCommit,
-    "61db398373d1909bc11eb883af5902ac339a123c",
+    "51b1fc8038740f828cacffe866c6db799a447348",
   );
   assert.equal(
     manifest.packagePath,
-    "v5/werkzeuge/pr20-8-compound-live-5m.js",
+    "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
   );
   assert.equal(
     manifest.packageSha256,
-    "2c68619ffb7359373a6a817ac939c34278a66f5c69e7d3efba59a5ff5c00e221",
+    "23af77b23467e99fddfa437b9dc54873d0e3f25d783c940c819b447e44863a2b",
   );
   assert.equal(manifest.expectedGlobal, "V5PR208CompoundLive5m");
   assert.equal(manifest.normalRuntimeAllowed, false);
@@ -946,7 +946,7 @@ test("PR20.8 Compound 5m manifest is exact, zero-write and postcommit-only", () 
   assert.equal("workerTargets" in manifest, false);
 
   for (const marker of [
-    'const VERSION = "1.0.0"',
+    'const VERSION = "1.0.1"',
     'const TEST_ID = "pr20-8-compound-live-5m"',
     'const API_NAME = "V5PR208CompoundLive5m"',
     'const SOAK_SAMPLES = 60',
