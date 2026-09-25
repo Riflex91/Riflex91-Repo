@@ -6,6 +6,8 @@
   const SOURCE_MAIN_SHA = "a240cdb63679f36d92b7eb5583831e159fe2a3f5";
   const START_ACK = "V5_LIVE_LAB_START";
   const MAX_LOGS = 4000;
+  const MAX_PERSISTED_INTENTS = 512;
+  const PERSISTENCE_PREFIX = "v5-live-lab:v2:";
 
   const CAPABILITIES_BY_CLASS = Object.freeze({
     warrior: Object.freeze(["TANK", "SINGLE_TARGET", "AOE", "CC"]),
@@ -245,6 +247,10 @@
   const transientGroupFaults = [];
   const evidenceSegments = [];
   let activeEvidenceSegment = null;
+  let restartDetected = false;
+  let restartReconciled = true;
+  let persistenceAvailable = false;
+  let runtimeSessionId = null;
 
   function now() {
     return Date.now();
@@ -292,6 +298,127 @@
       identifier = String(root.server_identifier || (root.parent && root.parent.server_identifier) || (root.server && root.server.id) || "");
     } catch (_) {}
     return { region: region, identifier: identifier };
+  }
+
+  function storagePort() {
+    const candidates = [root];
+    try {
+      if (root.parent && root.parent !== root) candidates.push(root.parent);
+    } catch (_) {}
+    for (const candidate of candidates) {
+      try {
+        if (
+          candidate
+          && candidate.localStorage
+          && typeof candidate.localStorage.getItem === "function"
+          && typeof candidate.localStorage.setItem === "function"
+        ) {
+          persistenceAvailable = true;
+          return candidate.localStorage;
+        }
+      } catch (_) {}
+    }
+    persistenceAvailable = false;
+    return null;
+  }
+
+  function persistenceKey() {
+    const c = character();
+    const name = String(c && c.name || "unknown");
+    return PERSISTENCE_PREFIX + encodeURIComponent(name);
+  }
+
+  function boundedMapRows(map, limit) {
+    return Array.from(map.entries()).slice(-limit).map(function (entry) {
+      return [entry[0], entry[1]];
+    });
+  }
+
+  function persistRuntimeState() {
+    const store = storagePort();
+    if (!store) return false;
+    const c = character();
+    const payload = {
+      schemaVersion: 1,
+      profileId: PROFILE_ID,
+      version: VERSION,
+      character: c && c.name || null,
+      lastServer: currentServer(),
+      updatedAtMs: now(),
+      session: {
+        running: running,
+        sessionId: runtimeSessionId,
+      },
+      irreversible: boundedMapRows(irreversible, MAX_PERSISTED_INTENTS),
+      worldHopHistory: boundedMapRows(worldHopHistory, 128),
+      trainingMs: boundedMapRows(trainingMs, 128),
+    };
+    try {
+      store.setItem(persistenceKey(), JSON.stringify(payload));
+      return true;
+    } catch (error) {
+      persistenceAvailable = false;
+      return false;
+    }
+  }
+
+  function hydrateRuntimeState() {
+    const store = storagePort();
+    if (!store) return;
+    let parsed = null;
+    try {
+      const raw = store.getItem(persistenceKey());
+      if (!raw) return;
+      parsed = JSON.parse(raw);
+    } catch (_) {
+      return;
+    }
+    if (
+      !parsed
+      || parsed.schemaVersion !== 1
+      || parsed.profileId !== PROFILE_ID
+      || (parsed.character && character() && parsed.character !== character().name)
+    ) return;
+
+    restartDetected = parsed.session && parsed.session.running === true;
+    restartReconciled = !restartDetected;
+
+    for (const row of Array.isArray(parsed.irreversible) ? parsed.irreversible : []) {
+      if (!Array.isArray(row) || row.length !== 2 || typeof row[0] !== "string") continue;
+      const value = row[1] && typeof row[1] === "object" ? Object.assign({}, row[1]) : null;
+      if (!value || typeof value.status !== "string") continue;
+      if (value.status === "IN_FLIGHT") {
+        value.status = "UNKNOWN";
+        value.finishedAtMs = now();
+        value.error = "RESTART_DURING_IRREVERSIBLE_ACTION";
+        value.restartReconciled = true;
+      }
+      irreversible.set(row[0], Object.freeze(value));
+    }
+
+    for (const row of Array.isArray(parsed.worldHopHistory) ? parsed.worldHopHistory : []) {
+      if (!Array.isArray(row) || row.length !== 2) continue;
+      if (typeof row[0] !== "string" || !Number.isFinite(Number(row[1]))) continue;
+      worldHopHistory.set(row[0], Number(row[1]));
+    }
+
+    for (const row of Array.isArray(parsed.trainingMs) ? parsed.trainingMs : []) {
+      if (!Array.isArray(row) || row.length !== 2) continue;
+      if (typeof row[0] !== "string" || !Number.isFinite(Number(row[1]))) continue;
+      trainingMs.set(row[0], Math.max(0, Number(row[1])));
+    }
+
+    if (restartDetected) {
+      transientGroupFaults.push("RESTART");
+      restartReconciled = true;
+    }
+  }
+
+  function pruneIrreversibleIntents() {
+    if (irreversible.size <= MAX_PERSISTED_INTENTS) return;
+    const remove = irreversible.size - MAX_PERSISTED_INTENTS;
+    const keys = Array.from(irreversible.keys()).slice(0, remove);
+    for (const key of keys) irreversible.delete(key);
   }
 
   function log(event, data) {
@@ -464,6 +591,8 @@
         kind: kind,
         startedAtMs: now(),
       });
+      pruneIrreversibleIntents();
+      persistRuntimeState();
     }
 
     noteAction(kind, { intentId: intentId });
@@ -475,6 +604,7 @@
           kind: kind,
           finishedAtMs: now(),
         });
+        persistRuntimeState();
       }
       log("ACTION_COMMIT", { kind: kind, intentId: intentId });
       return result;
@@ -486,6 +616,7 @@
           finishedAtMs: now(),
           error: String(error && error.message || error),
         });
+        persistRuntimeState();
         evidenceNote("unresolvedRecoveryCount", 1);
       }
       log(irreversibleAction ? "ACTION_UNKNOWN" : "ACTION_FAILED", {
@@ -738,6 +869,7 @@
     if (config.group.failClosedOnFault && faults.some(function (fault) {
       return [
         "ROSTER_SESSION_DRIFT",
+        "RESTART",
         "DISCONNECT",
         "MEMBER_FEHLT",
         "MAP_INSTANZ_DRIFT",
@@ -2067,7 +2199,7 @@
 
       const quantity = Math.max(1, Math.floor(target - have));
       markService("buy");
-      const intentId = ["buy", c.name, rule.item, quantity, now()].join(":");
+      const intentId = ["buy", c.name, rule.item, quantity, have].join(":");
       try {
         await executePublic("BUY", "buy", [rule.item, quantity], { intentId: intentId, irreversibleAction: true });
       } catch (error) {
@@ -2136,6 +2268,7 @@
           irreversibleAction: true,
         });
         worldHopHistory.set(obs.stateId, now());
+        persistRuntimeState();
         setWorldPlan(task, { status: "COMPLETED", actionCompleted: true });
         return false;
       } catch (error) {
@@ -2386,8 +2519,10 @@
     running = true;
     emergencyStop = false;
     stopReason = null;
+    runtimeSessionId = PROFILE_ID + ":" + now() + ":" + String(seq + 1);
     installCmHandler();
     lastTrainingTickAt = now();
+    persistRuntimeState();
 
     log("RUNTIME_STARTED", {
       liveExecutionAllowed: true,
@@ -2419,6 +2554,7 @@
     restoreCmHandler();
     if (activeEvidenceSegment) finishEvidenceSegment("RUNTIME_STOP");
     log("RUNTIME_STOPPED", { reason: stopReason });
+    persistRuntimeState();
     return api.status();
   }
 
@@ -2433,6 +2569,7 @@
     restoreCmHandler();
     if (activeEvidenceSegment) finishEvidenceSegment("EMERGENCY_STOP");
     log("EMERGENCY_STOP", { reason: stopReason });
+    persistRuntimeState();
     return api.status();
   }
 
@@ -2471,6 +2608,10 @@
         gameplayAuthority: running && safety.admitted,
         normalRuntimeAllowed: running && safety.admitted,
         rawWriteAuthority: false,
+        persistenceAvailable: persistenceAvailable,
+        restartDetected: restartDetected,
+        restartReconciled: restartReconciled,
+        runtimeSessionId: runtimeSessionId,
         character: c && c.name || null,
         ctype: c && (c.ctype || c.type) || null,
         server: currentServer(),
@@ -2554,12 +2695,20 @@
     },
   });
 
-  if (root.V5LiveLab && root.V5LiveLab.version && root.V5LiveLab.version !== VERSION) {
+  hydrateRuntimeState();
+
+  if (root.V5LiveLab && typeof root.V5LiveLab.stop === "function") {
     try {
-      if (typeof root.V5LiveLab.stop === "function") root.V5LiveLab.stop("UPGRADE_TO_V2");
+      root.V5LiveLab.stop(
+        root.V5LiveLab.version === VERSION
+          ? "REINSTALL_V2"
+          : "UPGRADE_TO_V2"
+      );
     } catch (_) {}
   }
+
   root.V5LiveLab = api;
+  persistRuntimeState();
   log("RUNTIME_INSTALLED", {
     liveExecutionAllowed: false,
     gameplayAuthority: false,
@@ -2570,5 +2719,8 @@
     pr26Optimizer: true,
     pr27Progression: true,
     pr28WorldAutonomy: true,
+    persistenceAvailable: persistenceAvailable,
+    restartDetected: restartDetected,
+    restartReconciled: restartReconciled,
   });
 })(typeof globalThis !== "undefined" ? globalThis : window);
