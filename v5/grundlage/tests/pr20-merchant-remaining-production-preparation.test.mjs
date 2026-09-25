@@ -731,18 +731,20 @@ test("PR20.8 Upgrade one-write preparation remains no-live while manifest cutove
   const p=prep.pr20_8.upgradeProductiveOneWritePreparation;
   assert.equal(
     prep.pr20_8.status,
-    "COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
+    "COMPOUND_LIVE_5M_V1_0_1_BESTANDEN_NOTIFICATION_IDENTITY_RECOVERY_PACKAGE_READY",
   );
   assert.equal(
     prep.pr20_8.nextAction,
-    "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
+    "PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER",
   );
   const exit=prep.pr20_8.exitGateReview;
-  assert.equal(exit.status,"BLOCKED_COMPOUND_5M_EXCHANGE_NO_CANDIDATE");
+  assert.equal(exit.status,"BLOCKED_COMPOUND_5M_NOTIFICATION_EXCHANGE_NO_CANDIDATE");
   assert.equal(exit.evidence,"roadmap/pr20-8-no-candidate-exit-gate-review.json");
   assert.equal(exit.currentExitGateSatisfied,false);
   assert.equal(exit.compoundRatified,true);
   assert.equal(exit.compoundLive5mTested,false);
+  assert.equal(exit.compoundLive5mBehaviorObservedPass,true);
+  assert.equal(exit.compoundLive5mCompletionNotificationPersisted,false);
   assert.equal(exit.exchangeRatified,false);
   assert.equal(exit.exchangeLive5mTested,false);
   assert.equal(exit.exchangeAutonomyProductiveProven,false);
@@ -1274,9 +1276,9 @@ test("PR20.8 Compound 5m observer runner package has a separate zero-write aggre
   assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN");
 });
 
-test("PR20.8 Compound 5m performance recovery package is pinned and not deployed", () => {
+test("PR20.8 Compound 5m v1.0.1 behavior passed but notification persistence remains open", () => {
   const r=prep.pr20_8.compoundLive5mPerformanceRecovery;
-  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M");
+  assert.equal(r.status,"V1_0_1_REAL_BROWSER_BESTANDEN_NOTIFICATION_PERSISTENCE_GAP");
   assert.equal(
     r.contract,
     "grundlage/vertraege/runtime/pr20-8-compound-live-5m-performance-recovery-preparation.json",
@@ -1315,12 +1317,68 @@ test("PR20.8 Compound 5m performance recovery package is pinned and not deployed
   assert.equal(r.normalRuntimeAllowed,false);
   assert.equal(r.manifest,"roadmap/v5-autonomous-test-manifest.json");
   assert.equal(r.manifestCutoverPrepared,true);
-  assert.equal(r.deployed,false);
-  assert.equal(r.bridgeMayDeployPinnedRunner,true);
-  assert.equal(r.deploymentEvidenceObserved,false);
-  assert.equal(r.realFiveMinuteRunCompleted,false);
+  assert.equal(r.deployed,true);
+  assert.equal(r.bridgeMayDeployPinnedRunner,false);
+  assert.equal(r.deploymentEvidenceObserved,true);
+  assert.equal(r.realFiveMinuteRunCompleted,true);
   assert.equal(r.liveWriteEnabled,false);
-  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN");
+  assert.equal(r.observedStatus,"BESTANDEN");
+  assert.equal(r.observedPhase,"COMPLETE");
+  assert.equal(r.observedTerminal,true);
+  assert.equal(r.observedAtMs,1790310312453);
+  assert.equal(r.observedDebugTelemetryBatchId,8297);
+  assert.equal(r.observedSamples,60);
+  assert.equal(r.observedDurationMs,300545);
+  assert.equal(r.observedSourceSendCount,1);
+  assert.equal(r.observedAdditionalGameplayWrites,0);
+  assert.equal(r.observedAdditionalPublicFunctionCalls,0);
+  assert.equal(r.observedAdditionalRawWriteCalls,0);
+  assert.equal(r.observedPerformanceTrickVerification,"HOWLER_PLAYING_TRUE");
+  assert.equal(r.completionNotificationPersisted,false);
+  assert.equal(r.notificationPersistenceBlocker,"RUN_STARTED_AT_MS_IDENTITY_COLLISION");
+  assert.equal(r.observedRunStartedAtMs,0);
+  assert.equal(r.ratifiedCompoundLive5m,false);
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER");
+});
+
+test("PR20.8 Compound 5m notification identity recovery v1.0.2 is prepared but not deployed", () => {
+  const r=prep.pr20_8.compoundLive5mNotificationIdentityRecovery;
+  assert.equal(r.status,"PACKAGE_BEREIT_NOT_DEPLOYED");
+  assert.equal(r.contract,"grundlage/vertraege/runtime/pr20-8-compound-live-5m-notification-identity-recovery-preparation.json");
+  assert.equal(r.package,"werkzeuge/pr20-8-compound-live-5m-v1-0-2.js");
+  assert.equal(r.test,"werkzeuge/tests/pr20-8-compound-live-5m-v1-0-2.test.mjs");
+  assert.equal(r.contractTest,"grundlage/tests/pr20-compound-live-5m-notification-identity-recovery-preparation.test.mjs");
+  assert.equal(r.testId,"pr20-8-compound-live-5m");
+  assert.equal(r.fromControllerVersion,"1.0.1");
+  assert.equal(r.controllerVersion,"1.0.2");
+  assert.equal(r.expectedGlobal,"V5PR208CompoundLive5m");
+  assert.equal(r.sourceCommit,"18568cbc9689bd7e27c5a26a4342901d470b72c0");
+  assert.equal(r.packageSha256,"4d9083bf163d98f15d842d64ecfc49ae4c9b8c3452b0b31a499d4b0b5687c849");
+  assert.equal(r.packageBytes,28166);
+  assert.equal(r.recoveryScope,"TELEMETRY_RUN_IDENTITY_ONLY");
+  assert.equal(r.previousTerminalSuccessRequired,true);
+  assert.equal(r.previousControllerVersion,"1.0.1");
+  assert.equal(r.topLevelStartedAtMsFromPersistedSoak,true);
+  assert.equal(r.resampleExistingSuccess,false);
+  assert.equal(r.resendAllowed,false);
+  assert.equal(r.requiredPriorTerminal,true);
+  assert.equal(r.requiredPriorGameplayWrites,0);
+  assert.equal(r.requiredPriorRawWriteCalls,0);
+  assert.equal(r.requiredPriorSameIntentRetry,false);
+  assert.equal(r.requiredPriorIntentCount,1);
+  assert.equal(r.maximumAdditionalGameplayWrites,0);
+  assert.equal(r.maximumAdditionalPublicFunctionCalls,0);
+  assert.equal(r.maximumAdditionalRawWriteCalls,0);
+  assert.equal(r.publicCompoundCallSites,0);
+  assert.equal(r.compoundWriteAuthority,false);
+  assert.equal(r.gameplayAuthority,false);
+  assert.equal(r.rawWriteAuthority,false);
+  assert.equal(r.sameIntentRetry,false);
+  assert.equal(r.normalRuntimeAllowed,false);
+  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.deployed,false);
+  assert.equal(r.bridgeMayDeployPinnedRunner,false);
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER");
 });
 
 test("Werttransaktions- und Production-Foundations bleiben no-write", () => {
