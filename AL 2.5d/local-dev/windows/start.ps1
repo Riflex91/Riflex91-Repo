@@ -4,6 +4,12 @@ $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $RuntimeRoot = Join-Path $ProjectRoot ".local-dev\runtime"
 $AdventureDir = Join-Path $RuntimeRoot "adventureland"
 $PidFile = Join-Path $RuntimeRoot "pids.json"
+$MongoRoot = Get-ChildItem -Path $RuntimeRoot -Directory -Filter "mongodb-*" -ErrorAction SilentlyContinue |
+  Sort-Object Name -Descending |
+  Select-Object -First 1
+$MongoDataDir = Join-Path $RuntimeRoot "mongodb-data"
+$MongoLogDir = Join-Path $RuntimeRoot "mongodb-log"
+$MongoPidFile = Join-Path $RuntimeRoot "mongodb.pid"
 
 if (-not (Test-Path (Join-Path $AdventureDir "main.js"))) {
   throw "Local runtime is missing. Run .\local-dev\windows\setup.ps1 first."
@@ -43,12 +49,31 @@ function Start-DevWindow(
   )
 }
 
-$Docker = Get-Command "docker" -ErrorAction SilentlyContinue
-if (-not (Test-Port 27017) -and $Docker) {
-  $Existing = docker ps -a --filter "name=^/al25d-mongo$" --format "{{.Names}}"
-  if ($Existing -eq "al25d-mongo") {
-    docker start al25d-mongo | Out-Null
+if (-not (Test-Port 27017)) {
+  if (-not $MongoRoot) {
+    throw "Portable MongoDB is missing. Run .\local-dev\windows\setup.ps1 first."
   }
+
+  $Mongod = Get-ChildItem -Path $MongoRoot.FullName -Filter "mongod.exe" -Recurse -ErrorAction SilentlyContinue |
+    Select-Object -First 1
+
+  if (-not $Mongod) {
+    throw "Portable MongoDB was found but mongod.exe is missing."
+  }
+
+  New-Item -ItemType Directory -Force -Path $MongoDataDir | Out-Null
+  New-Item -ItemType Directory -Force -Path $MongoLogDir | Out-Null
+  $MongoLogPath = Join-Path $MongoLogDir "mongod.log"
+
+  Write-Host "==> Starting portable MongoDB"
+  $MongoProcess = Start-Process -FilePath $Mongod.FullName -PassThru -WindowStyle Hidden -ArgumentList @(
+    "--dbpath", $MongoDataDir,
+    "--bind_ip", "127.0.0.1",
+    "--port", "27017",
+    "--logpath", $MongoLogPath,
+    "--logappend"
+  )
+  Set-Content -Path $MongoPidFile -Value $MongoProcess.Id -Encoding ASCII
 }
 Wait-Port 27017 "MongoDB"
 
