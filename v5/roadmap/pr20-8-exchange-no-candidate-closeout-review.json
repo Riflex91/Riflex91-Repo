@@ -3,7 +3,7 @@
   "stand": "2026-09-25",
   "gate": "PR20.8_WERTMUTATIONEN",
   "reviewId": "V5_PR20_8_EXCHANGE_NO_CANDIDATE_CLOSEOUT_REVIEW",
-  "status": "REVIEWED_FRESH_READONLY_RESCAN_REQUIRED",
+  "status": "MANIFEST_CUTOVER_PREPARED_FOR_FRESH_READONLY_RESCAN",
   "reviewedAtMainCommit": "f5072e112c2a25fa872627e3269d1d26e63e5f66",
   "roadmapExitGate": {
     "upgradeRatified": true,
@@ -77,9 +77,11 @@
     "compoundAuthority": false,
     "exchangeAuthority": false,
     "normalRuntimeAllowed": false,
-    "manifestCutoverPrepared": false,
+    "manifestCutoverPrepared": true,
     "deployed": false,
-    "evidenceObserved": false
+    "evidenceObserved": false,
+    "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "bridgeMayDeployPinnedRunner": true
   },
   "outcomes": {
     "exchangeCandidateFound": "PREPARE_EXCHANGE_DURABLE_SHADOW_NO_WRITE_ONLY",
