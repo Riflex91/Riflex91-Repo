@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "evidenceArt": "V5_PR20_8_EXCHANGE_CANDIDATE_BANK_MOUNT_REAL_BROWSER",
+  "status": "RATIFIED_BANK_SNAPSHOT_NO_CANDIDATE_ONE_MOVEMENT",
+  "manifestMainCommit": "1afb29733ee20915966bdcdf242419414d9869e4",
+  "testId": "pr20-8-exchange-candidate-bank-mount",
+  "controllerVersion": "1.0.0",
+  "package": "v5/werkzeuge/pr20-8-exchange-candidate-bank-mount-v1-0-0.js",
+  "sourceCommit": "5c84fc95b7fed97c3591462faba0a1315289fdce",
+  "packageSha256": "94c053183363c0394922df4f6e422bede3260989e668a3b0942f3e876dbbdc54",
+  "packageBytes": 15430,
+  "expectedGlobal": "V5PR208ExchangeCandidateBankMount",
+  "notificationId": 2633,
+  "runStartedAtMs": 1790334176463,
+  "observedAtMs": 1790334180335,
+  "terminalStatus": "BLOCKIERT",
+  "phase": "PR20_8_EXCHANGE_ACQUISITION_BANK_MOUNT",
+  "blocker": [
+    "PR20_8_ACQUISITION_KEIN_INVENTORY_ODER_BANK_KANDIDAT"
+  ],
+  "movement": {
+    "target": "bank",
+    "issued": true,
+    "completed": true,
+    "error": null,
+    "gameplayWrites": 1,
+    "publicFunctionCalls": 1,
+    "rawWriteCalls": 0,
+    "maximumCalls": 1,
+    "sameIntentRetry": false
+  },
+  "discovery": {
+    "bankSnapshotAvailable": true,
+    "observedBankPacks": [
+      "items0",
+      "items1"
+    ],
+    "emptyInventorySlot": 22,
+    "inventoryCandidateCount": 0,
+    "bankCandidateCount": 0,
+    "selected": null
+  },
+  "authority": {
+    "bankRetrieve": false,
+    "buy": false,
+    "farm": false,
+    "exchange": false,
+    "gameplayBroad": false,
+    "rawWrite": false
+  },
+  "evidenceSeparation": {
+    "movementCountsAsExchangeRatification": false,
+    "movementCountsAsExchange5mEvidence": false,
+    "movementCountsAsExchangeAutonomyProof": false,
+    "exchangeStillUnratified": true
+  },
+  "normalRuntimeAllowed": false,
+  "outcome": "PREPARE_BUY_OR_FARM_ACQUISITION_STAGE",
+  "nextAction": "PREPARE_PLAYER_MARKET_DISCOVERY_BEFORE_FARM"
+}
