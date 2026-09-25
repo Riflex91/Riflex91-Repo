@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 
 import {
   planeProductionMaterialTeam,
@@ -268,4 +269,75 @@ test("CAP-022 Team blockiert wenn fuer einen ausgewaehlten Farmer frische Invent
     "CAP022_TEAM_INVENTAR_FEHLT_ODER_STALE:mage",
   ));
   assert.equal(result.productiveExecutionAllowed, false);
+});
+
+
+test("CAP-022 Team-Vertrag und Roadmap halten Multi-Farmer-Ausfuehrung fail-closed", () => {
+  const contract = JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr22-23-production-material-team-objective-foundation.json",
+    "utf8",
+  ));
+  assert.equal(contract.status, "PREPARED_NO_WRITE");
+  assert.equal(contract.historicalInvariant.allFarmersRemainOnOneProductionObjective, true);
+  assert.equal(contract.historicalInvariant.aggregateFarmerHeldMaterial, true);
+  assert.equal(contract.historicalInvariant.farmStopWhenAggregateReady, true);
+  assert.equal(contract.planning.allWorkersSameProductionObjective, true);
+  assert.equal(contract.planning.splitAcrossProductionObjectives, false);
+  assert.equal(contract.readyBoundary.handoffBatchRequired, true);
+  assert.equal(contract.readyBoundary.singleFarmerHandoffDoesNotCoverMultiFarmerBatch, true);
+  assert.equal(contract.safetyBoundary.productiveExecutionAllowed, false);
+  assert.equal(contract.safetyBoundary.movementAuthority, false);
+  assert.equal(contract.safetyBoundary.combatAuthority, false);
+  assert.equal(contract.safetyBoundary.lootAuthority, false);
+  assert.equal(contract.safetyBoundary.gameplayAuthority, false);
+  assert.equal(contract.safetyBoundary.rawWriteAuthority, false);
+  assert.equal(contract.safetyBoundary.normalRuntimeAllowed, false);
+  assert.equal(contract.safetyBoundary.currentPr20_9RatificationCredit, false);
+  assert.equal(contract.safetyBoundary.candidateAcquisitionOrMutationAllowedNow, false);
+
+  const roadmap = JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+  );
+  assert.equal(
+    roadmap.pr20_9.craftDurableShadowRunner.candidateAcquisitionOrMutationAllowed,
+    false,
+  );
+  const team =
+    roadmap.pr20_9.deferredAutomaticMaterialRecheck.teamMaterialObjectiveFoundation;
+  assert.equal(team.status, "PREPARED_NO_WRITE");
+  assert.equal(team.allWorkersSameProductionObjective, true);
+  assert.equal(team.splitAcrossProductionObjectives, false);
+  assert.equal(team.farmStopWhenAggregateReady, true);
+  assert.equal(team.multiSourceCollectionHandoffRequiredAfterAggregateReady, true);
+  assert.equal(team.productiveExecutionAllowed, false);
+  assert.equal(team.gameplayAuthority, false);
+  assert.equal(team.normalRuntimeAllowed, false);
+});
+
+test("CAP-022 Team-Foundation besitzt keinen direkten Gameplay-Write-Bypass", () => {
+  const source = fs.readFileSync(
+    "grundlage/quelle/koordination/production-material-team-coordination.ts",
+    "utf8",
+  );
+  for (const marker of [
+    "socket.emit(",
+    ".socket.emit(",
+    "send_item(",
+    "send_cm(",
+    "smart_move(",
+    "attack(",
+    "use_skill(",
+    "loot(",
+    "craft(",
+    "exchange(",
+    "upgrade(",
+    "compound(",
+  ]) {
+    assert.equal(source.includes(marker), false, marker);
+  }
 });
