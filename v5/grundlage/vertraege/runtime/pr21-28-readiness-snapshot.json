@@ -19,5 +19,22 @@
   "authorityIssued": false,
   "normalRuntimeAllowed": false,
   "test": "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs",
-  "nextMilestone": "STOP_ACCELERATED_IMPLEMENTATION_AT_REAL_LIVE_EVIDENCE_BOUNDARY"
+  "nextMilestone": "STOP_ACCELERATED_IMPLEMENTATION_AT_REAL_LIVE_EVIDENCE_BOUNDARY_WITH_CAP022_FULL_CHAIN_BOUND",
+  "cap022FullChainBoundary": {
+    "required": true,
+    "source": "v5/grundlage/quelle/runtime/cap022-foundation-chain-readiness.ts",
+    "readyStatus": "CAP022_FULL_CHAIN_BEREIT_NO_WRITE",
+    "requiredFoundationCount": 9,
+    "technicallyPreparedRequiresFullChain": true,
+    "productiveChainEligibleRequiresFullChain": true,
+    "missingOrBlockedChainForcesStatus": "PARTIALLY_PREPARED",
+    "currentPr20_9RatificationCredit": false,
+    "candidateAcquisitionOrMutationAllowedNow": false,
+    "durableIntentCreated": false,
+    "productiveCraftAuthorityOpened": false,
+    "productiveExecutionAllowed": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false
+  }
 }
