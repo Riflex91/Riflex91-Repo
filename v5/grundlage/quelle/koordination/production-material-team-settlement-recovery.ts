@@ -315,8 +315,7 @@ function parseSnapshot(text: string): PersistierterSnapshot {
       || (sicht["recoveryVorZustand"] !== null
         && (typeof sicht["recoveryVorZustand"] !== "string"
           || !recovery.includes(
-            sicht["recoveryVorZustand"]
-              as ProduktionsMaterialTeamBatchRecoveryVorZustand,
+            sicht["recoveryVorZustand"] as ProduktionsMaterialTeamBatchRecoveryVorZustand,
           )))
       || typeof sicht["nextSequence"] !== "number"
       || !Number.isSafeInteger(sicht["nextSequence"])
@@ -343,8 +342,8 @@ function parseSnapshot(text: string): PersistierterSnapshot {
     throw new Error("CAP022_TEAM_BATCH_PERSISTENZ_UNGUELTIG");
   }
   const zustand = sicht["zustand"] as ProduktionsMaterialTeamBatchZustand;
-  const recoveryVorZustand = sicht["recoveryVorZustand"]
-    as ProduktionsMaterialTeamBatchRecoveryVorZustand | null;
+  const recoveryVorZustand =
+    sicht["recoveryVorZustand"] as ProduktionsMaterialTeamBatchRecoveryVorZustand | null;
   const transferIds = sicht["transferIds"] as string[];
   const settledTransferIds = sicht["settledTransferIds"] as string[];
   const nextSequence = sicht["nextSequence"] as number;
