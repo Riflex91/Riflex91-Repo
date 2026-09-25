@@ -213,9 +213,8 @@ test("completed soak reload returns persisted terminal evidence without mutation
   assert.equal(progress.terminal,true);
   assert.equal(progress.status,"BESTANDEN");
 
-  delete env.box.V5PR208ExchangeAnniversarygiftLive5m;
-  delete env.box.__V5PR208ExchangeAnniversarygiftLive5mLease;
-  const second=await execute(env);
+  const reloaded=makeEnv({existingProgress:progress});
+  const second=await execute(reloaded);
   assert.equal(second.status,"BESTANDEN");
   assert.equal(second.evidence.sourceTransactionId,TX);
   assert.equal(second.gameplayWrites,0);
