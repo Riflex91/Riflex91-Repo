@@ -201,7 +201,10 @@ describe("LegacyCompatibilityRuntime", () => {
         groups: 3,
         animations: 1,
         xLines: 4,
-        yLines: 2
+        yLines: 2,
+        bounds: undefined,
+        collisionXLines: [],
+        collisionYLines: []
       }
     });
   });

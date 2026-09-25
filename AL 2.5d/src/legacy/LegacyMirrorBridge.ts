@@ -148,12 +148,10 @@ export function snapshotLegacyMapState(
   const geometryRecord = recordValue(rawGeometry);
   const nestedData = recordValue(geometryRecord?.data);
   const visualGeometry = nestedData ?? geometryRecord;
-  const xLines = snapshotCollisionLines(
-    geometryRecord?.x_lines ?? visualGeometry?.x_lines
-  );
-  const yLines = snapshotCollisionLines(
-    geometryRecord?.y_lines ?? visualGeometry?.y_lines
-  );
+  const rawXLines = geometryRecord?.x_lines ?? visualGeometry?.x_lines;
+  const rawYLines = geometryRecord?.y_lines ?? visualGeometry?.y_lines;
+  const xLines = snapshotCollisionLines(rawXLines);
+  const yLines = snapshotCollisionLines(rawYLines);
 
   return Object.freeze({
     id: mapId,
@@ -164,8 +162,8 @@ export function snapshotLegacyMapState(
       placements: countCollection(visualGeometry?.placements),
       groups: countCollection(visualGeometry?.groups),
       animations: countCollection(visualGeometry?.animations),
-      xLines: xLines.length,
-      yLines: yLines.length,
+      xLines: countCollection(rawXLines),
+      yLines: countCollection(rawYLines),
       bounds: inferBounds(geometryRecord ?? visualGeometry, xLines, yLines),
       collisionXLines: xLines,
       collisionYLines: yLines
