@@ -183,7 +183,7 @@ test("CAP-022 Lifecycle persistiert Farm -> Ready -> Handoff -> Rescan ohne Auth
   assert.equal(done.letzteEvidenceFingerprint, "collection-settlement-fp");
   assert.equal(done.executionAuthority, false);
   assert.equal(done.gameplayAuthority, false);
-  assert.equal(done.rawWriteAutoritaet, false);
+  assert.equal(done.rawWriteAuthority, false);
   assert.equal(done.normalRuntimeAllowed, false);
 
   assert.ok(speicher.writes.length >= 4);
@@ -311,7 +311,7 @@ test("CAP-022 Lifecycle kann Recovery explizit FAILED_SAFE beenden", async () =>
   assert.equal(failed.zustand, "FAILED_SAFE");
   assert.equal(failed.executionAuthority, false);
   assert.equal(failed.gameplayAuthority, false);
-  assert.equal(failed.rawWriteAutoritaet, false);
+  assert.equal(failed.rawWriteAuthority, false);
 });
 
 test("CAP-022 Lifecycle lehnt Persistenz aus der Zukunft fail-closed ab", async () => {
