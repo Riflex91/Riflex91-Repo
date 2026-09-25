@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 
 const legacyBackend =
-  process.env.AL25D_LOCAL_LEGACY_BACKEND ?? "http://localhost:8090";
+  process.env.AL25D_LOCAL_LEGACY_BACKEND ?? "http://127.0.0.1:8090";
 
 const backendProxy = {
   target: legacyBackend,
@@ -11,7 +11,7 @@ const backendProxy = {
 
 export default defineConfig({
   server: {
-    host: "localhost",
+    host: "127.0.0.1",
     port: 5173,
     strictPort: true,
     proxy: {
