@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "evidenceArt": "V5_PR20_9_CRAFT_DURABLE_SHADOW_SERVICE_BLOCK_REAL_BROWSER",
+  "status": "RATIFIED_ZERO_WRITE_SERVICE_UNREACHABLE",
+  "sourceMain": "a235ec24f7706edd7258f3751e4926df42ab9e49",
+  "testId": "pr20-9-craft-durable-shadow-no-write",
+  "controllerVersion": "1.0.0",
+  "observations": [
+    {
+      "notificationId": 3139,
+      "runStartedAtMs": 1790368498973,
+      "status": "FEHLER",
+      "phase": "COMPLETE",
+      "terminal": true,
+      "blocker": "PR20_9_CRAFT_SHADOW_SERVICE_NICHT_ERREICHBAR",
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "sameIntentRetry": false
+    },
+    {
+      "notificationId": 3141,
+      "runStartedAtMs": 1790368558921,
+      "status": "FEHLER",
+      "phase": "COMPLETE",
+      "terminal": true,
+      "blocker": "PR20_9_CRAFT_SHADOW_SERVICE_NICHT_ERREICHBAR",
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "sameIntentRetry": false
+    }
+  ],
+  "safetyConclusion": {
+    "productiveCraftAttempted": false,
+    "durableIntentCreated": false,
+    "craftAuthorityIssued": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadGraphExecutionAuthority": false,
+    "normalRuntimeAllowed": false,
+    "processRunningAfterFailure": true,
+    "restartCount": 0
+  },
+  "nextAction": "DEPLOY_PR20_9_CRAFT_SERVICE_MOUNT_BEFORE_RESTORING_DURABLE_SHADOW"
+}
