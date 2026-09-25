@@ -89,7 +89,8 @@
     "Normalbetrieb erst wenn alle verbleibenden V5-Tests BESTANDEN sind",
     "PR20.8 Upgrade One-Write v1.0.3 ist real-browser COMMITTED_SUCCESS ratifiziert; exakt 1 Upgrade-Write / 1 Public-Call / 0 Raw-Writes; normalRuntimeAllowed bleibt false",
     "AKTUELL: Der frische read-only Rescan v1.0.6 ist persistent ratifiziert (Notification #2382, Debug-Batch #8306): Compound und Exchange haben weiterhin keinen normalen Kandidaten; 0 Gameplay/Public/Raw-Writes, keine Exchange-/Gameplay-/Raw-Authority, kein Durable Intent. Das eigenstaendige No-Candidate-Closeout ist auf v1.0.6 reconciliert. PR20.8 bleibt an Exchange blockiert und wartet auf einen spaeteren natuerlichen read-only Rescan; keine Candidate-Erzeugung durch Acquisition/Mutation, PR20.9 und normalRuntime bleiben geschlossen.",
-    "PR20.8 Exchange anniversarygift Productive Autonomy ist real-browser COMMITTED ratifiziert (Notification #3080): frische autonome Auswahl, exakt 1 exchange()-Call, 1/1/0 Gameplay/Public/Raw, Authority one-shot konsumiert, anniversarygift 105->104, +5000 Gold, kein Retry. PR20.8 Exit-Gate ist erfuellt; PR20.9 darf als naechstes Gate vorbereitet werden. normalRuntimeAllowed bleibt false."
+    "PR20.8 Exchange anniversarygift Productive Autonomy ist real-browser COMMITTED ratifiziert (Notification #3080): frische autonome Auswahl, exakt 1 exchange()-Call, 1/1/0 Gameplay/Public/Raw, Authority one-shot konsumiert, anniversarygift 105->104, +5000 Gold, kein Retry. PR20.8 Exit-Gate ist erfuellt; PR20.9 darf als naechstes Gate vorbereitet werden. normalRuntimeAllowed bleibt false.",
+    "PR20.9 ist nach abgeschlossenem PR20.8 entsperrt. Craft Durable Shadow Manifest-Cutover ist fuer den exakt gepinnten NORMAL_CRAFT_ONLY NO-WRITE-Runner vorbereitet; naechster Schritt ist reale Browser-Beobachtung. Gameplay/Raw/Produktiv-Craft/NormalRuntime Authority bleiben false."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -921,18 +922,13 @@
     },
     {
       "id": "PR20.9_PRODUCTION",
-      "status": "CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE_BEREIT_NO_WRITE",
-      "blockedBy": [
-        "PR20.2",
-        "PR20.3",
-        "PR20.4",
-        "PR20.8"
-      ],
+      "status": "CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+      "blockedBy": [],
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
       "liveExecutionAllowed": false,
-      "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER",
+      "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
       "artifacts": [
         "v5/grundlage/quelle/produktion/production-graph.ts",
         "v5/grundlage/quelle/produktion/production-planer.ts",
@@ -946,7 +942,10 @@
         "v5/grundlage/tests/pr20-9-craft-durable-shadow.test.mjs",
         "v5/werkzeuge/pr20-9-craft-durable-shadow-no-write.js",
         "v5/werkzeuge/tests/pr20-9-craft-durable-shadow-no-write.test.mjs",
-        "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-runner-preparation.json"
+        "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-runner-preparation.json",
+        "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-manifest-cutover.json",
+        "v5/roadmap/v5-autonomous-test-manifest.json",
+        "v5/werkzeuge/tests/v5-autonomous-test-manifest.test.mjs"
       ]
     },
     {
@@ -4078,15 +4077,10 @@
     }
   },
   "pr20_9": {
-    "status": "CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE_BEREIT_NO_WRITE",
+    "status": "CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
     "ziel": "Craft und Production produktiv",
-    "blockedBy": [
-      "PR20.2",
-      "PR20.3",
-      "PR20.4",
-      "PR20.8"
-    ],
-    "preparationAllowedWhileBlocked": true,
+    "blockedBy": [],
+    "preparationAllowedWhileBlocked": false,
     "liveExecutionAllowed": false,
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
@@ -4134,7 +4128,7 @@
       "newProductiveStepsHaveFiveMinuteEvidence": false,
       "satisfied": false
     },
-    "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER",
+    "nextAction": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW",
     "craftDurableShadow": {
       "status": "FOUNDATION_BEREIT_NO_WRITE",
       "source": "v5/grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
@@ -4160,7 +4154,7 @@
       "normalRuntimeAllowed": false
     },
     "craftDurableShadowRunner": {
-      "status": "PACKAGE_BEREIT_NO_WRITE",
+      "status": "MANIFEST_CUTOVER_PREPARED_NO_WRITE",
       "testId": "pr20-9-craft-durable-shadow-no-write",
       "controllerVersion": "1.0.0",
       "expectedGlobal": "V5PR209CraftDurableShadowNoWrite",
@@ -4184,8 +4178,14 @@
       "broadGraphExecutionAuthority": false,
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
-      "manifestCutoverPrepared": false,
-      "active": false
+      "manifestCutoverPrepared": true,
+      "active": true,
+      "packageSha256": "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
+      "packageBytes": 26951,
+      "manifestCutover": "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-manifest-cutover.json",
+      "liveEvidenceObserved": false,
+      "craftRatified": false,
+      "nextGate": "DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW"
     }
   },
   "acceleratedImplementation": {
