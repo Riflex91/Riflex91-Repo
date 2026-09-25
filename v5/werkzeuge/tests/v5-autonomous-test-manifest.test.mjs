@@ -6,6 +6,11 @@ import { execFileSync } from "node:child_process";
 
 const manifest = JSON.parse(fs.readFileSync("roadmap/v5-autonomous-test-manifest.json", "utf8"));
 const allowedPackages = Object.freeze({
+  "pr20-9-craft-durable-shadow-no-write": Object.freeze({
+    path: "v5/werkzeuge/pr20-9-craft-durable-shadow-no-write.js",
+    expectedGlobal: "V5PR209CraftDurableShadowNoWrite",
+    gate: "PR20.9_PRODUCTION"
+  }),
   "pr20-8-compound-productive-one-write-live": Object.freeze({
     path: "v5/werkzeuge/pr20-8-compound-productive-one-write-live.js",
     expectedGlobal: "V5PR208CompoundProductiveOneWriteLive",
