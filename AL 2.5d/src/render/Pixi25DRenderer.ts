@@ -25,11 +25,13 @@ import { projectWorldToScreen } from "./projection";
 type EntityVisual = {
   container: Container;
   sprite: Sprite;
+  shadow: Graphics;
   fallback: Graphics;
   ui: Graphics;
   label: Text;
   assetId: string;
   spriteKey: string;
+  shadowKey: string;
   kind: EntityKind;
   uiKey: string;
 };
@@ -37,7 +39,7 @@ type EntityVisual = {
 const DEFAULT_CAMERA: CameraState = {
   x: 0,
   y: 0,
-  zoom: 1.35
+  zoom: 1.5
 };
 
 const FALLBACK_BOUNDS_SIZE = 1800;
@@ -759,6 +761,7 @@ export class Pixi25DRenderer implements RenderBridge {
     if (!visual) {
       const container = new Container();
       const sprite = new Sprite(Texture.WHITE);
+      const shadow = new Graphics();
       const fallback = new Graphics();
       const ui = new Graphics();
       const label = new Text({
@@ -775,6 +778,7 @@ export class Pixi25DRenderer implements RenderBridge {
       sprite.visible = false;
       label.anchor.set(0.5, 1);
 
+      container.addChild(shadow);
       container.addChild(fallback);
       container.addChild(sprite);
       container.addChild(ui);
@@ -784,11 +788,13 @@ export class Pixi25DRenderer implements RenderBridge {
       visual = {
         container,
         sprite,
+        shadow,
         fallback,
         ui,
         label,
         assetId: "",
         spriteKey: "",
+        shadowKey: "",
         kind: entity.kind,
         uiKey: ""
       };
@@ -837,6 +843,18 @@ export class Pixi25DRenderer implements RenderBridge {
       }
     }
 
+    const shadowKey = [
+      entity.kind,
+      entity.local ? 1 : 0,
+      entity.legacySprite?.width ?? "",
+      entity.legacySprite?.height ?? ""
+    ].join("|");
+
+    if (visual.shadowKey !== shadowKey) {
+      visual.shadowKey = shadowKey;
+      this.drawEntityShadow(visual.shadow, entity);
+    }
+
     const projected = projectWorldToScreen(entity);
     visual.container.position.set(projected.x, projected.y);
     visual.container.zIndex = projected.y;
@@ -855,12 +873,46 @@ export class Pixi25DRenderer implements RenderBridge {
       entity.mp ?? "",
       entity.maxMp ?? "",
       entity.targeted ? 1 : 0,
-      entity.local ? 1 : 0
+      entity.local ? 1 : 0,
+      entity.legacySprite?.width ?? "",
+      entity.legacySprite?.height ?? ""
     ].join("|");
 
     if (visual.uiKey !== uiKey) {
       visual.uiKey = uiKey;
       this.drawEntityUi(visual, entity);
+    }
+  }
+
+  private drawEntityShadow(
+    graphics: Graphics,
+    entity: RenderEntity
+  ): void {
+    graphics.clear();
+
+    const spriteWidth = entity.legacySprite?.width;
+    const radiusX = spriteWidth !== undefined
+      ? Math.max(7, Math.min(20, spriteWidth * 0.34))
+      : entity.kind === "monster"
+        ? 12
+        : 9;
+    const radiusY = Math.max(3, Math.min(7, radiusX * 0.34));
+
+    graphics
+      .ellipse(0, 2, radiusX, radiusY)
+      .fill({
+        color: 0x000000,
+        alpha: entity.local ? 0.28 : 0.22
+      });
+
+    if (entity.local) {
+      graphics
+        .ellipse(0, 2, radiusX + 2, radiusY + 1)
+        .stroke({
+          color: 0x7fdcff,
+          width: 1,
+          alpha: 0.28
+        });
     }
   }
 
@@ -870,10 +922,6 @@ export class Pixi25DRenderer implements RenderBridge {
     local: boolean
   ): void {
     graphics.clear();
-
-    graphics
-      .ellipse(0, 2, 13, 5)
-      .fill({ color: 0x000000, alpha: 0.35 });
 
     if (kind === "monster") {
       graphics
@@ -934,6 +982,25 @@ export class Pixi25DRenderer implements RenderBridge {
     const ui = visual.ui;
     ui.clear();
 
+    const spriteHeight = Math.max(
+      28,
+      Math.min(
+        76,
+        entity.legacySprite?.height ??
+          (entity.kind === "monster" ? 30 : 42)
+      )
+    );
+    const spriteWidth = Math.max(
+      28,
+      Math.min(
+        56,
+        entity.legacySprite?.width ?? 36
+      )
+    );
+    const hpBarY = -spriteHeight - 12;
+    const mpBarY = -spriteHeight - 6;
+    const statusWidth = Math.max(34, Math.min(50, spriteWidth * 1.1));
+
     if (entity.targeted) {
       ui
         .ellipse(0, 3, 20, 7)
@@ -952,13 +1019,13 @@ export class Pixi25DRenderer implements RenderBridge {
         Boolean(entity.targeted));
 
     if (showHp && maxHp !== undefined && entity.hp !== undefined) {
-      const width = 38;
+      const width = statusWidth;
       const ratio = Math.max(0, Math.min(1, entity.hp / maxHp));
       ui
-        .roundRect(-width / 2, -49, width, 5, 2)
+        .roundRect(-width / 2, hpBarY, width, 5, 2)
         .fill({ color: 0x101010, alpha: 0.9 });
       ui
-        .roundRect(-width / 2 + 1, -48, (width - 2) * ratio, 3, 1)
+        .roundRect(-width / 2 + 1, hpBarY + 1, (width - 2) * ratio, 3, 1)
         .fill({ color: 0x55c56b, alpha: 1 });
     }
 
@@ -969,13 +1036,13 @@ export class Pixi25DRenderer implements RenderBridge {
       (entity.local || entity.kind === "player");
 
     if (showMp && entity.maxMp !== undefined && entity.mp !== undefined) {
-      const width = 38;
+      const width = statusWidth;
       const ratio = Math.max(0, Math.min(1, entity.mp / entity.maxMp));
       ui
-        .roundRect(-width / 2, -43, width, 4, 2)
+        .roundRect(-width / 2, mpBarY, width, 4, 2)
         .fill({ color: 0x101010, alpha: 0.9 });
       ui
-        .roundRect(-width / 2 + 1, -42, (width - 2) * ratio, 2, 1)
+        .roundRect(-width / 2 + 1, mpBarY + 1, (width - 2) * ratio, 2, 1)
         .fill({ color: 0x4d8fe8, alpha: 1 });
     }
 
@@ -987,7 +1054,9 @@ export class Pixi25DRenderer implements RenderBridge {
 
     visual.label.text = entity.name ?? entity.id;
     visual.label.visible = showLabel;
-    visual.label.y = showHp ? -52 : -45;
+    visual.label.y = showHp
+      ? hpBarY - 3
+      : -spriteHeight - 5;
     visual.label.style.fill = entity.targeted
       ? 0xffe08a
       : entity.local

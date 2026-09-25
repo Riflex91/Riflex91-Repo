@@ -81,7 +81,7 @@ async function boot(): Promise<void> {
 
   const assets = new AssetRegistry();
   const renderer = new Pixi25DRenderer(assets);
-  let camera: CameraState = { x: 0, y: 0, zoom: 1.35 };
+  let camera: CameraState = { x: 0, y: 0, zoom: 1.5 };
   let legacyMirror: LegacyMirrorBridge | null = null;
   let legacyRuntime: LegacyCompatibilityRuntime | null = null;
   let latestSnapshot: GameFrameSnapshot | null = null;
