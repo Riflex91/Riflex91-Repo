@@ -85,8 +85,26 @@
     "runnerRatifiesEvidence": false,
     "dashboardFailureBlocksGameplay": false,
     "productiveRuntimeMustBeAuthorizedElsewhere": true,
-    "normalRuntimeAllowed": false
+    "normalRuntimeAllowed": false,
+    "cap022FullChainRequiredForPr23Milestone": true,
+    "cap022FullChainMissingBlocksEvidenceReady": true
   },
   "test": "v5/grundlage/tests/pr21-28-milestone-runners.test.mjs",
-  "nextMilestone": "PREPARE_CHECKPOINT_RUNBOOKS_AND_RESULT_PACKAGING_WITHOUT_STARTING_LIVE_RUNS"
+  "nextMilestone": "PREPARE_CHECKPOINT_RUNBOOKS_WITH_CAP022_FULL_CHAIN_PRECONDITION_WITHOUT_STARTING_LIVE_RUNS",
+  "cap022FullChainBoundary": {
+    "requiredCheckpoint": "POST_PR24_25_GROUP_CHECKPOINT",
+    "requiredStages": [
+      "PR23"
+    ],
+    "planField": "cap022FullChainRequired",
+    "evaluationInputField": "cap022FullChainReady",
+    "blocker": "PR21_28_MILESTONE_CAP022_FULL_CHAIN_NICHT_BEREIT",
+    "evaluationWithoutFullChainStatus": "BLOCKIERT",
+    "runnerRatifiesEvidence": false,
+    "runnerIssuesAuthority": false,
+    "currentPr20_9RatificationCredit": false,
+    "candidateAcquisitionOrMutationAllowedNow": false,
+    "durableIntentCreated": false,
+    "productiveCraftAuthorityOpened": false
+  }
 }
