@@ -126,9 +126,9 @@ test("shadow package bytes are exact at the pinned source commit",()=>{
 test("roadmap ratifies scanner evidence but only prepares the no-write shadow",()=>{
   const a=roadmap.pr20_8.exchangeCandidateAcquisition;
   assert.equal(roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RUNNER_PREPARED_NOT_DEPLOYED");
+    "EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
   assert.equal(roadmap.pr20_8.nextAction,
-    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER");
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE");
   assert.equal(a.anniversaryGiftExceptionRescan.status,
     "RATIFIED_ANNIVERSARYGIFT_EXCHANGE_CANDIDATE_ZERO_WRITE");
   assert.equal(a.anniversaryGiftExceptionRescan.deployed,true);
@@ -143,18 +143,18 @@ test("roadmap ratifies scanner evidence but only prepares the no-write shadow",(
   assert.equal(a.seashellFarmShadow.activePath,false);
 });
 
-test("active manifest is cut over to the exact anniversarygift no-send shadow",()=>{
+test("active manifest has advanced to the anniversarygift productive one-write runner",()=>{
   assert.equal(manifest.testId,
-    "pr20-8-exchange-anniversarygift-durable-shadow-no-write");
+    "pr20-8-exchange-anniversarygift-productive-one-write-live");
   assert.equal(manifest.controllerVersion,"1.0.0");
   assert.equal(manifest.sourceCommit,
-    "737118b5ab4d043ca996594aa6db1df309a6a177");
+    "5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
   assert.equal(manifest.packagePath,
-    "v5/werkzeuge/pr20-8-exchange-anniversarygift-durable-shadow-no-write.js");
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-productive-one-write-live.js");
   assert.equal(manifest.packageSha256,
-    "04c765fc9d88b242170ca15d0d28d8dcca84572a745dcaa09ebf0c1caa44135e");
+    "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
   assert.equal(manifest.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftDurableShadowNoWrite");
+    "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 
