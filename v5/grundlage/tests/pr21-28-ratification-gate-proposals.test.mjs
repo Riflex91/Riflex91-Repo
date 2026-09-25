@@ -299,3 +299,50 @@ test("ratification and gate-proposal sources contain no gameplay or gate-apply b
     }
   }
 });
+
+
+test("Ratification-/Gate-Proposal-Vertrag und Roadmap bewahren CAP-022 Full-Chain",()=>{
+  const contract=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
+    "utf8",
+  ));
+  const boundary=contract.cap022FullChainBoundary;
+  assert.equal(boundary.groupCheckpointRequiresBoundPackage,true);
+  assert.deepEqual(boundary.packageFields,[
+    "cap022FullChainRequired",
+    "cap022FullChainSatisfied",
+    "cap022FullChainBoundToPackage",
+  ]);
+  assert.equal(boundary.ratificationRecordPreservesBinding,true);
+  assert.deepEqual(boundary.gateAdvanceRequiredStages,["PR22","PR23"]);
+  assert.equal(boundary.missingOrDriftedFullChainBlocksProposal,true);
+  assert.equal(
+    boundary.blocker,
+    "PR21_28_GATE_ADVANCE_CAP022_FULL_CHAIN_NICHT_BEREIT",
+  );
+  assert.equal(boundary.gateMutationPerformed,false);
+  assert.equal(boundary.authorityIssued,false);
+  assert.equal(boundary.currentPr20_9RatificationCredit,false);
+  assert.equal(boundary.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(boundary.durableIntentCreated,false);
+  assert.equal(boundary.productiveCraftAuthorityOpened,false);
+
+  const roadmap=JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  const binding=
+    roadmap.pr23.materialAcquisitionFoundation
+      .fullChainOrchestrationReadiness.resultPackageRatificationBinding;
+  assert.equal(binding.groupCheckpointPackageBindsCap022,true);
+  assert.equal(binding.ratificationRecordPreservesCap022,true);
+  assert.deepEqual(binding.gateAdvanceRequiredStages,["PR22","PR23"]);
+  assert.equal(binding.missingOrDriftedCap022BlocksProposal,true);
+  assert.equal(binding.gateMutationPerformed,false);
+  assert.equal(binding.authorityIssued,false);
+  assert.equal(binding.currentPr20_9RatificationCredit,false);
+  assert.equal(binding.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(binding.durableIntentCreated,false);
+  assert.equal(binding.productiveCraftAuthorityOpened,false);
+  assert.equal(binding.normalRuntimeAllowed,false);
+});
