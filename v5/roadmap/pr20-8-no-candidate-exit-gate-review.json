@@ -50,7 +50,7 @@
     "PR20_8_EXCHANGE_5M_LIVE_NOT_RUN",
     "PR20_8_EXCHANGE_AUTONOMY_NOT_PRODUCTIVE_PROVEN"
   ],
-  "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RETRY",
+  "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
   "mayAdvanceToPr20_9": false,
   "roadmapCriteriaRelaxed": false,
   "compoundLive5mPreparation": {
@@ -86,7 +86,7 @@
     "manifestCutoverPrepared": true,
     "deployed": true,
     "maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass": true,
-    "bridgeMayDeployPinnedRunner": true,
+    "bridgeMayDeployPinnedRunner": false,
     "deploymentEvidenceObserved": true,
     "realFiveMinuteRunCompleted": false,
     "observedFailure": {
@@ -96,7 +96,9 @@
       "publicFunctionCalls": 0,
       "rawWriteCalls": 0,
       "sourceSendCount": 1
-    }
+    },
+    "retiredFromActiveManifest": true,
+    "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN"
   },
   "compoundLive5mPerformanceRecovery": {
     "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
@@ -119,7 +121,7 @@
     "manifestCutoverPrepared": true,
     "deployed": false,
     "maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass": true,
-    "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RETRY",
+    "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
     "bridgeMayDeployPinnedRunner": true,
     "deploymentEvidenceObserved": false,
     "realFiveMinuteRunCompleted": false
