@@ -51,3 +51,65 @@ npm run build
 ## Upstream attribution
 
 Adventure Land is the gameplay/reference basis for this fork. The upstream project uses the AdventureLandOnlyUse license and requires attribution for derivatives using its source/files. See `NOTICE.md`.
+
+## Windows local admin sandbox
+
+For local gameplay/client testing without a real Adventure Land account, AL 2.5D
+has a loopback-only sandbox mode.
+
+Prerequisites:
+
+- Windows PowerShell
+- Git
+- Node.js / npm
+- Docker Desktop recommended (a local MongoDB on port 27017 also works)
+
+From the `AL 2.5d` directory:
+
+```powershell
+npm run local:setup
+npm run local:start
+```
+
+The setup command:
+
+1. clones the pinned original Adventure Land runtime at
+   `ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4`;
+2. clones pinned compatible `common_engine` and development config sources;
+3. verifies `Dev: true`, `Local: true` and `unsecure_admin: true`;
+4. starts/uses MongoDB only on `127.0.0.1:27017`;
+5. imports the upstream development datastore needed for map geometry;
+6. immediately removes imported users, characters and other player/account data;
+7. rebuilds local pathfinding data.
+
+The start command launches:
+
+- local Adventure Land web backend: `http://localhost:8090`
+- local Adventure Land game server: `localhost:7192`
+- AL 2.5D Vite renderer: `http://localhost:5173`
+
+It then opens:
+
+```text
+http://localhost:5173/?localAdmin=1&legacy=/legacy/
+```
+
+The browser creates/reuses the deliberately local identity
+`local-admin@al25d.invalid` and the warrior `LocalAdmin`. Because the pinned
+development config uses `Local: true` together with `unsecure_admin: true`,
+the localhost account receives development-admin behavior without changing
+production authentication or using an Adventure Land account.
+
+The local-admin bootstrap refuses to run on non-loopback hosts. The Vite proxy
+also points only at the local backend, so this mode is not used for
+`adventure.land`.
+
+To stop processes started by the launcher:
+
+```powershell
+npm run local:stop
+```
+
+All downloaded runtime repositories, database files and process metadata live
+under `.local-dev/` and are excluded from Git.
+
