@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-25",
+  "gate": "PR20.8_WERTMUTATIONEN",
+  "id": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW",
+  "status": "MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+  "sourceMain": "79d8fc31fb77b3977b5902cd9de5e67929ffc408",
+  "prerequisites": {
+    "autonomyPreparation": "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-autonomy-preparation.json",
+    "requiredAutonomyPreparationStatus": "FOUNDATION_BEREIT_NO_WRITE",
+    "oneWriteEvidence": "v5/roadmap/pr20-8-exchange-anniversarygift-productive-one-write-evidence.json",
+    "requiredOneWriteStatus": "RATIFIED_COMMITTED_EXCHANGE_ONE_WRITE",
+    "live5mEvidence": "v5/roadmap/pr20-8-exchange-anniversarygift-live-5m-evidence.json",
+    "requiredLive5mStatus": "RATIFIED_BESTANDEN_ZERO_ADDITIONAL_MUTATION",
+    "live5mNotificationId": 2986,
+    "exchangeAutonomyProductiveProven": false
+  },
+  "package": {
+    "testId": "pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write",
+    "controllerVersion": "1.0.0",
+    "path": "v5/werkzeuge/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write.js",
+    "test": "v5/werkzeuge/tests/pr20-8-exchange-anniversarygift-autonomy-route-shadow-no-write.test.mjs",
+    "sourceCommit": "03703cd6ab510cfd5b6a5b873fb853f69ff6ed9e",
+    "sha256": "9f0d23453d5811f1da53c581a716948f576112a274fd6488f9035c82b299c1ee",
+    "bytes": 24508,
+    "expectedGlobal": "V5PR208ExchangeAnniversarygiftAutonomyRouteShadowNoWrite"
+  },
+  "selectionBoundary": {
+    "exactItem": "anniversarygift",
+    "exchangeQuantity": 1,
+    "exactExclusiveExceptionOnly": true,
+    "genericExclusivePolicyRelaxed": false,
+    "manualPinnedInventoryIndexForbidden": true,
+    "historicalObservedIndexCarriesAuthority": false,
+    "selectedByFreshAutonomousScan": true,
+    "exactlyOneSafeMatchingStackRequired": true,
+    "ambiguousCandidateOutcome": "BLOCK_FAIL_CLOSED",
+    "freshExactDefinitionRequired": true,
+    "stableDoubleObservationRequired": true,
+    "postDecisionReobserveRequired": true
+  },
+  "liveAdmission": {
+    "exactCharacter": "My_Merchant",
+    "exactClass": "merchant",
+    "exactServer": "EU:I",
+    "performanceTrickRequired": true,
+    "qMustBeEmpty": true,
+    "movingMustBeFalse": true,
+    "targetMustBeClear": true,
+    "massExchangeForbidden": true,
+    "massExchangePpForbidden": true,
+    "minimumEmptyInventorySlots": 1,
+    "servicePoint": {
+      "map": "main",
+      "x": -25,
+      "y": -478
+    },
+    "sourcePinnedServerDistance": 400,
+    "conservativeSafetyDistance": 300,
+    "serviceMovementAuthority": false,
+    "publicExchangeMustExist": true
+  },
+  "durableDecision": {
+    "storage": "LOCAL_STORAGE_AUTONOMY_DECISION_SHADOW_ONLY",
+    "exactReadbackRequired": true,
+    "decisionIdFromFreshAutonomousPrestateFingerprint": true,
+    "targetFunction": "exchange",
+    "sendBoundaryState": "NICHT_GESENDET",
+    "sendCount": 0,
+    "terminalStatus": "SHADOW_ADMITTED_NO_SEND",
+    "exactTerminalRecoveryAllowed": true,
+    "recoveryRewritesDecision": false,
+    "recoveryPerformsSend": false,
+    "conflictingOrDriftedExistingDecision": "BLOCK_FAIL_CLOSED"
+  },
+  "mutationBoundary": {
+    "maximumGameplayWrites": 0,
+    "maximumPublicFunctionCalls": 0,
+    "maximumRawWriteCalls": 0,
+    "exchangeAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false,
+    "publicExchangeCallSites": 0,
+    "rawSocketOrApiBypassForbidden": true
+  },
+  "proofSemantics": {
+    "provesFreshAutonomousRouteSelectionOnly": true,
+    "doesNotProveProductiveAutonomy": true,
+    "doesNotCreateExchangeWriteAuthority": true,
+    "doesNotSatisfyPr20_8ExitGate": true,
+    "mayAdvanceToPr20_9": false,
+    "successfulShadowNextGate": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_PRODUCTIVE_ONE_WRITE"
+  },
+  "manifestCutover": {
+    "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "prepared": true,
+    "deployed": false,
+    "liveEvidenceObserved": false
+  },
+  "nextAction": "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE"
+}
