@@ -26,11 +26,15 @@
       "CHECKPOINT_ID",
       "RUNNER_EVALUATION",
       "OBSERVABILITY_STATUS",
-      "EVIDENCE_EVALUATIONS"
+      "EVIDENCE_EVALUATIONS",
+      "CAP022_FULL_CHAIN_REQUIRED",
+      "CAP022_FULL_CHAIN_SATISFIED"
     ],
     "readyState": "READY_FOR_MANUAL_RATIFICATION",
     "packageBuilderRatifiesEvidence": false,
-    "packageBuilderIssuesAuthority": false
+    "packageBuilderIssuesAuthority": false,
+    "cap022FullChainBoundToPackage": true,
+    "groupCheckpointRequiresSatisfiedFullChain": true
   },
   "checkpoints": [
     "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
@@ -60,6 +64,9 @@
     "currentPr20_9RatificationCredit": false,
     "candidateAcquisitionOrMutationAllowedNow": false,
     "durableIntentCreated": false,
-    "productiveCraftAuthorityOpened": false
+    "productiveCraftAuthorityOpened": false,
+    "resultPackageBindsFullChain": true,
+    "groupPackageCannotBeReadyWithoutFullChain": true,
+    "ratificationMustPreservePackageBinding": true
   }
 }
