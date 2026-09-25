@@ -1,0 +1,398 @@
+{
+  "schemaVersion": 1,
+  "evidenceArt": "V5_PR20_8_EXCHANGE_ANNIVERSARYGIFT_REWARD_DOMAIN_SOURCE_PROOF",
+  "status": "RATIFIED_SCOPED_CURRENT_SOURCE_REVALIDATION",
+  "scope": "ANNIVERSARYGIFT_EXCHANGE_ONLY",
+  "historicalGlobalV5SourceSnapshotPreserved": true,
+  "historicalGlobalV5SourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+  "officialSource": {
+    "repository": "kaansoral/adventureland_mongodb",
+    "commit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+    "files": {
+      "drops": {
+        "path": "design/drops.js",
+        "blobSha": "cb9af901090eed78dd7ff5ae915874a9557409c4"
+      },
+      "server": {
+        "path": "node/server.js",
+        "blobSha": "40d0aeda16b9a4320441e833020fe1b4db496e2c"
+      },
+      "runner": {
+        "path": "js/runner_functions.js",
+        "blobSha": "8b40ac9931a48995cd179fa4cb6b3057df677b02"
+      },
+      "items": {
+        "path": "design/items.js",
+        "blobSha": "ca41b524c8bd795db40836525f7efd9626982c70"
+      },
+      "serverFunctions": {
+        "path": "node/server_functions.js",
+        "blobSha": "650797b87de128e85b2d01d574d5321a7144bef7"
+      },
+      "maps": {
+        "path": "design/maps.js",
+        "blobSha": "78350dac1a18c4eb0e7c6f545ebf08bb3d6729e4"
+      }
+    }
+  },
+  "exactInputDefinition": {
+    "name": "anniversarygift",
+    "type": "gem",
+    "stackLimit": 9999,
+    "baseGold": 100,
+    "exchangeQuantity": 1,
+    "exclusive": true
+  },
+  "graph": {
+    "canonicalSha256": "2fad9b50ac0bb87a8e53a0cff8f6e34ded949b3531f8843f86d3f1fb8e828342",
+    "topLevel": {
+      "totalWeight": 1000000,
+      "entries": [
+        [
+          608910,
+          "gold",
+          5000
+        ],
+        [
+          200000,
+          "gold",
+          20000
+        ],
+        [
+          190000,
+          "open",
+          "anniversary_legacy"
+        ],
+        [
+          990,
+          "open",
+          "anniversary_equipment"
+        ],
+        [
+          99,
+          "cxjar",
+          1,
+          "makeawish"
+        ],
+        [
+          1,
+          "cxjar",
+          1,
+          "ikissyou"
+        ]
+      ]
+    },
+    "aliases": {
+      "anniversary_legacy": "gift1"
+    },
+    "anniversaryLegacy": [
+      [
+        1,
+        "open",
+        "thrash"
+      ],
+      [
+        0.4,
+        "cake"
+      ],
+      [
+        0.2,
+        "poker"
+      ],
+      [
+        1,
+        "confetti"
+      ],
+      [
+        0.8,
+        "partyhat"
+      ],
+      [
+        0.1,
+        "gift0"
+      ],
+      [
+        0.1,
+        "open",
+        "armorbox"
+      ],
+      [
+        0.05,
+        "ftrinket"
+      ],
+      [
+        0.006,
+        "scroll3"
+      ],
+      [
+        0.006,
+        "mysterybox"
+      ],
+      [
+        0.002,
+        "offering"
+      ],
+      [
+        0.0003,
+        "luckbooster"
+      ]
+    ],
+    "anniversaryEquipment": [
+      [
+        15,
+        "candleward"
+      ],
+      [
+        15,
+        "paradequiver"
+      ],
+      [
+        14,
+        "homecominghelm"
+      ],
+      [
+        14,
+        "homecomingcoat"
+      ],
+      [
+        14,
+        "homecomingcape"
+      ],
+      [
+        10,
+        "guestbook"
+      ],
+      [
+        10,
+        "reunionbow"
+      ],
+      [
+        8,
+        "keepsakependant"
+      ]
+    ],
+    "thrash": [
+      [
+        1,
+        "coat"
+      ],
+      [
+        1,
+        "shoes"
+      ],
+      [
+        1,
+        "pants"
+      ],
+      [
+        1,
+        "gloves"
+      ],
+      [
+        1,
+        "helmet"
+      ],
+      [
+        1,
+        "empty"
+      ]
+    ],
+    "armorbox": [
+      [
+        14,
+        "coat1"
+      ],
+      [
+        22,
+        "helmet1"
+      ],
+      [
+        20,
+        "pants1"
+      ],
+      [
+        1,
+        "hhelmet"
+      ],
+      [
+        0.8,
+        "harmor"
+      ],
+      [
+        1,
+        "hpants"
+      ],
+      [
+        1.1,
+        "hgloves"
+      ],
+      [
+        0.5,
+        "hboots"
+      ],
+      [
+        22,
+        "gloves1"
+      ],
+      [
+        0.1,
+        "xhelmet"
+      ],
+      [
+        0.08,
+        "xarmor"
+      ],
+      [
+        0.1,
+        "xpants"
+      ],
+      [
+        0.11,
+        "xgloves"
+      ],
+      [
+        0.05,
+        "xboots"
+      ],
+      [
+        0.005,
+        "fury"
+      ],
+      [
+        0.005,
+        "starkillers"
+      ],
+      [
+        14,
+        "shoes1"
+      ]
+    ],
+    "recursiveEdges": [
+      [
+        "anniversarygift",
+        "anniversary_legacy"
+      ],
+      [
+        "anniversarygift",
+        "anniversary_equipment"
+      ],
+      [
+        "anniversary_legacy",
+        "thrash"
+      ],
+      [
+        "anniversary_legacy",
+        "armorbox"
+      ]
+    ],
+    "recursiveCycle": false,
+    "specialSixcakeMultiOutputApplies": false,
+    "bounded": true,
+    "recursiveBranchesBounded": true,
+    "specialMultiOutputBounded": true,
+    "conservativeInventoryOutputsComplete": true,
+    "outputspaceClass": "PROBABILISTIC_BOUNDED_OUTPUT",
+    "rewardDomains": [
+      "gold",
+      "inventory",
+      "empty"
+    ],
+    "maximumPhysicalOutputsPerExchange": 1,
+    "physicalOutputNames": [
+      "cxjar",
+      "candleward",
+      "paradequiver",
+      "homecominghelm",
+      "homecomingcoat",
+      "homecomingcape",
+      "guestbook",
+      "reunionbow",
+      "keepsakependant",
+      "cake",
+      "poker",
+      "confetti",
+      "partyhat",
+      "gift0",
+      "ftrinket",
+      "scroll3",
+      "mysterybox",
+      "offering",
+      "luckbooster",
+      "coat",
+      "shoes",
+      "pants",
+      "gloves",
+      "helmet",
+      "coat1",
+      "helmet1",
+      "pants1",
+      "hhelmet",
+      "harmor",
+      "hpants",
+      "hgloves",
+      "hboots",
+      "gloves1",
+      "xhelmet",
+      "xarmor",
+      "xpants",
+      "xgloves",
+      "xboots",
+      "fury",
+      "starkillers",
+      "shoes1"
+    ],
+    "cxjarAllowedData": [
+      "makeawish",
+      "ikissyou"
+    ],
+    "goldOutputs": [
+      5000,
+      20000
+    ]
+  },
+  "serverSemantics": {
+    "rejectsExistingQExchange": true,
+    "rejectsBankContext": true,
+    "rejectsLockedInput": true,
+    "stackedInputRequiresPreexistingEmptySlot": true,
+    "stackRule": "player.esize <= 0 && input quantity != 1 => inventory_full",
+    "consumesDefinitionExchangeQuantityBeforePlaceholder": true,
+    "placeholderCreatedAfterConsume": true,
+    "placeholderSlotRecordedInQExchange": true,
+    "placeholderClearedBeforeRewardGeneration": true,
+    "rewardGeneratedOnlyAfterPlaceholderClear": true,
+    "qExchangeDeletedBeforeRewardGeneration": true,
+    "rewardFunctionFile": "node/server_functions.js",
+    "socketLifecycleFile": "node/server.js",
+    "exchangeServicePoint": {
+      "map": "main",
+      "x": -25,
+      "y": -478
+    }
+  },
+  "runnerSemantics": {
+    "publicFunction": "exchange",
+    "publicWrapperWaitsForQAndPlaceholder": true,
+    "promiseTimeoutApproxMs": 30000,
+    "returnedRewardNameIsSupportingEvidenceOnly": true,
+    "fullPoststateReconciliationRequired": true
+  },
+  "workspaceConclusion": {
+    "observedLiveInputQuantity": 106,
+    "exchangeQuantity": 1,
+    "stackRemainsAfterConsume": true,
+    "minimumEmptyInventorySlotsBeforeSend": 1,
+    "maximumPhysicalRewardSlotsNeededAfterPlaceholderClear": 1,
+    "conservativePreSendEmptySlotsRequired": 1,
+    "reason": "STACK_REMAINS_SO_PLACEHOLDER_NEEDS_SEPARATE_SLOT;_PLACEHOLDER_IS_CLEARED_BEFORE_AT_MOST_ONE_PHYSICAL_REWARD"
+  },
+  "prohibitedInterpretations": {
+    "sixcakeBonusAppliesToAnniversarygift": false,
+    "massExchangeAuthorized": false,
+    "recursiveDropAuthorityGranted": false,
+    "genericExclusivePolicyRelaxed": false,
+    "sourceRevalidationUpdatesGlobalHistoricalSnapshot": false
+  },
+  "outcome": "ANNIVERSARYGIFT_REWARD_DOMAIN_AND_OUTPUTSPACE_PROVEN",
+  "nextAction": "PREPARE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE"
+}
