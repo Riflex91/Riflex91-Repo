@@ -77,10 +77,16 @@ test("checkpoint runbooks encode the agreed operator-independent control flow",(
 
   assert.equal(merchant.minimumDurationSeconds,900);
   assert.equal(merchant.targetDurationSeconds,900);
+  assert.equal(merchant.cap022FullChainRequired,false);
+  assert.equal(merchant.requiredPreconditions.includes("CAP022_FULL_CHAIN_READY"),false);
   assert.equal(group.minimumDurationSeconds,1200);
   assert.equal(group.targetDurationSeconds,1200);
+  assert.equal(group.cap022FullChainRequired,true);
+  assert.ok(group.requiredPreconditions.includes("CAP022_FULL_CHAIN_READY"));
   assert.equal(final.minimumDurationSeconds,7200);
   assert.equal(final.targetDurationSeconds,10800);
+  assert.equal(final.cap022FullChainRequired,false);
+  assert.equal(final.requiredPreconditions.includes("CAP022_FULL_CHAIN_READY"),false);
 
   for(const runbook of [merchant,group,final]){
     assert.deepEqual(runbook.steps.map(x=>x.order),[1,2,3,4,5,6,7,8,9,10]);
@@ -107,6 +113,7 @@ test("clean Merchant checkpoint builds a deterministic package ready only for ma
   const runner=wertePr21_28MilestoneSamplesAus(
     plan,
     series("pr21-merchant-integration",0,900,5000),
+    {schemaVersion:1,cap022FullChainReady:true},
   );
   const evidence=runner.evidenceRows.map(row=>bewertePr21_28LiveEvidence(row));
   const input={
@@ -146,6 +153,7 @@ test("result package fingerprint changes on diagnostic evidence change without t
   const runner=wertePr21_28MilestoneSamplesAus(
     plan,
     series("pr21-merchant-integration",0,900,5000),
+    {schemaVersion:1,cap022FullChainReady:true},
   );
   const evidence=runner.evidenceRows.map(row=>bewertePr21_28LiveEvidence(row));
   const common={
@@ -174,7 +182,11 @@ test("result package blocks runner, observability and evidence drift",()=>{
   const plan=planePr21_28MilestoneRunner("PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT");
   const samples=series("pr21-merchant-integration",0,900,5000);
   samples[20]={...samples[20],safetyViolations:1};
-  const runner=wertePr21_28MilestoneSamplesAus(plan,samples);
+  const runner=wertePr21_28MilestoneSamplesAus(
+    plan,
+    samples,
+    {schemaVersion:1,cap022FullChainReady:true},
+  );
   const evidence=runner.evidenceRows.map(row=>bewertePr21_28LiveEvidence(row));
 
   const result=bauePr21_28ResultPackage({
@@ -207,6 +219,7 @@ test("result package rejects checkpoint binding drift and invalid main pin",()=>
   const runner=wertePr21_28MilestoneSamplesAus(
     plan,
     series("pr21-merchant-integration",0,900,5000),
+    {schemaVersion:1,cap022FullChainReady:true},
   );
   const evidence=runner.evidenceRows.map(row=>bewertePr21_28LiveEvidence(row));
 
