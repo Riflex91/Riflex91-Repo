@@ -3,7 +3,7 @@
   "stand": "2026-09-25",
   "gate": "PR20.8_WERTMUTATIONEN",
   "id": "PR20_8_EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_PREPARATION",
-  "status": "PACKAGE_PREPARED_NO_WRITE",
+  "status": "MANIFEST_CUTOVER_PREPARED_NO_WRITE",
   "purpose": "PROVE_FRESH_AUTONOMOUS_ANNIVERSARYGIFT_EXCHANGE_ROUTE_ADMISSION_WITHOUT_AUTHORITY_OR_SEND",
   "prerequisites": {
     "autonomyPreparation": "v5/grundlage/vertraege/runtime/pr20-8-exchange-anniversarygift-autonomy-preparation.json",
@@ -77,7 +77,7 @@
     "rawWriteAuthority": false,
     "movementAuthority": false,
     "normalRuntimeAllowed": false,
-    "manifestCutoverPrepared": false,
+    "manifestCutoverPrepared": true,
     "deployed": false,
     "sourceCommit": "d2fe950c2a20fe5aa87f6cdb6487ca79b959ef29",
     "packageSha256": "39084a646825c6bca6231b0968e41cebfbbf3548e8a93bba155dcb64b2fbf2be",
