@@ -228,3 +228,5 @@ export * from "./runtime/pr21-28-gate-apply-reconciliation.js";
 export * from "./runtime/pr21-28-gate-settlement-rollback.js";
 
 export * from "./runtime/pr21-28-stage-state-ledger.js";
+
+export * from "./runtime/pr21-28-readiness-snapshot.js";
