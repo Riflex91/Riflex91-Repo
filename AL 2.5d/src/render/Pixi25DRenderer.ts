@@ -4,6 +4,7 @@ import {
   Container,
   Graphics,
   Sprite,
+  Text,
   Texture
 } from "pixi.js";
 
@@ -22,8 +23,11 @@ type EntityVisual = {
   container: Container;
   sprite: Sprite;
   fallback: Graphics;
+  ui: Graphics;
+  label: Text;
   assetId: string;
   kind: EntityKind;
+  uiKey: string;
 };
 
 const DEFAULT_CAMERA: CameraState = {
@@ -243,19 +247,36 @@ export class Pixi25DRenderer implements RenderBridge {
       const container = new Container();
       const sprite = new Sprite(Texture.WHITE);
       const fallback = new Graphics();
+      const ui = new Graphics();
+      const label = new Text({
+        text: "",
+        style: {
+          fontFamily: "Arial, sans-serif",
+          fontSize: 10,
+          fill: 0xffffff,
+          stroke: { color: 0x000000, width: 3 },
+          align: "center"
+        }
+      });
       sprite.anchor.set(0.5, 1);
       sprite.visible = false;
+      label.anchor.set(0.5, 1);
 
       container.addChild(fallback);
       container.addChild(sprite);
+      container.addChild(ui);
+      container.addChild(label);
       this.world.addChild(container);
 
       visual = {
         container,
         sprite,
         fallback,
+        ui,
+        label,
         assetId: "",
-        kind: entity.kind
+        kind: entity.kind,
+        uiKey: ""
       };
 
       this.drawFallback(fallback, entity.kind, Boolean(entity.local));
@@ -286,10 +307,23 @@ export class Pixi25DRenderer implements RenderBridge {
     visual.container.scale.set(entity.scale ?? 1);
     visual.container.alpha = entity.alpha ?? 1;
 
-    if (entity.facing !== undefined) {
-      const magnitude = Math.abs(visual.container.scale.x) || 1;
-      visual.container.scale.x =
-        entity.facing < 0 ? -magnitude : magnitude;
+    const facing = entity.facing !== undefined && entity.facing < 0 ? -1 : 1;
+    visual.sprite.scale.x = facing;
+    visual.fallback.scale.x = facing;
+
+    const uiKey = [
+      entity.name ?? entity.id,
+      entity.hp ?? "",
+      entity.maxHp ?? "",
+      entity.mp ?? "",
+      entity.maxMp ?? "",
+      entity.targeted ? 1 : 0,
+      entity.local ? 1 : 0
+    ].join("|");
+
+    if (visual.uiKey !== uiKey) {
+      visual.uiKey = uiKey;
+      this.drawEntityUi(visual, entity);
     }
   }
 
@@ -354,6 +388,56 @@ export class Pixi25DRenderer implements RenderBridge {
       .poly([0, -24, 13, -10, 0, 0, -13, -10])
       .fill({ color: 0x7a817d, alpha: 1 })
       .stroke({ color: 0xb0b8b3, width: 2, alpha: 0.8 });
+  }
+
+  private drawEntityUi(
+    visual: EntityVisual,
+    entity: RenderEntity
+  ): void {
+    const ui = visual.ui;
+    ui.clear();
+
+    if (entity.targeted) {
+      ui
+        .ellipse(0, 3, 20, 7)
+        .stroke({ color: 0xffd45a, width: 3, alpha: 1 });
+    }
+
+    const maxHp =
+      entity.maxHp !== undefined && entity.maxHp > 0
+        ? entity.maxHp
+        : undefined;
+
+    if (maxHp !== undefined && entity.hp !== undefined) {
+      const width = 38;
+      const ratio = Math.max(0, Math.min(1, entity.hp / maxHp));
+      ui
+        .roundRect(-width / 2, -49, width, 5, 2)
+        .fill({ color: 0x101010, alpha: 0.9 });
+      ui
+        .roundRect(-width / 2 + 1, -48, (width - 2) * ratio, 3, 1)
+        .fill({ color: 0x55c56b, alpha: 1 });
+    }
+
+    if (
+      entity.maxMp !== undefined &&
+      entity.maxMp > 0 &&
+      entity.mp !== undefined &&
+      (entity.local || entity.kind === "player")
+    ) {
+      const width = 38;
+      const ratio = Math.max(0, Math.min(1, entity.mp / entity.maxMp));
+      ui
+        .roundRect(-width / 2, -43, width, 4, 2)
+        .fill({ color: 0x101010, alpha: 0.9 });
+      ui
+        .roundRect(-width / 2 + 1, -42, (width - 2) * ratio, 2, 1)
+        .fill({ color: 0x4d8fe8, alpha: 1 });
+    }
+
+    visual.label.text = entity.name ?? entity.id;
+    visual.label.y = maxHp !== undefined ? -52 : -45;
+    visual.label.style.fill = entity.targeted ? 0xffe08a : 0xffffff;
   }
 
   private async loadTexture(

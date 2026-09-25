@@ -19,6 +19,8 @@ export type LegacyGlobalsLike = Readonly<{
   current_map?: string;
   character?: LegacyEntityLike | null;
   entities?: Readonly<Record<string, LegacyEntityLike>>;
+  ctarget?: LegacyEntityLike | null;
+  xtarget?: LegacyEntityLike | null;
   G?: LegacyGameDataLike;
 }>;
 
@@ -202,7 +204,8 @@ export class LegacyMirrorBridge {
       tick: this.tick++,
       map,
       character,
-      entities: globals.entities ?? {}
+      entities: globals.entities ?? {},
+      targetId: globals.xtarget?.id ?? globals.ctarget?.id ?? null
     });
     const mapState = snapshotLegacyMapState(globals, map);
     const snapshot: GameFrameSnapshot = mapState

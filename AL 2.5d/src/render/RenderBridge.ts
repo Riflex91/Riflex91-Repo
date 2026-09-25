@@ -11,6 +11,12 @@ export type RenderEntity = Readonly<{
   scale?: number;
   alpha?: number;
   local?: boolean;
+  targeted?: boolean;
+  name?: string;
+  hp?: number;
+  maxHp?: number;
+  mp?: number;
+  maxMp?: number;
 }>;
 
 export type CameraState = Readonly<{

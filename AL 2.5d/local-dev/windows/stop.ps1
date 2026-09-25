@@ -10,13 +10,26 @@ if (Test-Path $PidFile) {
 
   foreach ($Property in $Pids.PSObject.Properties) {
     $PidValue = [int]$Property.Value
-    if ($PidValue -gt 0) {
-      Write-Host "Stopping $($Property.Name) process tree ($PidValue)"
-      & taskkill.exe /PID $PidValue /T /F 2>$null | Out-Null
+    if ($PidValue -le 0) {
+      continue
+    }
+
+    $Existing = Get-Process -Id $PidValue -ErrorAction SilentlyContinue
+    if (-not $Existing) {
+      Write-Host "Skipping stale $($Property.Name) PID ($PidValue)"
+      continue
+    }
+
+    Write-Host "Stopping $($Property.Name) process tree ($PidValue)"
+    $Taskkill = Start-Process -FilePath "taskkill.exe" -PassThru -Wait -WindowStyle Hidden -ArgumentList @(
+      "/PID", "$PidValue", "/T", "/F"
+    )
+    if ($Taskkill.ExitCode -ne 0) {
+      Write-Host "Process tree $PidValue already exited while stopping."
     }
   }
 
-  Remove-Item $PidFile -Force
+  Remove-Item $PidFile -Force -ErrorAction SilentlyContinue
 }
 
 if (Test-Path $MongoPidFile) {
@@ -25,6 +38,8 @@ if (Test-Path $MongoPidFile) {
   if ($MongoProcess) {
     Write-Host "Stopping portable MongoDB ($MongoPid)"
     Stop-Process -Id $MongoPid -Force
+  } else {
+    Write-Host "Skipping stale MongoDB PID ($MongoPid)"
   }
   Remove-Item $MongoPidFile -Force -ErrorAction SilentlyContinue
 }

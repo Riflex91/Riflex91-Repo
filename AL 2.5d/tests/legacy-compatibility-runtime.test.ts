@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createLegacyMapClickEvent,
+  dispatchLegacyEntityClick,
   LegacyCompatibilityRuntime,
   PINNED_ADVENTURE_LAND_COMMIT,
   type LegacyCompatibilitySource,
@@ -103,6 +104,42 @@ describe("LegacyCompatibilityRuntime", () => {
         G: source.G
       })
     ).toBe(before);
+  });
+
+  it("routes entity clicks through the original monster/player/NPC handlers", () => {
+    const calls: string[] = [];
+    const source: LegacyCompatibilitySource = {
+      current_map: "main",
+      width: 800,
+      height: 600,
+      scale: 1,
+      character: {
+        id: "Hero",
+        ctype: "warrior",
+        real_x: 0,
+        real_y: 0
+      },
+      entities: {
+        goo: { id: "goo", type: "monster", mtype: "goo", real_x: 40, real_y: 50 },
+        merchant: { id: "merchant", type: "character", npc: "basics", ctype: "merchant", real_x: 60, real_y: 70 },
+        friend: { id: "friend", type: "character", ctype: "mage", real_x: 80, real_y: 90 }
+      },
+      G: {},
+      map_click: () => undefined,
+      monster_click() { calls.push("monster:" + (this as { id: string }).id); },
+      npc_right_click() { calls.push("npc:" + (this as { id: string }).id); },
+      player_click() { calls.push("player:" + (this as { id: string }).id); }
+    };
+
+    dispatchLegacyEntityClick("goo", source);
+    dispatchLegacyEntityClick("merchant", source);
+    dispatchLegacyEntityClick("friend", source);
+
+    expect(calls).toEqual([
+      "monster:goo",
+      "npc:merchant",
+      "player:friend"
+    ]);
   });
 
   it("supports the original manual-centering pointer transform", () => {

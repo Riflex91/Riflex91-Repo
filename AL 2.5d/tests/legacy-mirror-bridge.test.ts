@@ -69,7 +69,20 @@ describe("LegacyMirrorBridge", () => {
     const globals = Object.freeze({
       current_map: "main",
       character,
-      entities: Object.freeze({}),
+      entities: Object.freeze({
+        goo: Object.freeze({
+          id: "goo",
+          type: "monster",
+          real_x: 120,
+          real_y: 210
+        })
+      }),
+      ctarget: Object.freeze({
+        id: "goo",
+        type: "monster",
+        real_x: 120,
+        real_y: 210
+      }),
       G: Object.freeze({
         maps: Object.freeze({
           main: Object.freeze({ name: "Main" })
@@ -104,6 +117,7 @@ describe("LegacyMirrorBridge", () => {
       y: 202,
       kind: "player"
     });
+    expect(snapshot.entities.find((entity) => entity.id === "goo")?.targeted).toBe(true);
     expect(snapshot.mapState?.geometry.bounds).toEqual({
       minX: -100,
       minY: -50,
@@ -141,6 +155,56 @@ describe("LegacyMirrorBridge", () => {
 
     expect(snapshots).toHaveLength(1);
     expect(snapshots[0].entities[0].local).toBe(true);
+  });
+
+  it("preserves map transitions in renderer snapshots", () => {
+    const renderer = new FakeRenderer();
+    const globals: {
+      current_map: string;
+      character: {
+        id: string;
+        ctype: string;
+        real_x: number;
+        real_y: number;
+        map: string;
+      };
+      entities: Record<string, never>;
+      G: {
+        maps: Record<string, Readonly<Record<string, unknown>>>;
+        geometry: Record<string, Readonly<Record<string, unknown>>>;
+      };
+    } = {
+      current_map: "main",
+      character: {
+        id: "Hero",
+        ctype: "warrior",
+        real_x: 10,
+        real_y: 20,
+        map: "main"
+      },
+      entities: {},
+      G: {
+        maps: {
+          main: { name: "Main" },
+          cave: { name: "Cave" }
+        },
+        geometry: {
+          main: { x_lines: [[0, 0, 10]], y_lines: [] },
+          cave: { x_lines: [[50, 0, 10]], y_lines: [] }
+        }
+      }
+    };
+
+    const bridge = new LegacyMirrorBridge(renderer, () => globals);
+    expect(bridge.renderOnce().map).toBe("main");
+
+    globals.current_map = "cave";
+    globals.character.map = "cave";
+
+    const cave = bridge.renderOnce();
+    expect(cave.map).toBe("cave");
+    expect(cave.mapState?.id).toBe("cave");
+    expect(cave.mapState?.geometry.collisionXLines).toEqual([[50, 0, 10]]);
   });
 
   it("starts and stops a renderer-only animation loop", () => {

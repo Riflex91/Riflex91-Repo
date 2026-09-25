@@ -42,8 +42,8 @@ Status: in progress
 - [x] hide legacy visual canvas while keeping compatibility objects alive
 - [x] route 2.5D map clicks through the original `map_click` / `on_map_click` path
 - [x] mirror `current_map` plus immutable `G.maps` / `G.geometry` metadata summaries
-- [ ] route 2.5D entity clicks to original target/click handlers
-- [ ] preserve map transitions
+- [x] route 2.5D entity clicks to original monster/player/NPC click handlers
+- [x] preserve map transitions in mirrored map state and camera follow
 - [ ] add golden tests against captured legacy outputs
 
 Deliverable: original game logic driving the visible new renderer.
@@ -59,7 +59,7 @@ Status: in progress
 - [x] camera follows the local character without changing gameplay coordinates
 - [x] click-to-move continues through the original map_click/on_map_click path
 - [ ] authored character/NPC/monster artwork and animation states
-- [ ] nameplates and target bars
+- [x] baseline nameplates, HP/MP bars and target highlight
 - [ ] baseline HUD
 
 Deliverable: walkable Main with original gameplay logic.

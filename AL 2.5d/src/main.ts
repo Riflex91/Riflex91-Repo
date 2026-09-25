@@ -15,7 +15,7 @@ import {
   isLoopbackHostname
 } from "./local/LocalAdminSandbox";
 import { AssetRegistry, type AssetEntry } from "./render/AssetRegistry";
-import { viewportToWorld } from "./render/camera";
+import { viewportToWorld, worldToViewport } from "./render/camera";
 import { Pixi25DRenderer } from "./render/Pixi25DRenderer";
 import type {
   CameraState,
@@ -84,6 +84,7 @@ async function boot(): Promise<void> {
   let camera: CameraState = { x: 0, y: 0, zoom: 1.35 };
   let legacyMirror: LegacyMirrorBridge | null = null;
   let legacyRuntime: LegacyCompatibilityRuntime | null = null;
+  let latestSnapshot: GameFrameSnapshot | null = null;
   let graphicsMode: GraphicsMode =
     window.localStorage.getItem("al25d.graphicsMode") === "original"
       ? "original"
@@ -108,6 +109,7 @@ async function boot(): Promise<void> {
       undefined,
       undefined,
       (snapshot) => {
+        latestSnapshot = snapshot;
         const local = snapshot.entities.find((entity) => entity.local);
         if (!local) return;
 
@@ -205,20 +207,36 @@ async function boot(): Promise<void> {
       x: event.clientX - rect.left,
       y: event.clientY - rect.top
     };
-    const world = viewportToWorld(
-      point,
-      camera,
-      {
-        width: rect.width,
-        height: rect.height
-      },
-      0
-    );
+    const viewport = {
+      width: rect.width,
+      height: rect.height
+    };
+
+    const hit = latestSnapshot?.entities
+      .filter((entity) => !entity.local)
+      .map((entity) => {
+        const screen = worldToViewport(entity, camera, viewport);
+        const dx = point.x - screen.x;
+        const dy = point.y - (screen.y - 20 * camera.zoom);
+        const rx = 22 * camera.zoom;
+        const ry = 30 * camera.zoom;
+        const score = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
+        return { entity, score };
+      })
+      .filter((candidate) => candidate.score <= 1)
+      .sort((a, b) => a.score - b.score)[0];
 
     try {
+      if (hit) {
+        legacyRuntime.dispatchEntityClick(hit.entity.id);
+        event.preventDefault();
+        return;
+      }
+
+      const world = viewportToWorld(point, camera, viewport, 0);
       legacyRuntime.dispatchWorldClick(world);
     } catch (error) {
-      console.warn("AL 2.5D legacy map click was not dispatched", error);
+      console.warn("AL 2.5D legacy pointer action was not dispatched", error);
     }
   });
 

@@ -18,6 +18,11 @@ export type LegacyEntityLike = Readonly<{
   npc?: string | boolean;
   skin?: string;
   going_x?: number;
+  name?: string;
+  hp?: number;
+  max_hp?: number;
+  mp?: number;
+  max_mp?: number;
 }>;
 
 export type LegacySnapshotSource = Readonly<{
@@ -25,6 +30,7 @@ export type LegacySnapshotSource = Readonly<{
   map: string;
   character?: LegacyEntityLike | null;
   entities?: Readonly<Record<string, LegacyEntityLike>>;
+  targetId?: string | null;
 }>;
 
 export type LegacySnapshotAdapterOptions = Readonly<{
@@ -70,7 +76,12 @@ export class LegacySnapshotAdapter {
     if (source.character) {
       entities.set(
         source.character.id,
-        this.convertEntity(source.character, "player", true)
+        this.convertEntity(
+          source.character,
+          "player",
+          true,
+          source.targetId === source.character.id
+        )
       );
     }
 
@@ -78,7 +89,15 @@ export class LegacySnapshotAdapter {
       if (!entity || !entity.id || entities.has(entity.id)) continue;
 
       const kind = this.detectKind(entity);
-      entities.set(entity.id, this.convertEntity(entity, kind, false));
+      entities.set(
+        entity.id,
+        this.convertEntity(
+          entity,
+          kind,
+          false,
+          source.targetId === entity.id
+        )
+      );
     }
 
     return Object.freeze({
@@ -89,15 +108,18 @@ export class LegacySnapshotAdapter {
   }
 
   private detectKind(entity: LegacyEntityLike): EntityKind {
+    // Dynamic NPCs are created through add_character upstream and may carry
+    // character-like fields. NPC identity must therefore win over ctype.
+    if (entity.npc || entity.type === "npc") {
+      return "npc";
+    }
+
     if (
       entity.ctype ||
+      entity.type === "character" ||
       (entity.type && this.classTypes.has(entity.type))
     ) {
       return "player";
-    }
-
-    if (entity.npc || entity.type === "npc") {
-      return "npc";
     }
 
     if (
@@ -114,7 +136,8 @@ export class LegacySnapshotAdapter {
   private convertEntity(
     entity: LegacyEntityLike,
     kind: EntityKind,
-    local: boolean
+    local: boolean,
+    targeted: boolean
   ): RenderEntity {
     const x = entity.real_x ?? entity.x ?? 0;
     const y = entity.real_y ?? entity.y ?? 0;
@@ -132,7 +155,17 @@ export class LegacySnapshotAdapter {
       y,
       z: entity.z,
       texture: this.resolveAssetId(entity, kind),
-      facing
+      facing,
+      targeted,
+      name:
+        entity.name ??
+        (typeof entity.npc === "string" ? entity.npc : undefined) ??
+        entity.mtype ??
+        entity.id,
+      hp: entity.hp,
+      maxHp: entity.max_hp,
+      mp: entity.mp,
+      maxMp: entity.max_mp
     };
 
     return Object.freeze(local ? { ...base, local: true } : base);

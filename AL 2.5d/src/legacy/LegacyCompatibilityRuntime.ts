@@ -18,6 +18,9 @@ export type LegacyMapClickEvent = Readonly<{
 
 export type LegacyCompatibilitySource = LegacyGlobalsLike & {
   map_click?: (event: LegacyMapClickEvent) => unknown;
+  monster_click?: (event: LegacyMapClickEvent) => unknown;
+  player_click?: (event: LegacyMapClickEvent) => unknown;
+  npc_right_click?: (event: LegacyMapClickEvent) => unknown;
   enter_selected_character?: (name: string, id: string) => unknown;
   socket?: Readonly<{ connected?: boolean }>;
   socket_welcomed?: boolean;
@@ -105,6 +108,34 @@ export function dispatchLegacyWorldClick(
   }
 
   return source.map_click.call(source, createLegacyMapClickEvent(target, source));
+}
+
+export function dispatchLegacyEntityClick(
+  entityId: string,
+  source: LegacyCompatibilitySource
+): unknown {
+  const entity = source.entities?.[entityId];
+
+  if (!entity) {
+    throw new Error(`Legacy entity ${entityId} is not available`);
+  }
+
+  const x = finiteNumber(entity.real_x, finiteNumber(entity.x, 0));
+  const y = finiteNumber(entity.real_y, finiteNumber(entity.y, 0));
+  const event = createLegacyMapClickEvent({ x, y }, source);
+
+  const handler =
+    entity.npc || entity.type === "npc"
+      ? source.npc_right_click
+      : entity.mtype || entity.type === "monster"
+        ? source.monster_click
+        : source.player_click;
+
+  if (typeof handler !== "function") {
+    throw new Error(`Legacy click handler is not available for ${entityId}`);
+  }
+
+  return handler.call(entity, event);
 }
 
 export function isLegacyCompatibilitySource(
@@ -271,6 +302,10 @@ export class LegacyCompatibilityRuntime {
 
   dispatchWorldClick(target: WorldPoint): unknown {
     return dispatchLegacyWorldClick(target, this.requireSource());
+  }
+
+  dispatchEntityClick(entityId: string): unknown {
+    return dispatchLegacyEntityClick(entityId, this.requireSource());
   }
 
   setGraphicsMode(mode: GraphicsMode): void {

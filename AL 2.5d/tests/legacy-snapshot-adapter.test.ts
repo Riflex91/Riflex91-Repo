@@ -50,8 +50,12 @@ describe("LegacySnapshotAdapter", () => {
     const merchant = Object.freeze({
       id: "npc-1",
       npc: "standmerchant",
+      ctype: "merchant",
+      type: "character",
       x: 30,
-      y: 40
+      y: 40,
+      hp: 500,
+      max_hp: 500
     });
 
     const adapter = new LegacySnapshotAdapter({
@@ -64,13 +68,29 @@ describe("LegacySnapshotAdapter", () => {
       entities: {
         goo,
         merchant
-      }
+      },
+      targetId: "npc-1"
     });
 
     expect(snapshot.entities.find((entity) => entity.id === "goo-1")?.kind).toBe("monster");
-    expect(snapshot.entities.find((entity) => entity.id === "npc-1")?.kind).toBe("npc");
+    expect(snapshot.entities.find((entity) => entity.id === "npc-1")).toMatchObject({
+      kind: "npc",
+      targeted: true,
+      name: "standmerchant",
+      hp: 500,
+      maxHp: 500
+    });
     expect(goo).toEqual({ id: "goo-1", type: "goo", x: 10, y: 20 });
-    expect(merchant).toEqual({ id: "npc-1", npc: "standmerchant", x: 30, y: 40 });
+    expect(merchant).toEqual({
+      id: "npc-1",
+      npc: "standmerchant",
+      ctype: "merchant",
+      type: "character",
+      x: 30,
+      y: 40,
+      hp: 500,
+      max_hp: 500
+    });
   });
 
   it("deduplicates the local character if it is also present in entities", () => {
