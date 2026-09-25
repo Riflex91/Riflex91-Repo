@@ -59,5 +59,19 @@
     "autoCraftAllowed": false,
     "splitStackNormalCraftAllowed": false
   },
-  "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE"
+  "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE",
+  "upstreamAdmissions": {
+    "cap022TeamRescan": {
+      "status": "PREPARED_NO_WRITE",
+      "source": "v5/grundlage/quelle/produktion/pr20-9-craft-team-rescan-durable-admission.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr20-9-craft-team-rescan-durable-admission-foundation.json",
+      "test": "v5/grundlage/tests/pr20-9-craft-team-rescan-durable-admission.test.mjs",
+      "outputStatus": "TEAM_RESCAN_DURABLE_SHADOW_PLAN_BEREIT_NO_WRITE",
+      "exactPlanPreflightSnapshotTripleRequired": true,
+      "durableIntentCreatedByAdmission": false,
+      "durablePersistenceOwnedByThisController": true,
+      "currentPr20_9RatificationCredit": false,
+      "productiveCraftAuthorityOpened": false
+    }
+  }
 }

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_9_CRAFT_TEAM_RESCAN_DURABLE_ADMISSION_NO_WRITE",
+  "gate": "PR20.9_PRODUCTION",
+  "status": "PREPARED_NO_WRITE",
+  "capability": "CAP-022",
+  "name": "Team Craft Rescan -> PR20.9 Durable Shadow Admission",
+  "source": "v5/grundlage/quelle/produktion/pr20-9-craft-team-rescan-durable-admission.ts",
+  "test": "v5/grundlage/tests/pr20-9-craft-team-rescan-durable-admission.test.mjs",
+  "dependsOn": [
+    "v5/grundlage/vertraege/runtime/pr22-23-production-material-team-craft-rescan-foundation.json",
+    "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-preparation.json",
+    "v5/grundlage/quelle/produktion/pr20-9-craft-read-only-preflight.ts",
+    "v5/grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts"
+  ],
+  "admissionRequirements": {
+    "teamRescanStatus": "TEAM_CRAFT_RESCAN_KANDIDAT_BEREIT_NO_WRITE",
+    "teamRescanCandidateObserved": true,
+    "teamRescanRatificationCreditMustBeFalse": true,
+    "originalPreflightRequestMustMatchResult": true,
+    "finalMerchantInventoryFingerprintMustMatchFence": true,
+    "exactCharacterSessionServerFenceRequired": true,
+    "qFingerprintRequired": true,
+    "resourceEpochsRequired": [
+      "inventory",
+      "q",
+      "socketBudget",
+      "actionChannel"
+    ],
+    "openCraftAuthorityAllowed": false,
+    "openCraftTransactionAllowed": false,
+    "maximumDurablePlanTtlMs": 1500
+  },
+  "output": {
+    "status": "TEAM_RESCAN_DURABLE_SHADOW_PLAN_BEREIT_NO_WRITE",
+    "durableShadowPlanPrepared": true,
+    "preflightForwardedUnchanged": true,
+    "currentSnapshotPrepared": true,
+    "durableShadowPersistenceEligible": true,
+    "durableIntentCreated": false,
+    "persistenceWrites": 0
+  },
+  "safetyBoundary": {
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "currentPr20_9RatificationCredit": false,
+    "foundationCountsAsCraftRatification": false,
+    "productiveCraftAuthorityOpened": false,
+    "broadGraphExecutionAuthority": false,
+    "sameIntentRetry": false,
+    "craftAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "directGameplayAdapterCalls": false
+  },
+  "separationOfResponsibility": {
+    "admissionMayPersistDurableIntent": false,
+    "onlyExistingDurableShadowControllerMayPersist": true,
+    "durablePersistenceFunction": "persistierePr20_9CraftDurableShadow",
+    "realEvidenceStillRequired": true,
+    "syntheticUnitTestAdmissionMayNotRatifyPr20_9": true
+  },
+  "currentGateBoundary": {
+    "pr20_9StatusRemains": "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+    "candidateAcquisitionOrMutationAllowedNow": false,
+    "futureRealTeamRescanMayPrepareDurableShadowPlan": true,
+    "separateDurableShadowEvidenceRequiredBeforeProductiveCraftAuthority": true
+  },
+  "nextAction": "KEEP_ADMISSION_NO_WRITE_UNTIL_REAL_TEAM_RESCAN_CANDIDATE_EXISTS"
+}

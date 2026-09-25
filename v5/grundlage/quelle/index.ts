@@ -113,6 +113,7 @@ export * from "./produktion/production-planer.js";
 export * from "./produktion/production-controller.js";
 export * from "./produktion/pr20-9-craft-read-only-preflight.js";
 export * from "./produktion/pr20-9-craft-durable-shadow.js";
+export * from "./produktion/pr20-9-craft-team-rescan-durable-admission.js";
 export * from "./merchant/supply-policy.js";
 export * from "./merchant/logistik-workflow.js";
 export * from "./merchant/logistik-planer.js";
