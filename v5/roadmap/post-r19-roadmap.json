@@ -858,7 +858,7 @@
     },
     {
       "id": "PR20.9_PRODUCTION",
-      "status": "CRAFT_DURABLE_SHADOW_FOUNDATION_BEREIT_NO_WRITE",
+      "status": "CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE_BEREIT_NO_WRITE",
       "blockedBy": [
         "PR20.2",
         "PR20.3",
@@ -869,7 +869,7 @@
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
       "liveExecutionAllowed": false,
-      "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE",
+      "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER",
       "artifacts": [
         "v5/grundlage/quelle/produktion/production-graph.ts",
         "v5/grundlage/quelle/produktion/production-planer.ts",
@@ -880,7 +880,10 @@
         "v5/grundlage/tests/pr20-9-craft-read-only-preflight.test.mjs",
         "v5/grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
         "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-preparation.json",
-        "v5/grundlage/tests/pr20-9-craft-durable-shadow.test.mjs"
+        "v5/grundlage/tests/pr20-9-craft-durable-shadow.test.mjs",
+        "v5/werkzeuge/pr20-9-craft-durable-shadow-no-write.js",
+        "v5/werkzeuge/tests/pr20-9-craft-durable-shadow-no-write.test.mjs",
+        "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-runner-preparation.json"
       ]
     },
     {
@@ -2991,7 +2994,7 @@
     }
   },
   "pr20_9": {
-    "status": "CRAFT_DURABLE_SHADOW_FOUNDATION_BEREIT_NO_WRITE",
+    "status": "CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE_BEREIT_NO_WRITE",
     "ziel": "Craft und Production produktiv",
     "blockedBy": [
       "PR20.2",
@@ -3047,7 +3050,7 @@
       "newProductiveStepsHaveFiveMinuteEvidence": false,
       "satisfied": false
     },
-    "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_RUNNER_PACKAGE",
+    "nextAction": "PR20_9_CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER",
     "craftDurableShadow": {
       "status": "FOUNDATION_BEREIT_NO_WRITE",
       "source": "v5/grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
@@ -3071,6 +3074,34 @@
       "rawWriteAuthority": false,
       "broadGraphExecutionAuthority": false,
       "normalRuntimeAllowed": false
+    },
+    "craftDurableShadowRunner": {
+      "status": "PACKAGE_BEREIT_NO_WRITE",
+      "testId": "pr20-9-craft-durable-shadow-no-write",
+      "controllerVersion": "1.0.0",
+      "expectedGlobal": "V5PR209CraftDurableShadowNoWrite",
+      "package": "v5/werkzeuge/pr20-9-craft-durable-shadow-no-write.js",
+      "test": "v5/werkzeuge/tests/pr20-9-craft-durable-shadow-no-write.test.mjs",
+      "contract": "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-runner-preparation.json",
+      "packageSourceCommit": "116d762a1e1fad230cbd64a5a44d6762465501f0",
+      "sourceSnapshotCommit": "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4",
+      "normalCraftOnly": true,
+      "naturalCurrentInventoryOnly": true,
+      "stableDoubleObservationRequired": true,
+      "stablePostIntentReobserveRequired": true,
+      "exactPhysicalInputIndexesPinned": true,
+      "exactTerminalRecoveryAllowed": true,
+      "maximumGameplayWrites": 0,
+      "maximumPublicFunctionCalls": 0,
+      "maximumRawWriteCalls": 0,
+      "craftAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadGraphExecutionAuthority": false,
+      "sameIntentRetry": false,
+      "normalRuntimeAllowed": false,
+      "manifestCutoverPrepared": false,
+      "active": false
     }
   }
 }
