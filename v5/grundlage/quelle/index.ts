@@ -205,6 +205,7 @@ export * from "./koordination/production-material-lifecycle.js";
 export * from "./koordination/production-material-team-coordination.js";
 export * from "./koordination/production-material-team-handoff.js";
 export * from "./koordination/production-material-team-settlement-recovery.js";
+export * from "./koordination/production-material-team-craft-rescan.js";
 export * from "./farmer/pr23-farmer-shadow-admission.js";
 export * from "./gruppe/pr24-group-constellation-matrix.js";
 export * from "./gruppe/pr25-group-live-evidence-plan.js";
