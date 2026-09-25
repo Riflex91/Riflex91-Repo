@@ -241,6 +241,7 @@
   const worldQuarantine = new Map();
   const worldPlans = new Map();
   const worldHopHistory = new Map();
+  const transientGroupFaults = [];
   const evidenceSegments = [];
   let activeEvidenceSegment = null;
 
