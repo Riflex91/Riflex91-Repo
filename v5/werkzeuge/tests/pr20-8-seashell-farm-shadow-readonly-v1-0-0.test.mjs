@@ -244,8 +244,8 @@ test("runner contract and current roadmap remain read-only and undeployed",()=>{
   assert.equal(runnerContract.deployment.deployed,false);
   assert.equal(runnerContract.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_READ_ONLY");
 
-  assert.equal(roadmap.pr20_8.status,"EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_RUNNER_PREPARED_NOT_DEPLOYED");
-  assert.equal(roadmap.pr20_8.nextAction,"PREPARE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER");
+  assert.equal(roadmap.pr20_8.status,"EXCHANGE_ANNIVERSARYGIFT_PRODUCTIVE_ONE_WRITE_MANIFEST_CUTOVER_PREPARED");
+  assert.equal(roadmap.pr20_8.nextAction,"DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_PRODUCTIVE_ONE_WRITE");
   const shadow=roadmap.pr20_8.exchangeCandidateAcquisition.seashellFarmShadow;
   assert.equal(shadow.runnerPrepared,true);
   assert.equal(shadow.manifestCutoverPrepared,false);
@@ -254,18 +254,18 @@ test("runner contract and current roadmap remain read-only and undeployed",()=>{
   assert.equal(shadow.alreadySatisfiedNextAction,"PREPARE_SEASHELL_HANDOFF_SHADOW_NO_WRITE");
 });
 
-test("autonomous manifest is cut over to the anniversarygift no-send shadow",()=>{
+test("autonomous manifest is cut over to the anniversarygift productive one-write",()=>{
   assert.equal(manifest.testId,
-    "pr20-8-exchange-anniversarygift-durable-shadow-no-write");
+    "pr20-8-exchange-anniversarygift-productive-one-write-live");
   assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,"737118b5ab4d043ca996594aa6db1df309a6a177");
+  assert.equal(manifest.sourceCommit,"5c43c182e2cd2b9ef4361ce1699af00748ad0d95");
   assert.equal(
     manifest.packagePath,
-    "v5/werkzeuge/pr20-8-exchange-anniversarygift-durable-shadow-no-write.js",
+    "v5/werkzeuge/pr20-8-exchange-anniversarygift-productive-one-write-live.js",
   );
   assert.equal(manifest.packageSha256,
-    "04c765fc9d88b242170ca15d0d28d8dcca84572a745dcaa09ebf0c1caa44135e");
+    "eb7cc9760966ddf7026cdc200e373c8716c80126ce6b2651aba8fd4e0420ef74");
   assert.equal(manifest.expectedGlobal,
-    "V5PR208ExchangeAnniversarygiftDurableShadowNoWrite");
+    "V5PR208ExchangeAnniversarygiftProductiveOneWriteLive");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
