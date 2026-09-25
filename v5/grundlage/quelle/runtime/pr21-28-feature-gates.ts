@@ -6,6 +6,7 @@ export interface Pr21_28FeatureGateEvidence {
   readonly stage: Pr21_28GateStage;
   readonly foundationPrepared: boolean;
   readonly orchestrationPrepared: boolean;
+  readonly cap022FullChainReady: boolean;
   readonly predecessorProductiveComplete: boolean;
   readonly requiredLiveEvidenceRatified: boolean;
   readonly restartReconciliationRatified: boolean;
@@ -18,6 +19,8 @@ export interface Pr21_28FeatureGateSicht {
   readonly stage: Pr21_28GateStage;
   readonly productiveEligible: boolean;
   readonly blocker: readonly string[];
+  readonly cap022FullChainRequired: boolean;
+  readonly cap022FullChainSatisfied: boolean;
   readonly authorityIssued: false;
   readonly gameplayAuthority: false;
   readonly rawWriteAuthority: false;
@@ -29,6 +32,7 @@ export interface Pr21_28FeatureGateResult {
   readonly stages: readonly Pr21_28FeatureGateSicht[];
   readonly highestProductiveEligibleStage: Pr21_28GateStage | null;
   readonly allThroughPr28Eligible: boolean;
+  readonly cap022FullChainRequiredStages: readonly ["PR22", "PR23"];
   readonly authorityIssuedByGateEvaluation: false;
 }
 
@@ -66,6 +70,12 @@ export function bewertePr21_28FeatureGates(
     const blocker: string[] = [];
     if (!row.foundationPrepared) blocker.push(stage + "_FOUNDATION_FEHLT");
     if (!row.orchestrationPrepared) blocker.push(stage + "_ORCHESTRATION_FEHLT");
+    const cap022FullChainRequired = stage === "PR22" || stage === "PR23";
+    const cap022FullChainSatisfied =
+      !cap022FullChainRequired || row.cap022FullChainReady === true;
+    if (!cap022FullChainSatisfied) {
+      blocker.push(stage + "_CAP022_FULL_CHAIN_NICHT_BEREIT");
+    }
     if (!row.predecessorProductiveComplete) blocker.push(stage + "_PREDECESSOR_NICHT_COMPLETE");
     if (!row.requiredLiveEvidenceRatified) blocker.push(stage + "_LIVE_EVIDENCE_NICHT_RATIFIZIERT");
     if (!row.restartReconciliationRatified) blocker.push(stage + "_RESTART_EVIDENCE_NICHT_RATIFIZIERT");
@@ -82,6 +92,8 @@ export function bewertePr21_28FeatureGates(
       stage,
       productiveEligible,
       blocker:Object.freeze(blocker),
+      cap022FullChainRequired,
+      cap022FullChainSatisfied,
       authorityIssued:false,
       gameplayAuthority:false,
       rawWriteAuthority:false,
@@ -94,6 +106,7 @@ export function bewertePr21_28FeatureGates(
     stages:Object.freeze(stages),
     highestProductiveEligibleStage:highest,
     allThroughPr28Eligible:stages.every(x=>x.productiveEligible),
+    cap022FullChainRequiredStages:Object.freeze(["PR22","PR23"]),
     authorityIssuedByGateEvaluation:false,
   });
 }
