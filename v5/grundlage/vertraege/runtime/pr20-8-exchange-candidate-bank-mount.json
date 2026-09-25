@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_8_EXCHANGE_CANDIDATE_BANK_MOUNT",
+  "status": "PACKAGE_PREPARED_NOT_DEPLOYED",
+  "sourceMain": "d9ad594f7d8678810febd324f375958b0e179bc1",
+  "prerequisite": {
+    "priorTestId": "pr20-8-exchange-candidate-acquisition-readonly",
+    "priorControllerVersion": "1.0.1",
+    "requiredPriorTerminal": true,
+    "requiredPriorStatus": "BLOCKIERT",
+    "requiredPriorBlocker": "PR20_8_ACQUISITION_BANK_SNAPSHOT_REQUIRED",
+    "requiredPriorGameplayWrites": 0,
+    "requiredPriorPublicFunctionCalls": 0,
+    "requiredPriorRawWriteCalls": 0,
+    "requiredPriorSameIntentRetry": false
+  },
+  "package": {
+    "testId": "pr20-8-exchange-candidate-bank-mount",
+    "controllerVersion": "1.0.0",
+    "path": "v5/werkzeuge/pr20-8-exchange-candidate-bank-mount-v1-0-0.js",
+    "test": "v5/werkzeuge/tests/pr20-8-exchange-candidate-bank-mount-v1-0-0.test.mjs",
+    "expectedGlobal": "V5PR208ExchangeCandidateBankMount",
+    "movementTarget": "bank"
+  },
+  "movementBoundary": {
+    "exactPublicFunction": "smart_move",
+    "exactArgument": "bank",
+    "maximumGameplayWrites": 1,
+    "maximumPublicFunctionCalls": 1,
+    "maximumRawWriteCalls": 0,
+    "oneShot": true,
+    "sameIntentRetry": false,
+    "timeoutOutcome": "RECONCILE_MOVEMENT_OUTCOME_NO_RETRY",
+    "promiseFailureOutcome": "RECONCILE_MOVEMENT_OUTCOME_NO_RETRY"
+  },
+  "postMount": {
+    "scannerCriteriaMustMatchAcquisitionDiscovery": true,
+    "inventoryCandidateSkipsMovement": true,
+    "bankCandidateRequiresExplicitEmptyInventorySlot": true,
+    "bankCandidateNextAction": "PREPARE_EXACT_BANK_RETRIEVE_ONE_SHOT",
+    "noCandidateNextAction": "PREPARE_BUY_OR_FARM_ACQUISITION_STAGE",
+    "fullInventoryNextAction": "FREE_EXACT_INVENTORY_SLOT_BEFORE_BANK_RETRIEVE"
+  },
+  "prohibitedInThisStage": {
+    "bankRetrieve": true,
+    "bankStore": true,
+    "buy": true,
+    "farm": true,
+    "exchange": true,
+    "upgrade": true,
+    "compound": true,
+    "rawSocketWrite": true
+  },
+  "evidenceSeparation": {
+    "movementDoesNotCountAsExchangeRatification": true,
+    "movementDoesNotCountAsExchange5mEvidence": true,
+    "movementDoesNotCountAsExchangeAutonomyProof": true,
+    "exactBankRetrieveRequiresSeparatePreparation": true,
+    "exchangeWriteAuthority": false,
+    "normalRuntimeAllowed": false
+  },
+  "nextAction": "CUTOVER_BANK_MOUNT_CONTROLLER_AFTER_CI"
+}

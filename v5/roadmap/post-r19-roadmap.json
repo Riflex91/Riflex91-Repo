@@ -755,7 +755,7 @@
     },
     {
       "id": "PR20.8_WERTMUTATIONEN",
-      "status": "EXCHANGE_ACQUISITION_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
+      "status": "EXCHANGE_ACQUISITION_DISCOVERY_OBSERVED_BANK_SNAPSHOT_REQUIRED_BANK_MOUNT_PREPARED",
       "blockedBy": [
         "PR20.1",
         "PR20.2",
@@ -765,7 +765,7 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "DEPLOY_EXCHANGE_ACQUISITION_DISCOVERY_READ_ONLY",
+      "nextAction": "MERGE_BANK_MOUNT_PACKAGE_THEN_CUTOVER",
       "artifacts": [
         "v5/grundlage/quelle/merchant/exchange-produktions-planer.ts",
         "v5/grundlage/vertraege/runtime/pr20-8-exchange-production-preparation.json",
@@ -858,7 +858,10 @@
         "v5/grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs",
         "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
         "v5/werkzeuge/tests/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.test.mjs",
-        "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json"
+        "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
+        "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-bank-mount.json",
+        "v5/werkzeuge/pr20-8-exchange-candidate-bank-mount-v1-0-0.js",
+        "v5/werkzeuge/tests/pr20-8-exchange-candidate-bank-mount-v1-0-0.test.mjs"
       ]
     },
     {
@@ -2140,7 +2143,7 @@
     }
   },
   "pr20_8": {
-    "status": "EXCHANGE_ACQUISITION_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
+    "status": "EXCHANGE_ACQUISITION_DISCOVERY_OBSERVED_BANK_SNAPSHOT_REQUIRED_BANK_MOUNT_PREPARED",
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
@@ -2190,7 +2193,7 @@
       "liveCandidateSelection": "BESTANDEN_REAL_BROWSER_LIVE_READ_ONLY",
       "targetFamilyRescan": "BESTANDEN_COMPOUND_CANDIDATE_ZERO_WRITE"
     },
-    "nextAction": "DEPLOY_EXCHANGE_ACQUISITION_DISCOVERY_READ_ONLY",
+    "nextAction": "MERGE_BANK_MOUNT_PACKAGE_THEN_CUTOVER",
     "durableOneShotFoundations": "v5/grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
     "separateAuthorityPerFamily": true,
     "genericSharedMutationAuthority": false,
@@ -3424,7 +3427,7 @@
       "nextGate": "REMAIN_BLOCKED_WAIT_FOR_FUTURE_READONLY_RESCAN"
     },
     "exchangeCandidateAcquisition": {
-      "status": "MANIFEST_CUTOVER_PREPARED_READ_ONLY",
+      "status": "READONLY_DISCOVERY_OBSERVED_BANK_SNAPSHOT_REQUIRED",
       "policy": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
       "planner": "v5/grundlage/quelle/merchant/pr20-8-exchange-candidate-acquisition.ts",
       "plannerTest": "v5/grundlage/tests/pr20-8-exchange-candidate-acquisition.test.mjs",
@@ -3454,9 +3457,49 @@
       "packageSha256": "1acc8253cef6b02b33a6a5de289ce5a7095066d36bc727f9cffa77647e8778ec",
       "packageBytes": 12605,
       "bridgeMayDeployPinnedRunner": true,
-      "deployed": false,
-      "evidenceObserved": false,
-      "nextAction": "DEPLOY_EXCHANGE_ACQUISITION_DISCOVERY_READ_ONLY"
+      "deployed": true,
+      "evidenceObserved": true,
+      "nextAction": "DEPLOY_EXCHANGE_ACQUISITION_DISCOVERY_READ_ONLY",
+      "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-acquisition.json",
+      "package": "v5/werkzeuge/pr20-8-exchange-candidate-acquisition-readonly-v1-0-1.js",
+      "latestNotificationId": 2603,
+      "latestRunStartedAtMs": 1790332335441,
+      "latestObservedAtMs": 1790332335441,
+      "latestStatus": "BLOCKIERT",
+      "latestPhase": "PR20_8_EXCHANGE_ACQUISITION_DISCOVERY",
+      "latestBlocker": [
+        "PR20_8_ACQUISITION_BANK_SNAPSHOT_REQUIRED"
+      ],
+      "latestInventoryCandidateCount": 0,
+      "latestBankCandidateCount": 0,
+      "latestBankSnapshotAvailable": false,
+      "latestEmptyInventorySlot": 22,
+      "latestGameplayWrites": 0,
+      "latestPublicFunctionCalls": 0,
+      "latestRawWriteCalls": 0,
+      "latestSameIntentRetry": false,
+      "bankMount": {
+        "status": "PACKAGE_PREPARED_NOT_DEPLOYED",
+        "contract": "v5/grundlage/vertraege/runtime/pr20-8-exchange-candidate-bank-mount.json",
+        "package": "v5/werkzeuge/pr20-8-exchange-candidate-bank-mount-v1-0-0.js",
+        "test": "v5/werkzeuge/tests/pr20-8-exchange-candidate-bank-mount-v1-0-0.test.mjs",
+        "testId": "pr20-8-exchange-candidate-bank-mount",
+        "controllerVersion": "1.0.0",
+        "expectedGlobal": "V5PR208ExchangeCandidateBankMount",
+        "movementTarget": "bank",
+        "maximumGameplayWrites": 1,
+        "maximumPublicFunctionCalls": 1,
+        "maximumRawWriteCalls": 0,
+        "sameIntentRetry": false,
+        "bankRetrieveAllowed": false,
+        "buyAllowed": false,
+        "farmAllowed": false,
+        "exchangeAllowed": false,
+        "normalRuntimeAllowed": false,
+        "deployed": false,
+        "evidenceObserved": false,
+        "nextAction": "CUTOVER_AFTER_PACKAGE_CI"
+      }
     }
   },
   "pr20_9": {
