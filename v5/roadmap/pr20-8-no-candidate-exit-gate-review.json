@@ -50,7 +50,7 @@
     "PR20_8_EXCHANGE_5M_LIVE_NOT_RUN",
     "PR20_8_EXCHANGE_AUTONOMY_NOT_PRODUCTIVE_PROVEN"
   ],
-  "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
+  "nextAction": "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER",
   "mayAdvanceToPr20_9": false,
   "roadmapCriteriaRelaxed": false,
   "compoundLive5mPreparation": {
@@ -71,7 +71,7 @@
     "compoundWriteAuthority": false
   },
   "compoundLive5mRunner": {
-    "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
+    "status": "V1_0_0_BLOCKED_PERFORMANCE_TRICK_ZERO_WRITE",
     "testId": "pr20-8-compound-live-5m",
     "controllerVersion": "1.0.0",
     "package": "v5/werkzeuge/pr20-8-compound-live-5m.js",
@@ -84,10 +84,41 @@
     "publicCompoundCallSites": 0,
     "compoundWriteAuthority": false,
     "manifestCutoverPrepared": true,
-    "deployed": false,
+    "deployed": true,
     "maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass": true,
     "bridgeMayDeployPinnedRunner": true,
-    "deploymentEvidenceObserved": false,
-    "realFiveMinuteRunCompleted": false
+    "deploymentEvidenceObserved": true,
+    "realFiveMinuteRunCompleted": false,
+    "observedFailure": {
+      "notificationId": 2221,
+      "blocker": "PR20_8_COMPOUND_5M_PERFORMANCE_TRICK_NICHT_AKTIV",
+      "gameplayWrites": 0,
+      "publicFunctionCalls": 0,
+      "rawWriteCalls": 0,
+      "sourceSendCount": 1
+    }
+  },
+  "compoundLive5mPerformanceRecovery": {
+    "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+    "controllerVersion": "1.0.1",
+    "package": "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
+    "sourceCommit": "51b1fc8038740f828cacffe866c6db799a447348",
+    "packageSha256": "23af77b23467e99fddfa437b9dc54873d0e3f25d783c940c819b447e44863a2b",
+    "packageBytes": 26060,
+    "exactBridgeRecoveryGate": true,
+    "requiredPriorTerminal": true,
+    "requiredPriorGameplayWrites": 0,
+    "requiredPriorRawWriteCalls": 0,
+    "requiredPriorSameIntentRetry": false,
+    "requiredPriorIntentCount": 0,
+    "additionalGameplayWritesAllowed": 0,
+    "additionalPublicFunctionCallsAllowed": 0,
+    "rawWriteCallsAllowed": 0,
+    "publicCompoundCallSites": 0,
+    "compoundWriteAuthority": false,
+    "manifestCutoverPrepared": false,
+    "deployed": false,
+    "maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass": true,
+    "nextGate": "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER"
   }
 }

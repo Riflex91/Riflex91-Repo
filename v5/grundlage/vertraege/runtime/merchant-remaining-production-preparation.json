@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "COMPOUND_LIVE_5M_MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
+    "status": "COMPOUND_LIVE_5M_PERFORMANCE_RECOVERY_PACKAGE_READY_NOT_DEPLOYED",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
+    "nextAction": "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1399,7 +1399,7 @@
       "realFiveMinuteRunCompleted": false
     },
     "compoundLive5mRunner": {
-      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
+      "status": "V1_0_0_BLOCKED_PERFORMANCE_TRICK_ZERO_WRITE",
       "package": "werkzeuge/pr20-8-compound-live-5m.js",
       "test": "werkzeuge/tests/pr20-8-compound-live-5m.test.mjs",
       "contract": "grundlage/vertraege/runtime/pr20-8-compound-live-5m-runner-preparation.json",
@@ -1432,7 +1432,7 @@
       "rawWriteAuthority": false,
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
       "manifestCutoverPrepared": true,
-      "deployed": false,
+      "deployed": true,
       "liveWriteEnabled": false,
       "bridgeMayDeployPinnedRunner": true,
       "normalRuntimeAllowed": false,
@@ -1441,9 +1441,61 @@
       "exchangeRatification": false,
       "exchangeAutonomyProductiveProven": false,
       "mayAdvanceToPr20_9": false,
-      "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
-      "deploymentEvidenceObserved": false,
-      "realFiveMinuteRunCompleted": false
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER",
+      "deploymentEvidenceObserved": true,
+      "realFiveMinuteRunCompleted": false,
+      "observedFailure": {
+        "notificationId": 2221,
+        "status": "BLOCKIERT",
+        "phase": "ERROR",
+        "blocker": "PR20_8_COMPOUND_5M_PERFORMANCE_TRICK_NICHT_AKTIV",
+        "samples": 0,
+        "gameplayWrites": 0,
+        "publicFunctionCalls": 0,
+        "rawWriteCalls": 0,
+        "additionalGameplayWrites": 0,
+        "additionalPublicFunctionCalls": 0,
+        "additionalRawWriteCalls": 0,
+        "sameIntentRetry": false,
+        "sourceSendCount": 1
+      }
+    },
+    "compoundLive5mPerformanceRecovery": {
+      "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+      "contract": "grundlage/vertraege/runtime/pr20-8-compound-live-5m-performance-recovery-preparation.json",
+      "package": "werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
+      "test": "werkzeuge/tests/pr20-8-compound-live-5m-v1-0-1.test.mjs",
+      "contractTest": "grundlage/tests/pr20-compound-live-5m-performance-recovery-preparation.test.mjs",
+      "testId": "pr20-8-compound-live-5m",
+      "fromControllerVersion": "1.0.0",
+      "controllerVersion": "1.0.1",
+      "expectedGlobal": "V5PR208CompoundLive5m",
+      "sourceCommit": "51b1fc8038740f828cacffe866c6db799a447348",
+      "packageSha256": "23af77b23467e99fddfa437b9dc54873d0e3f25d783c940c819b447e44863a2b",
+      "packageBytes": 26060,
+      "recoveryScope": "PERFORMANCE_TRICK_ACTIVATION_TIMING_ONLY",
+      "initialWaitMs": 350,
+      "retryCount": 1,
+      "retryWaitMs": 150,
+      "exactBridgeRecoveryGate": true,
+      "requiredPriorTerminal": true,
+      "requiredPriorGameplayWrites": 0,
+      "requiredPriorRawWriteCalls": 0,
+      "requiredPriorSameIntentRetry": false,
+      "requiredPriorIntentCount": 0,
+      "publicCompoundCallSites": 0,
+      "maximumAdditionalGameplayWrites": 0,
+      "maximumAdditionalPublicFunctionCalls": 0,
+      "maximumAdditionalRawWriteCalls": 0,
+      "compoundWriteAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "sameIntentRetry": false,
+      "normalRuntimeAllowed": false,
+      "manifestCutoverPrepared": false,
+      "deployed": false,
+      "bridgeMayDeployPinnedRunner": false,
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER"
     }
   },
   "pr20_9": {

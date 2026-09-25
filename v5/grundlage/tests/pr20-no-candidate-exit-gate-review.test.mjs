@@ -43,7 +43,7 @@ test("PR20.8 no-candidate evidence cannot silently create authority or substitut
   ]);
   assert.equal(
     review.nextAction,
-    "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
+    "PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER",
   );
 });
 
@@ -76,7 +76,7 @@ test("PR20.8 Compound 5m preparation changes no remaining exit authority", () =>
 
 test("PR20.8 Compound 5m runner package remains authority-closed before manifest cutover", () => {
   const r=review.compoundLive5mRunner;
-  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M");
+  assert.equal(r.status,"V1_0_0_BLOCKED_PERFORMANCE_TRICK_ZERO_WRITE");
   assert.equal(r.testId,"pr20-8-compound-live-5m");
   assert.equal(r.controllerVersion,"1.0.0");
   assert.equal(r.package,"v5/werkzeuge/pr20-8-compound-live-5m.js");
@@ -89,11 +89,38 @@ test("PR20.8 Compound 5m runner package remains authority-closed before manifest
   assert.equal(r.publicCompoundCallSites,0);
   assert.equal(r.compoundWriteAuthority,false);
   assert.equal(r.manifestCutoverPrepared,true);
-  assert.equal(r.deployed,false);
+  assert.equal(r.deployed,true);
   assert.equal(r.bridgeMayDeployPinnedRunner,true);
-  assert.equal(r.deploymentEvidenceObserved,false);
+  assert.equal(r.deploymentEvidenceObserved,true);
   assert.equal(r.realFiveMinuteRunCompleted,false);
   assert.equal(r.maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass,true);
+  assert.equal(review.currentExitGateSatisfied,false);
+  assert.equal(review.mayAdvanceToPr20_9,false);
+});
+
+test("PR20.8 Compound 5m performance recovery remains zero-write before cutover", () => {
+  const r=review.compoundLive5mPerformanceRecovery;
+  assert.equal(r.status,"PACKAGE_BEREIT_NOT_DEPLOYED");
+  assert.equal(r.controllerVersion,"1.0.1");
+  assert.equal(r.package,"v5/werkzeuge/pr20-8-compound-live-5m-v1-0-1.js");
+  assert.equal(r.sourceCommit,"51b1fc8038740f828cacffe866c6db799a447348");
+  assert.equal(r.packageSha256,"23af77b23467e99fddfa437b9dc54873d0e3f25d783c940c819b447e44863a2b");
+  assert.equal(r.packageBytes,26060);
+  assert.equal(r.exactBridgeRecoveryGate,true);
+  assert.equal(r.requiredPriorTerminal,true);
+  assert.equal(r.requiredPriorGameplayWrites,0);
+  assert.equal(r.requiredPriorRawWriteCalls,0);
+  assert.equal(r.requiredPriorSameIntentRetry,false);
+  assert.equal(r.requiredPriorIntentCount,0);
+  assert.equal(r.additionalGameplayWritesAllowed,0);
+  assert.equal(r.additionalPublicFunctionCallsAllowed,0);
+  assert.equal(r.rawWriteCallsAllowed,0);
+  assert.equal(r.publicCompoundCallSites,0);
+  assert.equal(r.compoundWriteAuthority,false);
+  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.deployed,false);
+  assert.equal(r.maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass,true);
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER");
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
 });

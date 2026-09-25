@@ -544,6 +544,17 @@ public sealed class CdpAdventureLandClient
                 currentSameIntentRetry,
                 currentIntentCount))
             return true;
+        if (IsSafePr208CompoundLive5mPerformanceRecovery(
+                desiredTestId,
+                desiredVersion,
+                currentTestId,
+                currentVersion,
+                currentTerminal,
+                currentGameplayWrites,
+                currentRawWriteCalls,
+                currentSameIntentRetry,
+                currentIntentCount))
+            return true;
         if (!IsStrictlyNewerControllerVersion(desiredVersion, currentVersion))
             return false;
 
@@ -577,6 +588,34 @@ public sealed class CdpAdventureLandClient
                 StringComparison.Ordinal)
             && string.Equals(currentVersion, "1.0.0", StringComparison.Ordinal)
             && !currentTerminal
+            && currentGameplayWrites == 0
+            && currentRawWriteCalls == 0
+            && !currentSameIntentRetry
+            && currentIntentCount == 0;
+    }
+
+    public static bool IsSafePr208CompoundLive5mPerformanceRecovery(
+        string desiredTestId,
+        string desiredVersion,
+        string? currentTestId,
+        string? currentVersion,
+        bool currentTerminal,
+        long currentGameplayWrites,
+        long currentRawWriteCalls,
+        bool currentSameIntentRetry,
+        long currentIntentCount)
+    {
+        return string.Equals(
+                desiredTestId,
+                "pr20-8-compound-live-5m",
+                StringComparison.Ordinal)
+            && string.Equals(desiredVersion, "1.0.1", StringComparison.Ordinal)
+            && string.Equals(
+                currentTestId,
+                "pr20-8-compound-live-5m",
+                StringComparison.Ordinal)
+            && string.Equals(currentVersion, "1.0.0", StringComparison.Ordinal)
+            && currentTerminal
             && currentGameplayWrites == 0
             && currentRawWriteCalls == 0
             && !currentSameIntentRetry
