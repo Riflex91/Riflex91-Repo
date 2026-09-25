@@ -11,5 +11,25 @@
   "replayIssuesAuthority": false,
   "broadRuntimeGrant": false,
   "normalRuntimeAllowed": false,
-  "test": "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
+  "test": "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+  "cap022FullChainBoundary": {
+    "requiredStages": [
+      "PR22",
+      "PR23"
+    ],
+    "stateField": "cap022FullChainReady",
+    "preparationCompleteRequiresFullChain": true,
+    "productiveReplayCannotBypassFullChain": true,
+    "explicitReplayBlockerByStage": {
+      "PR22": "PR22_CAP022_FULL_CHAIN_REQUIRED",
+      "PR23": "PR23_CAP022_FULL_CHAIN_REQUIRED"
+    },
+    "replayMutatesGate": false,
+    "replayIssuesAuthority": false,
+    "currentPr20_9RatificationCredit": false,
+    "candidateAcquisitionOrMutationAllowedNow": false,
+    "durableIntentCreated": false,
+    "productiveCraftAuthorityOpened": false
+  },
+  "nextMilestone": "KEEP_STAGE_LEDGER_REPLAY_CAP022_BOUND_UNTIL_REAL_EVIDENCE"
 }

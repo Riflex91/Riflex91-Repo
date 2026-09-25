@@ -10,6 +10,7 @@ function states(overrides={}){
     foundationPrepared:true,
     orchestrationPrepared:true,
     featureGatePrepared:true,
+    cap022FullChainReady:true,
     milestoneRunnerPrepared:true,
     checkpointRunbookPrepared:true,
     ratificationRecordPrepared:true,
@@ -88,6 +89,48 @@ test("missing preparation remains distinct from missing productive evidence",()=
   assert.ok(replay.blocker.includes("PR26_PREPARATION_INCOMPLETE"));
 });
 
+
+
+test("PR22/PR23 Stage-Ledger verlangt CAP-022 Full-Chain fuer Preparation",()=>{
+  const ledger=bauePr21_28StageLedger(states({
+    PR22:{cap022FullChainReady:false},
+  }));
+  assert.equal(ledger.allPreparationComplete,false);
+  assert.equal(ledger.entries[1].cap022FullChainRequired,true);
+  assert.equal(ledger.entries[1].cap022FullChainSatisfied,false);
+  assert.equal(ledger.entries[1].preparationComplete,false);
+  assert.equal(ledger.entries[1].productiveChainEligible,false);
+
+  const replay=replayPr21_28AdvanceChain(ledger);
+  assert.equal(replay.status,"PREPARATION_INCOMPLETE");
+  assert.ok(replay.blocker.includes("PR22_CAP022_FULL_CHAIN_REQUIRED"));
+  assert.ok(replay.blocker.includes("PR22_PREPARATION_INCOMPLETE"));
+  assert.equal(replay.stages[1].requiresCap022FullChain,true);
+  assert.equal(replay.replayMutatedGate,false);
+  assert.equal(replay.replayIssuedAuthority,false);
+
+  for(const row of ledger.entries.slice(2)){
+    assert.equal(row.productiveChainEligible,false,row.stage);
+  }
+
+  const directPr23=bauePr21_28StageLedger(states({
+    PR23:{cap022FullChainReady:false},
+    PR21:{
+      liveEvidenceRatified:true,
+      explicitRatificationRecorded:true,
+      gateApplyVerified:true,
+    },
+    PR22:{
+      liveEvidenceRatified:true,
+      explicitRatificationRecorded:true,
+      gateApplyVerified:true,
+    },
+  }));
+  const directReplay=replayPr21_28AdvanceChain(directPr23);
+  assert.ok(directReplay.blocker.includes("PR23_CAP022_FULL_CHAIN_REQUIRED"));
+  assert.equal(directPr23.entries[2].cap022FullChainSatisfied,false);
+});
+
 test("ledger rejects duplicate or incomplete stage sets",()=>{
   assert.throws(()=>bauePr21_28StageLedger(states().slice(0,7)),/PR21_28_STAGE_LEDGER_UNVOLLSTAENDIG/);
   const duplicate=states();
@@ -100,4 +143,54 @@ test("stage-ledger source contains no mutation or overall-grant bypass",()=>{
   for(const marker of ["socket.emit(","send_cm(","smart_move(","attack(","use_skill(","loot(","respawn(","change_server(","craft(","exchange(","upgrade(","compound(","V5 GESAMTFREIGABE ERTEILEN"]){
     assert.equal(source.includes(marker),false,marker);
   }
+});
+
+
+test("Stage-Ledger-Vertrag und Roadmap binden PR22/PR23 an CAP-022 Full-Chain",()=>{
+  const contract=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+    "utf8",
+  ));
+  const boundary=contract.cap022FullChainBoundary;
+  assert.deepEqual(boundary.requiredStages,["PR22","PR23"]);
+  assert.equal(boundary.stateField,"cap022FullChainReady");
+  assert.equal(boundary.preparationCompleteRequiresFullChain,true);
+  assert.equal(boundary.productiveReplayCannotBypassFullChain,true);
+  assert.equal(
+    boundary.explicitReplayBlockerByStage.PR22,
+    "PR22_CAP022_FULL_CHAIN_REQUIRED",
+  );
+  assert.equal(
+    boundary.explicitReplayBlockerByStage.PR23,
+    "PR23_CAP022_FULL_CHAIN_REQUIRED",
+  );
+  assert.equal(boundary.replayMutatesGate,false);
+  assert.equal(boundary.replayIssuesAuthority,false);
+  assert.equal(boundary.currentPr20_9RatificationCredit,false);
+  assert.equal(boundary.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(boundary.durableIntentCreated,false);
+  assert.equal(boundary.productiveCraftAuthorityOpened,false);
+
+  const roadmap=JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  assert.equal(
+    roadmap.pr20_9.status,
+    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+  );
+  const binding=
+    roadmap.pr22.materialAcquisitionFoundation
+      .fullChainOrchestrationReadiness.stageLedgerBinding;
+  assert.deepEqual(binding.requiredStages,["PR22","PR23"]);
+  assert.equal(binding.stateField,"cap022FullChainReady");
+  assert.equal(binding.preparationCompleteRequiresFullChain,true);
+  assert.equal(binding.productiveReplayCannotBypassFullChain,true);
+  assert.equal(binding.replayMutatesGate,false);
+  assert.equal(binding.replayIssuesAuthority,false);
+  assert.equal(binding.currentPr20_9RatificationCredit,false);
+  assert.equal(binding.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(binding.durableIntentCreated,false);
+  assert.equal(binding.productiveCraftAuthorityOpened,false);
+  assert.equal(binding.normalRuntimeAllowed,false);
 });

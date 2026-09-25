@@ -119,6 +119,15 @@ PR22/PR23 Feature-Gate-Bindung:
 
 Fuer PR22 und PR23 reicht ein generisches `orchestrationPrepared=true` nicht mehr aus. Beide produktiven Eligibility-Gates verlangen zusaetzlich `cap022FullChainReady=true`. Fehlt diese Bedingung, erhaelt der jeweilige Stage einen eigenen CAP-022-Blocker und die nachfolgende Produktivkette bleibt geschlossen. Die Gate-Auswertung erteilt weiterhin selbst keine Authority.
 
+
+PR22/PR23 Stage-Ledger-/Replay-Bindung:
+
+- `grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts`
+- `grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json`
+- `grundlage/tests/pr21-28-stage-ledger-replay.test.mjs`
+
+Auch das zentrale Stage-Ledger verlangt fuer PR22 und PR23 `cap022FullChainReady=true`, bevor `preparationComplete` gesetzt werden darf. Im Advance-Replay entstehen bei fehlender Bindung explizite `PR22_CAP022_FULL_CHAIN_REQUIRED` bzw. `PR23_CAP022_FULL_CHAIN_REQUIRED`-Blocker. Der Replay-Pfad mutiert keine Gates und erteilt keine Authority.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf

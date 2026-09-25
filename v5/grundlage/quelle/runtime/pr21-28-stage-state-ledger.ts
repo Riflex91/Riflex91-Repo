@@ -6,6 +6,7 @@ export interface Pr21_28StagePreparationState {
   readonly foundationPrepared: boolean;
   readonly orchestrationPrepared: boolean;
   readonly featureGatePrepared: boolean;
+  readonly cap022FullChainReady: boolean;
   readonly milestoneRunnerPrepared: boolean;
   readonly checkpointRunbookPrepared: boolean;
   readonly ratificationRecordPrepared: boolean;
@@ -22,6 +23,8 @@ export interface Pr21_28StageLedgerEntryBasis {
   readonly stageIndex: number;
   readonly state: Pr21_28StagePreparationState;
   readonly preparationComplete: boolean;
+  readonly cap022FullChainRequired: boolean;
+  readonly cap022FullChainSatisfied: boolean;
   readonly productivePrerequisitesComplete: boolean;
   readonly predecessorProductiveComplete: boolean;
   readonly productiveChainEligible: boolean;
@@ -96,10 +99,15 @@ export function bauePr21_28StageLedger(
       throw new Error("PR21_28_STAGE_LEDGER_STAGE_FEHLT:" + stage);
     }
 
+    const cap022FullChainRequired = stage === "PR22" || stage === "PR23";
+    const cap022FullChainSatisfied =
+      !cap022FullChainRequired || state.cap022FullChainReady === true;
+
     const preparationComplete =
       state.foundationPrepared
       && state.orchestrationPrepared
       && state.featureGatePrepared
+      && cap022FullChainSatisfied
       && state.milestoneRunnerPrepared
       && state.checkpointRunbookPrepared
       && state.ratificationRecordPrepared
@@ -121,6 +129,8 @@ export function bauePr21_28StageLedger(
       stageIndex: index,
       state,
       preparationComplete,
+      cap022FullChainRequired,
+      cap022FullChainSatisfied,
       productivePrerequisitesComplete,
       predecessorProductiveComplete,
       productiveChainEligible,
@@ -180,6 +190,7 @@ export interface Pr21_28AdvanceChainReplay {
     stage: Pr21_28GateStage;
     preparationComplete: boolean;
     productiveChainEligible: boolean;
+    requiresCap022FullChain: boolean;
     requiresLiveEvidence: boolean;
     requiresExplicitRatification: boolean;
     requiresVerifiedGateApply: boolean;
@@ -204,6 +215,9 @@ export function replayPr21_28AdvanceChain(
 
   const blocker: string[] = [];
   for (const entry of ledger.entries) {
+    if (entry.cap022FullChainRequired && !entry.cap022FullChainSatisfied) {
+      blocker.push(entry.stage + "_CAP022_FULL_CHAIN_REQUIRED");
+    }
     if (!entry.preparationComplete) {
       blocker.push(entry.stage + "_PREPARATION_INCOMPLETE");
     } else if (!entry.productiveChainEligible) {
@@ -237,6 +251,8 @@ export function replayPr21_28AdvanceChain(
       stage: entry.stage,
       preparationComplete: entry.preparationComplete,
       productiveChainEligible: entry.productiveChainEligible,
+      requiresCap022FullChain:
+        entry.cap022FullChainRequired && !entry.cap022FullChainSatisfied,
       requiresLiveEvidence: !entry.state.liveEvidenceRatified,
       requiresExplicitRatification: !entry.state.explicitRatificationRecorded,
       requiresVerifiedGateApply: !entry.state.gateApplyVerified,

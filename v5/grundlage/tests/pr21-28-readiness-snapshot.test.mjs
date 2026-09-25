@@ -11,6 +11,7 @@ function states(overrides={}){
     foundationPrepared:true,
     orchestrationPrepared:true,
     featureGatePrepared:true,
+    cap022FullChainReady:true,
     milestoneRunnerPrepared:true,
     checkpointRunbookPrepared:true,
     ratificationRecordPrepared:true,

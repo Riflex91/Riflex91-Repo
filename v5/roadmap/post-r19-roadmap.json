@@ -104,7 +104,8 @@
     "CAP-022 Team-Rescan ist jetzt NO-WRITE bis zur PR20.9-Durable-Shadow-Admission geschlossen: ein bereiter TEAM_CRAFT_RESCAN_KANDIDAT muss mit der originalen Preflight-Anfrage und einer frischen Character/Session/Server/Inventory/Q/Resource-Epoch-Fence exakt gebunden werden. Die Admission erzeugt nur Plan+Snapshot, keinen Durable Intent und keinen PR20.9-Ratification-Credit.",
     "CAP-022 Full-Chain-Readiness ist jetzt in der PR21-28-Shadow-Orchestrierung fail-closed: alle neun NO-WRITE-Fundamente von Material-Acquisition bis Team-Rescan-Durable-Admission muessen vorhanden und PREPARED_NO_WRITE sein; fehlende/blockierte Komponenten sperren die Pipeline. PR20.9-Ratification-Credit, Candidate-Acquisition, Durable Intent und produktive Craft-Authority bleiben false.",
     "Der zentrale PR21-28-Readiness-Snapshot ist jetzt an CAP-022 Full-Chain-Readiness gebunden: selbst bei vollstaendig vorbereitetem Stage-Ledger bleibt der Status PARTIALLY_PREPARED, solange eine der neun CAP-022-NO-WRITE-Foundations fehlt oder blockiert ist. Dadurch kann die Live-Evidence-Grenze nicht ohne den kompletten Materialpfad erreicht werden.",
-    "PR22/PR23 Feature-Gates sind jetzt explizit an CAP-022 Full-Chain gebunden: orchestrationPrepared allein reicht nicht mehr. Bei cap022FullChainReady=false blockiert der jeweilige Gate-Stage mit eigenem Blocker und schliesst die nachfolgende Produktivkette; Authority bleibt dabei unveraendert false."
+    "PR22/PR23 Feature-Gates sind jetzt explizit an CAP-022 Full-Chain gebunden: orchestrationPrepared allein reicht nicht mehr. Bei cap022FullChainReady=false blockiert der jeweilige Gate-Stage mit eigenem Blocker und schliesst die nachfolgende Produktivkette; Authority bleibt dabei unveraendert false.",
+    "PR22/PR23 Stage-Ledger und Advance-Replay sind jetzt explizit an CAP-022 Full-Chain gebunden: preparationComplete verlangt cap022FullChainReady=true; fehlt die Bindung, erscheinen eigene CAP-022-Replay-Blocker und weder Preparation- noch Productive-Chain kann die Materialkette umgehen."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -996,7 +997,10 @@
         "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-feature-gates.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-deferred-evidence-feature-gates.json",
-        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs"
+        "v5/grundlage/tests/pr21-28-evidence-feature-gates.test.mjs",
+        "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+        "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+        "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs"
       ],
       "deferredAutomaticMaterialRecheck": {
         "status": "WAITING_FOR_FUTURE_PRODUCTIVE_MATERIAL_ACQUISITION",
@@ -1300,6 +1304,30 @@
             "authorityIssued": false,
             "gameplayAuthority": false,
             "rawWriteAuthority": false,
+            "normalRuntimeAllowed": false
+          },
+          "stageLedgerBinding": {
+            "status": "PREPARED_REPLAY_ONLY",
+            "source": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+            "test": "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+            "requiredStages": [
+              "PR22",
+              "PR23"
+            ],
+            "stateField": "cap022FullChainReady",
+            "preparationCompleteRequiresFullChain": true,
+            "productiveReplayCannotBypassFullChain": true,
+            "explicitReplayBlockerByStage": {
+              "PR22": "PR22_CAP022_FULL_CHAIN_REQUIRED",
+              "PR23": "PR23_CAP022_FULL_CHAIN_REQUIRED"
+            },
+            "replayMutatesGate": false,
+            "replayIssuesAuthority": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
             "normalRuntimeAllowed": false
           }
         }
@@ -1727,6 +1755,30 @@
             "gameplayAuthority": false,
             "rawWriteAuthority": false,
             "normalRuntimeAllowed": false
+          },
+          "stageLedgerBinding": {
+            "status": "PREPARED_REPLAY_ONLY",
+            "source": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+            "test": "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+            "requiredStages": [
+              "PR22",
+              "PR23"
+            ],
+            "stateField": "cap022FullChainReady",
+            "preparationCompleteRequiresFullChain": true,
+            "productiveReplayCannotBypassFullChain": true,
+            "explicitReplayBlockerByStage": {
+              "PR22": "PR22_CAP022_FULL_CHAIN_REQUIRED",
+              "PR23": "PR23_CAP022_FULL_CHAIN_REQUIRED"
+            },
+            "replayMutatesGate": false,
+            "replayIssuesAuthority": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
           }
         }
       }
@@ -2100,6 +2152,30 @@
             "authorityIssued": false,
             "gameplayAuthority": false,
             "rawWriteAuthority": false,
+            "normalRuntimeAllowed": false
+          },
+          "stageLedgerBinding": {
+            "status": "PREPARED_REPLAY_ONLY",
+            "source": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+            "test": "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+            "requiredStages": [
+              "PR22",
+              "PR23"
+            ],
+            "stateField": "cap022FullChainReady",
+            "preparationCompleteRequiresFullChain": true,
+            "productiveReplayCannotBypassFullChain": true,
+            "explicitReplayBlockerByStage": {
+              "PR22": "PR22_CAP022_FULL_CHAIN_REQUIRED",
+              "PR23": "PR23_CAP022_FULL_CHAIN_REQUIRED"
+            },
+            "replayMutatesGate": false,
+            "replayIssuesAuthority": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
             "normalRuntimeAllowed": false
           }
         }
@@ -5605,6 +5681,30 @@
           "gameplayAuthority": false,
           "rawWriteAuthority": false,
           "normalRuntimeAllowed": false
+        },
+        "stageLedgerBinding": {
+          "status": "PREPARED_REPLAY_ONLY",
+          "source": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+          "test": "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+          "requiredStages": [
+            "PR22",
+            "PR23"
+          ],
+          "stateField": "cap022FullChainReady",
+          "preparationCompleteRequiresFullChain": true,
+          "productiveReplayCannotBypassFullChain": true,
+          "explicitReplayBlockerByStage": {
+            "PR22": "PR22_CAP022_FULL_CHAIN_REQUIRED",
+            "PR23": "PR23_CAP022_FULL_CHAIN_REQUIRED"
+          },
+          "replayMutatesGate": false,
+          "replayIssuesAuthority": false,
+          "currentPr20_9RatificationCredit": false,
+          "candidateAcquisitionOrMutationAllowedNow": false,
+          "durableIntentCreated": false,
+          "productiveCraftAuthorityOpened": false,
+          "normalRuntimeAllowed": false
         }
       }
     }
@@ -6131,6 +6231,30 @@
           "gameplayAuthority": false,
           "rawWriteAuthority": false,
           "normalRuntimeAllowed": false
+        },
+        "stageLedgerBinding": {
+          "status": "PREPARED_REPLAY_ONLY",
+          "source": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+          "test": "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+          "requiredStages": [
+            "PR22",
+            "PR23"
+          ],
+          "stateField": "cap022FullChainReady",
+          "preparationCompleteRequiresFullChain": true,
+          "productiveReplayCannotBypassFullChain": true,
+          "explicitReplayBlockerByStage": {
+            "PR22": "PR22_CAP022_FULL_CHAIN_REQUIRED",
+            "PR23": "PR23_CAP022_FULL_CHAIN_REQUIRED"
+          },
+          "replayMutatesGate": false,
+          "replayIssuesAuthority": false,
+          "currentPr20_9RatificationCredit": false,
+          "candidateAcquisitionOrMutationAllowedNow": false,
+          "durableIntentCreated": false,
+          "productiveCraftAuthorityOpened": false,
+          "normalRuntimeAllowed": false
         }
       }
     }
@@ -6475,6 +6599,30 @@
           "authorityIssued": false,
           "gameplayAuthority": false,
           "rawWriteAuthority": false,
+          "normalRuntimeAllowed": false
+        },
+        "stageLedgerBinding": {
+          "status": "PREPARED_REPLAY_ONLY",
+          "source": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+          "test": "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+          "requiredStages": [
+            "PR22",
+            "PR23"
+          ],
+          "stateField": "cap022FullChainReady",
+          "preparationCompleteRequiresFullChain": true,
+          "productiveReplayCannotBypassFullChain": true,
+          "explicitReplayBlockerByStage": {
+            "PR22": "PR22_CAP022_FULL_CHAIN_REQUIRED",
+            "PR23": "PR23_CAP022_FULL_CHAIN_REQUIRED"
+          },
+          "replayMutatesGate": false,
+          "replayIssuesAuthority": false,
+          "currentPr20_9RatificationCredit": false,
+          "candidateAcquisitionOrMutationAllowedNow": false,
+          "durableIntentCreated": false,
+          "productiveCraftAuthorityOpened": false,
           "normalRuntimeAllowed": false
         }
       }
