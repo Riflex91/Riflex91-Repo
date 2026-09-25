@@ -88,6 +88,9 @@ export function bauePr21_28StageLedger(
 
   for (let index = 0; index < ORDER.length; index += 1) {
     const stage = ORDER[index];
+    if (stage === undefined) {
+      throw new Error("PR21_28_STAGE_LEDGER_ORDER_DRIFT");
+    }
     const state = byStage.get(stage);
     if (state === undefined) {
       throw new Error("PR21_28_STAGE_LEDGER_STAGE_FEHLT:" + stage);
