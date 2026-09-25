@@ -134,10 +134,10 @@ test("roadmap ratifies scanner evidence but only prepares the no-write shadow",(
   assert.equal(a.anniversaryGiftExceptionRescan.deployed,true);
   assert.equal(a.anniversaryGiftExceptionRescan.evidenceObserved,true);
   assert.equal(a.anniversaryGiftExceptionRescan.notificationId,2726);
-  assert.equal(a.anniversaryGiftExchangeShadow.status,"MANIFEST_CUTOVER_PREPARED");
+  assert.equal(a.anniversaryGiftExchangeShadow.status,"RATIFIED_LIVE_DURABLE_SHADOW_NO_SEND");
   assert.equal(a.anniversaryGiftExchangeShadow.manifestCutoverPrepared,true);
-  assert.equal(a.anniversaryGiftExchangeShadow.deployed,false);
-  assert.equal(a.anniversaryGiftExchangeShadow.liveEvidenceObserved,false);
+  assert.equal(a.anniversaryGiftExchangeShadow.deployed,true);
+  assert.equal(a.anniversaryGiftExchangeShadow.liveEvidenceObserved,true);
   assert.equal(a.anniversaryGiftExchangeShadow.exchangeAuthority,false);
   assert.equal(a.anniversaryGiftExchangeShadow.normalRuntimeAllowed,false);
   assert.equal(a.seashellFarmShadow.activePath,false);
