@@ -24,11 +24,11 @@ test("controlled acquisition supersedes waiting policy without rewriting histori
 
   assert.equal(
     roadmap.pr20_8.status,
-    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_PACKAGE_PREPARED_NO_WRITE",
+    "EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE",
   );
   assert.equal(
     roadmap.pr20_8.nextAction,
-    "PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER",
+    "DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE",
   );
 });
 
@@ -148,8 +148,8 @@ test("read-only discovery package is pinned as zero-write preparation",()=>{
 test("parallel roadmap row points at controlled discovery but carries no Exchange authority",()=>{
   const row=roadmap.parallelPreparations.find(x=>x.id==="PR20.8_WERTMUTATIONEN");
   assert.ok(row);
-  assert.equal(row.status,"EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_PACKAGE_PREPARED_NO_WRITE");
-  assert.equal(row.nextAction,"PREPARE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER");
+  assert.equal(row.status,"EXCHANGE_ANNIVERSARYGIFT_AUTONOMY_ROUTE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE");
+  assert.equal(row.nextAction,"DEPLOY_AND_OBSERVE_ANNIVERSARYGIFT_EXCHANGE_AUTONOMY_ROUTE_SHADOW_NO_WRITE");
   assert.equal(row.gameplayAuthority,false);
   assert.equal(row.rawWriteAuthority,false);
   assert.equal(row.normalRuntimeAllowed,false);
