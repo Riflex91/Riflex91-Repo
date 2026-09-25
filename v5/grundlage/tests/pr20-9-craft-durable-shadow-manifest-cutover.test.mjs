@@ -13,29 +13,31 @@ const merchant=JSON.parse(fs.readFileSync(
   "grundlage/vertraege/runtime/merchant-remaining-production-preparation.json","utf8"
 ));
 
-test("PR20.9 Craft durable shadow manifest cutover pins the exact no-write runner",()=>{
+test("historical PR20.9 Craft shadow cutover remains exact while active manifest advances to service mount",()=>{
   assert.equal(cutover.status,"MANIFEST_CUTOVER_PREPARED");
   assert.equal(cutover.gate,"PR20.9_PRODUCTION");
-  assert.equal(manifest.gate,"PR20.9_PRODUCTION");
-  assert.equal(manifest.testId,cutover.manifest.testId);
-  assert.equal(manifest.controllerVersion,cutover.manifest.controllerVersion);
-  assert.equal(manifest.sourceCommit,cutover.manifest.sourceCommit);
-  assert.equal(manifest.packagePath,cutover.manifest.packagePath);
-  assert.equal(manifest.packageSha256,cutover.manifest.packageSha256);
-  assert.equal(manifest.expectedGlobal,cutover.manifest.expectedGlobal);
-  assert.equal(manifest.normalRuntimeAllowed,false);
 
-  const local=manifest.packagePath.replace(/^v5\//,"");
+  const local=cutover.manifest.packagePath.replace(/^v5\//,"");
   const bytes=fs.readFileSync(local);
   assert.equal(bytes.length,cutover.manifest.packageBytes);
   assert.equal(
     crypto.createHash("sha256").update(bytes).digest("hex"),
-    manifest.packageSha256,
+    cutover.manifest.packageSha256,
   );
-  const pinned=execFileSync("git",["show",manifest.sourceCommit+":"+manifest.packagePath],{
+  const pinned=execFileSync("git",["show",cutover.manifest.sourceCommit+":"+cutover.manifest.packagePath],{
     encoding:null,maxBuffer:256*1024,
   });
   assert.deepEqual(pinned,bytes);
+
+  assert.equal(manifest.gate,"PR20.9_PRODUCTION");
+  assert.notEqual(manifest.testId,cutover.manifest.testId);
+  assert.equal(manifest.testId,"pr20-9-craft-service-mount");
+  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(manifest.sourceCommit,"739737faca62bca5ffa991a7733a7494f59c479c");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-9-craft-service-mount-v1-0-0.js");
+  assert.equal(manifest.packageSha256,"e4662c2de20b59552c9dc79674c77de1fb72f79eb01b6b9e684b90f004fa7f41");
+  assert.equal(manifest.expectedGlobal,"V5PR209CraftServiceMount");
+  assert.equal(manifest.normalRuntimeAllowed,false);
 });
 
 test("PR20.9 cutover remains strict NORMAL_CRAFT_ONLY zero gameplay write",()=>{
@@ -67,16 +69,16 @@ test("PR20.9 cutover remains strict NORMAL_CRAFT_ONLY zero gameplay write",()=>{
 
 test("PR20.9 roadmap and Merchant mirror advance only to live shadow observation",()=>{
   assert.equal(roadmap.currentGate,"PR20.9_PRODUCTION");
-  assert.equal(roadmap.pr20_9.status,"CRAFT_DURABLE_SHADOW_MANIFEST_CUTOVER_PREPARED_NO_WRITE");
+  assert.equal(roadmap.pr20_9.status,"CRAFT_SERVICE_MOUNT_MANIFEST_CUTOVER_PREPARED");
   assert.deepEqual(roadmap.pr20_9.blockedBy,[]);
-  assert.equal(roadmap.pr20_9.nextAction,"DEPLOY_AND_OBSERVE_PR20_9_CRAFT_DURABLE_SHADOW");
+  assert.equal(roadmap.pr20_9.nextAction,"DEPLOY_AND_OBSERVE_PR20_9_CRAFT_SERVICE_MOUNT");
   assert.equal(roadmap.pr20_9.liveExecutionAllowed,false);
   assert.equal(roadmap.pr20_9.productiveCraftAuthority,false);
   assert.equal(roadmap.pr20_9.broadGraphExecutionAuthority,false);
   assert.equal(roadmap.pr20_9.normalRuntimeAllowed,false);
   assert.equal(roadmap.pr20_9.craftDurableShadowRunner.manifestCutoverPrepared,true);
-  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.active,true);
-  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.liveEvidenceObserved,false);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.active,false);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.liveEvidenceObserved,true);
   assert.equal(roadmap.pr20_9.craftDurableShadowRunner.craftRatified,false);
 
   const parallel=roadmap.parallelPreparations.find(x=>x?.id==="PR20.9_PRODUCTION");
