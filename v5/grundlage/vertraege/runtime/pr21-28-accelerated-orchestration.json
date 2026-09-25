@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_28_ACCELERATED_ORCHESTRATION_BATCH_2",
+  "status": "PREPARED_NO_WRITE",
+  "sourceMain": "d58530f0a20b05509a75edb8f7e481758ef058bc",
+  "strategy": "CONNECT_FOUNDATIONS_BEFORE_DEFERRED_LIVE_EVIDENCE",
+  "components": {
+    "pipeline": {
+      "source": "v5/grundlage/quelle/runtime/pr21-28-shadow-orchestrator.ts",
+      "purpose": "Connect PR21-PR28 foundation outputs into one bounded shadow pipeline"
+    },
+    "coordination": {
+      "source": "v5/grundlage/quelle/koordination/pr22-coordination-shadow-workflow.ts",
+      "purpose": "Model admission -> ACK -> terminal settlement without send_cm authority"
+    },
+    "groupValidation": {
+      "source": "v5/grundlage/quelle/gruppe/pr24-25-group-validation-suite.ts",
+      "purpose": "Generate mandatory topology/fault matrix and evaluate grouped live evidence"
+    },
+    "autonomy": {
+      "source": "v5/grundlage/quelle/optimierung/pr26-28-autonomy-shadow-plan.ts",
+      "purpose": "Bind hard-filtered optimizer, progression and world gate into one no-write plan"
+    }
+  },
+  "safety": {
+    "productiveDependenciesStillBinding": true,
+    "gameplayWrites": 0,
+    "publicFunctionCalls": 0,
+    "rawWriteCalls": 0,
+    "sendCmAuthority": false,
+    "movementAuthority": false,
+    "combatAuthority": false,
+    "worldActionAuthority": false,
+    "serverHopAuthority": false,
+    "normalRuntimeAllowed": false,
+    "deferredLiveEvidenceRequired": true
+  },
+  "test": "v5/grundlage/tests/pr21-28-orchestration.test.mjs",
+  "nextMilestone": "COMPLETE_ADAPTER_SHADOW_PACKAGES_WITH_PRODUCTIVE_CALLS_STILL_DISABLED"
+}
