@@ -23,14 +23,43 @@
       "source": "v5/grundlage/quelle/koordination/pr22-coordination-shadow-admission.ts",
       "basis": "R14",
       "purpose": "CM/Roster/Liveness/TTL/Dedupe/Restart Shadow-Admission ohne send_cm",
-      "productiveGate": "PR21_COMPLETE_AND_PRODUCTIVE_CM_TRANSPORT_EVIDENCE"
+      "productiveGate": "PR21_COMPLETE_AND_PRODUCTIVE_CM_TRANSPORT_EVIDENCE",
+      "materialAcquisitionFoundation": {
+        "capability": "CAP-022",
+        "status": "PREPARED_NO_WRITE",
+        "source": "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+        "test": "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs",
+        "purpose": "Production FARM-Nodes in stale-safe Materialziele und spaeteren Handoff ueberfuehren",
+        "currentPr20_9CandidateAcquisitionAllowed": false,
+        "productiveActivationRequires": [
+          "PR22_PRODUCTIVE_COORDINATION",
+          "PR23_MOVEMENT_COMBAT_LOOT_EVIDENCE"
+        ]
+      }
     },
     "pr23": {
       "status": "FOUNDATION_PREPARED_NO_WRITE_BLOCKED_BY_PR22",
       "source": "v5/grundlage/quelle/farmer/pr23-farmer-shadow-admission.ts",
       "basis": "R16",
       "purpose": "Movement/Combat/Skill/Loot/Respawn/AoE Admission mit Hard Caps",
-      "productiveGate": "PR22_COMPLETE_AND_PER_CAPABILITY_LIVE_EVIDENCE"
+      "productiveGate": "PR22_COMPLETE_AND_PER_CAPABILITY_LIVE_EVIDENCE",
+      "materialAcquisitionFoundation": {
+        "capability": "CAP-022",
+        "status": "PREPARED_NO_WRITE",
+        "source": "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+        "requiredActions": [
+          "MOVEMENT",
+          "COMBAT",
+          "LOOT"
+        ],
+        "farmStopOnMaterialReady": true,
+        "handoffAfterMaterialReady": true,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
+      }
     },
     "pr24": {
       "status": "FOUNDATION_PREPARED_NO_WRITE_BLOCKED_BY_PR23",
@@ -71,5 +100,19 @@
     "includeR16": true,
     "includeR17": true
   },
-  "nextMilestone": "COMPLETE_FOUNDATION_BATCH_THEN_DEFER_LIVE_TESTS_TO_DEFINED_INTEGRATION_CHECKPOINTS"
+  "nextMilestone": "COMPLETE_FOUNDATION_BATCH_THEN_DEFER_LIVE_TESTS_TO_DEFINED_INTEGRATION_CHECKPOINTS",
+  "cap022MaterialAcquisitionFoundation": {
+    "status": "PREPARED_NO_WRITE",
+    "migrationDecision": "NEU_BAUEN",
+    "historicalSource": "v3/src/party/production-material-acquisition.js",
+    "source": "v5/grundlage/quelle/koordination/production-material-acquisition.ts",
+    "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-acquisition-foundation.json",
+    "test": "v5/grundlage/tests/pr22-23-production-material-acquisition.test.mjs",
+    "currentPr20_9CandidateAcquisitionAllowed": false,
+    "foundationCountsAsCraftRatification": false,
+    "productiveGate": "PR22_AND_PR23_RATIFIED",
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false
+  }
 }
