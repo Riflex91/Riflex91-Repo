@@ -7,7 +7,7 @@
   "dokumentation": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
   "testzeitStandard": "v5/roadmap/testzeit-standard.json",
   "currentStage": "PR20",
-  "currentGate": "PR20.8_WERTMUTATIONEN",
+  "currentGate": "PR20.9_PRODUCTION",
   "reihenfolgeVerbindlich": true,
   "optimizerVorGruppenLiveEvidenceVerboten": true,
   "merchantVorFarmerProduktivierung": true,
