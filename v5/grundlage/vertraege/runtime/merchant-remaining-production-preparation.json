@@ -484,7 +484,7 @@
   },
   "pr20_8": {
     "ziel": "Upgrade, Compound und Exchange produktiv",
-    "status": "COMPOUND_LIVE_5M_RECOVERY_MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
+    "status": "COMPOUND_LIVE_5M_V1_0_1_BESTANDEN_NOTIFICATION_IDENTITY_RECOVERY_PACKAGE_READY",
     "actionContracts": [
       [
         "AL-ACTION-UPGRADE",
@@ -573,7 +573,7 @@
       "rawWriteCalls": 0,
       "normalRuntimeAllowed": false
     },
-    "nextAction": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
+    "nextAction": "PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER",
     "durableOneShotFoundations": {
       "status": "BEREIT_NO_WRITE",
       "contract": "grundlage/vertraege/runtime/pr20-8-wertmutation-one-shot-preparation.json",
@@ -1130,7 +1130,7 @@
       }
     },
     "exitGateReview": {
-      "status": "BLOCKED_COMPOUND_5M_EXCHANGE_NO_CANDIDATE",
+      "status": "BLOCKED_COMPOUND_5M_NOTIFICATION_EXCHANGE_NO_CANDIDATE",
       "evidence": "roadmap/pr20-8-no-candidate-exit-gate-review.json",
       "currentExitGateSatisfied": false,
       "compoundRatified": true,
@@ -1140,7 +1140,9 @@
       "exchangeAutonomyProductiveProven": false,
       "mayAdvanceToPr20_9": false,
       "roadmapCriteriaRelaxed": false,
-      "acquisitionOrMutationToCreateCandidateAllowed": false
+      "acquisitionOrMutationToCreateCandidateAllowed": false,
+      "compoundLive5mBehaviorObservedPass": true,
+      "compoundLive5mCompletionNotificationPersisted": false
     },
     "compoundDurableShadow": {
       "status": "BESTANDEN_REAL_BROWSER_DURABLE_SHADOW_NO_WRITE",
@@ -1466,7 +1468,7 @@
       "retiredFromActiveManifest": true
     },
     "compoundLive5mPerformanceRecovery": {
-      "status": "MANIFEST_CUTOVER_PREPARED_FOR_REAL_5M",
+      "status": "V1_0_1_REAL_BROWSER_BESTANDEN_NOTIFICATION_PERSISTENCE_GAP",
       "contract": "grundlage/vertraege/runtime/pr20-8-compound-live-5m-performance-recovery-preparation.json",
       "package": "werkzeuge/pr20-8-compound-live-5m-v1-0-1.js",
       "test": "werkzeuge/tests/pr20-8-compound-live-5m-v1-0-1.test.mjs",
@@ -1498,13 +1500,32 @@
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
       "manifestCutoverPrepared": true,
-      "deployed": false,
-      "bridgeMayDeployPinnedRunner": true,
-      "nextGate": "PR20_8_COMPOUND_LIVE_5M_REAL_BROWSER_RUN",
+      "deployed": true,
+      "bridgeMayDeployPinnedRunner": false,
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER",
       "manifest": "roadmap/v5-autonomous-test-manifest.json",
-      "deploymentEvidenceObserved": false,
-      "realFiveMinuteRunCompleted": false,
-      "liveWriteEnabled": false
+      "deploymentEvidenceObserved": true,
+      "realFiveMinuteRunCompleted": true,
+      "liveWriteEnabled": false,
+      "observedStatus": "BESTANDEN",
+      "observedPhase": "COMPLETE",
+      "observedTerminal": true,
+      "observedAtMs": 1790310312453,
+      "observedUpdatedAt": "2026-09-25T04:26:36.128Z",
+      "observedDebugTelemetryBatchId": 8297,
+      "observedSamples": 60,
+      "observedDurationMs": 300545,
+      "observedSourceSendCount": 1,
+      "observedAdditionalGameplayWrites": 0,
+      "observedAdditionalPublicFunctionCalls": 0,
+      "observedAdditionalRawWriteCalls": 0,
+      "observedPerformanceTrickVerification": "HOWLER_PLAYING_TRUE",
+      "observedPostcondition": "hpamulet@1@index1; indexes22/23 empty; cscroll0@index18:q19; q/compound/effects clear",
+      "completionNotificationPersisted": false,
+      "notificationPersistenceBlocker": "RUN_STARTED_AT_MS_IDENTITY_COLLISION",
+      "notificationUniqueConstraint": "UNIQUE (bot_id, test_id, run_started_at_ms)",
+      "observedRunStartedAtMs": 0,
+      "ratifiedCompoundLive5m": false
     },
     "activeCompoundLive5mManifest": {
       "testId": "pr20-8-compound-live-5m",
@@ -1515,6 +1536,44 @@
       "packageBytes": 26060,
       "expectedGlobal": "V5PR208CompoundLive5m",
       "normalRuntimeAllowed": false
+    },
+    "compoundLive5mNotificationIdentityRecovery": {
+      "status": "PACKAGE_BEREIT_NOT_DEPLOYED",
+      "contract": "grundlage/vertraege/runtime/pr20-8-compound-live-5m-notification-identity-recovery-preparation.json",
+      "package": "werkzeuge/pr20-8-compound-live-5m-v1-0-2.js",
+      "test": "werkzeuge/tests/pr20-8-compound-live-5m-v1-0-2.test.mjs",
+      "contractTest": "grundlage/tests/pr20-compound-live-5m-notification-identity-recovery-preparation.test.mjs",
+      "testId": "pr20-8-compound-live-5m",
+      "fromControllerVersion": "1.0.1",
+      "controllerVersion": "1.0.2",
+      "expectedGlobal": "V5PR208CompoundLive5m",
+      "sourceCommit": "18568cbc9689bd7e27c5a26a4342901d470b72c0",
+      "packageSha256": "4d9083bf163d98f15d842d64ecfc49ae4c9b8c3452b0b31a499d4b0b5687c849",
+      "packageBytes": 28166,
+      "recoveryScope": "TELEMETRY_RUN_IDENTITY_ONLY",
+      "previousTerminalSuccessRequired": true,
+      "previousControllerVersion": "1.0.1",
+      "topLevelStartedAtMsFromPersistedSoak": true,
+      "resampleExistingSuccess": false,
+      "resendAllowed": false,
+      "requiredPriorTerminal": true,
+      "requiredPriorGameplayWrites": 0,
+      "requiredPriorRawWriteCalls": 0,
+      "requiredPriorSameIntentRetry": false,
+      "requiredPriorIntentCount": 1,
+      "maximumAdditionalGameplayWrites": 0,
+      "maximumAdditionalPublicFunctionCalls": 0,
+      "maximumAdditionalRawWriteCalls": 0,
+      "publicCompoundCallSites": 0,
+      "compoundWriteAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "sameIntentRetry": false,
+      "normalRuntimeAllowed": false,
+      "manifestCutoverPrepared": false,
+      "deployed": false,
+      "bridgeMayDeployPinnedRunner": false,
+      "nextGate": "PR20_8_COMPOUND_LIVE_5M_NOTIFICATION_IDENTITY_RECOVERY_MANIFEST_CUTOVER"
     }
   },
   "pr20_9": {
