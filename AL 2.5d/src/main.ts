@@ -12,8 +12,7 @@ import {
 } from "./legacy/LegacyMirrorBridge";
 import {
   ensureLocalAdminSession,
-  isLoopbackHostname,
-  LOCAL_ADMIN_CHARACTER
+  isLoopbackHostname
 } from "./local/LocalAdminSandbox";
 import { AssetRegistry, type AssetEntry } from "./render/AssetRegistry";
 import { viewportToWorld } from "./render/camera";
@@ -231,15 +230,13 @@ async function boot(): Promise<void> {
       try {
         if (localAdminRequested) {
           await ensureLocalAdminSession();
+          graphicsMode = "original";
+          graphicsToggle.setMode("original");
         }
 
         const runtime = new LegacyCompatibilityRuntime(host);
         await runtime.embed(legacyUrl);
         activateLegacyRuntime(runtime);
-
-        if (localAdminRequested) {
-          await runtime.enterCharacter(LOCAL_ADMIN_CHARACTER);
-        }
       } catch (error) {
         console.error("AL 2.5D legacy compatibility runtime failed", error);
       }
