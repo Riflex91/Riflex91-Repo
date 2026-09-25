@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "reviewId": "V5_PR20_8_NO_CANDIDATE_EXIT_GATE_REVIEW",
   "gate": "PR20.8_WERTMUTATIONEN",
-  "status": "BLOCKED_COMPOUND_5M_NOTIFICATION_EXCHANGE_NO_CANDIDATE",
+  "status": "BLOCKED_EXCHANGE_NO_CANDIDATE",
   "reviewedAgainst": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
-  "reviewedAtMainCommit": "27795aed7516c7069a531beff1b5d5fa6315079d",
+  "reviewedAtMainCommit": "1e3e61a49e57e078991c29b0d08102579100fddd",
   "currentExitGateSatisfied": false,
   "exitGateCriteria": {
     "eachFamilyIndividuallyRatifiedAnd5mLiveTested": {
@@ -15,11 +15,11 @@
       },
       "compound": {
         "ratified": true,
-        "live5mTested": false,
+        "live5mTested": true,
         "live5mBehaviorObservedPass": true,
-        "completionNotificationPersisted": false,
-        "evidence": "v5/roadmap/pr20-8-compound-productive-one-write-evidence.json",
-        "reason": "REAL_5M_BEHAVIOR_BESTANDEN_NOTIFICATION_IDENTITY_RECOVERY_PENDING"
+        "completionNotificationPersisted": true,
+        "evidence": "v5/roadmap/pr20-8-compound-live-5m-evidence.json",
+        "reason": "RATIFIED_LIVE_5M_PERSISTED"
       },
       "exchange": {
         "ratified": false,
@@ -47,12 +47,11 @@
     "normalRuntimeAllowed": false
   },
   "blockers": [
-    "PR20_8_COMPOUND_5M_COMPLETION_NOTIFICATION_NOT_PERSISTED",
-    "PR20_8_EXCHANGE_NOT_RATIFIED_NO_NORMAL_CANDIDATE",
+    "PR20_8_EXCHANGE_NOT_RATIFIED_NO_NORMAL_CANDIDAT",
     "PR20_8_EXCHANGE_5M_LIVE_NOT_RUN",
     "PR20_8_EXCHANGE_AUTONOMY_NOT_PRODUCTIVE_PROVEN"
   ],
-  "nextAction": "PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION",
+  "nextAction": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
   "mayAdvanceToPr20_9": false,
   "roadmapCriteriaRelaxed": false,
   "compoundLive5mPreparation": {
@@ -127,7 +126,7 @@
     "manifestCutoverPrepared": true,
     "deployed": true,
     "maySetCompoundLive5mTestedOnlyAfterRealFiveMinutePass": true,
-    "nextGate": "PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION",
+    "nextGate": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
     "bridgeMayDeployPinnedRunner": false,
     "deploymentEvidenceObserved": true,
     "realFiveMinuteRunCompleted": true,
@@ -142,12 +141,14 @@
     "observedAdditionalGameplayWrites": 0,
     "observedAdditionalPublicFunctionCalls": 0,
     "observedAdditionalRawWriteCalls": 0,
-    "completionNotificationPersisted": false,
+    "completionNotificationPersisted": true,
     "notificationPersistenceBlocker": "RUN_STARTED_AT_MS_IDENTITY_COLLISION",
     "observedRunStartedAtMs": 0,
-    "ratifiedCompoundLive5m": false,
+    "ratifiedCompoundLive5m": true,
     "retiredFromActiveManifest": true,
-    "supersededByNotificationIdentityRecovery": true
+    "supersededByNotificationIdentityRecovery": true,
+    "notificationId": 2272,
+    "ratificationEvidence": "v5/roadmap/pr20-8-compound-live-5m-evidence.json"
   },
   "activeCompoundLive5mManifest": {
     "testId": "pr20-8-compound-live-5m",
@@ -159,7 +160,7 @@
     "normalRuntimeAllowed": false
   },
   "compoundLive5mNotificationIdentityRecovery": {
-    "status": "MANIFEST_CUTOVER_PREPARED_FOR_COMPLETION_NOTIFICATION_CONFIRMATION",
+    "status": "RATIFIED_COMPLETION_PERSISTED",
     "controllerVersion": "1.0.2",
     "package": "v5/werkzeuge/pr20-8-compound-live-5m-v1-0-2.js",
     "sourceCommit": "18568cbc9689bd7e27c5a26a4342901d470b72c0",
@@ -183,11 +184,44 @@
     "compoundWriteAuthority": false,
     "normalRuntimeAllowed": false,
     "manifestCutoverPrepared": true,
-    "deployed": false,
-    "bridgeMayDeployPinnedRunner": true,
-    "nextGate": "PR20_8_COMPOUND_LIVE_5M_COMPLETION_NOTIFICATION_CONFIRMATION",
-    "deploymentEvidenceObserved": false,
-    "completionNotificationPersisted": false,
-    "liveWriteEnabled": false
+    "deployed": true,
+    "bridgeMayDeployPinnedRunner": false,
+    "nextGate": "PR20_8_NO_CANDIDATE_CLOSEOUT_REVIEW",
+    "deploymentEvidenceObserved": true,
+    "completionNotificationPersisted": true,
+    "liveWriteEnabled": false,
+    "notificationId": 2272,
+    "runStartedAtMs": 1790310011908,
+    "observedAtMs": 1790311955056,
+    "notificationCreatedAt": "2026-09-25T04:52:41.896315Z",
+    "samples": 60,
+    "durationMs": 300545,
+    "sourceSendCount": 1,
+    "observedAdditionalGameplayWrites": 0,
+    "observedAdditionalPublicFunctionCalls": 0,
+    "observedAdditionalRawWriteCalls": 0,
+    "ratifiedCompoundLive5m": true,
+    "evidence": "v5/roadmap/pr20-8-compound-live-5m-evidence.json"
+  },
+  "compoundLive5mEvidence": {
+    "status": "RATIFIED_BESTANDEN_ZERO_ADDITIONAL_MUTATION",
+    "evidence": "v5/roadmap/pr20-8-compound-live-5m-evidence.json",
+    "notificationId": 2272,
+    "runStartedAtMs": 1790310011908,
+    "observedAtMs": 1790311955056,
+    "samples": 60,
+    "durationMs": 300545,
+    "sourceSendCount": 1,
+    "additionalGameplayWrites": 0,
+    "additionalPublicFunctionCalls": 0,
+    "additionalRawWriteCalls": 0,
+    "sameIntentRetry": false,
+    "completionNotificationPersisted": true,
+    "noDuplicateValueChangingEffectObserved": true,
+    "compoundLive5mTested": true,
+    "exchangeRatified": false,
+    "exchangeLive5mTested": false,
+    "exchangeAutonomyProductiveProven": false,
+    "normalRuntimeAllowed": false
   }
 }
