@@ -24,11 +24,11 @@ test("controlled acquisition supersedes waiting policy without rewriting histori
 
   assert.equal(
     roadmap.pr20_8.status,
-    "EXCHANGE_SEASHELL_FARM_SHADOW_COORDINATOR_PREPARED_READ_ONLY",
+    "EXCHANGE_ANNIVERSARYGIFT_EXCEPTION_RESCAN_MANIFEST_CUTOVER_PREPARED",
   );
   assert.equal(
     roadmap.pr20_8.nextAction,
-    "PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_MANIFEST_CUTOVER",
+    "DEPLOY_ANNIVERSARYGIFT_EXCEPTION_RESCAN",
   );
 });
 
@@ -116,6 +116,19 @@ test("acquisition remains strictly separate from Exchange ratification",()=>{
   assert.equal(r.seashellFarmPreparation.farmAuthority,false);
   assert.equal(r.seashellFarmPreparation.exchangeAuthority,false);
   assert.equal(r.seashellFarmPreparation.normalRuntimeAllowed,false);
+  assert.equal(r.seashellFarmShadow.activePath,false);
+  assert.equal(r.seashellFarmShadow.supersededBy,"ANNIVERSARYGIFT_TEST_EXCEPTION_RESCAN");
+  assert.equal(r.anniversaryGiftExceptionRescan.status,"MANIFEST_CUTOVER_PREPARED");
+  assert.equal(r.anniversaryGiftExceptionRescan.exactItem,"anniversarygift");
+  assert.equal(r.anniversaryGiftExceptionRescan.exchangeQuantity,1);
+  assert.equal(r.anniversaryGiftExceptionRescan.exclusiveException,true);
+  assert.equal(r.anniversaryGiftExceptionRescan.genericExclusivePolicyRelaxed,false);
+  assert.equal(r.anniversaryGiftExceptionRescan.otherExclusiveItemsRemainBlocked,true);
+  assert.equal(r.anniversaryGiftExceptionRescan.scannerOnlyException,true);
+  assert.equal(r.anniversaryGiftExceptionRescan.gameplayWrites,0);
+  assert.equal(r.anniversaryGiftExceptionRescan.rawWriteCalls,0);
+  assert.equal(r.anniversaryGiftExceptionRescan.exchangeAuthority,false);
+  assert.equal(r.anniversaryGiftExceptionRescan.normalRuntimeAllowed,false);
 });
 
 test("read-only discovery package is pinned as zero-write preparation",()=>{
@@ -135,8 +148,8 @@ test("read-only discovery package is pinned as zero-write preparation",()=>{
 test("parallel roadmap row points at controlled discovery but carries no Exchange authority",()=>{
   const row=roadmap.parallelPreparations.find(x=>x.id==="PR20.8_WERTMUTATIONEN");
   assert.ok(row);
-  assert.equal(row.status,"EXCHANGE_SEASHELL_FARM_SHADOW_COORDINATOR_PREPARED_READ_ONLY");
-  assert.equal(row.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_MANIFEST_CUTOVER");
+  assert.equal(row.status,"EXCHANGE_ANNIVERSARYGIFT_EXCEPTION_RESCAN_MANIFEST_CUTOVER_PREPARED");
+  assert.equal(row.nextAction,"DEPLOY_ANNIVERSARYGIFT_EXCEPTION_RESCAN");
   assert.equal(row.gameplayAuthority,false);
   assert.equal(row.rawWriteAuthority,false);
   assert.equal(row.normalRuntimeAllowed,false);

@@ -152,7 +152,7 @@ test("shadow contract remains strictly no-write and has no runner cutover",()=>{
 test("roadmap advances only to read-only shadow-runner preparation",()=>{
   assert.equal(
     roadmap.pr20_8.status,
-    "EXCHANGE_SEASHELL_FARM_SHADOW_COORDINATOR_PREPARED_READ_ONLY",
+    "EXCHANGE_ANNIVERSARYGIFT_EXCEPTION_RESCAN_MANIFEST_CUTOVER_PREPARED",
   );
   assert.equal(
     roadmap.pr20_8.nextAction,
@@ -182,8 +182,8 @@ test("roadmap advances only to read-only shadow-runner preparation",()=>{
 
   const row=roadmap.parallelPreparations.find(x=>x.id==="PR20.8_WERTMUTATIONEN");
   assert.ok(row);
-  assert.equal(row.status,"EXCHANGE_SEASHELL_FARM_SHADOW_COORDINATOR_PREPARED_READ_ONLY");
-  assert.equal(row.nextAction,"PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_MANIFEST_CUTOVER");
+  assert.equal(row.status,"EXCHANGE_ANNIVERSARYGIFT_EXCEPTION_RESCAN_MANIFEST_CUTOVER_PREPARED");
+  assert.equal(row.nextAction,"DEPLOY_ANNIVERSARYGIFT_EXCEPTION_RESCAN");
   assert.equal(row.gameplayAuthority,false);
   assert.equal(row.rawWriteAuthority,false);
   assert.equal(row.normalRuntimeAllowed,false);

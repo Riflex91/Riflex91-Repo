@@ -268,11 +268,11 @@ test("coordinator contract and current roadmap remain undeployed and zero-author
 
   assert.equal(
     roadmap.pr20_8.status,
-    "EXCHANGE_SEASHELL_FARM_SHADOW_COORDINATOR_PREPARED_READ_ONLY",
+    "EXCHANGE_ANNIVERSARYGIFT_EXCEPTION_RESCAN_MANIFEST_CUTOVER_PREPARED",
   );
   assert.equal(
     roadmap.pr20_8.nextAction,
-    "PREPARE_SEASHELL_FARM_SHADOW_COORDINATOR_MANIFEST_CUTOVER",
+    "DEPLOY_ANNIVERSARYGIFT_EXCEPTION_RESCAN",
   );
   const shadow=roadmap.pr20_8.exchangeCandidateAcquisition.seashellFarmShadow;
   assert.equal(shadow.coordinatorPrepared,true);
@@ -281,13 +281,15 @@ test("coordinator contract and current roadmap remain undeployed and zero-author
   assert.equal(shadow.liveEvidenceObserved,false);
 });
 
-test("autonomous manifest stays on market discovery before separate coordinator cutover",()=>{
-  assert.equal(manifest.testId,"pr20-8-exchange-market-discovery");
-  assert.equal(manifest.controllerVersion,"1.0.0");
+test("autonomous manifest is cut over to the anniversarygift exception rescan",()=>{
+  assert.equal(manifest.testId,"pr20-8-wertmutation-live-candidate-readonly");
+  assert.equal(manifest.controllerVersion,"1.0.7");
+  assert.equal(manifest.sourceCommit,"5ae7e2699ca38381df4e90ea385732241cfbcd55");
   assert.equal(
     manifest.packagePath,
-    "v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js",
+    "v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-7.js",
   );
-  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeMarketDiscovery");
+  assert.equal(manifest.packageSha256,"00e2f5ed379f27a489af1c1a87f142cd7efe7fb7617d1e814d3033563137dbf9");
+  assert.equal(manifest.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
