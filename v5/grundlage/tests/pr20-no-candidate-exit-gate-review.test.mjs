@@ -45,7 +45,7 @@ test("PR20.8 no-candidate evidence cannot silently create authority or substitut
   ]);
   assert.equal(
     review.nextAction,
-    "PR20_8_EXCHANGE_READONLY_RESCAN_FACADE_RECOVERY_MANIFEST_CUTOVER",
+    "PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN",
   );
 });
 
@@ -236,7 +236,7 @@ test("PR20.8 Compound 5m evidence closes only the Compound live gate", () => {
 
 test("PR20.8 Exchange v1.0.4 rescan cutover is blocked only by the observed facade handshake", () => {
   const r=review.exchangeNoCandidateCloseoutReview;
-  assert.equal(r.status,"V1_0_4_DEPLOYMENT_HANDSHAKE_BLOCKED");
+  assert.equal(r.status,"V1_0_4_HANDSHAKE_BLOCKED_RECOVERY_V1_0_5_MANIFEST_CUTOVER_PREPARED");
   assert.equal(r.review,"v5/roadmap/pr20-8-exchange-no-candidate-closeout-review.json");
   assert.equal(r.existingEvidence,"v5/roadmap/pr20-8-compound-exchange-target-family-rescan-v1-0-4-evidence.json");
   assert.equal(r.existingObservedAtMs,1790278399271);
@@ -278,7 +278,7 @@ test("PR20.8 Exchange v1.0.4 rescan cutover is blocked only by the observed faca
   assert.equal(r.observedCurrentRawWriteCalls,0);
   assert.equal(r.observedCurrentSameIntentRetry,false);
   assert.equal(r.observedCurrentIntentCount,1);
-  assert.equal(r.nextGate,"PR20_8_EXCHANGE_READONLY_RESCAN_FACADE_RECOVERY_MANIFEST_CUTOVER");
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
   const retired=review.activeCompoundLive5mManifest;
   assert.equal(retired.active,false);
   assert.equal(retired.retiredFromActiveManifest,true);
@@ -286,11 +286,11 @@ test("PR20.8 Exchange v1.0.4 rescan cutover is blocked only by the observed faca
   assert.equal(retired.supersededByControllerVersion,"1.0.4");
   const active=review.activeAutonomousManifest;
   assert.equal(active.testId,"pr20-8-wertmutation-live-candidate-readonly");
-  assert.equal(active.controllerVersion,"1.0.4");
-  assert.equal(active.package,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-4.js");
-  assert.equal(active.sourceCommit,"27e25e69dc0e26d8ae05328335718c36a6a0c659");
-  assert.equal(active.packageSha256,"0f52db42f8c8a0656ef89653aca0406eaef16f57a762d21222e98b9277297a1b");
-  assert.equal(active.packageBytes,21343);
+  assert.equal(active.controllerVersion,"1.0.5");
+  assert.equal(active.package,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js");
+  assert.equal(active.sourceCommit,"36bece2cc75854e7d02c6c8dc6ddaf75a74579cb");
+  assert.equal(active.packageSha256,"e87996be9ee56b31f7737923b5bf8999a0a8af82393dea9419f5f4fd3d4b494e");
+  assert.equal(active.packageBytes,21688);
   assert.equal(active.expectedGlobal,"V5PR208ValueMutationLiveCandidateReadonly");
   assert.equal(active.maximumGameplayWrites,0);
   assert.equal(active.maximumPublicFunctionCalls,0);
@@ -303,9 +303,9 @@ test("PR20.8 Exchange v1.0.4 rescan cutover is blocked only by the observed faca
   assert.equal(review.mayAdvanceToPr20_9,false);
 });
 
-test("PR20.8 Exchange read-only scanner facade recovery remains authority-closed before manifest cutover", () => {
+test("PR20.8 Exchange read-only scanner facade recovery stays authority-closed at manifest cutover", () => {
   const r=review.exchangeReadonlyRescanFacadeRecovery;
-  assert.equal(r.status,"RECOVERY_PACKAGE_READY_NOT_DEPLOYED");
+  assert.equal(r.status,"MANIFEST_CUTOVER_PREPARED_FOR_FRESH_READONLY_RESCAN");
   assert.equal(r.contract,"v5/grundlage/vertraege/runtime/pr20-8-exchange-readonly-rescan-facade-recovery-preparation.json");
   assert.equal(r.package,"v5/werkzeuge/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.js");
   assert.equal(r.test,"v5/werkzeuge/tests/pr20-8-wertmutation-live-candidate-readonly-v1-0-5.test.mjs");
@@ -334,10 +334,12 @@ test("PR20.8 Exchange read-only scanner facade recovery remains authority-closed
   assert.equal(r.durableIntentCreated,false);
   assert.equal(r.normalRuntimeAllowed,false);
   assert.equal(r.acquisitionOrMutationToCreateCandidateAllowed,false);
-  assert.equal(r.manifestCutoverPrepared,false);
+  assert.equal(r.manifest,"v5/roadmap/v5-autonomous-test-manifest.json");
+  assert.equal(r.manifestCutoverPrepared,true);
+  assert.equal(r.bridgeMayDeployPinnedRunner,true);
   assert.equal(r.deployed,false);
   assert.equal(r.evidenceObserved,false);
-  assert.equal(r.nextGate,"PR20_8_EXCHANGE_READONLY_RESCAN_FACADE_RECOVERY_MANIFEST_CUTOVER");
+  assert.equal(r.nextGate,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
   assert.equal(review.currentExitGateSatisfied,false);
   assert.equal(review.mayAdvanceToPr20_9,false);
 });
