@@ -61,6 +61,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR208ExchangeCandidateBankMount",
     gate: "PR20.8_WERTMUTATIONEN"
   }),
+  "pr20-8-exchange-market-discovery": Object.freeze({
+    path: "v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js",
+    expectedGlobal: "V5PR208ExchangeMarketDiscovery",
+    gate: "PR20.8_WERTMUTATIONEN"
+  }),
   "pr20-6-mluck-autonomous-live-5m": Object.freeze({
     path: "v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",
     expectedGlobal: "V5PR206MluckTest",
@@ -1050,6 +1055,34 @@ test("PR20.8 Exchange bank mount manifest pin is exact and retrieve-disabled", (
     "exchange(",
     "compound(",
     "upgrade(",
+    "socket.emit(",
+    ".socket.emit(",
+  ]) assert.equal(packageSource.includes(marker), false, marker);
+});
+
+
+test("PR20.8 Exchange market discovery manifest pin is exact and purchase-disabled", () => {
+  if (manifest.testId !== "pr20-8-exchange-market-discovery") return;
+  assert.equal(manifest.controllerVersion, "1.0.0");
+  assert.equal(manifest.sourceCommit, "d977684f56ebe24f021cd46ae7efc502c406ecc6");
+  assert.equal(
+    manifest.packageSha256,
+    "175adb93980af0e7cefe19835101255473031ac51bcc70369e5a4b7d521609cd",
+  );
+  assert.equal(packageBytes.length, 12657);
+  assert.equal(manifest.normalRuntimeAllowed, false);
+  assert.ok(packageSource.includes('const TEST_ID = "pr20-8-exchange-market-discovery"'));
+  assert.ok(packageSource.includes('const VERSION = "1.0.0"'));
+  assert.ok(packageSource.includes('const API_NAME = "V5PR208ExchangeMarketDiscovery"'));
+  assert.equal((packageSource.match(/smartMove\(TARGET_MAP\)/g) ?? []).length, 1);
+  for (const marker of [
+    "trade_buy(",
+    "buy(",
+    "buy_with_gold(",
+    "attack(",
+    "use_skill(",
+    "loot(",
+    "exchange(",
     "socket.emit(",
     ".socket.emit(",
   ]) assert.equal(packageSource.includes(marker), false, marker);

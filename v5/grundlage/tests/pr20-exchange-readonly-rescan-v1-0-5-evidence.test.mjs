@@ -106,12 +106,12 @@ test("fresh no-candidate evidence does not satisfy Exchange or PR20.8 exit crite
   assert.equal(evidence.nextAction,"PR20_8_COMPOUND_EXCHANGE_LIVE_CANDIDATE_READONLY_RESCAN");
 });
 
-test("active manifest is the exact zero-write Exchange bank mount",()=>{
-  assert.equal(manifest.testId,"pr20-8-exchange-candidate-bank-mount");
+test("active manifest is the exact purchase-disabled Exchange player-market discovery",()=>{
+  assert.equal(manifest.testId,"pr20-8-exchange-market-discovery");
   assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,"5c84fc95b7fed97c3591462faba0a1315289fdce");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-candidate-bank-mount-v1-0-0.js");
-  assert.equal(manifest.packageSha256,"94c053183363c0394922df4f6e422bede3260989e668a3b0942f3e876dbbdc54");
-  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeCandidateBankMount");
+  assert.equal(manifest.sourceCommit,"d977684f56ebe24f021cd46ae7efc502c406ecc6");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-8-exchange-market-discovery-v1-0-0.js");
+  assert.equal(manifest.packageSha256,"175adb93980af0e7cefe19835101255473031ac51bcc70369e5a4b7d521609cd");
+  assert.equal(manifest.expectedGlobal,"V5PR208ExchangeMarketDiscovery");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "PR20_8_EXCHANGE_PLAYER_MARKET_DISCOVERY",
-  "status": "PACKAGE_PREPARED_NOT_DEPLOYED",
+  "status": "MANIFEST_CUTOVER_PREPARED",
   "sourceMain": "1afb29733ee20915966bdcdf242419414d9869e4",
   "prerequisite": {
     "evidence": "v5/roadmap/pr20-8-exchange-candidate-bank-mount-evidence.json",
@@ -69,5 +69,16 @@
     "exchangeWriteAuthority": false,
     "normalRuntimeAllowed": false
   },
-  "nextAction": "MERGE_MARKET_DISCOVERY_PACKAGE_THEN_CUTOVER"
+  "nextAction": "DEPLOY_EXCHANGE_MARKET_DISCOVERY",
+  "manifestCutover": {
+    "prepared": true,
+    "manifest": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "testId": "pr20-8-exchange-market-discovery",
+    "controllerVersion": "1.0.0",
+    "sourceCommit": "d977684f56ebe24f021cd46ae7efc502c406ecc6",
+    "packageSha256": "175adb93980af0e7cefe19835101255473031ac51bcc70369e5a4b7d521609cd",
+    "packageBytes": 12657,
+    "expectedGlobal": "V5PR208ExchangeMarketDiscovery",
+    "deployed": false
+  }
 }

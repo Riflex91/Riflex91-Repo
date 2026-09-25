@@ -24,11 +24,11 @@ test("controlled acquisition supersedes waiting policy without rewriting histori
 
   assert.equal(
     roadmap.pr20_8.status,
-    "EXCHANGE_BANK_SNAPSHOT_NO_CANDIDATE_RATIFIED_MARKET_DISCOVERY_PREPARED",
+    "EXCHANGE_MARKET_DISCOVERY_MANIFEST_CUTOVER_PREPARED",
   );
   assert.equal(
     roadmap.pr20_8.nextAction,
-    "MERGE_MARKET_DISCOVERY_PACKAGE_THEN_CUTOVER",
+    "DEPLOY_EXCHANGE_MARKET_DISCOVERY",
   );
 });
 
@@ -98,8 +98,10 @@ test("acquisition remains strictly separate from Exchange ratification",()=>{
   assert.equal(r.bankMount.publicFunctionCalls,1);
   assert.equal(r.bankMount.rawWriteCalls,0);
   assert.equal(r.bankMount.sameIntentRetry,false);
-  assert.equal(r.marketDiscovery.status,"PACKAGE_PREPARED_NOT_DEPLOYED");
+  assert.equal(r.marketDiscovery.status,"MANIFEST_CUTOVER_PREPARED");
   assert.equal(r.marketDiscovery.testId,"pr20-8-exchange-market-discovery");
+  assert.equal(r.marketDiscovery.manifestCutoverPrepared,true);
+  assert.equal(r.marketDiscovery.deployed,false);
   assert.equal(r.marketDiscovery.tradeBuyAllowed,false);
   assert.equal(r.marketDiscovery.farmAllowed,false);
   assert.equal(r.marketDiscovery.exchangeAllowed,false);
@@ -122,8 +124,8 @@ test("read-only discovery package is pinned as zero-write preparation",()=>{
 test("parallel roadmap row points at controlled discovery but carries no Exchange authority",()=>{
   const row=roadmap.parallelPreparations.find(x=>x.id==="PR20.8_WERTMUTATIONEN");
   assert.ok(row);
-  assert.equal(row.status,"EXCHANGE_BANK_SNAPSHOT_NO_CANDIDATE_RATIFIED_MARKET_DISCOVERY_PREPARED");
-  assert.equal(row.nextAction,"MERGE_MARKET_DISCOVERY_PACKAGE_THEN_CUTOVER");
+  assert.equal(row.status,"EXCHANGE_MARKET_DISCOVERY_MANIFEST_CUTOVER_PREPARED");
+  assert.equal(row.nextAction,"DEPLOY_EXCHANGE_MARKET_DISCOVERY");
   assert.equal(row.gameplayAuthority,false);
   assert.equal(row.rawWriteAuthority,false);
   assert.equal(row.normalRuntimeAllowed,false);
