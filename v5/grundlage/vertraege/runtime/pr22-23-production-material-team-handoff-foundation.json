@@ -52,5 +52,16 @@
     "productiveCollectionTransferRequired": true,
     "batchSettlementRecoveryRequiredBeforeProductiveUse": true
   },
-  "nextAction": "PREPARE_MULTI_SOURCE_COLLECTION_BATCH_SETTLEMENT_RECOVERY_NO_WRITE"
+  "nextAction": "PREPARE_MULTI_SOURCE_ALL_SETTLED_TO_CRAFT_RESCAN_BRIDGE_NO_WRITE",
+  "batchSettlementRecovery": {
+    "status": "PREPARED_NO_WRITE",
+    "source": "v5/grundlage/quelle/koordination/production-material-team-settlement-recovery.ts",
+    "contract": "v5/grundlage/vertraege/runtime/pr22-23-production-material-team-settlement-recovery-foundation.json",
+    "test": "v5/grundlage/tests/pr22-23-production-material-team-settlement-recovery.test.mjs",
+    "exactlyOneActiveTransfer": true,
+    "nonterminalRestartBecomesRecoveryPending": true,
+    "blindResumeAllowed": false,
+    "finalCraftRescanOnlyAfterAllSettled": true,
+    "productiveExecutionAllowed": false
+  }
 }
