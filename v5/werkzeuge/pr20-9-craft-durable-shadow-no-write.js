@@ -361,7 +361,13 @@
           inputs:selected,
           freeSlots,
           outputspaceSatisfied:true,
-          recipeMaterial:canonical(stableScalarObject(recipe,64)),
+          recipeMaterial:canonical({
+            recipeName,
+            cost,
+            items:requirements.map(x=>[x.quantity,x.name,x.level]),
+            quest:recipe.quest??null,
+            output:recipe.output??null
+          }),
           outputDefinitionMaterial:canonical(stableScalarObject(outputDef,64))
         },
         rejectedCount:rejected.length,
