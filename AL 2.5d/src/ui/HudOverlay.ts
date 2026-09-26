@@ -10,7 +10,8 @@ import type {
 import {
   buildHudModel,
   type HudBarModel,
-  type HudModel
+  type HudModel,
+  type PlayerHudModel
 } from "./HudModel";
 
 export type HudActions = Readonly<{
@@ -23,7 +24,7 @@ type BarElements = Readonly<{
   label: HTMLSpanElement;
 }>;
 
-type PanelName = "inventory" | "equipment" | "skills";
+type PanelName = "character" | "inventory" | "skills";
 
 function createBar(kind: "hp" | "mp" | "xp"): BarElements {
   const root = document.createElement("div");
@@ -59,14 +60,29 @@ function itemText(item: RenderInventorySlot | RenderEquipmentSlot): string {
       ? item.displayName
       : item.name ?? "Empty";
   const level =
-    item.level !== undefined && item.level > 0
-      ? ` +${item.level}`
-      : "";
+    item.level !== undefined && item.level > 0 ? ` +${item.level}` : "";
   const quantity =
     item.quantity !== undefined && item.quantity > 1
       ? ` ×${item.quantity}`
       : "";
   return `${name}${level}${quantity}`;
+}
+
+function equipmentIcon(slot: string): string {
+  const normalized = slot.toLowerCase();
+  if (normalized.includes("helmet")) return "◈";
+  if (normalized.includes("chest")) return "⬟";
+  if (normalized.includes("glove")) return "◆";
+  if (normalized.includes("pants")) return "▥";
+  if (normalized.includes("shoe")) return "◇";
+  if (normalized.includes("mainhand")) return "⚔";
+  if (normalized.includes("offhand")) return "◐";
+  if (normalized.includes("ring")) return "○";
+  if (normalized.includes("earring")) return "◌";
+  if (normalized.includes("belt")) return "═";
+  if (normalized.includes("cape")) return "⌁";
+  if (normalized.includes("orb")) return "✦";
+  return "•";
 }
 
 export class HudOverlay {
@@ -93,6 +109,7 @@ export class HudOverlay {
 
   private lastKey = "";
   private latestPlayerUi: RenderPlayerUi | undefined;
+  private latestModel: HudModel = Object.freeze({ player: null, target: null });
   private openPanel: PanelName | null = null;
 
   constructor(
@@ -136,15 +153,16 @@ export class HudOverlay {
 
     this.menu.id = "al25d-menu";
     this.menu.setAttribute("aria-label", "AL 2.5D Menus");
-    for (const [panel, label] of [
-      ["inventory", "INV"],
-      ["equipment", "GEAR"],
-      ["skills", "SKILLS"]
+    for (const [panel, label, title] of [
+      ["character", "CHAR", "Character & Equipment"],
+      ["inventory", "BAG", "Inventory"],
+      ["skills", "SKILLS", "Skills"]
     ] as const) {
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.panel = panel;
       button.textContent = label;
+      button.title = title;
       button.addEventListener("click", () => this.togglePanel(panel));
       this.menu.appendChild(button);
     }
@@ -188,6 +206,7 @@ export class HudOverlay {
     if (key === this.lastKey) return;
     this.lastKey = key;
     this.latestPlayerUi = snapshot.playerUi;
+    this.latestModel = model;
     this.renderModel(model);
     this.renderHotbar(snapshot.playerUi?.hotbar ?? []);
 
@@ -199,9 +218,10 @@ export class HudOverlay {
   clear(): void {
     this.lastKey = "";
     this.latestPlayerUi = undefined;
+    this.latestModel = Object.freeze({ player: null, target: null });
     this.openPanel = null;
     this.panel.hidden = true;
-    this.renderModel({ player: null, target: null });
+    this.renderModel(this.latestModel);
     this.renderHotbar([]);
   }
 
@@ -210,11 +230,9 @@ export class HudOverlay {
   }
 
   private togglePanel(panel: PanelName | null): void {
-    this.openPanel =
-      panel && panel !== this.openPanel
-        ? panel
-        : null;
+    this.openPanel = panel && panel !== this.openPanel ? panel : null;
     this.panel.hidden = this.openPanel === null;
+    this.panel.dataset.panel = this.openPanel ?? "";
 
     for (const button of this.menu.querySelectorAll<HTMLButtonElement>("button")) {
       button.dataset.active = String(button.dataset.panel === this.openPanel);
@@ -254,15 +272,15 @@ export class HudOverlay {
       return;
     }
 
-    if (panel === "inventory") {
-      this.panelTitle.textContent = "Inventory";
-      this.renderInventory(playerUi.inventory);
+    if (panel === "character") {
+      this.panelTitle.textContent = "Character";
+      this.renderCharacter(playerUi, this.latestModel.player);
       return;
     }
 
-    if (panel === "equipment") {
-      this.panelTitle.textContent = "Equipment";
-      this.renderEquipment(playerUi.equipment);
+    if (panel === "inventory") {
+      this.panelTitle.textContent = "Inventory";
+      this.renderInventory(playerUi.inventory);
       return;
     }
 
@@ -270,9 +288,88 @@ export class HudOverlay {
     this.renderSkills(playerUi.skills);
   }
 
-  private renderInventory(items: readonly RenderInventorySlot[]): void {
+  private renderCharacter(
+    playerUi: RenderPlayerUi,
+    player: PlayerHudModel | null
+  ): void {
+    const shell = document.createElement("div");
+    shell.className = "al25d-character-shell";
+
+    const profile = document.createElement("section");
+    profile.className = "al25d-character-profile";
+
+    const portrait = document.createElement("div");
+    portrait.className = "al25d-character-portrait";
+    portrait.textContent = player?.glyph ?? "??";
+
+    const identity = document.createElement("div");
+    identity.className = "al25d-character-identity";
+    const name = document.createElement("strong");
+    name.textContent = player?.name ?? "Adventurer";
+    const meta = document.createElement("span");
+    meta.textContent = [
+      player?.role,
+      player?.level !== undefined ? `Level ${player.level}` : null
+    ].filter(Boolean).join(" · ");
+    identity.append(name, meta);
+
+    const vitals = document.createElement("div");
+    vitals.className = "al25d-character-vitals";
+    for (const [label, bar, kind] of [
+      ["HP", player?.hp, "hp"],
+      ["MP", player?.mp, "mp"],
+      ["XP", player?.xp, "xp"]
+    ] as const) {
+      if (!bar) continue;
+      const row = document.createElement("div");
+      row.className = "al25d-character-vital";
+      row.dataset.kind = kind;
+      const caption = document.createElement("span");
+      caption.textContent = label;
+      const track = document.createElement("i");
+      const fill = document.createElement("b");
+      fill.style.width = `${bar.ratio * 100}%`;
+      track.appendChild(fill);
+      const value = document.createElement("em");
+      value.textContent = bar.text;
+      row.append(caption, track, value);
+      vitals.appendChild(row);
+    }
+
+    profile.append(portrait, identity, vitals);
+
+    const equipment = document.createElement("section");
+    equipment.className = "al25d-character-equipment";
+    const equipmentTitle = document.createElement("h3");
+    equipmentTitle.textContent = "Equipment";
+    equipment.appendChild(equipmentTitle);
+    this.renderEquipment(playerUi.equipment, equipment);
+
+    const bag = document.createElement("section");
+    bag.className = "al25d-character-bag";
+    const bagHeader = document.createElement("div");
+    bagHeader.className = "al25d-character-section-header";
+    const bagTitle = document.createElement("h3");
+    bagTitle.textContent = "Inventory";
+    const used = playerUi.inventory.filter((item) => item.name).length;
+    const count = document.createElement("span");
+    count.textContent = `${used}/${playerUi.inventory.length}`;
+    bagHeader.append(bagTitle, count);
+    bag.appendChild(bagHeader);
+    this.renderInventory(playerUi.inventory, bag, true);
+
+    shell.append(profile, equipment, bag);
+    this.panelBody.appendChild(shell);
+  }
+
+  private renderInventory(
+    items: readonly RenderInventorySlot[],
+    owner: HTMLElement = this.panelBody,
+    compact = false
+  ): void {
     const grid = document.createElement("div");
     grid.className = "al25d-inventory-grid";
+    grid.dataset.compact = String(compact);
 
     for (const item of items) {
       const cell = document.createElement("div");
@@ -282,30 +379,31 @@ export class HudOverlay {
 
       const index = document.createElement("small");
       index.textContent = String(item.index + 1);
+      const icon = document.createElement("i");
+      icon.textContent = item.name ? (item.displayName ?? item.name).slice(0, 1).toUpperCase() : "";
       const label = document.createElement("span");
       label.textContent = item.name
-        ? shortLabel(item.displayName ?? item.name, 9)
+        ? shortLabel(item.displayName ?? item.name, compact ? 7 : 9)
         : "";
       const detail = document.createElement("em");
       detail.textContent = item.name
         ? [
-            item.level !== undefined && item.level > 0
-              ? `+${item.level}`
-              : "",
-            item.quantity !== undefined && item.quantity > 1
-              ? `×${item.quantity}`
-              : ""
+            item.level !== undefined && item.level > 0 ? `+${item.level}` : "",
+            item.quantity !== undefined && item.quantity > 1 ? `×${item.quantity}` : ""
           ].filter(Boolean).join(" ")
         : "";
 
-      cell.append(index, label, detail);
+      cell.append(index, icon, label, detail);
       grid.appendChild(cell);
     }
 
-    this.panelBody.appendChild(grid);
+    owner.appendChild(grid);
   }
 
-  private renderEquipment(items: readonly RenderEquipmentSlot[]): void {
+  private renderEquipment(
+    items: readonly RenderEquipmentSlot[],
+    owner: HTMLElement = this.panelBody
+  ): void {
     const grid = document.createElement("div");
     grid.className = "al25d-equipment-grid";
 
@@ -321,15 +419,17 @@ export class HudOverlay {
       row.className = "al25d-equipment-row";
       row.title = itemText(item);
 
+      const icon = document.createElement("i");
+      icon.textContent = equipmentIcon(item.slot);
       const slot = document.createElement("strong");
       slot.textContent = item.slot.toUpperCase();
       const name = document.createElement("span");
       name.textContent = itemText(item);
-      row.append(slot, name);
+      row.append(icon, slot, name);
       grid.appendChild(row);
     }
 
-    this.panelBody.appendChild(grid);
+    owner.appendChild(grid);
   }
 
   private renderSkills(skills: readonly RenderSkillEntry[]): void {
@@ -352,20 +452,18 @@ export class HudOverlay {
         ? `${skill.label} [${skill.key}]`
         : `${skill.label} ist aktuell keinem Original-Hotkey zugeordnet`;
 
+      const icon = document.createElement("i");
+      icon.textContent = skill.label.slice(0, 2).toUpperCase();
       const name = document.createElement("strong");
       name.textContent = skill.label;
       const meta = document.createElement("span");
       meta.textContent = [
         skill.key ? `[${skill.key}]` : null,
-        skill.requiredLevel !== undefined
-          ? `Lv. ${skill.requiredLevel}`
-          : null,
+        skill.requiredLevel !== undefined ? `Lv. ${skill.requiredLevel}` : null,
         skill.mp !== undefined ? `${skill.mp} MP` : null
-      ]
-        .filter(Boolean)
-        .join(" · ");
+      ].filter(Boolean).join(" · ");
 
-      row.append(name, meta);
+      row.append(icon, name, meta);
       if (skill.key) {
         row.addEventListener("click", () => this.actions.onHotbar?.(skill.key!));
       }
@@ -385,17 +483,14 @@ export class HudOverlay {
       this.playerMeta.textContent = [
         player.role,
         player.level !== undefined ? `Lv. ${player.level}` : null
-      ]
-        .filter(Boolean)
-        .join(" · ");
+      ].filter(Boolean).join(" · ");
 
       setBar(this.playerHp, player.hp, "HP");
       setBar(this.playerMp, player.mp, "MP");
       setBar(this.playerXp, player.xp, "XP");
 
       if (player.xp) {
-        this.playerXp.label.textContent =
-          `${Math.floor(player.xp.ratio * 100)}% XP`;
+        this.playerXp.label.textContent = `${Math.floor(player.xp.ratio * 100)}% XP`;
       }
     }
 
