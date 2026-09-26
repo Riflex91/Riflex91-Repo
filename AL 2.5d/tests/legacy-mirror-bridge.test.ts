@@ -170,7 +170,8 @@ describe("LegacyMirrorBridge", () => {
         sourceX: 32,
         sourceY: 0,
         tileWidth: 16,
-        tileHeight: 16
+        tileHeight: 16,
+        elevation: 2
       }
     ]);
     expect(renderer.frames).toHaveLength(1);
