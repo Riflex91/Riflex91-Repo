@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_MERCHANT_CHECKPOINT_ADMISSION_V1",
+  "status": "PREPARED_NO_WRITE_MANUAL_PR20_9_OVERRIDE",
+  "sourceMain": "99b336dbd57715eae4ddabd2cb3490ac5013d315",
+  "source": "v5/grundlage/quelle/merchant/pr21-merchant-checkpoint-admission.ts",
+  "test": "v5/grundlage/tests/pr21-merchant-checkpoint-admission.test.mjs",
+  "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+  "milestone": {
+    "art": "MERCHANT_INTEGRATION_15M",
+    "stage": "PR21",
+    "minimumSeconds": 900,
+    "targetSeconds": 900,
+    "sampleIntervalMs": 5000,
+    "runnerObserverOnly": true
+  },
+  "preflight": {
+    "requiredStatus": "PRECHECK_BEREIT_NO_START_AUTHORITY",
+    "repositoryStatus": "PRECHECK_BEREIT_NO_START_AUTHORITY_MANUAL_PR20_9_OVERRIDE",
+    "manualPr20_9OverrideAccepted": true,
+    "manualOverrideEvidence": "v5/roadmap/pr20-9-craft-manual-development-override.json",
+    "liveCraftEvidenceSatisfied": false
+  },
+  "safety": {
+    "externalRuntimeStartAuthorized": false,
+    "separateExternalAuthorizationRequired": true,
+    "runnerGameplayWrites": 0,
+    "runnerPublicFunctionCalls": 0,
+    "runnerRawWriteCalls": 0,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "manualOverrideExplicitlyDistinguishedFromLiveEvidence": true
+  },
+  "nextMilestone": "PREPARE_PR21_15M_OBSERVER_HANDOFF"
+}
