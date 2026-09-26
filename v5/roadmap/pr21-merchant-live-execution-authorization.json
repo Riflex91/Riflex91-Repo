@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_MERCHANT_LIVE_EXECUTION_AUTHORIZATION_2026_09_26",
+  "status": "AUTHORIZED_ONE_SHOT_EXTERNAL_RUNTIME_CHECKPOINT",
+  "authorizedOn": "2026-09-26",
+  "authorizationBasis": "EXPLICIT_USER_DIRECTIVE",
+  "authorizationDirective": "AUTHORIZE_PR21_AUTOMATED_TESTS_EVALUATION_AND_CONTINUATION",
+  "sourceMain": "9af97b7dc84f508fd90b08cf6e4a20264aacf9ae",
+  "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+  "stage": "PR21",
+  "scope": {
+    "testId": "pr21-merchant-integration-live-15m",
+    "targetDurationMs": 900000,
+    "sampleIntervalMs": 5000,
+    "maximumSampleGapMs": 15000,
+    "expectedSamplesForTarget": 181,
+    "maximumUses": 1,
+    "automaticStartAfterVerifiedManifestDeploy": true,
+    "automaticEvaluation": true
+  },
+  "safety": {
+    "authorizationIsCheckpointScoped": true,
+    "testHarnessObserverOnly": true,
+    "testHarnessGameplayWrites": 0,
+    "testHarnessPublicFunctionCalls": 0,
+    "testHarnessRawWriteCalls": 0,
+    "testHarnessIssuesGameplayAuthority": false,
+    "testHarnessIssuesBroadRuntimeAuthority": false,
+    "normalRuntimeAllowedByHarness": false,
+    "sameIntentRetry": false,
+    "failClosedOnHealthDrift": true,
+    "failClosedOnOperationsStale": true,
+    "failClosedOnRecorderDrops": true,
+    "failClosedOnUnsafeReconciliation": true
+  }
+}
