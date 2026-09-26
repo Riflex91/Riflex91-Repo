@@ -344,6 +344,28 @@ Repository-Transition- und Completion-Fingerprint sowie der komplette
 Repository-Ausgangszustand erneut exakt passen. Durable Intent,
 Postcondition-Verifikation und Reconciliation bei UNKNOWN bleiben Pflicht.
 
+## Repository-Stage-State-One-Shot-Execution-Boundary
+
+Die Repository-State-Execution ist als eng gebundene One-Shot-Mutation
+vorbereitet. Vor dem einzigen Versuch muessen Authorization, Main,
+Transaction-, Repository-Transition- und Completion-Fingerprint sowie der
+vollstaendige Repository-Ausgangszustand weiterhin exakt passen.
+
+Vor der Mutation wird ein neuer Durable Intent verlangt. Ein bereits
+vorhandener Intent oder ein Restart seit Authorization fuehrt ohne Resume
+und ohne Retry in Reconciliation. Die einzige Mutationsschnittstelle lautet
+`applyPr21RepositoryStageStateTransition(...)`.
+
+Nach dem Versuch wird der Repository-State separat gelesen. Nur wenn
+PR21=`COMPLETE`, PR22=`IN_PROGRESS`, `currentStage=PR22`,
+`currentGate=PR22_MULTI_CHARACTER_COORDINATION`, PR22-Produktiv-Authority
+weiterhin false und ein terminaler Mutation-Record vorhanden sind, darf
+`APPLIED_VERIFIED_REPOSITORY_STAGE_STATE_RECORD_ONLY` entstehen.
+
+Diese Entwicklungsstufe fuehrt keinen solchen Apply aus; der Repository-
+Status bleibt bis zu einer spaeteren explizit autorisierten Execution
+unveraendert.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
