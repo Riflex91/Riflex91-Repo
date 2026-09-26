@@ -13,7 +13,7 @@
   },
   "stages": {
     "pr21": {
-      "status": "REPOSITORY_STAGE_STATE_POST_EXECUTION_FINALIZATION_BOUNDARY_PREPARED",
+      "status": "PR22_DEVELOPMENT_HANDOFF_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
       "purpose": "Merchant Gesamtintegration Readiness und Safety/Thrash/Starvation Gate",
       "productiveGate": "PR20_COMPLETE_AND_15M_MERCHANT_INTEGRATION_EVIDENCE",
@@ -563,7 +563,7 @@
         "broadRuntimeGrant": false,
         "normalRuntimeAllowed": false,
         "executionPerformed": false,
-        "nextMilestone": "PREPARE_PR22_DEVELOPMENT_HANDOFF_BOUNDARY"
+        "nextMilestone": "PR22_DEVELOPMENT_HANDOFF_BOUNDARY_PREPARED"
       }
     },
     "pr22": {
@@ -974,6 +974,38 @@
             "normalRuntimeAllowed": false
           }
         }
+      },
+      "developmentHandoffBoundary": {
+        "status": "PREPARED_PR22_DEVELOPMENT_HANDOFF_RECORD_ONLY",
+        "source": "v5/grundlage/quelle/koordination/pr22-development-handoff-boundary.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-development-handoff-boundary.json",
+        "test": "v5/grundlage/tests/pr22-development-handoff-boundary.test.mjs",
+        "requiredFinalizationStatus": "READY_FOR_PR22_DEVELOPMENT_HANDOFF_RECORD_ONLY",
+        "successStatus": "READY_FOR_PR22_SHADOW_DEVELOPMENT_RECORD_ONLY",
+        "finalizationFingerprintRevalidationRequired": true,
+        "currentMainMustMatchFinalizedMain": true,
+        "repositoryStateRevalidationRequired": true,
+        "pr21StageStatusRequired": "COMPLETE",
+        "pr22StageStatusRequired": "IN_PROGRESS",
+        "currentStageRequired": "PR22",
+        "currentGateRequired": "PR22_MULTI_CHARACTER_COORDINATION",
+        "pr22ShadowAdmissionRequiredStatus": "BEREIT_NO_WRITE",
+        "pr22ShadowWorkflowRequiredStatus": "PREPARED_NO_WRITE",
+        "shadowDevelopmentAllowedAfterVerifiedHandoff": true,
+        "productiveEvidenceRequired": true,
+        "cap022FullChainRecheckRequiredBeforeProductiveEvidence": true,
+        "separateProductiveRatificationRequired": true,
+        "currentBlockedByPr21Execution": true,
+        "handoffExecuted": false,
+        "pr22ProductiveAuthorityIssued": false,
+        "sendCmAuthority": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "broadRuntimeGrant": false,
+        "normalRuntimeAllowed": false,
+        "repositoryMutationPerformed": false,
+        "controlPlaneMutationPerformed": false,
+        "nextMilestone": "PREPARE_PR22_COORDINATION_DEVELOPMENT_PREFLIGHT_BOUNDARY"
       }
     },
     "pr23": {

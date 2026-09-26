@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_PR22_DEVELOPMENT_HANDOFF_RECORD_ONLY",
+  "sourceMain": "92c1f134cdd6c9a1537e53726ad15fcde307677e",
+  "source": "v5/grundlage/quelle/koordination/pr22-development-handoff-boundary.ts",
+  "test": "v5/grundlage/tests/pr22-development-handoff-boundary.test.mjs",
+  "requiredFinalizationStatus": "READY_FOR_PR22_DEVELOPMENT_HANDOFF_RECORD_ONLY",
+  "finalizationFingerprintRevalidationRequired": true,
+  "currentMainMustMatchFinalizedMain": true,
+  "repositoryStateRevalidationRequired": true,
+  "requiredPostState": {
+    "pr21StageStatus": "COMPLETE",
+    "pr22StageStatus": "IN_PROGRESS",
+    "currentStage": "PR22",
+    "currentGate": "PR22_MULTI_CHARACTER_COORDINATION",
+    "pr22ProductiveAuthorityIssued": false
+  },
+  "success": {
+    "status": "READY_FOR_PR22_SHADOW_DEVELOPMENT_RECORD_ONLY",
+    "predecessorStage": "PR21",
+    "stage": "PR22",
+    "pr21CompletionFinalized": true,
+    "pr22DevelopmentStageActive": true,
+    "pr22ShadowAdmissionRequiredStatus": "BEREIT_NO_WRITE",
+    "pr22ShadowWorkflowRequiredStatus": "PREPARED_NO_WRITE",
+    "shadowDevelopmentAllowed": true,
+    "productiveEvidenceRequired": true,
+    "cap022FullChainRecheckRequiredBeforeProductiveEvidence": true,
+    "separateProductiveRatificationRequired": true,
+    "pr22ProductiveAuthorityIssued": false
+  },
+  "safety": {
+    "sendCmAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadRuntimeGrant": false,
+    "normalRuntimeAllowed": false,
+    "repositoryMutationPerformed": false,
+    "controlPlaneMutationPerformed": false
+  },
+  "handoffExecutedInRepository": false,
+  "nextAction": "PREPARE_PR22_COORDINATION_DEVELOPMENT_PREFLIGHT_BOUNDARY"
+}

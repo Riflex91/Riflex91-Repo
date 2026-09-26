@@ -383,6 +383,23 @@ Finalization-Main sowie Transaction-, Transition-, Completion- und
 Repository-Execution-Fingerprint. Er fuehrt keine weitere Repository- oder
 Control-Plane-Mutation aus und bereitet keinen produktiven PR22-Handoff vor.
 
+## PR22-Development-Handoff-Boundary
+
+Der Uebergang in die PR22-Entwicklung bleibt an einen spaeter real
+finalisierten PR21-Repository-State gebunden. Nur ein
+`READY_FOR_PR22_DEVELOPMENT_HANDOFF_RECORD_ONLY` mit revalidiertem
+Finalization-Fingerprint, identischem Finalization-Main und erneut
+bestaetigtem Zustand PR21=`COMPLETE`, PR22=`IN_PROGRESS`,
+`currentStage=PR22` darf den Development-Handoff vorbereiten.
+
+Ergebnis ist maximal `READY_FOR_PR22_SHADOW_DEVELOPMENT_RECORD_ONLY`.
+Damit darf die vorhandene PR22-Coordination-Admission nur im
+`BEREIT_NO_WRITE`-/Shadow-Pfad weiterentwickelt werden. `send_cm`-Authority,
+Gameplay-/Raw-Write-/NormalRuntime-Authority und produktive PR22-
+Ratifizierung bleiben geschlossen.
+
+Die Boundary selbst veraendert weder Repository noch Control-Plane.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
