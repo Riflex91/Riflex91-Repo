@@ -6,8 +6,8 @@
   "basisMain": "a7ba40fbf1842e62b826ffad2b821e701d28499e",
   "dokumentation": "v5/dokumentation/V5-POST-R19-ROADMAP.md",
   "testzeitStandard": "v5/roadmap/testzeit-standard.json",
-  "currentStage": "PR20",
-  "currentGate": "PR20.9_PRODUCTION",
+  "currentStage": "PR21",
+  "currentGate": "PR21_MERCHANT_INTEGRATION",
   "reihenfolgeVerbindlich": true,
   "optimizerVorGruppenLiveEvidenceVerboten": true,
   "merchantVorFarmerProduktivierung": true,
@@ -15,12 +15,12 @@
     {
       "id": "PR20",
       "ziel": "Merchant produktiv vervollstaendigen",
-      "status": "IN_PROGRESS"
+      "status": "COMPLETE_MANUAL_OVERRIDE"
     },
     {
       "id": "PR21",
       "ziel": "Merchant Gesamtintegration zertifizieren",
-      "status": "BLOCKED_BY_PR20"
+      "status": "IN_PROGRESS"
     },
     {
       "id": "PR22",
@@ -111,7 +111,8 @@
     "CAP-022 Full-Chain bleibt jetzt auch im terminalen Gate-Settlement und im Default-Off-Rollback-Plan erhalten: PR22/PR23-Settlement-Fingerprints tragen die stage-konsistente Full-Chain-Bindung; manipulierte oder fehlende Bindungen werden vor Settlement/Rollback fail-closed verworfen.",
     "PR22/PR23 Stage-Ledger und Advance-Replay bewahren jetzt zusaetzlich die terminale CAP-022-Gate-Settlement-Bindung: produktive Replay-Eignung verlangt einen stage-konsistenten APPLIED_VERIFIED_RECORD_ONLY-Settlement-Fingerprint; fehlende oder manipulierte Bindung blockiert fail-closed, ohne Gate- oder Gameplay-Authority zu erteilen.",
     "Der Readiness-Snapshot macht die terminale CAP-022-Settlement-Bindung fuer PR22/PR23 jetzt explizit sichtbar: fehlende Bindungen erscheinen als CAP022_TERMINAL_SETTLEMENT, vorhandene Settlement-Fingerprints werden read-only gespiegelt; TECHNICALLY_PREPARED bleibt davon getrennt und produktive Eignung kann die Bindung nicht umgehen.",
-    "PR21 besitzt jetzt einen fail-closed Live-Preflight vor dem 15m-Merchant-Checkpoint: current main, Merchant-Readiness, Checkpoint/Runbook-Bindung und alle PR20.1-PR20.9-Ratifizierungen muessen zusammen passen. Der aktuelle Stand bleibt wegen PR20.9 BLOCKED_BY_PR20_9; der Preflight selbst startet keine Runtime und erteilt keine Authority."
+    "PR21 besitzt jetzt einen fail-closed Live-Preflight vor dem 15m-Merchant-Checkpoint: current main, Merchant-Readiness, Checkpoint/Runbook-Bindung und alle PR20.1-PR20.9-Ratifizierungen muessen zusammen passen. Der aktuelle Stand bleibt wegen PR20.9 BLOCKED_BY_PR20_9; der Preflight selbst startet keine Runtime und erteilt keine Authority.",
+    "PR20.9 Craft wurde auf ausdrueckliche Operator-Entscheidung fuer den Entwicklungsfortschritt manuell als BESTANDEN gewertet. Die historische No-Candidate-Evidence bleibt unveraendert und gilt weiterhin als Nachweis dafuer, dass kein natuerlicher NORMAL_CRAFT_ONLY-Kandidat beobachtet wurde. Der Override erzeugt keine Live-Craft-Evidence und erteilt keine Craft-/Gameplay-/Raw-Write-/NormalRuntime-Authority. PR21 ist damit fuer die Weiterentwicklung aktiv."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -943,13 +944,13 @@
     },
     {
       "id": "PR20.9_PRODUCTION",
-      "status": "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+      "status": "MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT",
       "blockedBy": [],
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
       "liveExecutionAllowed": false,
-      "nextAction": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
+      "nextAction": "ADVANCE_TO_PR21_MERCHANT_INTEGRATION_DEVELOPMENT",
       "artifacts": [
         "v5/grundlage/quelle/produktion/production-graph.ts",
         "v5/grundlage/quelle/produktion/production-planer.ts",
@@ -1024,7 +1025,8 @@
         "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json",
-        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs"
+        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
+        "v5/roadmap/pr20-9-craft-manual-development-override.json"
       ],
       "deferredAutomaticMaterialRecheck": {
         "status": "WAITING_FOR_FUTURE_PRODUCTIVE_MATERIAL_ACQUISITION",
@@ -1488,7 +1490,8 @@
             "normalRuntimeAllowed": false
           }
         }
-      }
+      },
+      "manualDevelopmentOverride": "v5/roadmap/pr20-9-craft-manual-development-override.json"
     },
     {
       "id": "PR21_MERCHANT_INTEGRATION",
@@ -5570,7 +5573,7 @@
     }
   },
   "pr20_9": {
-    "status": "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+    "status": "MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT",
     "ziel": "Craft und Production produktiv",
     "blockedBy": [],
     "preparationAllowedWhileBlocked": false,
@@ -5619,9 +5622,11 @@
       "restartEveryNonterminalPhaseReconciled": false,
       "finalProductionCommitAfterRecipientSettlement": false,
       "newProductiveStepsHaveFiveMinuteEvidence": false,
-      "satisfied": false
+      "satisfied": true,
+      "satisfiedByManualDevelopmentOverride": true,
+      "liveCraftEvidenceSatisfied": false
     },
-    "nextAction": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
+    "nextAction": "ADVANCE_TO_PR21_MERCHANT_INTEGRATION_DEVELOPMENT",
     "craftDurableShadow": {
       "status": "FOUNDATION_BEREIT_NO_WRITE",
       "source": "v5/grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
@@ -5644,7 +5649,9 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "broadGraphExecutionAuthority": false,
-      "normalRuntimeAllowed": false
+      "normalRuntimeAllowed": false,
+      "roadmapGateSatisfiedByManualOverride": true,
+      "craftRatified": false
     },
     "craftDurableShadowRunner": {
       "status": "MANIFEST_CUTOVER_PREPARED_NO_WRITE",
@@ -5686,7 +5693,8 @@
       "latestRunStartedAtMs": 1790370242200,
       "latestObservedAtMs": 1790370242562,
       "noCandidateEvidence": "v5/roadmap/pr20-9-craft-durable-shadow-no-candidate-evidence.json",
-      "candidateAcquisitionOrMutationAllowed": false
+      "candidateAcquisitionOrMutationAllowed": false,
+      "roadmapGateSatisfiedByManualOverride": true
     },
     "craftServiceMount": {
       "status": "RATIFIED_BESTANDEN_ONE_SHOT_MOVEMENT",
@@ -5747,7 +5755,9 @@
       "normalRuntimeAllowed": false,
       "craftRatified": false,
       "candidateAcquisitionOrMutationAllowed": false,
-      "nextGate": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE"
+      "nextGate": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
+      "historicalEvidencePreserved": true,
+      "supersededAsRoadmapBlockerByManualOverride": true
     },
     "deferredAutomaticMaterialRecheck": {
       "status": "PREPARED_DEPENDENCY_NO_WRITE",
@@ -6270,6 +6280,20 @@
           "normalRuntimeAllowed": false
         }
       }
+    },
+    "manualDevelopmentOverride": {
+      "status": "BESTANDEN_MANUELL",
+      "evidence": "v5/roadmap/pr20-9-craft-manual-development-override.json",
+      "requestedByUser": true,
+      "countsAsPr20_9RoadmapRatification": true,
+      "countsAsPr20CompletionForDevelopment": true,
+      "liveCraftEvidenceProduced": false,
+      "historicalNoCandidateEvidencePreserved": true,
+      "craftAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadGraphExecutionAuthority": false,
+      "normalRuntimeAllowed": false
     }
   },
   "acceleratedImplementation": {
@@ -6446,14 +6470,12 @@
     }
   },
   "pr21": {
-    "status": "BLOCKED_BY_PR20",
+    "status": "IN_PROGRESS_MANUAL_PR20_9_OVERRIDE",
     "foundationStatus": "PREPARED_NO_WRITE",
     "ziel": "Merchant Gesamtintegration",
     "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
     "existingPlan": "v5/dokumentation/PR21-MERCHANT-INTEGRATION-TESTPLAN.md",
-    "blockedBy": [
-      "PR20"
-    ],
+    "blockedBy": [],
     "liveExecutionAllowed": false,
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
@@ -6493,7 +6515,7 @@
     "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
     "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
     "livePreflight": {
-      "status": "BLOCKED_BY_PR20_9",
+      "status": "PRECHECK_BEREIT_NO_START_AUTHORITY_MANUAL_PR20_9_OVERRIDE",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-live-preflight.ts",
       "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-integration-live-preflight.json",
       "test": "v5/grundlage/tests/pr21-merchant-integration-live-preflight.test.mjs",
@@ -6510,9 +6532,7 @@
         "PR20.8",
         "PR20.9"
       ],
-      "missingRatifications": [
-        "PR20.9"
-      ],
+      "missingRatifications": [],
       "currentMainMustMatchPinnedMain": true,
       "readinessSnapshotBindingRequired": true,
       "merchantReadinessRequired": true,
@@ -6520,7 +6540,15 @@
       "separateExternalAuthorizationRequired": true,
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
-      "normalRuntimeAllowed": false
+      "normalRuntimeAllowed": false,
+      "manualPr20_9OverrideAccepted": true,
+      "manualPr20_9OverrideEvidence": "v5/roadmap/pr20-9-craft-manual-development-override.json"
+    },
+    "manualPr20_9Override": {
+      "accepted": true,
+      "evidence": "v5/roadmap/pr20-9-craft-manual-development-override.json",
+      "countsAsPredecessorRatificationForDevelopment": true,
+      "liveCraftEvidenceSatisfied": false
     }
   },
   "pr22": {
