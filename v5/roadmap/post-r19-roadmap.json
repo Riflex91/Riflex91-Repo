@@ -136,7 +136,8 @@
     "PR22 Coordination-Development-Preflight-Boundary ist NO-WRITE vorbereitet, bleibt aber bis zu einer tatsaechlich verifizierten PR21 Repository-State-Execution/Finalization und ausgefuehrtem PR22-Development-Handoff blockiert. Der Preflight revalidiert Handoff-Fingerprint, Handoff-Main und Repository-State und fuehrt dann die bestehende PR22-Coordination-Shadow-Admission sowie den Shadow-Workflow als korrelierte Probe aus. Nur BEREIT_NO_WRITE plus initial ACK_AUSSTEHEND darf READY_FOR_PR22_COORDINATION_SHADOW_PREFLIGHT_RECORD_ONLY erzeugen. Es wird kein send_cm ausgefuehrt, kein externer Runtime-Start autorisiert und keine produktive PR22-Authority erteilt.",
     "PR22 Coordination-Shadow-Evidence-Boundary ist NO-WRITE vorbereitet und bleibt bis zur realen PR21-Execution/Finalization sowie ausgefuehrtem PR22-Development-Handoff und Preflight blockiert. Nur ein revalidierter Preflight plus derselbe Main/Repository-State und ein terminaler ABGESCHLOSSEN-Shadow-Workflow mit korreliertem ACK+Settlement und exakt 0 send_cm-/Gameplay-/Raw-Write-Calls darf READY_FOR_PR22_COORDINATION_SHADOW_EVIDENCE_RECORD_ONLY erzeugen. Dieser Record ist shadow-only, erfuellt keine Productive Evidence und erlaubt keine produktive Ratifizierung.",
     "PR22 Coordination Productive-Evidence-Admission-Boundary ist default-off vorbereitet: nur revalidierte READY_FOR_PR22_COORDINATION_SHADOW_EVIDENCE_RECORD_ONLY-Evidence, der unveraenderte PR22-Repository-State und die vollstaendige CAP-022 Full-Chain duerfen einen READY_FOR_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ADMISSION_RECORD_ONLY erzeugen. Dieser Record beschreibt den spaeteren echten CM-Transport mit ACK/Settlement, TTL/Dedupe und Roster-/Session-Epochen als weiterhin erforderliche Productive Evidence. Er startet keine externe Runtime, erteilt keine send_cm-/Gameplay-/Raw-Write-/Broad-Runtime-/NormalRuntime-Authority und erlaubt keine produktive Ratifizierung. Eine separate exakte One-Shot-Execution-Authorization bleibt Pflicht.",
-    "PR22 Coordination Productive-Evidence-Execution-Authorization-Boundary ist explizit und record-only vorbereitet: nur die exakte, an Admission-Fingerprint und Main gebundene Bestaetigung darf innerhalb maximal 1500 ms einen einmal verwendbaren AUTHORIZED_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ONE_SHOT_RECORD_ONLY erzeugen. Vor einer spaeteren Execution muessen Repository-State, Admission-, Shadow-Evidence- und CAP-022-Full-Chain erneut geprueft werden. Der Authorization-Record startet keine externe Runtime, fuehrt keinen CM-Transport aus, erteilt keine send_cm-/Gameplay-/Raw-Write-/Broad-Runtime-/NormalRuntime-Authority und erfuellt weder Productive Evidence noch Ratifizierung."
+    "PR22 Coordination Productive-Evidence-Execution-Authorization-Boundary ist explizit und record-only vorbereitet: nur die exakte, an Admission-Fingerprint und Main gebundene Bestaetigung darf innerhalb maximal 1500 ms einen einmal verwendbaren AUTHORIZED_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ONE_SHOT_RECORD_ONLY erzeugen. Vor einer spaeteren Execution muessen Repository-State, Admission-, Shadow-Evidence- und CAP-022-Full-Chain erneut geprueft werden. Der Authorization-Record startet keine externe Runtime, fuehrt keinen CM-Transport aus, erteilt keine send_cm-/Gameplay-/Raw-Write-/Broad-Runtime-/NormalRuntime-Authority und erfuellt weder Productive Evidence noch Ratifizierung.",
+    "PR22 Coordination Productive-Evidence-One-Shot-Execution-Boundary ist vorbereitet: nach exakter Authorization werden Main, Admission-, Shadow-Evidence-, CAP-022-Full-Chain-, Repository-State-, Transport-Fence- und Payload-Fingerprint erneut geprueft. Ein neu persistierter Durable Intent ist vor dem exakt einen typisierten Transportversuch Pflicht. Danach muessen derselbe Message-/Workflow-Kontext, genau ein beobachteter CM-Send, korreliertes ACK plus terminales Settlement, TTL/Dedupe sowie Roster-/Session-Epochen separat verifiziert werden. UNKNOWN, fehlender terminaler Send-Record, doppelte Sends oder unvollstaendige Evidence erzwingen Reconciliation ohne Same-Intent-Retry. Ein spaeter verifizierter Erfolg erzeugt nur einen Productive-Evidence-Record; produktive PR22-Ratifizierung und dauerhafte send_cm-/Gameplay-/NormalRuntime-Authority bleiben separat geschlossen. In dieser Entwicklungsstufe wurde kein echter Transport ausgefuehrt."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -6528,7 +6529,7 @@
     }
   },
   "pr21": {
-    "status": "PR22_COORDINATION_PRODUCTIVE_EVIDENCE_EXECUTION_AUTHORIZATION_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION",
+    "status": "PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ONE_SHOT_EXECUTION_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION",
     "foundationStatus": "PREPARED_NO_WRITE",
     "ziel": "Merchant Gesamtintegration",
     "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
@@ -6629,7 +6630,7 @@
       "normalRuntimeAllowed": false,
       "nextAction": "OBSERVER_HANDOFF_PREPARED"
     },
-    "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ONE_SHOT_EXECUTION_BOUNDARY",
+    "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RATIFICATION_BOUNDARY",
     "observerHandoff": {
       "status": "PREPARED_NO_WRITE_NO_START_AUTHORITY",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-observer-handoff.ts",
@@ -7828,7 +7829,57 @@
       "rawWriteAuthority": false,
       "broadRuntimeGrant": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ONE_SHOT_EXECUTION_BOUNDARY"
+      "nextAction": "PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ONE_SHOT_EXECUTION_BOUNDARY_PREPARED"
+    },
+    "coordinationProductiveEvidenceOneShotExecutionBoundary": {
+      "status": "PREPARED_ONE_SHOT_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_EXECUTION",
+      "source": "v5/grundlage/quelle/koordination/pr22-coordination-productive-evidence-one-shot-execution-boundary.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr22-coordination-productive-evidence-one-shot-execution-boundary.json",
+      "test": "v5/grundlage/tests/pr22-coordination-productive-evidence-one-shot-execution-boundary.test.mjs",
+      "requiredAuthorizationStatus": "AUTHORIZED_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ONE_SHOT_RECORD_ONLY",
+      "authorizationConsumedRequired": false,
+      "maximumUses": 1,
+      "maximumAuthorizationTtlMs": 1500,
+      "transportFenceRequired": true,
+      "payloadFingerprintRequired": true,
+      "freshMainCheckRequiredAtExecution": true,
+      "admissionFingerprintRecheckRequiredAtExecution": true,
+      "shadowEvidenceFingerprintRecheckRequiredAtExecution": true,
+      "cap022FullChainRecheckRequiredAtExecution": true,
+      "repositoryStateRecheckRequiredAtExecution": true,
+      "durableIntentRequiredBeforeSend": true,
+      "existingDurableIntentRequiresReconciliation": true,
+      "typedTransportAdapterOnly": true,
+      "transportAdapterMethod": "sendPr22CoordinationProductiveEvidenceMessage",
+      "oneShotSendRequired": true,
+      "maximumSendCmCalls": 1,
+      "separateEvidenceReadRequired": true,
+      "evidenceReadMethod": "readPr22CoordinationProductiveEvidence",
+      "terminalSendRecordRequired": true,
+      "ackEvidenceRequired": true,
+      "settlementEvidenceRequired": true,
+      "ttlAndDedupeEvidenceRequired": true,
+      "rosterSessionEpochEvidenceRequired": true,
+      "duplicateSendForbidden": true,
+      "sameIntentRetryAllowed": false,
+      "blindResumeAfterRestartAllowed": false,
+      "unknownOutcomeRequiresReconciliation": true,
+      "successRecordStatus": "READY_FOR_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RECORD_ONLY",
+      "currentBlockedByPr21Execution": true,
+      "executionPerformed": false,
+      "sendCmCallsObserved": 0,
+      "productiveEvidenceSatisfied": false,
+      "productiveRatificationAllowed": false,
+      "oneShotTransportAuthorityConsumed": false,
+      "sendCmAuthority": false,
+      "pr22ProductiveAuthorityIssued": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadRuntimeGrant": false,
+      "normalRuntimeAllowed": false,
+      "repositoryMutationPerformed": false,
+      "controlPlaneMutationPerformed": false,
+      "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RATIFICATION_BOUNDARY"
     }
   },
   "pr23": {
