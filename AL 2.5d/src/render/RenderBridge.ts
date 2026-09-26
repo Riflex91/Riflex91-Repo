@@ -123,11 +123,28 @@ export type RenderPlayerUi = Readonly<{
   skills: readonly RenderSkillEntry[];
 }>;
 
+export type RenderPartyMember = Readonly<{
+  name: string;
+  role?: string;
+  level?: number;
+  hp?: number;
+  maxHp?: number;
+  mp?: number;
+  maxMp?: number;
+  map?: string;
+  x?: number;
+  y?: number;
+  local?: boolean;
+  sameMap?: boolean;
+  distance?: number;
+}>;
+
 export type GameFrameSnapshot = Readonly<{
   tick: number;
   map: string;
   mapState?: RenderMapState;
   playerUi?: RenderPlayerUi;
+  party?: readonly RenderPartyMember[];
   entities: readonly RenderEntity[];
 }>;
 

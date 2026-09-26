@@ -9,7 +9,8 @@ import type {
   RenderInventorySlot,
   RenderEquipmentSlot,
   RenderHotbarEntry,
-  RenderSkillEntry
+  RenderSkillEntry,
+  RenderPartyMember
 } from "../render/RenderBridge";
 import {
   LegacySnapshotAdapter,
@@ -32,6 +33,8 @@ export type LegacyGlobalsLike = Readonly<{
   xtarget?: LegacyEntityLike | null;
   skillbar?: readonly string[];
   keymap?: Readonly<Record<string, unknown>>;
+  party_list?: readonly string[];
+  party?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   G?: LegacyGameDataLike;
 }>;
 
@@ -457,6 +460,111 @@ function snapshotLegacyPlayerUi(
   });
 }
 
+export function snapshotLegacyParty(
+  globals: LegacyGlobalsLike,
+  character: LegacyEntityLike | null,
+  currentMap: string
+): readonly RenderPartyMember[] {
+  const rawParty = globals.party ?? {};
+  const listedNames = Array.isArray(globals.party_list)
+    ? globals.party_list.filter(
+        (name): name is string => typeof name === "string" && Boolean(name.trim())
+      )
+    : [];
+  const names = listedNames.length ? listedNames : Object.keys(rawParty);
+  if (!names.length) return Object.freeze([]);
+
+  const entities = Object.values(globals.entities ?? {});
+  const localName = character?.name ?? character?.id;
+  const localX =
+    finiteNumber(character?.real_x) ??
+    finiteNumber(character?.x);
+  const localY =
+    finiteNumber(character?.real_y) ??
+    finiteNumber(character?.y);
+  const localMap = character?.map ?? currentMap;
+  const result: RenderPartyMember[] = [];
+  const seen = new Set<string>();
+
+  for (const name of names) {
+    if (seen.has(name)) continue;
+    seen.add(name);
+
+    const row = recordValue(rawParty[name]) ?? {};
+    const visible =
+      (character && (character.name === name || character.id === name)
+        ? character
+        : undefined) ??
+      entities.find(
+        (entity) => entity.name === name || entity.id === name
+      );
+
+    const role =
+      stringValue(row.ctype) ??
+      stringValue(row.type) ??
+      visible?.ctype;
+    const level =
+      finiteNumber(row.level) ??
+      finiteNumber(visible?.level);
+    const hp =
+      finiteNumber(row.hp) ??
+      finiteNumber(visible?.hp);
+    const maxHp =
+      finiteNumber(row.max_hp) ??
+      finiteNumber(visible?.max_hp);
+    const mp =
+      finiteNumber(row.mp) ??
+      finiteNumber(visible?.mp);
+    const maxMp =
+      finiteNumber(row.max_mp) ??
+      finiteNumber(visible?.max_mp);
+    const map =
+      stringValue(row.map) ??
+      visible?.map;
+    const x =
+      finiteNumber(row.x) ??
+      finiteNumber(row.real_x) ??
+      finiteNumber(visible?.real_x) ??
+      finiteNumber(visible?.x);
+    const y =
+      finiteNumber(row.y) ??
+      finiteNumber(row.real_y) ??
+      finiteNumber(visible?.real_y) ??
+      finiteNumber(visible?.y);
+    const local = name === localName;
+    const sameMap = (map ?? localMap) === localMap;
+    const distance =
+      !local &&
+      sameMap &&
+      localX !== undefined &&
+      localY !== undefined &&
+      x !== undefined &&
+      y !== undefined
+        ? Math.hypot(x - localX, y - localY)
+        : undefined;
+
+    result.push(
+      Object.freeze({
+        name,
+        ...(role ? { role } : {}),
+        ...(level === undefined ? {} : { level }),
+        ...(hp === undefined ? {} : { hp }),
+        ...(maxHp === undefined ? {} : { maxHp }),
+        ...(mp === undefined ? {} : { mp }),
+        ...(maxMp === undefined ? {} : { maxMp }),
+        ...(map ? { map } : {}),
+        ...(x === undefined ? {} : { x }),
+        ...(y === undefined ? {} : { y }),
+        ...(local ? { local: true } : {}),
+        sameMap,
+        ...(distance === undefined ? {} : { distance })
+      })
+    );
+  }
+
+  return Object.freeze(result);
+}
+
 function snapshotPrimitiveMetadata(
   source: Readonly<Record<string, unknown>> | undefined
 ): Readonly<Record<string, string | number | boolean | null>> {
@@ -557,12 +665,14 @@ export class LegacyMirrorBridge {
     });
     const mapState = snapshotLegacyMapState(globals, map);
     const playerUi = snapshotLegacyPlayerUi(globals, character);
+    const party = snapshotLegacyParty(globals, character, map);
     const snapshot: GameFrameSnapshot =
-      mapState || playerUi
+      mapState || playerUi || party.length
         ? Object.freeze({
             ...entitySnapshot,
             ...(mapState ? { mapState } : {}),
-            ...(playerUi ? { playerUi } : {})
+            ...(playerUi ? { playerUi } : {}),
+            ...(party.length ? { party } : {})
           })
         : entitySnapshot;
 

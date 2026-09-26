@@ -98,7 +98,8 @@ Deliverable: walkable Main with original gameplay logic.
 ## AL25D-06 — Full HUD replacement
 
 - [x] character frame baseline
-- [ ] party frame
+- [x] party frame baseline from immutable original party_list / party snapshots
+- [ ] interactive party controls and party-status edge cases
 - [x] target frame baseline
 - [x] skill/hotbar baseline driven by original live keymap
 - [ ] chat

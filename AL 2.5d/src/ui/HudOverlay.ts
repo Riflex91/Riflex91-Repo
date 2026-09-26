@@ -5,7 +5,8 @@ import type {
   RenderHotbarEntry,
   RenderInventorySlot,
   RenderPlayerUi,
-  RenderSkillEntry
+  RenderSkillEntry,
+  RenderPartyMember
 } from "../render/RenderBridge";
 import {
   buildHudModel,
@@ -117,6 +118,8 @@ export class HudOverlay {
   private readonly playerXp = createBar("xp");
   private readonly xpCaption = document.createElement("span");
 
+  private readonly partyFrame = document.createElement("section");
+
   private readonly targetFrame = document.createElement("section");
   private readonly targetName = document.createElement("strong");
   private readonly targetMeta = document.createElement("span");
@@ -167,7 +170,11 @@ export class HudOverlay {
       this.xpCaption
     );
 
-    this.targetFrame.id = "al25d-target-frame";
+    this.partyFrame.id = "al25d-party-frame";
+    this.partyFrame.className = "al25d-hud-frame";
+    this.partyFrame.style.display = "none";
+
+        this.targetFrame.id = "al25d-target-frame";
     this.targetFrame.className = "al25d-hud-frame";
     this.targetFrame.dataset.empty = "true";
     this.targetName.className = "al25d-hud-name";
@@ -216,6 +223,7 @@ export class HudOverlay {
 
     this.root.append(
       this.playerFrame,
+      this.partyFrame,
       this.targetFrame,
       this.menu,
       this.panel,
@@ -231,13 +239,15 @@ export class HudOverlay {
   render(snapshot: GameFrameSnapshot): void {
     const model = buildHudModel(snapshot);
     const playerUiKey = JSON.stringify(snapshot.playerUi ?? null);
-    const key = JSON.stringify(model) + playerUiKey;
+    const partyKey = JSON.stringify(snapshot.party ?? null);
+    const key = JSON.stringify(model) + playerUiKey + partyKey;
 
     if (key === this.lastKey) return;
     this.lastKey = key;
     this.latestPlayerUi = snapshot.playerUi;
     this.latestModel = model;
     this.renderModel(model);
+    this.renderParty(snapshot.party ?? []);
     this.renderHotbar(snapshot.playerUi?.hotbar ?? []);
 
     if (this.openPanel) {
@@ -267,6 +277,7 @@ export class HudOverlay {
     this.panelStatus.hidden = true;
     this.panelStatus.textContent = "";
     this.renderModel(this.latestModel);
+    this.renderParty([]);
     this.renderHotbar([]);
   }
 
@@ -285,6 +296,82 @@ export class HudOverlay {
 
     if (this.openPanel) {
       this.renderPanel(this.openPanel);
+    }
+  }
+
+  private renderParty(members: readonly RenderPartyMember[]): void {
+    const visible = members.filter((member) => !member.local).slice(0, 5);
+    this.partyFrame.style.display = visible.length ? "" : "none";
+    this.partyFrame.replaceChildren();
+
+    if (!visible.length) return;
+
+    const heading = document.createElement("header");
+    const title = document.createElement("strong");
+    title.textContent = "PARTY";
+    const count = document.createElement("span");
+    count.textContent = `${visible.length + 1} MEMBERS`;
+    heading.append(title, count);
+    this.partyFrame.appendChild(heading);
+
+    for (const member of visible) {
+      const row = document.createElement("div");
+      row.className = "al25d-party-member";
+      row.dataset.dead = String(
+        member.hp !== undefined && member.hp <= 0
+      );
+      row.dataset.remote = String(member.sameMap === false);
+
+      const portrait = document.createElement("i");
+      const role = member.role ?? "Adventurer";
+      portrait.textContent = role.slice(0, 2).toUpperCase();
+
+      const body = document.createElement("div");
+      body.className = "al25d-party-member-body";
+
+      const top = document.createElement("div");
+      top.className = "al25d-party-member-heading";
+      const name = document.createElement("strong");
+      name.textContent = member.name;
+      const meta = document.createElement("span");
+      meta.textContent = [
+        member.role,
+        member.level !== undefined ? `Lv. ${member.level}` : null,
+        member.sameMap === false
+          ? member.map ?? "OTHER MAP"
+          : member.distance !== undefined
+            ? `${Math.round(member.distance)}u`
+            : member.map
+      ].filter(Boolean).join(" · ");
+      top.append(name, meta);
+
+      const bars = document.createElement("div");
+      bars.className = "al25d-party-bars";
+
+      for (const [kind, current, maximum] of [
+        ["hp", member.hp, member.maxHp],
+        ["mp", member.mp, member.maxMp]
+      ] as const) {
+        if (
+          current === undefined ||
+          maximum === undefined ||
+          maximum <= 0
+        ) {
+          continue;
+        }
+
+        const bar = document.createElement("span");
+        bar.dataset.kind = kind;
+        const fill = document.createElement("i");
+        fill.style.width =
+          `${Math.max(0, Math.min(1, current / maximum)) * 100}%`;
+        bar.appendChild(fill);
+        bars.appendChild(bar);
+      }
+
+      body.append(top, bars);
+      row.append(portrait, body);
+      this.partyFrame.appendChild(row);
     }
   }
 
