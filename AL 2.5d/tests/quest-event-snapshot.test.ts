@@ -36,7 +36,10 @@ describe("quest and event snapshot", () => {
           goo: Object.freeze({ name: "Green Goo" })
         }),
         events: Object.freeze({
-          abtesting: Object.freeze({ name: "A/B Testing" })
+          abtesting: Object.freeze({
+            name: "A/B Testing",
+            map: "winterland"
+          })
         })
       })
     });
@@ -74,6 +77,7 @@ describe("quest and event snapshot", () => {
         kind: "event",
         title: "A/B Testing",
         status: "Active",
+        map: "winterland",
         expiresAt: 1900000100000
       }
     ]);
@@ -88,6 +92,9 @@ describe("quest and event snapshot", () => {
 
     expect(hud).toContain('"quests", "QUEST"');
     expect(hud).toContain("renderQuestEvents(this.latestQuestEvents)");
+    expect(hud).toContain("ROUTE TARGET");
+    expect(hud).toContain("CURRENT AREA");
     expect(style).toContain(".al25d-quest-card");
+    expect(style).toContain(".al25d-quest-nav-hint");
   });
 });

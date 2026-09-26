@@ -273,6 +273,7 @@ export class HudOverlay {
   private latestChatChannels: readonly RenderChatChannel[] = Object.freeze([]);
   private latestQuestEvents: readonly RenderQuestEvent[] = Object.freeze([]);
   private latestParty: readonly RenderPartyMember[] = Object.freeze([]);
+  private latestMap = "main";
   private selectedChatChannelId = "main";
   private latestModel: HudModel = Object.freeze({ player: null, target: null });
   private presentationSettings: HudPresentationSettings =
@@ -387,6 +388,7 @@ export class HudOverlay {
     const chatChannelsKey = JSON.stringify(snapshot.chatChannels ?? null);
     const questEventsKey = JSON.stringify(snapshot.questEvents ?? null);
     const key =
+      snapshot.map +
       JSON.stringify(model) +
       playerUiKey +
       partyKey +
@@ -410,6 +412,7 @@ export class HudOverlay {
       ]);
     this.latestQuestEvents = snapshot.questEvents ?? Object.freeze([]);
     this.latestParty = snapshot.party ?? Object.freeze([]);
+    this.latestMap = snapshot.map;
     this.latestModel = model;
     this.renderModel(model);
     this.renderParty(snapshot.party ?? []);
@@ -1328,6 +1331,17 @@ export class HudOverlay {
         const meta = document.createElement("small");
         meta.textContent = metaValues.join(" · ");
         body.appendChild(meta);
+      }
+
+      if (entry.map) {
+        const navigation = document.createElement("span");
+        navigation.className = "al25d-quest-nav-hint";
+        navigation.dataset.local = String(entry.map === this.latestMap);
+        navigation.textContent =
+          entry.map === this.latestMap
+            ? `CURRENT AREA · ${entry.map}`
+            : `ROUTE TARGET · ${entry.map}`;
+        body.appendChild(navigation);
       }
 
       card.append(badge, body);

@@ -1114,7 +1114,9 @@ export function snapshotLegacyQuestEvents(
     const detail =
       stringValue(state?.message) ??
       stringValue(definition?.description);
-    const map = stringValue(state?.map);
+    const map =
+      stringValue(state?.map) ??
+      stringValue(definition?.map);
     const expiresAt =
       finiteNumber(state?.end) ??
       finiteNumber(state?.expires);
