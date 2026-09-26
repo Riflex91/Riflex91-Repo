@@ -100,7 +100,11 @@ export function bauePr21_28ReadinessSnapshot(
     if (!entry.preparationComplete) missing.push("PREPARATION_INCOMPLETE");
     if (!entry.state.liveEvidenceRatified) missing.push("LIVE_EVIDENCE");
     if (!entry.state.explicitRatificationRecorded) missing.push("EXPLICIT_RATIFICATION");
-    if (!entry.state.gateApplyVerified) missing.push("VERIFIED_GATE_APPLY");
+    if (!entry.state.gateApplyVerified) {
+      missing.push("VERIFIED_GATE_APPLY");
+    } else if (!entry.gateSettlementEvidenceSatisfied) {
+      missing.push("VERIFIED_GATE_SETTLEMENT");
+    }
     if (!entry.predecessorProductiveComplete) missing.push("PREDECESSOR_CHAIN");
 
     return Object.freeze({
