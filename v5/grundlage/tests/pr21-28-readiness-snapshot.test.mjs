@@ -323,6 +323,25 @@ test("Readiness-Snapshot-Vertrag und Roadmap binden CAP-022 Full-Chain fail-clos
   assert.equal(boundary.rawWriteAuthority,false);
   assert.equal(boundary.normalRuntimeAllowed,false);
 
+  const terminal=contract.cap022TerminalSettlementBoundary;
+  assert.deepEqual(terminal.requiredStages,["PR22","PR23"]);
+  assert.equal(terminal.ledgerStateField,"cap022TerminalSettlementBinding");
+  assert.equal(terminal.snapshotReadyField,"cap022TerminalSettlementBindingsReady");
+  assert.equal(terminal.snapshotFingerprintField,"cap022TerminalSettlementFingerprints");
+  assert.equal(terminal.missingMarker,"CAP022_TERMINAL_SETTLEMENT");
+  assert.equal(terminal.terminalSettlementRequiresAppliedVerifiedStatus,true);
+  assert.equal(terminal.terminalSettlementMustMatchStage,true);
+  assert.equal(terminal.terminalSettlementFingerprintRequired,true);
+  assert.equal(terminal.productiveChainEligibleRequiresBinding,true);
+  assert.equal(terminal.technicallyPreparedDoesNotRequireTerminalSettlement,true);
+  assert.equal(terminal.snapshotPerformsGateMutation,false);
+  assert.equal(terminal.snapshotIssuesAuthority,false);
+  assert.equal(terminal.currentPr20_9RatificationCredit,false);
+  assert.equal(terminal.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(terminal.durableIntentCreated,false);
+  assert.equal(terminal.productiveCraftAuthorityOpened,false);
+  assert.equal(terminal.normalRuntimeAllowed,false);
+
   const roadmap=JSON.parse(fs.readFileSync(
     "roadmap/post-r19-roadmap.json",
     "utf8",
@@ -339,6 +358,13 @@ test("Readiness-Snapshot-Vertrag und Roadmap binden CAP-022 Full-Chain fail-clos
   assert.equal(binding.technicallyPreparedRequiresFullChain,true);
   assert.equal(binding.productiveChainEligibleRequiresFullChain,true);
   assert.equal(binding.missingOrBlockedChainForcesStatus,"PARTIALLY_PREPARED");
+  assert.deepEqual(binding.cap022TerminalSettlementRequiredStages,["PR22","PR23"]);
+  assert.equal(binding.terminalSettlementLedgerStateField,"cap022TerminalSettlementBinding");
+  assert.equal(binding.terminalSettlementSnapshotReadyField,"cap022TerminalSettlementBindingsReady");
+  assert.equal(binding.terminalSettlementSnapshotFingerprintField,"cap022TerminalSettlementFingerprints");
+  assert.equal(binding.terminalSettlementMissingMarker,"CAP022_TERMINAL_SETTLEMENT");
+  assert.equal(binding.productiveChainEligibleRequiresTerminalSettlementBinding,true);
+  assert.equal(binding.technicallyPreparedDoesNotRequireTerminalSettlement,true);
   assert.equal(binding.currentPr20_9RatificationCredit,false);
   assert.equal(binding.durableIntentCreated,false);
   assert.equal(binding.productiveCraftAuthorityOpened,false);
