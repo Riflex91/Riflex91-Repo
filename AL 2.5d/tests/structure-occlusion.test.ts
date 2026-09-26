@@ -13,7 +13,7 @@ describe("2.5D structure occlusion", () => {
     expect(renderer).toContain("private readonly structureVisuals");
     expect(renderer).toContain("structureVisual.zIndex = this.structureDepth(surface)");
     expect(renderer).toContain("this.world.addChild(structureVisual)");
-    expect(renderer).toContain("visual.container.zIndex = projected.y");
+    expect(renderer).toContain("visual.container.zIndex = this.cameraDepth(projected)");
     expect(renderer).toContain("!layer.parent");
   });
 
