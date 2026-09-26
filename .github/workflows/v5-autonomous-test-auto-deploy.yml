@@ -22,6 +22,9 @@ on:
       - 'v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json'
       - 'v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json'
       - 'v5/werkzeuge/pr20-7-gear-read-only-autonomous.js'
+      - 'v5/werkzeuge/pr21-merchant-integration-live-15m.js'
+      - 'v5/werkzeuge/tests/pr21-merchant-integration-live-15m.test.mjs'
+      - 'v5/roadmap/pr21-merchant-live-execution-authorization.json'
       - 'v5/roadmap/v5-autonomous-test-manifest.json'
       - 'v5/werkzeuge/pr20-8-upgrade-productive-one-write-live.js'
       - 'v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js'
@@ -146,6 +149,9 @@ on:
       - 'v5/roadmap/pr20-7-gear-read-only-preflight-evidence.json'
       - 'v5/roadmap/pr20-7-gear-read-only-preflight-test-plan.json'
       - 'v5/werkzeuge/pr20-7-gear-read-only-autonomous.js'
+      - 'v5/werkzeuge/pr21-merchant-integration-live-15m.js'
+      - 'v5/werkzeuge/tests/pr21-merchant-integration-live-15m.test.mjs'
+      - 'v5/roadmap/pr21-merchant-live-execution-authorization.json'
       - 'v5/roadmap/v5-autonomous-test-manifest.json'
       - 'v5/werkzeuge/pr20-8-upgrade-productive-one-write-live.js'
       - 'v5/werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js'
@@ -262,6 +268,8 @@ jobs:
           node-version: '22'
       - name: Verify V5 autonomous test auto-deploy contract
         run: npm run autonomous-test-deploy:pruefen
+      - name: Verify PR21 merchant 15m live checkpoint package
+        run: node --check werkzeuge/pr21-merchant-integration-live-15m.js && node --test werkzeuge/tests/pr21-merchant-integration-live-15m.test.mjs
       - name: Verify PR20.8 recovery runner v1.0.1
         run: node --check werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js && node --test werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-1.test.mjs
       - name: Verify PR20.8 stale-lease recovery runner v1.0.2
