@@ -163,27 +163,41 @@ test("PR21 live preflight source contains no gameplay or runtime-start bypass",(
   }
 });
 
-test("PR21 live-preflight contract and roadmap preserve PR20.9 blocker",()=>{
+test("PR21 live-preflight accepts explicit PR20.9 development override without runtime authority",()=>{
   const contract=JSON.parse(fs.readFileSync(
     "grundlage/vertraege/runtime/pr21-merchant-integration-live-preflight.json",
     "utf8",
   ));
-  assert.equal(contract.status,"PREPARED_NO_WRITE");
+  assert.equal(contract.status,"PREPARED_NO_WRITE_MANUAL_PR20_9_OVERRIDE");
   assert.deepEqual(contract.requiredProductiveRatifications,ALL_PR20);
-  assert.equal(contract.currentRepositoryState.status,"BLOCKED_BY_PR20_9");
-  assert.deepEqual(contract.currentRepositoryState.missingRatifications,["PR20.9"]);
+  assert.equal(
+    contract.currentRepositoryState.status,
+    "PRECHECK_BEREIT_NO_START_AUTHORITY_MANUAL_PR20_9_OVERRIDE",
+  );
+  assert.deepEqual(contract.currentRepositoryState.missingRatifications,[]);
+  assert.equal(contract.currentRepositoryState.manualPr20_9OverrideAccepted,true);
+  assert.equal(contract.currentRepositoryState.liveCraftEvidenceSatisfied,false);
   assert.equal(contract.currentRepositoryState.externalRuntimeStartAuthorized,false);
   assert.equal(contract.safety.preflightIssuesAuthority,false);
   assert.equal(contract.safety.liveExecutionAllowedByPreflight,false);
+  assert.equal(contract.safety.manualDevelopmentRatificationCredit,true);
+  assert.equal(contract.safety.currentPr20_9RatificationCredit,false);
   assert.equal(contract.safety.normalRuntimeAllowed,false);
 
   const roadmap=JSON.parse(fs.readFileSync(
     "roadmap/post-r19-roadmap.json",
     "utf8",
   ));
-  assert.equal(roadmap.pr20_9.status,"CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE");
-  assert.equal(roadmap.pr21.livePreflight.status,"BLOCKED_BY_PR20_9");
-  assert.deepEqual(roadmap.pr21.livePreflight.missingRatifications,["PR20.9"]);
+  assert.equal(roadmap.currentStage,"PR21");
+  assert.equal(roadmap.currentGate,"PR21_MERCHANT_INTEGRATION");
+  assert.equal(roadmap.pr20_9.status,"MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT");
+  assert.equal(roadmap.pr20_9.manualDevelopmentOverride.status,"BESTANDEN_MANUELL");
+  assert.equal(roadmap.pr20_9.manualDevelopmentOverride.liveCraftEvidenceProduced,false);
+  assert.equal(
+    roadmap.pr21.livePreflight.status,
+    "PRECHECK_BEREIT_NO_START_AUTHORITY_MANUAL_PR20_9_OVERRIDE",
+  );
+  assert.deepEqual(roadmap.pr21.livePreflight.missingRatifications,[]);
   assert.equal(roadmap.pr21.livePreflight.externalRuntimeStartAuthorized,false);
   assert.equal(roadmap.pr21.liveExecutionAllowed,false);
 });
