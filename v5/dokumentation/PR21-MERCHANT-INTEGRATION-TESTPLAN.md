@@ -148,6 +148,23 @@ Dabei bleiben `applyAdapterInstalled=false`, `executionEnabled=false`,
 `authorityIssued=false`. Ein echter Apply bleibt ein separater,
 explizit autorisierter Schritt.
 
+## Apply-Execution-Authorization-Boundary
+
+Nach der Default-Off-Apply-Grenze ist die eigentliche Execution-Freigabe
+separat vorbereitet. Eine Authorization kann nur fuer exakt eine gepinnte
+PR21-Gate-Apply-Transaktion und nur mit dem vollstaendigen Confirmation-Text
+ausgestellt werden.
+
+Die Authorization ist maximal 1500 ms gueltig und auf exakt eine Verwendung
+begrenzt. Direkt vor einer spaeteren Execution muessen der aktuelle Main-Commit
+und der Transaction-Fingerprint erneut passen; vor jeder Mutation bleibt ein
+durable Intent Pflicht. Same-Intent-Retry bleibt verboten und ein unbekannter
+Ausgang muss reconciled werden.
+
+Auch ein erfolgreich erzeugter Authorization-Record fuehrt selbst keinen Apply
+aus: Apply-Adapter und Execution bleiben aus, es erfolgt keine Gate-Mutation und
+keine Gameplay-/Raw-Write-/Broad-Runtime-Authority wird erteilt.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
