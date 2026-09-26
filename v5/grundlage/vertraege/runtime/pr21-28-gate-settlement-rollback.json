@@ -32,7 +32,7 @@
     "cap022CannotBeDroppedAfterApply": true
   },
   "test": "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
-  "nextMilestone": "PREPARE_READINESS_SNAPSHOT_WITH_CAP022_TERMINAL_SETTLEMENT_BINDING",
+  "nextMilestone": "STOP_ACCELERATED_IMPLEMENTATION_AT_REAL_LIVE_EVIDENCE_BOUNDARY_WITH_CAP022_TERMINAL_SETTLEMENT_BOUND",
   "cap022FullChainBoundary": {
     "requiredStages": [
       "PR22",
