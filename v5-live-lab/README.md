@@ -2,7 +2,7 @@
 
 Experimental live-runtime workspace derived from official V5 at:
 
-`0fa25598787fe373ee0531b90071f3c73431e94e`
+`dcf9f47b2d77fe85039838d2beb15e1cc23cb392`
 
 Current integrated browser runtime:
 
@@ -10,9 +10,9 @@ Current integrated browser runtime:
 
 Current runtime version/build:
 
-- `0.5.0`
-- `V5_LIVE_LAB_AL25D_R6_1`
-- branch `chatgpt/v5-live-lab-al25d-r6`
+- `0.6.0`
+- `V5_LIVE_LAB_FULL_AUTONOMY_R8_1`
+- branch `chatgpt/v5-live-lab-full-autonomy-r8`
 
 Live Lab is intentionally isolated from the official V5 verification track. The official `main:v5/` roadmap, historical evidence, dependency gates and step-by-step automated tests remain authoritative and are not modified by Live Lab operation.
 
@@ -41,6 +41,36 @@ Direct/raw transport authority intentionally remains closed:
 - `rawWriteAuthority = false`
 
 All gameplay mutations go through public Adventure Land functions or the bounded V5 Live Lab ports. The runtime does not use `socket.emit(...)` or `api_call(...)` as a mutation bypass.
+
+## Full local autonomy (v0.6.0)
+
+In the local AL 2.5D loopback sandbox, Live Lab now defaults to a full-decision mode.
+
+On load it can start automatically without a separate manual `configure()` step and sets:
+
+- `fullDecisionAuthority = true`
+- `farm.enabled = true`
+- `merchant.enabled = true`
+- automatic farm-target discovery;
+- automatic roaming toward a known monster spawn when no target is currently visible;
+- automatic party-heartbeat discovery from the live Adventure Land party;
+- automatic group topology selection when live peers are available;
+- autonomous Merchant fallback decisions for potion restocking and low-free-slot bank servicing;
+- automatic capability evidence collection.
+
+The optimizer therefore no longer requires a manually supplied monster list before it can create a normal farm task. It ranks live known monsters using bounded level/HP/attack/distance risk inputs and can create a search task when the selected monster type is known from the current map but no instance is visible yet.
+
+The Merchant is no longer treated as a failed solo DPS topology. Its local group requirement is empty and it runs Merchant service logic instead of combat logic.
+
+### Local auto-start scope
+
+Automatic start is restricted to the detected AL 2.5D **loopback** environment. A direct/non-local Adventure Land runtime still requires the explicit start acknowledgement.
+
+The emergency stop, runtime-conflict check, AL25D upstream compatibility check, stale-target validation, irreversible intent fencing, unknown-result no-retry behavior, movement anti-thrash and other fail-closed checks remain enabled.
+
+### Authority boundary
+
+"Full autonomy" means the bot may choose and execute all gameplay decisions exposed through its existing Adventure Land public-function boundary. It still deliberately does **not** introduce a raw `socket.emit(...)` or `api_call(...)` mutation bypass, so `rawWriteAuthority` remains `false`.
 
 ## Implemented live stages
 
@@ -154,7 +184,7 @@ A failed Event/Quest/World revalidation blocks the downstream gameplay action. T
 
 Live Lab intentionally keeps the following safety boundaries active:
 
-- explicit start acknowledgement;
+- explicit start acknowledgement outside the local AL25D full-autonomy auto-start path;
 - emergency stop;
 - V3/V4 concurrent-runtime detection;
 - stale session/roster detection;
@@ -175,7 +205,7 @@ An irreversible public call that throws after dispatch is classified as `UNKNOWN
 
 ## In-game GUI
 
-The v0.5.0 runtime mounts an in-game HUD automatically when the runner is loaded.
+The v0.6.0 runtime mounts an in-game HUD automatically when the runner is loaded.
 
 The HUD provides:
 
@@ -242,7 +272,7 @@ V5LiveLab.unmountGui()
 
 ## 30-second current-situation file
 
-Live Lab v0.5.0 can maintain one continuously updated file for later analysis:
+Live Lab v0.6.0 can maintain one continuously updated file for later analysis:
 
 `D:\\v5-Test\\V5-Live-Situation.md`
 
@@ -342,7 +372,7 @@ V5LiveLab.situationWriterStatus()
 
 ## Local Adventure Land 2.5D compatibility
 
-Live Lab v0.5.0 is compatible with the local **AL 2.5D** client architecture used by
+Live Lab v0.6.0 is compatible with the local **AL 2.5D** client architecture used by
 `chatgpt/al-2.5d-local-sandbox-v7`.
 
 That client deliberately keeps the pinned original Adventure Land gameplay runtime authoritative
