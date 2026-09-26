@@ -368,6 +368,18 @@ Assert(CdpAdventureLandClient.RequiresNativeV3CoordinatorContext(
 Assert(!CdpAdventureLandClient.RequiresNativeV3CoordinatorContext(
     "PR20.9_PRODUCTION", "pr20-9-craft-durable-shadow-no-write"),
     "V5_CONTEXT_PR20_NATIVE_RUNTIME_NOT_REQUIRED");
+Assert(
+    CdpAdventureLandClient.BuildPr21V3BootstrapUrl()
+        == "https://raw.githubusercontent.com/Riflex91/Riflex91-Repo/5dc9d0dfbe303835a82f7b341938aa13ad1626b0/v3/dist/aio-v3.js",
+    "V5_CONTEXT_PR21_BOOTSTRAP_URL_PINNED");
+Assert(
+    CdpAdventureLandClient.Pr21V3BootstrapSha256
+        == "1d20f11de456c7a84bff2b0500da004dd4765106b947ddf29947110f079f2a54",
+    "V5_CONTEXT_PR21_BOOTSTRAP_SHA256_PINNED");
+Assert(CdpAdventureLandClient.Pr21V3BootstrapMaxBytes == 32 * 1024,
+    "V5_CONTEXT_PR21_BOOTSTRAP_SIZE_BOUNDED");
+Assert(CdpAdventureLandClient.Pr21V3BootstrapPath == "v3/dist/aio-v3.js",
+    "V5_CONTEXT_PR21_BOOTSTRAP_PATH_FIXED");
 Assert(CdpAdventureLandClient.IsAllowedSameOriginExecutionContext(
     new Uri("https://adventure.land"),
     "https://adventure.land"), "CDP_CONTEXT_DEFAULT_SAME_ORIGIN_ALLOWED");

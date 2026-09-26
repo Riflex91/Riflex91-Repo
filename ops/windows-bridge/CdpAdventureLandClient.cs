@@ -71,6 +71,11 @@ public sealed class CdpAdventureLandClient
         "https://raw.githubusercontent.com/Riflex91/Riflex91-Repo/main/v5/roadmap/v5-autonomous-test-manifest.json";
     public const int V5AutonomousTestManifestMaxBytes = 32 * 1024;
     public const int V5AutonomousTestPackageHardMaxBytes = 128 * 1024;
+    public const string Pr21V3BootstrapCommit = "5dc9d0dfbe303835a82f7b341938aa13ad1626b0";
+    public const string Pr21V3BootstrapPath = "v3/dist/aio-v3.js";
+    public const string Pr21V3BootstrapSha256 = "1d20f11de456c7a84bff2b0500da004dd4765106b947ddf29947110f079f2a54";
+    public const int Pr21V3BootstrapMaxBytes = 32 * 1024;
+    public const string Pr21V3BootstrapVersionMarker = "Adventure Land AiO Bot 3.0.0-alpha.20.147 | generated | bootstrap loader";
 
     public async Task<V5AutonomousTestDeploymentResult> EnsureV5AutonomousTestAsync(
         CancellationToken cancellationToken)
@@ -84,6 +89,8 @@ public sealed class CdpAdventureLandClient
 
         var targets = await FindTargetsAsync(cancellationToken);
         var workerChanges = await EnsureConfiguredV5WorkersAsync(manifest, targets, cancellationToken);
+        if (RequiresNativeV3CoordinatorContext(manifest.Gate, manifest.TestId))
+            await EnsurePr21NativeV3MerchantContextAsync(targets, cancellationToken);
         string? convergedReadOnlyContextTargetUrl = null;
 
         foreach (var target in targets)
@@ -691,6 +698,101 @@ public sealed class CdpAdventureLandClient
             || !Version.TryParse(currentVersion, out var current))
             return false;
         return desired > current;
+    }
+
+    private async Task EnsurePr21NativeV3MerchantContextAsync(
+        IReadOnlyList<CdpTarget> targets,
+        CancellationToken cancellationToken)
+    {
+        foreach (var target in targets)
+        {
+            using var socket = new ClientWebSocket();
+            try
+            {
+                await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
+                var contexts = await CollectAllowedExecutionContextsAsync(socket, cancellationToken);
+                foreach (var contextId in contexts)
+                {
+                    JsonElement probe;
+                    try
+                    {
+                        probe = await EvaluateAsync(socket, V5DeploymentProbeExpression, contextId, cancellationToken);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        continue;
+                    }
+
+                    var ctype = ReadString(probe, "ctype");
+                    if (!string.Equals(ctype, "merchant", StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    if (ReadBoolean(probe, "hasNativeRuntime", false))
+                        return;
+
+                    var loaderUrl = BuildPr21V3BootstrapUrl();
+                    var loaderBytes = await DownloadBoundedAsync(
+                        loaderUrl,
+                        Pr21V3BootstrapMaxBytes,
+                        cancellationToken);
+                    var actualSha256 = Convert.ToHexString(SHA256.HashData(loaderBytes)).ToLowerInvariant();
+                    if (!string.Equals(actualSha256, Pr21V3BootstrapSha256, StringComparison.Ordinal))
+                        throw new InvalidOperationException("PR21_V3_BOOTSTRAP_SHA256_MISMATCH");
+
+                    var loaderSource = Encoding.UTF8.GetString(loaderBytes);
+                    if (!loaderSource.Contains(Pr21V3BootstrapVersionMarker, StringComparison.Ordinal)
+                        || !loaderSource.Contains("cloudflare-bootstrap-loader-v1", StringComparison.Ordinal))
+                        throw new InvalidOperationException("PR21_V3_BOOTSTRAP_MARKER_MISSING");
+
+                    var expression = "(() => { globalThis.AIO_V3_AUTOSTART = false;\n"
+                        + loaderSource
+                        + "\n; return { installed: true }; })()";
+                    await EvaluateAsync(socket, expression, contextId, cancellationToken);
+
+                    var ready = await WaitForPr21NativeV3RuntimeAsync(
+                        socket,
+                        contextId,
+                        cancellationToken);
+                    if (ready)
+                        return;
+                }
+            }
+            catch (WebSocketException)
+            {
+                // Try another same-origin Adventure Land target.
+            }
+        }
+
+        throw new InvalidOperationException("PR21_NATIVE_V3_MERCHANT_CONTEXT_NOT_READY");
+    }
+
+    public static string BuildPr21V3BootstrapUrl() =>
+        $"https://raw.githubusercontent.com/Riflex91/Riflex91-Repo/{Pr21V3BootstrapCommit}/{Pr21V3BootstrapPath}";
+
+    private async Task<bool> WaitForPr21NativeV3RuntimeAsync(
+        ClientWebSocket socket,
+        int contextId,
+        CancellationToken cancellationToken)
+    {
+        var deadline = DateTimeOffset.UtcNow.AddSeconds(10);
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            JsonElement probe;
+            try
+            {
+                probe = await EvaluateAsync(socket, V5DeploymentProbeExpression, contextId, cancellationToken);
+            }
+            catch (InvalidOperationException)
+            {
+                await Task.Delay(250, cancellationToken);
+                continue;
+            }
+
+            if (ReadBoolean(probe, "hasNativeRuntime", false))
+                return true;
+            await Task.Delay(250, cancellationToken);
+        }
+
+        return false;
     }
 
     private async Task<byte[]> DownloadBoundedAsync(
