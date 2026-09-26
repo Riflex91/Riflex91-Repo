@@ -217,3 +217,51 @@ test("settlement and rollback source contains no apply, rollback or gameplay byp
     assert.equal(source.includes(marker),false,marker);
   }
 });
+
+
+test("Settlement-/Rollback-Vertrag und Roadmap erhalten CAP-022 terminal",()=>{
+  const contract=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json",
+    "utf8",
+  ));
+  const boundary=contract.cap022FullChainBoundary;
+  assert.deepEqual(boundary.requiredStages,["PR22","PR23"]);
+  assert.deepEqual(boundary.settlementFields,[
+    "cap022FullChainRequired",
+    "cap022FullChainSatisfied",
+  ]);
+  assert.equal(boundary.settlementFingerprintIncludesBinding,true);
+  assert.equal(boundary.settlementRequiresStageConsistentBinding,true);
+  assert.equal(boundary.rollbackPlanCarriesBinding,true);
+  assert.equal(boundary.rollbackRequiresSatisfiedBinding,true);
+  assert.equal(boundary.settlementPerformsGateMutation,false);
+  assert.equal(boundary.settlementIssuesAuthority,false);
+  assert.equal(boundary.rollbackAdapterInstalled,false);
+  assert.equal(boundary.rollbackExecutionEnabled,false);
+  assert.equal(boundary.currentPr20_9RatificationCredit,false);
+  assert.equal(boundary.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(boundary.durableIntentCreatedBySettlement,false);
+  assert.equal(boundary.productiveCraftAuthorityOpened,false);
+
+  const roadmap=JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  const binding=
+    roadmap.pr23.materialAcquisitionFoundation
+      .fullChainOrchestrationReadiness.gateSettlementRollbackBinding;
+  assert.deepEqual(binding.requiredStages,["PR22","PR23"]);
+  assert.equal(binding.settlementFingerprintIncludesCap022,true);
+  assert.equal(binding.settlementRequiresStageConsistentBinding,true);
+  assert.equal(binding.rollbackPlanCarriesBinding,true);
+  assert.equal(binding.rollbackRequiresSatisfiedBinding,true);
+  assert.equal(binding.settlementPerformsGateMutation,false);
+  assert.equal(binding.settlementIssuesAuthority,false);
+  assert.equal(binding.rollbackAdapterInstalled,false);
+  assert.equal(binding.rollbackExecutionEnabled,false);
+  assert.equal(binding.currentPr20_9RatificationCredit,false);
+  assert.equal(binding.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(binding.durableIntentCreatedBySettlement,false);
+  assert.equal(binding.productiveCraftAuthorityOpened,false);
+  assert.equal(binding.normalRuntimeAllowed,false);
+});
