@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "phase": "4-vertical-pilot",
+  "rules": {
+    "defaultScale": 8,
+    "allowedScales": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "preserveLogicalSize": true,
+    "originalFallbackRequired": true,
+    "resolutionSuffixRequired": true,
+    "activeOverridesAllowed": true,
+    "nonDefaultScaleRequiresExceptionReason": true,
+    "note": "8x is the project standard. Any non-8x replacement requires an explicit scaleExceptionReason."
+  },
+  "replacements": [
+    {
+      "sourcePath": "images/tiles/characters/jubchan_1.png",
+      "hdPath": "characters/jubchan_1@8x.png",
+      "scale": 8,
+      "state": "active",
+      "preserveLogicalSize": true,
+      "originalFallback": true,
+      "role": "phase4-artistic-pilot",
+      "originalBlobSha": "fc464d13e76b2cc61838afdfb483043b3e31f406",
+      "originalPixels": {
+        "width": 78,
+        "height": 144
+      },
+      "hdPixels": {
+        "width": 624,
+        "height": 1152
+      },
+      "runtimeGrid": {
+        "columns": 3,
+        "rows": 4
+      },
+      "logicalCell": {
+        "width": 26,
+        "height": 36
+      },
+      "assetSha256": "2e1fc37956ce559ffaf66acd8b234fe859279a8dd4f863aa254e7cd9d4e4bcd3",
+      "note": "Approved artistic 8x remaster. Logical frame geometry remains identical to the original."
+    }
+  ]
+}
