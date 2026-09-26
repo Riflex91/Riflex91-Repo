@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_PR22_PRODUCTIVE_GATE_APPLY_POST_SETTLEMENT_PROPOSAL_ONLY",
+  "sourceMain": "1a935d092aa933e351210bd6673018b0bcbfdaa0",
+  "source": "v5/grundlage/quelle/koordination/pr22-coordination-productive-gate-apply-post-settlement-boundary.ts",
+  "test": "v5/grundlage/tests/pr22-coordination-productive-gate-apply-post-settlement-boundary.test.mjs",
+  "requiredExecutionStatus": "APPLIED_VERIFIED_PR22_PRODUCTIVE_GATE_RECORD_ONLY",
+  "requiredSettlementStatus": "APPLIED_VERIFIED_PR22_PRODUCTIVE_GATE_RECORD_ONLY",
+  "successStatus": "READY_FOR_SEPARATE_PR22_PRODUCTIVE_AUTHORITY_APPLY",
+  "revalidation": {
+    "executionRequired": true,
+    "settlementFingerprintRequired": true,
+    "currentMainMustMatchSettlementSource": true,
+    "repositoryStateRequired": true,
+    "featureGateRequired": true,
+    "cap022FullChainRequired": true
+  },
+  "authorityApply": {
+    "separateApplyRequired": true,
+    "freshMainCheckRequired": true,
+    "settlementFingerprintRecheckRequired": true,
+    "transactionFingerprintRecheckRequired": true,
+    "proposalFingerprintRecheckRequired": true,
+    "evidenceFingerprintRecheckRequired": true,
+    "ratificationFingerprintRecheckRequired": true,
+    "repositoryStateRecheckRequired": true,
+    "featureGateRecheckRequired": true,
+    "cap022FullChainRecheckRequired": true,
+    "adapterInstalled": false,
+    "executionEnabled": false
+  },
+  "safety": {
+    "postSettlementProposalOnly": true,
+    "additionalGateMutationPerformed": false,
+    "productiveAuthorityIssued": false,
+    "pr22ProductiveAuthorityIssued": false,
+    "sendCmAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadRuntimeGrant": false,
+    "normalRuntimeAllowed": false,
+    "repositoryMutationPerformed": false,
+    "controlPlaneMutationPerformed": false,
+    "genericExecuteBackdoorAllowed": false,
+    "genericMutationBackdoorAllowed": false
+  },
+  "executionPerformedInRepository": false,
+  "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_AUTHORITY_DEFAULT_OFF_APPLY_BOUNDARY"
+}
