@@ -40,6 +40,17 @@ jobs:
         shell: bash
         run: |
           echo "66fef5c19149ac4cf8a625b0c1b19a5ca6a359f35e1c0ec9d4350bf69de2235f  /tmp/alhd-artifacts/doors@8x.png" | sha256sum --check --strict
+      - name: Reject invalid explicit terrain scale
+        working-directory: Adventure Land HD
+        shell: bash
+        run: |
+          if node tools/build-nearest-png.mjs \
+            --input "../.upstream-adventureland/images/tiles/map/doors.png" \
+            --output "/tmp/alhd-artifacts/invalid-scale.png" \
+            --scale 0; then
+            echo "explicit --scale 0 must fail" >&2
+            exit 1
+          fi
       - name: Upload Mainland doors 8x pilot artifact
         uses: actions/upload-artifact@v4
         with:
