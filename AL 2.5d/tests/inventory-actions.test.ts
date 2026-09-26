@@ -38,6 +38,9 @@ function interactiveSource(calls: string[]): LegacyCompatibilitySource {
         return id === "maincode"
           ? { contentWindow: runner }
           : null;
+      },
+      querySelectorAll() {
+        return [];
       }
     } as unknown as Document
   };
