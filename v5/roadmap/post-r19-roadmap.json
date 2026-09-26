@@ -122,7 +122,8 @@
     "PR21 Merchant Gate-Advance-Proposal-Boundary ist proposal-only vorbereitet: nur ein RATIFIED_RECORD_ONLY des Merchant-Checkpoints mit frischem main, passendem Package-Fingerprint und produktiv eligible PR21-Feature-Gate kann READY_FOR_SEPARATE_GATE_APPLY werden. Die Proposal-Grenze mutiert kein Gate, erteilt keine Authority und verlangt vor einem spaeteren Apply erneut einen frischen Main-Check.",
     "PR21 Merchant Default-Off-Apply-Boundary ist NO-EXECUTION vorbereitet: ein READY_FOR_SEPARATE_GATE_APPLY-Proposal wird nur in eine PREPARED_DEFAULT_OFF-Transaktion überführt und gegen Main/Stage/Package-/Ratification-Fingerprints revalidiert. Apply-Adapter und Execution bleiben aus, kein Durable Intent wird erzeugt, kein Gate mutiert und keine Authority erteilt.",
     "PR21 Merchant Apply-Execution-Authorization-Boundary ist vorbereitet: aus einer READY_DEFAULT_OFF-Transaktion kann nur nach exakt gebundener Operator-Bestaetigung eine maximal 1500ms gueltige One-Shot-Authorization-Record entstehen. Main und Transaction-Fingerprint muessen vor Execution erneut geprueft werden; Durable Intent bleibt vor Mutation Pflicht. Die Authorization installiert keinen Apply-Adapter, fuehrt keinen Apply aus und mutiert kein Gate.",
-    "PR21 Merchant One-Shot-Gate-Apply-Execution-Boundary ist vorbereitet: nur ein frischer AUTHORIZED_ONE_SHOT_RECORD_ONLY fuer exakt dieselbe PREPARED_DEFAULT_OFF-Transaktion darf nach persistent bestaetigtem Durable Intent den schmal typisierten PR21-Control-Plane-Adapter aufrufen. Vor Mutation werden Main, Transaction-, Package- und Ratification-Fingerprints erneut gebunden; ein vorhandener Durable Intent oder Restart erzwingt Reconciliation statt Resume/Retry. Nach jedem Mutationsversuch ist eine separate Postcondition-Verifikation Pflicht; UNKNOWN oder unverifizierte Ergebnisse bleiben blockiert. Ein verifizierter Apply wird ueber die bestehenden Gate-Reconciliation-/Settlement-Bausteine als APPLIED_VERIFIED_RECORD_ONLY festgehalten. Gameplay-, Raw-Write-, Broad-Runtime- und NormalRuntime-Authority bleiben false; PR22 bleibt blockiert."
+    "PR21 Merchant One-Shot-Gate-Apply-Execution-Boundary ist vorbereitet: nur ein frischer AUTHORIZED_ONE_SHOT_RECORD_ONLY fuer exakt dieselbe PREPARED_DEFAULT_OFF-Transaktion darf nach persistent bestaetigtem Durable Intent den schmal typisierten PR21-Control-Plane-Adapter aufrufen. Vor Mutation werden Main, Transaction-, Package- und Ratification-Fingerprints erneut gebunden; ein vorhandener Durable Intent oder Restart erzwingt Reconciliation statt Resume/Retry. Nach jedem Mutationsversuch ist eine separate Postcondition-Verifikation Pflicht; UNKNOWN oder unverifizierte Ergebnisse bleiben blockiert. Ein verifizierter Apply wird ueber die bestehenden Gate-Reconciliation-/Settlement-Bausteine als APPLIED_VERIFIED_RECORD_ONLY festgehalten. Gameplay-, Raw-Write-, Broad-Runtime- und NormalRuntime-Authority bleiben false; PR22 bleibt blockiert.",
+    "PR21 Merchant Post-Settlement-Transition-Boundary ist proposal-only vorbereitet: nur ein APPLIED_VERIFIED_RECORD_ONLY aus der One-Shot-Gate-Apply-Execution mit passender erfolgreicher Reconciliation und einem aus seinen Entry-States reproduzierbaren Stage-Ledger darf einen READY_FOR_SEPARATE_STAGE_COMPLETION_APPLY-Record erzeugen. PR21 muss dabei als hoechste produktiv eligible Stage im Ledger stehen; PR22 darf noch nicht produktiv eligible sein. Die Grenze schreibt weder Roadmap noch Ledger, schliesst PR21 nicht selbst ab und aktiviert PR22 nicht. Vor einem spaeteren Stage-Completion-Apply ist erneut ein frischer Main-Check erforderlich; Gameplay-, Raw-Write-, Broad-Runtime- und NormalRuntime-Authority bleiben false."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -6514,7 +6515,7 @@
     }
   },
   "pr21": {
-    "status": "ONE_SHOT_GATE_APPLY_EXECUTION_BOUNDARY_PREPARED",
+    "status": "POST_SETTLEMENT_TRANSITION_BOUNDARY_PREPARED",
     "foundationStatus": "PREPARED_NO_WRITE",
     "ziel": "Merchant Gesamtintegration",
     "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
@@ -6615,7 +6616,7 @@
       "normalRuntimeAllowed": false,
       "nextAction": "OBSERVER_HANDOFF_PREPARED"
     },
-    "nextAction": "PREPARE_PR21_GATE_APPLY_POST_SETTLEMENT_TRANSITION_BOUNDARY",
+    "nextAction": "PREPARE_PR21_STAGE_COMPLETION_APPLY_BOUNDARY",
     "observerHandoff": {
       "status": "PREPARED_NO_WRITE_NO_START_AUTHORITY",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-observer-handoff.ts",
@@ -6828,7 +6829,41 @@
       "broadRuntimeGrant": false,
       "normalRuntimeAllowed": false,
       "pr22Activated": false,
-      "nextAction": "PREPARE_PR21_GATE_APPLY_POST_SETTLEMENT_TRANSITION_BOUNDARY"
+      "nextAction": "POST_SETTLEMENT_TRANSITION_BOUNDARY_PREPARED"
+    },
+    "postSettlementTransitionBoundary": {
+      "status": "PREPARED_POST_SETTLEMENT_TRANSITION_PROPOSAL_ONLY",
+      "source": "v5/grundlage/quelle/merchant/pr21-merchant-post-settlement-transition-boundary.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-post-settlement-transition-boundary.json",
+      "test": "v5/grundlage/tests/pr21-merchant-post-settlement-transition-boundary.test.mjs",
+      "stage": "PR21",
+      "nextStage": "PR22",
+      "requiredExecutionStatus": "APPLIED_VERIFIED_RECORD_ONLY",
+      "requiredSettlementStatus": "APPLIED_VERIFIED_RECORD_ONLY",
+      "requiredReconciliationStatus": "ALREADY_APPLIED_REQUIRES_RECORD_ONLY",
+      "requiredTransitionStatus": "READY_FOR_SEPARATE_STAGE_COMPLETION_APPLY",
+      "ledgerRebuildValidationRequired": true,
+      "ledgerFingerprintMatchRequired": true,
+      "pr21PreparationCompleteRequired": true,
+      "pr21LiveEvidenceRatifiedRequired": true,
+      "pr21ExplicitRatificationRequired": true,
+      "pr21VerifiedGateApplyRequired": true,
+      "pr21ProductiveEligibleRequired": true,
+      "highestProductiveEligibleStageRequired": "PR21",
+      "pr22ProductiveEligibleAtTransition": false,
+      "freshMainCheckRequiredAtApply": true,
+      "separateStageCompletionApplyRequired": true,
+      "pr21StageCompletionApplied": false,
+      "pr22DevelopmentStageActivated": false,
+      "pr22ProductiveAuthorityIssued": false,
+      "roadmapMutationPerformed": false,
+      "ledgerMutationPerformed": false,
+      "stageMutationPerformed": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadRuntimeGrant": false,
+      "normalRuntimeAllowed": false,
+      "nextAction": "PREPARE_PR21_STAGE_COMPLETION_APPLY_BOUNDARY"
     }
   },
   "pr22": {
