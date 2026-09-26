@@ -5,7 +5,7 @@
   "targetScale": 8,
   "preserveLogicalSize": true,
   "originalFallback": true,
-  "note": "Production contract for Mainland terrain. No entry becomes active until an exact 8x candidate passes validation and live A/B review.",
+  "note": "Production contract for Mainland terrain. 8x remains the standard. Monolithic atlases that would exceed the 8192px compatibility edge use the highest allowed lower integer scale with an explicit exception reason. No entry is final artistic HD until live A/B review.",
   "tilesets": [
     {
       "id": "castle",
@@ -22,7 +22,8 @@
       },
       "frames": 1,
       "frameWidth": null,
-      "state": "awaiting-art"
+      "state": "awaiting-art",
+      "scale": 8
     },
     {
       "id": "custom",
@@ -39,7 +40,8 @@
       },
       "frames": 1,
       "frameWidth": null,
-      "state": "awaiting-art"
+      "state": "awaiting-art",
+      "scale": 8
     },
     {
       "id": "custom2",
@@ -56,7 +58,8 @@
       },
       "frames": 1,
       "frameWidth": null,
-      "state": "awaiting-art"
+      "state": "awaiting-art",
+      "scale": 8
     },
     {
       "id": "custom_a",
@@ -73,7 +76,8 @@
       },
       "frames": 3,
       "frameWidth": 16,
-      "state": "awaiting-art"
+      "state": "awaiting-art",
+      "scale": 8
     },
     {
       "id": "doors",
@@ -90,7 +94,8 @@
       },
       "frames": 1,
       "frameWidth": null,
-      "state": "awaiting-art"
+      "state": "awaiting-art",
+      "scale": 8
     },
     {
       "id": "dungeon",
@@ -107,7 +112,8 @@
       },
       "frames": 1,
       "frameWidth": null,
-      "state": "awaiting-art"
+      "state": "awaiting-art",
+      "scale": 8
     },
     {
       "id": "fort",
@@ -124,24 +130,27 @@
       },
       "frames": 1,
       "frameWidth": null,
-      "state": "awaiting-art"
+      "state": "awaiting-art",
+      "scale": 8
     },
     {
       "id": "house",
       "sourcePath": "images/tiles/map/house.png",
-      "hdPath": "map/house@8x.png",
+      "hdPath": "map/house@7x.png",
       "originalBlobSha": "bb9f6a69615c3bf8986271b0555d49ff647c32ec",
       "originalPixels": {
         "width": 1104,
         "height": 1168
       },
       "hdPixels": {
-        "width": 8832,
-        "height": 9344
+        "width": 7728,
+        "height": 8176
       },
       "frames": 1,
       "frameWidth": null,
-      "state": "awaiting-art"
+      "state": "awaiting-art",
+      "scale": 7,
+      "scaleExceptionReason": "8x would exceed the 8192px monolithic texture compatibility edge; use the highest allowed lower integer scale that keeps both atlas dimensions at or below 8192px."
     },
     {
       "id": "inside",
@@ -158,7 +167,8 @@
       },
       "frames": 1,
       "frameWidth": null,
-      "state": "awaiting-art"
+      "state": "awaiting-art",
+      "scale": 8
     },
     {
       "id": "lights",
@@ -176,7 +186,8 @@
       "frames": 1,
       "frameWidth": null,
       "light": "yes",
-      "state": "awaiting-art"
+      "state": "awaiting-art",
+      "scale": 8
     },
     {
       "id": "new",
@@ -193,7 +204,8 @@
       },
       "frames": 1,
       "frameWidth": null,
-      "state": "awaiting-art"
+      "state": "awaiting-art",
+      "scale": 8
     },
     {
       "id": "outside",
@@ -210,7 +222,8 @@
       },
       "frames": 1,
       "frameWidth": null,
-      "state": "awaiting-art"
+      "state": "awaiting-art",
+      "scale": 8
     },
     {
       "id": "puzzle",
@@ -227,24 +240,28 @@
       },
       "frames": 3,
       "frameWidth": 16,
-      "state": "awaiting-art"
+      "state": "awaiting-art",
+      "scale": 8
     },
     {
       "id": "water",
       "sourcePath": "images/tiles/map/water_updated.png",
-      "hdPath": "map/water_updated@8x.png",
+      "hdPath": "map/water_updated@6x.png",
       "originalBlobSha": "b37726dfcc8312b7ebbf3ea457136d0742c8bc33",
       "originalPixels": {
         "width": 704,
         "height": 1264
       },
       "hdPixels": {
-        "width": 5632,
-        "height": 10112
+        "width": 4224,
+        "height": 7584
       },
       "frames": 3,
       "frameWidth": 48,
-      "state": "awaiting-art"
+      "state": "awaiting-art",
+      "scale": 6,
+      "scaleExceptionReason": "8x would exceed the 8192px monolithic texture compatibility edge; use the highest allowed lower integer scale that keeps both atlas dimensions at or below 8192px."
     }
-  ]
+  ],
+  "compatibilityMaxTextureEdge": 8192
 }
