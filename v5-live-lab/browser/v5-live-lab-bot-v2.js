@@ -3725,16 +3725,19 @@
       if (handle) {
         situationDirectoryHandle = handle;
         situationPermission = await directoryPermission(handle, false);
-      } else {
-        situationPermission = fileAccessWindow() ? "unconfigured" : "unsupported";
+        startSituationWriter();
+        if (situationPermission === "granted") {
+          await writeSituationFileNow();
+        }
+        return situationWriterStatus();
       }
+
+      situationPermission = fileAccessWindow() ? "unconfigured" : "unsupported";
       startSituationWriter();
-      await writeSituationFileNow();
       return situationWriterStatus();
     } catch (error) {
       situationLastWriteError = String(error && error.message || error);
       startSituationWriter();
-      await writeSituationFileNow();
       return situationWriterStatus();
     }
   }
