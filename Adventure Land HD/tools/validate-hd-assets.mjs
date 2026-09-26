@@ -22,6 +22,11 @@ function imageSize(file){
   return null;
 }
 const errors=[];
+const normalizeSourcePath=value=>String(value||"").split("?")[0].split("#")[0].replace(/^\\/+/, "");
+const normalizedSourcePaths=(manifest.replacements||[])
+  .filter(item=>typeof item?.sourcePath==="string")
+  .map(item=>normalizeSourcePath(item.sourcePath));
+if(new Set(normalizedSourcePaths).size!==normalizedSourcePaths.length) errors.push("replacement sourcePath values must be unique after normalization");
 if(manifest.rules?.defaultScale!==8) errors.push("manifest rules.defaultScale must be 8");
 for(const item of manifest.replacements||[]){
   if(!["prepared","active"].includes(item.state)) errors.push((item.sourcePath||"?")+": state must be prepared or active");
