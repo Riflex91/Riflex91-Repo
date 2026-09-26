@@ -114,7 +114,8 @@
     "PR21 besitzt jetzt einen fail-closed Live-Preflight vor dem 15m-Merchant-Checkpoint: current main, Merchant-Readiness, Checkpoint/Runbook-Bindung und alle PR20.1-PR20.9-Ratifizierungen muessen zusammen passen. Der aktuelle Stand bleibt wegen PR20.9 BLOCKED_BY_PR20_9; der Preflight selbst startet keine Runtime und erteilt keine Authority.",
     "PR20.9 Craft wurde auf ausdrueckliche Operator-Entscheidung fuer den Entwicklungsfortschritt manuell als BESTANDEN gewertet. Die historische No-Candidate-Evidence bleibt unveraendert und gilt weiterhin als Nachweis dafuer, dass kein natuerlicher NORMAL_CRAFT_ONLY-Kandidat beobachtet wurde. Der Override erzeugt keine Live-Craft-Evidence und erteilt keine Craft-/Gameplay-/Raw-Write-/NormalRuntime-Authority. PR21 ist damit fuer die Weiterentwicklung aktiv.",
     "PR21 Merchant-Checkpoint-Admission ist NO-WRITE vorbereitet: der aktive PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT ist fest an 900s MERCHANT_INTEGRATION_15M, 5s Sampling, Observer-only Milestone-Runner und Runbook gebunden. Der manuelle PR20.9-Override bleibt explizit von echter Craft-Live-Evidence getrennt. Die Admission startet keine Runtime und erteilt keine Gameplay-/Raw-Write-/NormalRuntime-Authority; naechster Schritt ist der Observer-Handoff.",
-    "PR21 Merchant Observer-Handoff ist NO-WRITE vorbereitet: Checkpoint/Segment bleiben auf PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT bzw. pr21-merchant-integration gepinnt, 900s Ziel mit 5s Sampling und maximal 15s Sample-Gap. Health muss GESUND sein, Operations aktuell, Recorder-Drops=0 und die aktive Authority-Menge exakt runtime:merchant; jede unerwartete Authority blockiert fail-closed. Der Observer startet keine Runtime und erteilt keine Gameplay-/Raw-Write-/NormalRuntime-Authority. Naechster Schritt ist die bounded Sample-Collector-Grenze."
+    "PR21 Merchant Observer-Handoff ist NO-WRITE vorbereitet: Checkpoint/Segment bleiben auf PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT bzw. pr21-merchant-integration gepinnt, 900s Ziel mit 5s Sampling und maximal 15s Sample-Gap. Health muss GESUND sein, Operations aktuell, Recorder-Drops=0 und die aktive Authority-Menge exakt runtime:merchant; jede unerwartete Authority blockiert fail-closed. Der Observer startet keine Runtime und erteilt keine Gameplay-/Raw-Write-/NormalRuntime-Authority. Naechster Schritt ist die bounded Sample-Collector-Grenze.",
+    "PR21 Merchant Sample-Collector ist NO-WRITE vorbereitet: maximal 184 In-Memory-Samples, 900s Ziel, 5s Sampling, maximal 15s Gap. Jeder Health/Operations/Authority-/Safety-Fehler friert die Serie fail-closed ein; ein sauberer 181-Sample-Lauf ist direkt mit dem bestehenden PR21-28-Milestone-Runner kompatibel. Der Collector startet keine Runtime und erteilt keine Gameplay-/Raw-Write-/NormalRuntime-Authority. Naechster Schritt ist der Freeze/Evaluation-Handoff."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -1497,7 +1498,7 @@
     },
     {
       "id": "PR21_MERCHANT_INTEGRATION",
-      "status": "OBSERVER_HANDOFF_PREPARED_NO_WRITE",
+      "status": "SAMPLE_COLLECTOR_PREPARED_NO_WRITE",
       "blockedBy": [],
       "gameplayAuthority": false,
       "artifact": "v5/dokumentation/PR21-MERCHANT-INTEGRATION-TESTPLAN.md",
@@ -1547,7 +1548,10 @@
         "v5/grundlage/tests/pr21-merchant-checkpoint-admission.test.mjs",
         "v5/grundlage/quelle/merchant/pr21-merchant-observer-handoff.ts",
         "v5/grundlage/vertraege/runtime/pr21-merchant-observer-handoff.json",
-        "v5/grundlage/tests/pr21-merchant-observer-handoff.test.mjs"
+        "v5/grundlage/tests/pr21-merchant-observer-handoff.test.mjs",
+        "v5/grundlage/quelle/merchant/pr21-merchant-sample-collector.ts",
+        "v5/grundlage/vertraege/runtime/pr21-merchant-sample-collector.json",
+        "v5/grundlage/tests/pr21-merchant-sample-collector.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1563,9 +1567,10 @@
       "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
       "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
       "manualPr20_9Override": "v5/roadmap/pr20-9-craft-manual-development-override.json",
-      "nextAction": "PREPARE_PR21_15M_SAMPLE_COLLECTOR_BOUNDARY",
+      "nextAction": "PREPARE_PR21_15M_SAMPLE_FREEZE_EVALUATION_HANDOFF",
       "checkpointAdmission": "v5/grundlage/vertraege/runtime/pr21-merchant-checkpoint-admission.json",
-      "observerHandoff": "v5/grundlage/vertraege/runtime/pr21-merchant-observer-handoff.json"
+      "observerHandoff": "v5/grundlage/vertraege/runtime/pr21-merchant-observer-handoff.json",
+      "sampleCollector": "v5/grundlage/vertraege/runtime/pr21-merchant-sample-collector.json"
     },
     {
       "id": "PR22_MULTI_CHARACTER",
@@ -6482,7 +6487,7 @@
     }
   },
   "pr21": {
-    "status": "OBSERVER_HANDOFF_PREPARED_NO_WRITE",
+    "status": "SAMPLE_COLLECTOR_PREPARED_NO_WRITE",
     "foundationStatus": "PREPARED_NO_WRITE",
     "ziel": "Merchant Gesamtintegration",
     "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
@@ -6583,7 +6588,7 @@
       "normalRuntimeAllowed": false,
       "nextAction": "OBSERVER_HANDOFF_PREPARED"
     },
-    "nextAction": "PREPARE_PR21_15M_SAMPLE_COLLECTOR_BOUNDARY",
+    "nextAction": "PREPARE_PR21_15M_SAMPLE_FREEZE_EVALUATION_HANDOFF",
     "observerHandoff": {
       "status": "PREPARED_NO_WRITE_NO_START_AUTHORITY",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-observer-handoff.ts",
@@ -6616,7 +6621,38 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PREPARE_PR21_15M_SAMPLE_COLLECTOR_BOUNDARY"
+      "nextAction": "SAMPLE_COLLECTOR_PREPARED"
+    },
+    "sampleCollector": {
+      "status": "PREPARED_NO_WRITE_NO_START_AUTHORITY",
+      "source": "v5/grundlage/quelle/merchant/pr21-merchant-sample-collector.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-sample-collector.json",
+      "test": "v5/grundlage/tests/pr21-merchant-sample-collector.test.mjs",
+      "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+      "segmentId": "pr21-merchant-integration",
+      "targetDurationMs": 900000,
+      "sampleIntervalMs": 5000,
+      "maximumSampleGapMs": 15000,
+      "expectedSamplesForTarget": 181,
+      "maximumSamples": 184,
+      "monotonicTimeRequired": true,
+      "boundedInMemoryOnly": true,
+      "freezesAtTarget": true,
+      "freezesOnFailClosedSignal": true,
+      "freezesOnSampleLimitBeforeTarget": true,
+      "existingPr21_28ObservabilityEvaluatorReused": true,
+      "existingMilestoneRunnerOutputCompatible": true,
+      "pr20_9RatificationBasis": "MANUAL_DEVELOPMENT_OVERRIDE",
+      "liveCraftEvidenceSatisfied": false,
+      "observerOnly": true,
+      "externalRuntimeStartAuthorized": false,
+      "collectorGameplayWrites": 0,
+      "collectorPublicFunctionCalls": 0,
+      "collectorRawWriteCalls": 0,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "nextAction": "PREPARE_PR21_15M_SAMPLE_FREEZE_EVALUATION_HANDOFF"
     }
   },
   "pr22": {
