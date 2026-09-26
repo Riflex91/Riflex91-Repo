@@ -44,7 +44,7 @@ test("PR20.9 manual development override advances roadmap without inventing Craf
   const pr21=roadmap.stages.find(x=>x.id==="PR21");
   assert.equal(pr20?.status,"COMPLETE_MANUAL_OVERRIDE");
   assert.equal(pr21?.status,"IN_PROGRESS");
-  assert.equal(roadmap.pr21.status,"REPOSITORY_STAGE_STATE_ONE_SHOT_EXECUTION_BOUNDARY_PREPARED");
+  assert.equal(roadmap.pr21.status,"REPOSITORY_STAGE_STATE_POST_EXECUTION_FINALIZATION_BOUNDARY_PREPARED");
   assert.deepEqual(roadmap.pr21.blockedBy,[]);
   assert.equal(roadmap.pr21.liveExecutionAllowed,false);
   assert.equal(roadmap.pr21.livePreflight.manualPr20_9OverrideAccepted,true);
@@ -100,6 +100,11 @@ test("PR20.9 manual development override advances roadmap without inventing Craf
   assert.equal(roadmap.pr21.repositoryStageStateOneShotExecutionBoundary.repositoryStageStateApplied,false);
   assert.equal(roadmap.pr21.repositoryStageStateOneShotExecutionBoundary.currentStage,"PR21");
   assert.equal(roadmap.pr21.repositoryStageStateOneShotExecutionBoundary.pr22StageStatus,"BLOCKED_BY_PR21");
+  assert.equal(roadmap.pr21.repositoryStageStatePostExecutionFinalizationBoundary.status,"PREPARED_POST_EXECUTION_FINALIZATION_RECORD_ONLY");
+  assert.equal(roadmap.pr21.repositoryStageStatePostExecutionFinalizationBoundary.executionPerformed,false);
+  assert.equal(roadmap.pr21.repositoryStageStatePostExecutionFinalizationBoundary.pr22DevelopmentHandoffPreparedOnVerifiedExecution,true);
+  assert.equal(roadmap.pr21.repositoryStageStatePostExecutionFinalizationBoundary.pr22ProductiveHandoffPrepared,false);
+  assert.equal(roadmap.pr21.repositoryStageStatePostExecutionFinalizationBoundary.additionalRepositoryMutationPerformed,false);
   assert.equal(roadmap.pr21.applyExecutionAuthorizationBoundary.executionEnabled,false);
 });
 
@@ -136,7 +141,7 @@ test("Merchant and PR21 contracts accept only the development override, never ru
 
   assert.equal(
     foundations.stages.pr21.status,
-    "REPOSITORY_STAGE_STATE_ONE_SHOT_EXECUTION_BOUNDARY_PREPARED",
+    "REPOSITORY_STAGE_STATE_POST_EXECUTION_FINALIZATION_BOUNDARY_PREPARED",
   );
   assert.equal(foundations.stages.pr21.livePreflight.manualPr20_9OverrideAccepted,true);
   assert.deepEqual(foundations.stages.pr21.livePreflight.currentMissingRatifications,[]);
@@ -191,5 +196,10 @@ test("Merchant and PR21 contracts accept only the development override, never ru
   assert.equal(foundations.stages.pr21.repositoryStageStateOneShotExecutionBoundary.repositoryStageStateApplied,false);
   assert.equal(foundations.stages.pr21.repositoryStageStateOneShotExecutionBoundary.currentStage,"PR21");
   assert.equal(foundations.stages.pr21.repositoryStageStateOneShotExecutionBoundary.pr22StageStatus,"BLOCKED_BY_PR21");
+  assert.equal(foundations.stages.pr21.repositoryStageStatePostExecutionFinalizationBoundary.status,"PREPARED_POST_EXECUTION_FINALIZATION_RECORD_ONLY");
+  assert.equal(foundations.stages.pr21.repositoryStageStatePostExecutionFinalizationBoundary.executionPerformed,false);
+  assert.equal(foundations.stages.pr21.repositoryStageStatePostExecutionFinalizationBoundary.pr22DevelopmentHandoffPreparedOnVerifiedExecution,true);
+  assert.equal(foundations.stages.pr21.repositoryStageStatePostExecutionFinalizationBoundary.pr22ProductiveHandoffPrepared,false);
+  assert.equal(foundations.stages.pr21.repositoryStageStatePostExecutionFinalizationBoundary.additionalRepositoryMutationPerformed,false);
   assert.equal(foundations.stages.pr21.applyExecutionAuthorizationBoundary.executionEnabled,false);
 });
