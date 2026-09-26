@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_EXPLICIT_STAGE_COMPLETION_ONE_SHOT_AUTHORIZATION_NO_EXECUTION",
+  "sourceMain": "f23ae28a17f1eb9c7aabc7a99a141b2a2bce6a02",
+  "stage": "PR21",
+  "nextStage": "PR22",
+  "source": "v5/grundlage/quelle/merchant/pr21-merchant-stage-completion-execution-authorization-boundary.ts",
+  "test": "v5/grundlage/tests/pr21-merchant-stage-completion-execution-authorization-boundary.test.mjs",
+  "requiredBoundaryStatus": "READY_DEFAULT_OFF",
+  "requiredDefaultOffStatus": "PREPARED_STAGE_COMPLETION_DEFAULT_OFF",
+  "authorization": {
+    "draftStatus": "AWAITING_EXPLICIT_STAGE_COMPLETION_AUTHORIZATION",
+    "recordStatus": "AUTHORIZED_STAGE_COMPLETION_ONE_SHOT_RECORD_ONLY",
+    "exactConfirmationRequired": true,
+    "maximumTtlMs": 1500,
+    "maximumUses": 1,
+    "freshMainCheckRequiredAtExecution": true,
+    "transactionFingerprintRecheckRequiredAtExecution": true,
+    "transitionFingerprintRecheckRequiredAtExecution": true,
+    "durableIntentRequiredBeforeMutation": true,
+    "oneShotExecutionRequired": true,
+    "sameIntentRetryAllowed": false,
+    "postconditionVerificationRequired": true,
+    "unknownOutcomeRequiresReconciliation": true
+  },
+  "safety": {
+    "authorizationRecordDoesNotExecuteStageCompletion": true,
+    "stageCompletionAdapterInstalled": false,
+    "executionEnabled": false,
+    "executionPerformed": false,
+    "pr21StageCompletionApplied": false,
+    "pr22DevelopmentStageActivated": false,
+    "pr22ProductiveAuthorityIssued": false,
+    "roadmapMutationPerformed": false,
+    "ledgerMutationPerformed": false,
+    "stageMutationPerformed": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadRuntimeGrant": false,
+    "normalRuntimeAllowed": false
+  },
+  "nextAction": "PREPARE_PR21_STAGE_COMPLETION_ONE_SHOT_EXECUTION_BOUNDARY"
+}
