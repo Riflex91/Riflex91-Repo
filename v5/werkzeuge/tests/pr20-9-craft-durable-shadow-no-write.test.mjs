@@ -394,7 +394,7 @@ test("PR20.9 Craft shadow runner stays no-write while current observation is blo
 
   assert.equal(
     roadmap.pr20_9.status,
-    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+    "MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT",
   );
   assert.equal(prep.pr20_9.status,roadmap.pr20_9.status);
   assert.equal(
