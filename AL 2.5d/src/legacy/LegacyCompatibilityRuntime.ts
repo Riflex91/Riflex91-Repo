@@ -6,6 +6,34 @@ export const PINNED_ADVENTURE_LAND_COMMIT =
 
 export type GraphicsMode = "2.5d" | "original";
 
+export type LegacyLootRewardItemSnapshot = Readonly<{
+  name: string;
+  displayName: string;
+  level?: number;
+  quantity?: number;
+  looter?: string;
+  lostAndFound?: boolean;
+  pvpLoot?: boolean;
+}>;
+
+export type LegacyLootRewardSnapshot = Readonly<{
+  chestId: string;
+  opener?: string;
+  gold?: number;
+  party?: boolean;
+  gone?: boolean;
+  dry?: boolean;
+  stale?: boolean;
+  items: readonly LegacyLootRewardItemSnapshot[];
+}>;
+
+type LegacySocketLike = Readonly<{
+  connected?: boolean;
+  on?: (event: string, listener: (data: unknown) => void) => unknown;
+  off?: (event: string, listener: (data: unknown) => void) => unknown;
+  removeListener?: (event: string, listener: (data: unknown) => void) => unknown;
+}>;
+
 export type LegacyMapClickEvent = Readonly<{
   data: Readonly<{
     global: Readonly<{
@@ -29,7 +57,7 @@ export type LegacyCompatibilitySource = LegacyGlobalsLike & {
   private_say?: (name: string, message: string) => unknown;
   open_chest?: (id: string) => unknown;
   enter_selected_character?: (name: string, id: string) => unknown;
-  socket?: Readonly<{ connected?: boolean }>;
+  socket?: LegacySocketLike;
   socket_welcomed?: boolean;
   X?: Readonly<{
     characters?: readonly Readonly<{
@@ -45,6 +73,90 @@ export type LegacyCompatibilitySource = LegacyGlobalsLike & {
   code_active?: boolean;
   __AL25D_UPSTREAM_COMMIT__?: string;
 };
+
+function rewardRecord(
+  value: unknown
+): Readonly<Record<string, unknown>> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Readonly<Record<string, unknown>>)
+    : undefined;
+}
+
+function rewardString(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function rewardNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+/**
+ * Copies only server-authored chest_opened reward fields into an immutable
+ * presentation snapshot. Inventory/gold deltas are intentionally not inferred.
+ */
+export function snapshotLegacyLootReward(
+  data: unknown,
+  source: LegacyCompatibilitySource
+): LegacyLootRewardSnapshot | null {
+  const payload = rewardRecord(data);
+  if (!payload) return null;
+
+  const rawId = payload.id;
+  const chestId =
+    typeof rawId === "string"
+      ? rawId.trim()
+      : typeof rawId === "number" && Number.isFinite(rawId)
+        ? String(rawId)
+        : "";
+  if (!chestId) return null;
+
+  const items: LegacyLootRewardItemSnapshot[] = [];
+  if (Array.isArray(payload.items)) {
+    for (const rawItem of payload.items) {
+      const item = rewardRecord(rawItem);
+      const name = rewardString(item?.name);
+      if (!item || !name) continue;
+
+      const definition = rewardRecord(source.G?.items?.[name]);
+      const displayName = rewardString(definition?.name) ?? name;
+      const level = rewardNumber(item.level);
+      const quantity = rewardNumber(item.q);
+      const looter = rewardString(item.looter);
+
+      items.push(
+        Object.freeze({
+          name,
+          displayName,
+          ...(level === undefined
+            ? {}
+            : { level: Math.max(0, Math.floor(level)) }),
+          ...(quantity === undefined || quantity <= 1
+            ? {}
+            : { quantity: Math.max(1, Math.floor(quantity)) }),
+          ...(looter ? { looter } : {}),
+          ...(item.lostandfound === true ? { lostAndFound: true } : {}),
+          ...(item.pvp_loot === true ? { pvpLoot: true } : {})
+        })
+      );
+    }
+  }
+
+  const gold = rewardNumber(payload.gold);
+  const opener = rewardString(payload.opener);
+
+  return Object.freeze({
+    chestId,
+    ...(opener ? { opener } : {}),
+    ...(gold === undefined ? {} : { gold: Math.max(0, Math.round(gold)) }),
+    ...(payload.party === true ? { party: true } : {}),
+    ...(payload.gone === true ? { gone: true } : {}),
+    ...(payload.dry === true ? { dry: true } : {}),
+    ...(payload.stale === true ? { stale: true } : {}),
+    items: Object.freeze(items)
+  });
+}
 
 type HiddenCanvasState = Readonly<{
   element: HTMLElement;
@@ -302,6 +414,11 @@ export class LegacyCompatibilityRuntime {
   private graphicsMode: GraphicsMode = "2.5d";
   private readonly hostVisibility: string;
   private readonly hostPointerEvents: string;
+  private observedLootSocket: LegacySocketLike | null = null;
+  private observedLootListener: ((data: unknown) => void) | null = null;
+  private readonly lootRewardSubscribers = new Set<
+    (reward: LegacyLootRewardSnapshot) => void
+  >();
 
   constructor(
     private readonly visibleHost?: HTMLElement,
@@ -324,7 +441,9 @@ export class LegacyCompatibilityRuntime {
     }
 
     this.restoreHiddenCanvases();
+    this.detachLootRewardObserver();
     this.source = source;
+    this.attachLootRewardObserver(source);
 
     this.applyGraphicsMode();
 
@@ -394,6 +513,15 @@ export class LegacyCompatibilityRuntime {
   readGlobals = (): LegacyGlobalsLike => {
     return this.requireSource();
   };
+
+  subscribeLootRewards(
+    listener: (reward: LegacyLootRewardSnapshot) => void
+  ): () => void {
+    this.lootRewardSubscribers.add(listener);
+    return () => {
+      this.lootRewardSubscribers.delete(listener);
+    };
+  }
 
   dispatchWorldClick(target: WorldPoint): unknown {
     return dispatchLegacyWorldClick(target, this.requireSource());
@@ -629,6 +757,7 @@ export class LegacyCompatibilityRuntime {
   }
 
   stop(): void {
+    this.detachLootRewardObserver();
     this.restoreHiddenCanvases();
     this.restoreVisibleHost();
 
@@ -643,6 +772,44 @@ export class LegacyCompatibilityRuntime {
 
   get ready(): boolean {
     return this.source !== null;
+  }
+
+  private attachLootRewardObserver(source: LegacyCompatibilitySource): void {
+    const socket = source.socket;
+    if (!socket || typeof socket.on !== "function") return;
+
+    const listener = (data: unknown): void => {
+      const reward = snapshotLegacyLootReward(data, source);
+      if (!reward) return;
+
+      for (const subscriber of this.lootRewardSubscribers) {
+        subscriber(reward);
+      }
+    };
+
+    socket.on("chest_opened", listener);
+    this.observedLootSocket = socket;
+    this.observedLootListener = listener;
+  }
+
+  private detachLootRewardObserver(): void {
+    const socket = this.observedLootSocket;
+    const listener = this.observedLootListener;
+
+    this.observedLootSocket = null;
+    this.observedLootListener = null;
+
+    if (!socket || !listener) return;
+
+    try {
+      if (typeof socket.off === "function") {
+        socket.off("chest_opened", listener);
+      } else if (typeof socket.removeListener === "function") {
+        socket.removeListener("chest_opened", listener);
+      }
+    } catch {
+      // Presentation observer cleanup must never disturb legacy gameplay.
+    }
   }
 
   private requireSource(): LegacyCompatibilitySource {

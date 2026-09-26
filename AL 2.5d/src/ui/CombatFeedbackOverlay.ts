@@ -6,7 +6,10 @@ import type {
   RenderSkillVisualKind,
   RenderLootChest
 } from "../render/RenderBridge";
-import type { GraphicsMode } from "../legacy/LegacyCompatibilityRuntime";
+import type {
+  GraphicsMode,
+  LegacyLootRewardSnapshot
+} from "../legacy/LegacyCompatibilityRuntime";
 
 export type CombatFeedbackKind =
   | "damage"
@@ -109,6 +112,7 @@ export class CombatFeedbackOverlay {
   private previousHp: ReadonlyMap<string, number> = new Map();
   private previousLoot: ReadonlyMap<string, RenderLootChest> = new Map();
   private previousMap: string | null = null;
+  private readonly rewardedLoot = new Set<string>();
   private mode: GraphicsMode = "original";
   private enabled = true;
 
@@ -136,6 +140,10 @@ export class CombatFeedbackOverlay {
     const diff = diffEntityHitPoints(this.previousHp, snapshot);
     this.previousHp = diff.nextHp;
 
+    if (this.previousMap !== null && this.previousMap !== snapshot.map) {
+      this.rewardedLoot.clear();
+    }
+
     const lootDiff = diffLootChests(
       this.previousMap === snapshot.map
         ? this.previousLoot
@@ -148,6 +156,7 @@ export class CombatFeedbackOverlay {
     if (this.root.hidden) return;
 
     for (const chest of lootDiff.removed) {
+      if (this.rewardedLoot.delete(chest.id)) continue;
       this.spawnLootOpened(chest, camera, viewport);
     }
 
@@ -240,6 +249,54 @@ export class CombatFeedbackOverlay {
     this.impact(entity, camera, viewport, "attack");
   }
 
+  lootReward(
+    reward: LegacyLootRewardSnapshot,
+    localName: string | undefined,
+    camera: CameraState,
+    viewport: ViewportSize
+  ): void {
+    if (this.root.hidden || reward.gone) return;
+
+    const chest = this.previousLoot.get(reward.chestId);
+    if (!chest) return;
+
+    const owner = localName?.trim() || reward.opener;
+    const personalItems = reward.items.filter((item) => {
+      if (item.lostAndFound) return false;
+      if (reward.party) return Boolean(owner && item.looter === owner);
+      return !item.looter || !owner || item.looter === owner;
+    });
+    const parts: string[] = [];
+
+    if (typeof reward.gold === "number" && reward.gold > 0) {
+      parts.push(`+${reward.gold.toLocaleString("en-US")} GOLD`);
+    }
+
+    for (const item of personalItems.slice(0, 2)) {
+      const level =
+        typeof item.level === "number" && item.level > 0
+          ? ` +${item.level}`
+          : "";
+      const quantity =
+        typeof item.quantity === "number" && item.quantity > 1
+          ? ` ×${item.quantity}`
+          : "";
+      parts.push(`${item.displayName}${level}${quantity}`);
+    }
+
+    if (personalItems.length > 2) {
+      parts.push(`+${personalItems.length - 2} ITEMS`);
+    }
+
+    this.rewardedLoot.add(reward.chestId);
+    this.spawnLootOpened(
+      chest,
+      camera,
+      viewport,
+      parts.length ? parts.join(" · ") : "CHEST OPENED"
+    );
+  }
+
   private syncVisibility(): void {
     this.root.hidden = this.mode !== "2.5d" || !this.enabled;
   }
@@ -248,6 +305,7 @@ export class CombatFeedbackOverlay {
     this.previousHp = new Map();
     this.previousLoot = new Map();
     this.previousMap = null;
+    this.rewardedLoot.clear();
     this.root.replaceChildren();
   }
 
@@ -259,7 +317,8 @@ export class CombatFeedbackOverlay {
   private spawnLootOpened(
     chest: RenderLootChest,
     camera: CameraState,
-    viewport: ViewportSize
+    viewport: ViewportSize,
+    textValue = "CHEST OPENED"
   ): void {
     const point = worldToViewport(chest, camera, viewport);
     const marker = document.createElement("span");
@@ -270,7 +329,7 @@ export class CombatFeedbackOverlay {
     const icon = document.createElement("i");
     icon.textContent = "✦";
     const text = document.createElement("b");
-    text.textContent = "CHEST OPENED";
+    text.textContent = textValue;
 
     marker.append(icon, text);
     this.root.appendChild(marker);

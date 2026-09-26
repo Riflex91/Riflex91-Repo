@@ -104,6 +104,7 @@ async function boot(): Promise<void> {
   };
   let legacyMirror: LegacyMirrorBridge | null = null;
   let legacyRuntime: LegacyCompatibilityRuntime | null = null;
+  let unsubscribeLootRewards: (() => void) | null = null;
   let latestSnapshot: GameFrameSnapshot | null = null;
   let graphicsMode: GraphicsMode =
     window.localStorage.getItem("al25d.graphicsMode") === "original"
@@ -335,6 +336,8 @@ async function boot(): Promise<void> {
     runtime: LegacyCompatibilityRuntime
   ): void => {
     if (legacyRuntime && legacyRuntime !== runtime) {
+      unsubscribeLootRewards?.();
+      unsubscribeLootRewards = null;
       legacyRuntime.stop();
     }
 
@@ -343,6 +346,16 @@ async function boot(): Promise<void> {
     graphicsToggle.setMode(graphicsMode);
     graphicsToggle.setReady(true);
     graphicsToggle.dockToLegacyUi(runtime.getLegacyDocument());
+    unsubscribeLootRewards?.();
+    unsubscribeLootRewards = runtime.subscribeLootRewards((reward) => {
+      const localName = latestSnapshot?.entities.find(
+        (entity) => entity.local
+      )?.name;
+      combatFeedback.lootReward(reward, localName, camera, {
+        width: host.clientWidth,
+        height: host.clientHeight
+      });
+    });
     startMirror(runtime.readGlobals);
   };
 
@@ -399,6 +412,8 @@ async function boot(): Promise<void> {
     stopLegacyRuntime: () => {
       legacyMirror?.stop();
       legacyMirror = null;
+      unsubscribeLootRewards?.();
+      unsubscribeLootRewards = null;
       legacyRuntime?.stop();
       legacyRuntime = null;
       hud.clear();
