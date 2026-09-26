@@ -1495,10 +1495,8 @@
     },
     {
       "id": "PR21_MERCHANT_INTEGRATION",
-      "status": "BLOCKED_BY_PR20",
-      "blockedBy": [
-        "PR20"
-      ],
+      "status": "IN_PROGRESS_MANUAL_PR20_9_OVERRIDE",
+      "blockedBy": [],
       "gameplayAuthority": false,
       "artifact": "v5/dokumentation/PR21-MERCHANT-INTEGRATION-TESTPLAN.md",
       "foundationStatus": "PREPARED_NO_WRITE",
@@ -1540,7 +1538,8 @@
         "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
-        "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs"
+        "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs",
+        "v5/roadmap/pr20-9-craft-manual-development-override.json"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1554,7 +1553,8 @@
       "gateSettlementStatus": "PREPARED_RECORD_ONLY",
       "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
       "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
-      "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY"
+      "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
+      "manualPr20_9Override": "v5/roadmap/pr20-9-craft-manual-development-override.json"
     },
     {
       "id": "PR22_MULTI_CHARACTER",
@@ -2883,7 +2883,8 @@
     "newGameplayWriteAdapterBeforeGate": false,
     "liveRunnerBeforeCapabilityGate": false,
     "planningContractsTestsAndRecoveryAllowed": true,
-    "activeLiveGate": "PR20.8_WERTMUTATIONEN"
+    "activeLiveGate": "PR20.8_WERTMUTATIONEN",
+    "activeDevelopmentGate": "PR21_MERCHANT_INTEGRATION"
   },
   "pr20_1": {
     "status": "BESTANDEN",
