@@ -24,6 +24,7 @@ if(head!==lock.commit) errors.push("wrong upstream commit: "+head);
 if(plan.upstreamCommit!==lock.commit) errors.push("terrain plan upstreamCommit must match UPSTREAM.lock.json");
 if(plan.mapId!=="main") errors.push("terrain plan mapId must be main");
 if(plan.targetScale!==8) errors.push("terrain plan targetScale must be 8");
+if(!Number.isInteger(plan.compatibilityMaxTextureEdge)||plan.compatibilityMaxTextureEdge<2048) errors.push("terrain plan compatibilityMaxTextureEdge must be an integer >= 2048");
 if(plan.preserveLogicalSize!==true) errors.push("terrain plan must preserve logical size");
 if(plan.originalFallback!==true) errors.push("terrain plan must require original fallback");
 
@@ -52,15 +53,25 @@ for(const entry of entries){
   const upstreamSource=normalizeAssetPath(def.file);
   if(sourcePath!==upstreamSource) errors.push(entry.id+": sourcePath mismatch: "+sourcePath+" != "+upstreamSource);
   if(entry.state!=="awaiting-art") errors.push(entry.id+": production plan entries must remain awaiting-art");
-  if(!hasResolutionSuffix(entry.hdPath,8)) errors.push(entry.id+": hdPath must contain @8x");
+  if(!Number.isInteger(entry.scale)||entry.scale<2||entry.scale>plan.targetScale) errors.push(entry.id+": scale must be an integer from 2 through "+plan.targetScale);
+  if(!hasResolutionSuffix(entry.hdPath,entry.scale)) errors.push(entry.id+": hdPath suffix must match declared scale");
   if(!String(entry.hdPath).startsWith("map/")) errors.push(entry.id+": hdPath must stay under map/");
   const source=sourcePath&&path.join(upstream,...sourcePath.split("/"));
   if(!source||!fs.existsSync(source)){errors.push(entry.id+": source file missing");continue;}
   const size=pngSize(source);
   if(!size){errors.push(entry.id+": source must be a PNG with readable IHDR");continue;}
   if(JSON.stringify(size)!==JSON.stringify(entry.originalPixels)) errors.push(entry.id+": originalPixels drifted");
-  const scale=validateUniformIntegerScale(size,entry.hdPixels,8);
+  const expectedScale=Math.min(
+    plan.targetScale,
+    Math.floor(plan.compatibilityMaxTextureEdge/size.width),
+    Math.floor(plan.compatibilityMaxTextureEdge/size.height)
+  );
+  if(entry.scale!==expectedScale) errors.push(entry.id+": scale must be the highest allowed integer <= "+plan.targetScale+" that stays within the "+plan.compatibilityMaxTextureEdge+"px compatibility edge; expected "+expectedScale);
+  if(entry.scale!==plan.targetScale&&!(typeof entry.scaleExceptionReason==="string"&&entry.scaleExceptionReason.trim())) errors.push(entry.id+": non-default scale requires scaleExceptionReason");
+  if(entry.scale===plan.targetScale&&entry.scaleExceptionReason) errors.push(entry.id+": default-scale entry must not carry scaleExceptionReason");
+  const scale=validateUniformIntegerScale(size,entry.hdPixels,entry.scale);
   if(!scale.ok) errors.push(...scale.errors.map(error=>entry.id+": "+error));
+  if(entry.hdPixels.width>plan.compatibilityMaxTextureEdge||entry.hdPixels.height>plan.compatibilityMaxTextureEdge) errors.push(entry.id+": HD atlas exceeds compatibility edge");
   const blobSha=execFileSync("git",["-C",upstream,"hash-object",sourcePath],{encoding:"utf8"}).trim();
   if(blobSha!==entry.originalBlobSha) errors.push(entry.id+": originalBlobSha drifted");
   const expectedFrames=Number.isInteger(def.frames)&&def.frames>0?def.frames:1;
@@ -74,4 +85,4 @@ if(errors.length){
   console.error(errors.join("\n"));
   process.exit(1);
 }
-console.log("Mainland terrain plan verified:",entries.length,"tilesets at exact 8x target dimensions.");
+console.log("Mainland terrain plan verified:",entries.length,"tilesets;",entries.filter(entry=>entry.scale!==plan.targetScale).length,"documented scale exceptions; max edge",plan.compatibilityMaxTextureEdge+"px.");
