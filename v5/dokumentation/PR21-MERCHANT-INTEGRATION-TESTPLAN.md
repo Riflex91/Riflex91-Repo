@@ -327,6 +327,23 @@ Repository-Transition-, Completion-Fingerprint- und Repository-State-Recheck
 sowie Durable Intent, One-Shot-Ausfuehrung, Postcondition-Verifikation und
 Reconciliation bei UNKNOWN Pflicht.
 
+## Repository-Stage-State-Execution-Authorization-Boundary
+
+Die Freigabe fuer die spaetere Repository-State-Mutation wird separat,
+kurzlebig und transaktionsgebunden vorbereitet. Aus
+`PREPARED_REPOSITORY_STAGE_STATE_DEFAULT_OFF` entsteht zunaechst nur
+`AWAITING_EXPLICIT_REPOSITORY_STAGE_STATE_AUTHORIZATION`.
+
+Nur der vollstaendige Confirmation-Text mit exakt passendem Transaction-
+Fingerprint und gepinntem Main darf innerhalb maximal 1500 ms einen
+`AUTHORIZED_REPOSITORY_STAGE_STATE_ONE_SHOT_RECORD_ONLY` erzeugen.
+
+Der Authorization-Record fuehrt selbst keine Repository-Mutation aus.
+Vor einer spaeteren One-Shot-Execution muessen Main, Transaction-,
+Repository-Transition- und Completion-Fingerprint sowie der komplette
+Repository-Ausgangszustand erneut exakt passen. Durable Intent,
+Postcondition-Verifikation und Reconciliation bei UNKNOWN bleiben Pflicht.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
