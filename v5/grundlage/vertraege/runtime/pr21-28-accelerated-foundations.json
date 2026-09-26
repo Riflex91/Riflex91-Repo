@@ -13,7 +13,7 @@
   },
   "stages": {
     "pr21": {
-      "status": "GATE_PROPOSAL_BOUNDARY_PREPARED_PROPOSAL_ONLY",
+      "status": "DEFAULT_OFF_APPLY_BOUNDARY_PREPARED_NO_EXECUTION",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
       "purpose": "Merchant Gesamtintegration Readiness und Safety/Thrash/Starvation Gate",
       "productiveGate": "PR20_COMPLETE_AND_15M_MERCHANT_INTEGRATION_EVIDENCE",
@@ -175,7 +175,33 @@
         "rawWriteAuthority": false,
         "broadRuntimeGrant": false,
         "normalRuntimeAllowed": false,
-        "nextMilestone": "PREPARE_PR21_DEFAULT_OFF_GATE_APPLY_BOUNDARY"
+        "nextMilestone": "DEFAULT_OFF_APPLY_BOUNDARY_PREPARED"
+      },
+      "defaultOffApplyBoundary": {
+        "status": "PREPARED_DEFAULT_OFF_NO_EXECUTION",
+        "source": "v5/grundlage/quelle/merchant/pr21-merchant-default-off-apply-boundary.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-default-off-apply-boundary.json",
+        "test": "v5/grundlage/tests/pr21-merchant-default-off-apply-boundary.test.mjs",
+        "stage": "PR21",
+        "proposalStatus": "READY_FOR_SEPARATE_GATE_APPLY",
+        "transactionStatus": "PREPARED_DEFAULT_OFF",
+        "validationStatus": "READY_DEFAULT_OFF",
+        "currentMainRecheckRequired": true,
+        "durableIntentRequiredBeforeApply": true,
+        "oneShotApplyRequired": true,
+        "sameIntentRetryAllowed": false,
+        "postconditionVerificationRequired": true,
+        "unknownOutcomeRequiresReconciliation": true,
+        "applyAdapterInstalled": false,
+        "executionEnabled": false,
+        "gateMutationPerformed": false,
+        "authorityIssued": false,
+        "broadRuntimeGrant": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false,
+        "durableIntentCreated": false,
+        "nextMilestone": "PREPARE_PR21_APPLY_EXECUTION_AUTHORIZATION_BOUNDARY"
       }
     },
     "pr22": {

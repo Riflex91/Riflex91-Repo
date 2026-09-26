@@ -129,6 +129,25 @@ Der maximal erreichbare Zustand ist `READY_FOR_SEPARATE_GATE_APPLY`.
 Der Proposal selbst setzt kein Gate, erteilt keine Authority und verlangt
 beim spaeteren Apply erneut einen frischen Main-Check.
 
+## Default-Off Gate-Apply-Grenze
+
+Nach einem `READY_FOR_SEPARATE_GATE_APPLY`-Proposal wird die PR21-Apply-
+Transaktion weiterhin ausschließlich **vorbereitet**, nicht ausgeführt.
+
+Die PR21-spezifische Grenze:
+
+- erzeugt eine deterministisch gebundene `PREPARED_DEFAULT_OFF`-Transaktion;
+- revalidiert Main, Stage, Package-Fingerprint und Ratification-Fingerprint;
+- verlangt Durable Intent vor einem spaeteren Apply;
+- verlangt One-Shot-Ausfuehrung ohne Same-Intent-Retry;
+- verlangt Postcondition-Verifikation;
+- schickt UNKNOWN spaeter zwingend in Reconciliation.
+
+Dabei bleiben `applyAdapterInstalled=false`, `executionEnabled=false`,
+`durableIntentCreated=false`, `gateMutationPerformed=false` und
+`authorityIssued=false`. Ein echter Apply bleibt ein separater,
+explizit autorisierter Schritt.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
