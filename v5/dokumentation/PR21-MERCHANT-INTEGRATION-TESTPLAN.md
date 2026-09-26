@@ -100,6 +100,17 @@ Der maximal erreichbare Zustand ist
 `AWAITING_EXPLICIT_RATIFICATION`; der Handoff ratifiziert nicht selbst,
 mutiert kein Gate und erteilt keine Authority.
 
+## Explizite Ratification-Record-Grenze
+
+Die PR21-spezifische Ratification-Grenze akzeptiert ausschließlich einen
+`READY_FOR_EXPLICIT_MANUAL_RATIFICATION`-Handoff des Merchant-Checkpoints.
+Der Bestätigungstext muss exakt dem im Draft gepinnten Text entsprechen.
+
+Ein erfolgreicher Aufruf erzeugt nur `RATIFIED_RECORD_ONLY`. Dabei bleiben
+`gateAdvanced=false`, `authorityIssued=false` und
+`broadRuntimeGrant=false`; das Result-Package bleibt unverändert gebunden.
+Damit ist Ratifizierung bewusst von einem späteren Gate-Advance getrennt.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
