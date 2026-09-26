@@ -60,7 +60,7 @@ test("active manifest remains the exact no-write durable shadow",()=>{
   assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-9-craft-durable-shadow-natural-recheck-no-write.js");
   assert.equal(
     manifest.packageSha256,
-    "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
+    "f1b5fc3fd761fbca12355976543e823bff4bf53efed074b1d4820433a0567008",
   );
   assert.equal(manifest.expectedGlobal,"V5PR209CraftDurableShadowNaturalRecheckNoWrite");
   assert.equal(manifest.normalRuntimeAllowed,false);
