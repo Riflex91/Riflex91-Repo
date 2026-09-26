@@ -74,6 +74,9 @@ jobs:
             --upstream "../.upstream-adventureland" \
             --output-dir "/tmp/alhd-mainland-terrain" \
             --report "/tmp/alhd-mainland-terrain-report.json"
+      - name: Verify Mainland terrain candidate report
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-terrain-candidate-report.mjs --report "/tmp/alhd-mainland-terrain-report.json"
       - name: Upload Mainland terrain candidate report
         uses: actions/upload-artifact@v4
         with:
