@@ -111,7 +111,8 @@
     "CAP-022 Full-Chain bleibt jetzt auch im terminalen Gate-Settlement und im Default-Off-Rollback-Plan erhalten: PR22/PR23-Settlement-Fingerprints tragen die stage-konsistente Full-Chain-Bindung; manipulierte oder fehlende Bindungen werden vor Settlement/Rollback fail-closed verworfen.",
     "PR22/PR23 Stage-Ledger und Advance-Replay bewahren jetzt zusaetzlich die terminale CAP-022-Gate-Settlement-Bindung: produktive Replay-Eignung verlangt einen stage-konsistenten APPLIED_VERIFIED_RECORD_ONLY-Settlement-Fingerprint; fehlende oder manipulierte Bindung blockiert fail-closed, ohne Gate- oder Gameplay-Authority zu erteilen.",
     "Der Readiness-Snapshot macht die terminale CAP-022-Settlement-Bindung fuer PR22/PR23 jetzt explizit sichtbar: fehlende Bindungen erscheinen als CAP022_TERMINAL_SETTLEMENT, vorhandene Settlement-Fingerprints werden read-only gespiegelt; TECHNICALLY_PREPARED bleibt davon getrennt und produktive Eignung kann die Bindung nicht umgehen.",
-    "PR21 besitzt jetzt einen fail-closed Live-Preflight vor dem 15m-Merchant-Checkpoint: current main, Merchant-Readiness, Checkpoint/Runbook-Bindung und alle PR20.1-PR20.9-Ratifizierungen muessen zusammen passen. Der aktuelle Stand bleibt wegen PR20.9 BLOCKED_BY_PR20_9; der Preflight selbst startet keine Runtime und erteilt keine Authority."
+    "PR21 besitzt jetzt einen fail-closed Live-Preflight vor dem 15m-Merchant-Checkpoint: current main, Merchant-Readiness, Checkpoint/Runbook-Bindung und alle PR20.1-PR20.9-Ratifizierungen muessen zusammen passen. Der aktuelle Stand bleibt wegen PR20.9 BLOCKED_BY_PR20_9; der Preflight selbst startet keine Runtime und erteilt keine Authority.",
+    "PR20.9 besitzt jetzt einen getrennten NO-WRITE Natural-Candidate-Recheck als aktives Manifest-Ziel: solange kein NORMAL_CRAFT_ONLY-Kandidat im natuerlichen Merchant-Inventar existiert, bleibt der Runner nichtterminal und prueft alle 60 Sekunden erneut. Kandidatenbeschaffung/-mutation, Craft-/Gameplay-/Raw-Write-Authority und PR21-Freigabe bleiben false; die historische v1.0.0 No-Candidate-Evidence bleibt unveraendert."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -1024,7 +1025,11 @@
         "v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs",
         "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json",
-        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs"
+        "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
+        "v5/werkzeuge/pr20-9-craft-durable-shadow-natural-recheck-no-write.js",
+        "v5/werkzeuge/tests/pr20-9-craft-durable-shadow-natural-recheck-no-write.test.mjs",
+        "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-natural-recheck.json",
+        "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-natural-recheck-manifest-cutover.json"
       ],
       "deferredAutomaticMaterialRecheck": {
         "status": "WAITING_FOR_FUTURE_PRODUCTIVE_MATERIAL_ACQUISITION",
@@ -5672,7 +5677,7 @@
       "sameIntentRetry": false,
       "normalRuntimeAllowed": false,
       "manifestCutoverPrepared": true,
-      "active": true,
+      "active": false,
       "packageSha256": "a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a",
       "packageBytes": 26951,
       "manifestCutover": "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-manifest-cutover.json",
@@ -5686,7 +5691,10 @@
       "latestRunStartedAtMs": 1790370242200,
       "latestObservedAtMs": 1790370242562,
       "noCandidateEvidence": "v5/roadmap/pr20-9-craft-durable-shadow-no-candidate-evidence.json",
-      "candidateAcquisitionOrMutationAllowed": false
+      "candidateAcquisitionOrMutationAllowed": false,
+      "supersededInManifest": true,
+      "supersededBy": "pr20-9-craft-durable-shadow-natural-recheck-no-write",
+      "historicalEvidenceImmutable": true
     },
     "craftServiceMount": {
       "status": "RATIFIED_BESTANDEN_ONE_SHOT_MOVEMENT",
@@ -6270,6 +6278,43 @@
           "normalRuntimeAllowed": false
         }
       }
+    },
+    "craftDurableShadowNaturalRecheck": {
+      "status": "MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+      "testId": "pr20-9-craft-durable-shadow-natural-recheck-no-write",
+      "controllerVersion": "1.1.0",
+      "expectedGlobal": "V5PR209CraftDurableShadowNaturalRecheckNoWrite",
+      "package": "v5/werkzeuge/pr20-9-craft-durable-shadow-natural-recheck-no-write.js",
+      "test": "v5/werkzeuge/tests/pr20-9-craft-durable-shadow-natural-recheck-no-write.test.mjs",
+      "contract": "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-natural-recheck.json",
+      "manifestCutover": "v5/grundlage/vertraege/runtime/pr20-9-craft-durable-shadow-natural-recheck-manifest-cutover.json",
+      "packageSourceCommit": "406feea6491edd14be2e76c842ac761b89f57a5d",
+      "packageSha256": "f1b5fc3fd761fbca12355976543e823bff4bf53efed074b1d4820433a0567008",
+      "packageBytes": 28696,
+      "normalCraftOnly": true,
+      "naturalCurrentInventoryOnly": true,
+      "candidateAcquisitionOrMutationAllowed": false,
+      "recheckIntervalMs": 60000,
+      "noCandidateTerminal": false,
+      "waitState": "WAITING_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
+      "stableDoubleObservationRequired": true,
+      "stablePostIntentReobserveRequired": true,
+      "maximumGameplayWrites": 0,
+      "maximumPublicFunctionCalls": 0,
+      "maximumRawWriteCalls": 0,
+      "craftAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadGraphExecutionAuthority": false,
+      "sameIntentRetry": false,
+      "normalRuntimeAllowed": false,
+      "manifestCutoverPrepared": true,
+      "activeManifestTarget": true,
+      "liveDeploymentObserved": false,
+      "craftRatified": false,
+      "countsAsProductiveCraftRatification": false,
+      "pr21RemainsBlockedUntilProductiveCraftRatification": true,
+      "nextGate": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE"
     }
   },
   "acceleratedImplementation": {

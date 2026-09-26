@@ -16,6 +16,11 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR209CraftDurableShadowNoWrite",
     gate: "PR20.9_PRODUCTION"
   }),
+  "pr20-9-craft-durable-shadow-natural-recheck-no-write": Object.freeze({
+    path: "v5/werkzeuge/pr20-9-craft-durable-shadow-natural-recheck-no-write.js",
+    expectedGlobal: "V5PR209CraftDurableShadowNaturalRecheckNoWrite",
+    gate: "PR20.9_PRODUCTION"
+  }),
   "pr20-8-compound-productive-one-write-live": Object.freeze({
     path: "v5/werkzeuge/pr20-8-compound-productive-one-write-live.js",
     expectedGlobal: "V5PR208CompoundProductiveOneWriteLive",

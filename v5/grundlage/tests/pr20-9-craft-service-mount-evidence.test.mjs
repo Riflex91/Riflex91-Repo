@@ -36,12 +36,12 @@ test("service mount does not open Craft or runtime authority",()=>{
 
 test("active manifest is restored to the exact PR20.9 Craft durable shadow runner",()=>{
   assert.equal(manifest.gate,"PR20.9_PRODUCTION");
-  assert.equal(manifest.testId,"pr20-9-craft-durable-shadow-no-write");
-  assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,"116d762a1e1fad230cbd64a5a44d6762465501f0");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-9-craft-durable-shadow-no-write.js");
-  assert.equal(manifest.packageSha256,"a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a");
-  assert.equal(manifest.expectedGlobal,"V5PR209CraftDurableShadowNoWrite");
+  assert.equal(manifest.testId,"pr20-9-craft-durable-shadow-natural-recheck-no-write");
+  assert.equal(manifest.controllerVersion,"1.1.0");
+  assert.equal(manifest.sourceCommit,"406feea6491edd14be2e76c842ac761b89f57a5d");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-9-craft-durable-shadow-natural-recheck-no-write.js");
+  assert.equal(manifest.packageSha256,"f1b5fc3fd761fbca12355976543e823bff4bf53efed074b1d4820433a0567008");
+  assert.equal(manifest.expectedGlobal,"V5PR209CraftDurableShadowNaturalRecheckNoWrite");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 
@@ -49,7 +49,7 @@ test("roadmap preserves service-mount ratification while current Craft shadow is
   const p=roadmap.pr20_9;
   assert.equal(p.status,"CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE");
   assert.equal(p.nextAction,"REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE");
-  assert.equal(p.craftDurableShadowRunner.active,true);
+  assert.equal(p.craftDurableShadowRunner.active,false);
   assert.equal(p.craftDurableShadowRunner.liveEvidenceObserved,true);
   assert.equal(p.craftDurableShadowRunner.craftRatified,false);
   assert.equal(p.craftDurableShadowRunner.latestObservedStatus,"BLOCKIERT");

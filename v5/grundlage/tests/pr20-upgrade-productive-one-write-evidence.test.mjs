@@ -55,13 +55,13 @@ test("PR20.8 productive Upgrade one-write evidence ratifies exactly one committe
 });
 
 test("committed Upgrade evidence stays immutable while the active manifest advances to the anniversarygift Exchange service mount", () => {
-  assert.equal(manifest.testId,"pr20-9-craft-durable-shadow-no-write");
-  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(manifest.testId,"pr20-9-craft-durable-shadow-natural-recheck-no-write");
+  assert.equal(manifest.controllerVersion,"1.1.0");
   assert.equal(manifest.gate, "PR20.9_PRODUCTION");
-  assert.equal(manifest.sourceCommit,"116d762a1e1fad230cbd64a5a44d6762465501f0");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-9-craft-durable-shadow-no-write.js");
-  assert.equal(manifest.packageSha256,"a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a");
-  assert.equal(manifest.expectedGlobal,"V5PR209CraftDurableShadowNoWrite");
+  assert.equal(manifest.sourceCommit,"406feea6491edd14be2e76c842ac761b89f57a5d");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-9-craft-durable-shadow-natural-recheck-no-write.js");
+  assert.equal(manifest.packageSha256,"f1b5fc3fd761fbca12355976543e823bff4bf53efed074b1d4820433a0567008");
+  assert.equal(manifest.expectedGlobal,"V5PR209CraftDurableShadowNaturalRecheckNoWrite");
   assert.equal(manifest.normalRuntimeAllowed, false);
   assert.equal(
     evidence.nextGate,
