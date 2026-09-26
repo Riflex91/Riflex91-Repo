@@ -3,7 +3,7 @@ name: v5-live-lab
 on:
   push:
     branches:
-      - chatgpt/v5-live-lab-full-autonomy-r9
+      - chatgpt/v5-live-lab-situation-fallback-r11
     paths:
       - 'v5-live-lab/**'
       - '.github/workflows/v5-live-lab.yml'

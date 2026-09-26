@@ -2,16 +2,16 @@
   "use strict";
 
   const PROFILE_ID = "V5_LIVE_LAB_PR28";
-  const VERSION = "0.6.1";
-  const SOURCE_MAIN_SHA = "ed7bb76fa7a30b74c3a1f09a4846113b865d80bf";
-  const BUILD_CHANNEL = "chatgpt/v5-live-lab-full-autonomy-r9";
-  const BUILD_ID = "V5_LIVE_LAB_FULL_AUTONOMY_R9_2";
+  const VERSION = "0.6.3";
+  const SOURCE_MAIN_SHA = "99b336dbd57715eae4ddabd2cb3490ac5013d315";
+  const BUILD_CHANNEL = "chatgpt/v5-live-lab-situation-fallback-r11";
+  const BUILD_ID = "V5_LIVE_LAB_FULL_AUTONOMY_R11_1";
   const AL25D_PINNED_UPSTREAM_COMMIT = "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4";
   const START_ACK = "V5_LIVE_LAB_START";
   const MAX_LOGS = 4000;
   const MAX_PERSISTED_INTENTS = 512;
   const PERSISTENCE_PREFIX = "v5-live-lab:v2:";
-  const SITUATION_FILE_NAME = "V5-Live-Situation.md";
+  const SITUATION_FILE_PREFIX = "V5-Live-Situation";
   const SITUATION_WRITE_INTERVAL_MS = 30000;
   const SITUATION_DB_NAME = "v5-live-lab";
   const SITUATION_DB_STORE = "handles";
@@ -280,6 +280,7 @@
   let situationWriterTimer = null;
   let situationLastWriteAtMs = null;
   let situationLastWriteError = null;
+  let situationLastSnapshotChars = 0;
   let situationPermission = "unconfigured";
   let restartDetected = false;
   let restartReconciled = true;
@@ -3393,6 +3394,43 @@
     return "unsupported";
   }
 
+  function safeSituationCharacterName(value) {
+    let name = String(value == null ? "" : value).trim();
+    if (!name) name = "unknown";
+    name = name
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, "-")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^[. -]+|[. -]+$/g, "");
+    if (!name) name = "unknown";
+    if (/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(name)) {
+      name = "_" + name;
+    }
+    return name.slice(0, 80);
+  }
+
+  function situationFileName() {
+    const c = character();
+    return SITUATION_FILE_PREFIX + "-" + safeSituationCharacterName(c && c.name) + ".md";
+  }
+
+  function situationSnapshotKey() {
+    const c = character();
+    return PERSISTENCE_PREFIX + "situation:" + encodeURIComponent(String(c && c.name || "unknown"));
+  }
+
+  function persistSituationSnapshot(content) {
+    const store = storagePort();
+    if (!store) return false;
+    try {
+      store.setItem(situationSnapshotKey(), String(content));
+      situationLastSnapshotChars = String(content).length;
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   function buildSituationFileText() {
     const status = api.status();
     const ledger = capabilityLedgerSnapshot();
@@ -3543,48 +3581,85 @@
   }
 
   async function writeSituationFileNow() {
+    const fileName = situationFileName();
+    const content = buildSituationFileText();
+    const snapshotSaved = persistSituationSnapshot(content);
+    situationLastWriteAtMs = now();
+
     if (!situationDirectoryHandle) {
-      situationPermission = "unconfigured";
-      return Object.freeze({ ok: false, reason: "NO_DIRECTORY" });
+      situationPermission = fileAccessWindow() ? "unconfigured" : "unsupported";
+      situationLastWriteError = null;
+      log("SITUATION_BROWSER_SNAPSHOT_UPDATED", {
+        fileName: fileName,
+        chars: content.length,
+        intervalMs: SITUATION_WRITE_INTERVAL_MS,
+        directFileSystemAccessAvailable: !!fileAccessWindow(),
+      });
+      return Object.freeze({
+        ok: true,
+        mode: "BROWSER_LOCAL",
+        directFile: false,
+        snapshotSaved: snapshotSaved,
+        fileName: fileName,
+        chars: content.length,
+        atMs: situationLastWriteAtMs,
+      });
     }
 
     situationPermission = await directoryPermission(situationDirectoryHandle, false);
     if (situationPermission !== "granted") {
-      return Object.freeze({ ok: false, reason: "PERMISSION_" + situationPermission });
+      situationLastWriteError = "PERMISSION_" + situationPermission;
+      return Object.freeze({
+        ok: snapshotSaved,
+        mode: "BROWSER_LOCAL",
+        directFile: false,
+        snapshotSaved: snapshotSaved,
+        reason: situationLastWriteError,
+        fileName: fileName,
+        chars: content.length,
+        atMs: situationLastWriteAtMs,
+      });
     }
 
     try {
       const fileHandle = await situationDirectoryHandle.getFileHandle(
-        SITUATION_FILE_NAME,
+        fileName,
         { create: true }
       );
       const writable = await fileHandle.createWritable();
-      const content = buildSituationFileText();
       await writable.write(content);
       await writable.close();
-      situationLastWriteAtMs = now();
       situationLastWriteError = null;
       log("SITUATION_FILE_UPDATED", {
-        fileName: SITUATION_FILE_NAME,
+        fileName: fileName,
         chars: content.length,
         intervalMs: SITUATION_WRITE_INTERVAL_MS,
       });
       return Object.freeze({
         ok: true,
-        fileName: SITUATION_FILE_NAME,
+        mode: "DIRECT_FILE",
+        directFile: true,
+        snapshotSaved: snapshotSaved,
+        fileName: fileName,
         chars: content.length,
         atMs: situationLastWriteAtMs,
       });
     } catch (error) {
       situationLastWriteError = String(error && error.message || error);
       log("SITUATION_FILE_WRITE_FAILED", {
-        fileName: SITUATION_FILE_NAME,
+        fileName: fileName,
         error: situationLastWriteError,
       });
       return Object.freeze({
-        ok: false,
+        ok: snapshotSaved,
+        mode: "BROWSER_LOCAL",
+        directFile: false,
+        snapshotSaved: snapshotSaved,
         reason: "WRITE_FAILED",
         error: situationLastWriteError,
+        fileName: fileName,
+        chars: content.length,
+        atMs: situationLastWriteAtMs,
       });
     }
   }
@@ -3612,9 +3687,14 @@
     const host = fileAccessWindow();
     if (!host) {
       situationPermission = "unsupported";
-      throw new Error(
-        "LIVE_LAB_FILE_SYSTEM_ACCESS_UNAVAILABLE: Browser unterstützt keinen direkten Ordnerzugriff."
-      );
+      startSituationWriter();
+      const firstWrite = await writeSituationFileNow();
+      log("SITUATION_DIRECTORY_UNAVAILABLE", {
+        fileName: situationFileName(),
+        fallbackMode: "BROWSER_LOCAL_COPY_DOWNLOAD",
+        firstWriteOk: firstWrite.ok === true,
+      });
+      return situationWriterStatus();
     }
     const handle = await host.showDirectoryPicker({
       id: "v5-live-lab-situation-folder",
@@ -3633,7 +3713,7 @@
     const firstWrite = await writeSituationFileNow();
     log("SITUATION_DIRECTORY_CONNECTED", {
       directoryName: handle.name || null,
-      fileName: SITUATION_FILE_NAME,
+      fileName: situationFileName(),
       firstWriteOk: firstWrite.ok === true,
     });
     return situationWriterStatus();
@@ -3642,31 +3722,48 @@
   async function restoreSituationWriter() {
     try {
       const handle = await restoreSituationDirectoryHandle();
-      if (!handle) return situationWriterStatus();
-      situationDirectoryHandle = handle;
-      situationPermission = await directoryPermission(handle, false);
-      if (situationPermission === "granted") {
+      if (handle) {
+        situationDirectoryHandle = handle;
+        situationPermission = await directoryPermission(handle, false);
         startSituationWriter();
-        await writeSituationFileNow();
+        if (situationPermission === "granted") {
+          await writeSituationFileNow();
+        }
+        return situationWriterStatus();
       }
+
+      situationPermission = fileAccessWindow() ? "unconfigured" : "unsupported";
+      startSituationWriter();
       return situationWriterStatus();
     } catch (error) {
       situationLastWriteError = String(error && error.message || error);
+      startSituationWriter();
       return situationWriterStatus();
     }
   }
 
   function situationWriterStatus() {
+    const directFileSystemAccessAvailable = !!fileAccessWindow();
+    const directFileActive = !!(
+      situationWriterTimer
+      && situationDirectoryHandle
+      && situationPermission === "granted"
+    );
     return Object.freeze({
       configured: !!situationDirectoryHandle,
       directoryName: situationDirectoryHandle && situationDirectoryHandle.name || null,
       permission: situationPermission,
-      fileName: SITUATION_FILE_NAME,
+      fileName: situationFileName(),
       intervalMs: SITUATION_WRITE_INTERVAL_MS,
-      active: !!situationWriterTimer && situationPermission === "granted",
+      active: !!situationWriterTimer,
+      directFileActive: directFileActive,
+      directFileSystemAccessAvailable: directFileSystemAccessAvailable,
+      fallbackAvailable: true,
+      mode: directFileActive ? "DIRECT_FILE" : "BROWSER_LOCAL_COPY_DOWNLOAD",
+      browserSnapshotChars: situationLastSnapshotChars,
       lastWriteAtMs: situationLastWriteAtMs,
       lastWriteError: situationLastWriteError,
-      requestedWindowsPath: "D:\\v5-Test\\" + SITUATION_FILE_NAME,
+      requestedWindowsPath: "D:\\v5-Test\\" + situationFileName(),
     });
   }
 
@@ -4022,6 +4119,61 @@
     });
   }
 
+  async function copySituationToClipboard() {
+    const content = buildSituationFileText();
+    persistSituationSnapshot(content);
+    const ok = await copyTextToClipboard(content);
+    log("SITUATION_COPY", {
+      ok: ok,
+      chars: content.length,
+      fileName: situationFileName(),
+    });
+    return Object.freeze({
+      ok: ok,
+      chars: content.length,
+      fileName: situationFileName(),
+      content: content,
+    });
+  }
+
+  function downloadSituationFile() {
+    const content = buildSituationFileText();
+    persistSituationSnapshot(content);
+    const doc = guiDocument();
+    if (!doc || !doc.body || typeof doc.createElement !== "function") {
+      return Object.freeze({ ok: false, reason: "DOCUMENT_UNAVAILABLE" });
+    }
+    const anchor = doc.createElement("a");
+    anchor.href = "data:text/markdown;charset=utf-8," + encodeURIComponent(content);
+    anchor.download = situationFileName();
+    anchor.style.display = "none";
+    doc.body.appendChild(anchor);
+    try {
+      if (typeof anchor.click !== "function") {
+        anchor.remove();
+        return Object.freeze({ ok: false, reason: "DOWNLOAD_UNAVAILABLE" });
+      }
+      anchor.click();
+      anchor.remove();
+      log("SITUATION_DOWNLOAD", {
+        fileName: situationFileName(),
+        chars: content.length,
+      });
+      return Object.freeze({
+        ok: true,
+        fileName: situationFileName(),
+        chars: content.length,
+      });
+    } catch (error) {
+      try { anchor.remove(); } catch (_) {}
+      return Object.freeze({
+        ok: false,
+        reason: "DOWNLOAD_FAILED",
+        error: String(error && error.message || error),
+      });
+    }
+  }
+
   function guiStatusSummary(status) {
     if (status.emergencyStop) return { text: "NOTHALT", cls: "danger" };
     if (status.running && status.liveExecutionAllowed) return { text: "LIVE", cls: "live" };
@@ -4129,14 +4281,17 @@
     const situation = situationWriterStatus();
     guiSetText(
       "v5ll-situation-file",
-      situation.active
+      situation.directFileActive
         ? String(situation.directoryName || "Ordner") + "\\" + situation.fileName
           + " · zuletzt " + (
             situation.lastWriteAtMs
               ? new Date(situation.lastWriteAtMs).toLocaleTimeString()
               : "noch nicht"
           )
-        : "nicht aktiv · " + String(situation.permission || "unconfigured")
+        : "Browser-Snapshot · " + situation.fileName
+          + " · Ordnerzugriff " + (
+            situation.directFileSystemAccessAvailable ? "verfügbar" : "nicht verfügbar"
+          )
     );
 
     const ledger = capabilityLedgerSnapshot();
@@ -4265,6 +4420,8 @@
       '<button id="v5ll-emergency" class="v5ll-btn v5ll-emergency" type="button">NOTHALT</button>',
       '<button id="v5ll-report" class="v5ll-btn v5ll-report" type="button">FEHLER MELDEN</button>',
       '<button id="v5ll-log-folder" class="v5ll-btn v5ll-report" type="button">LOG-ORDNER</button>',
+      '<button id="v5ll-situation-copy" class="v5ll-btn v5ll-report" type="button">SITUATION KOPIEREN</button>',
+      '<button id="v5ll-situation-download" class="v5ll-btn v5ll-report" type="button">SITUATION DOWNLOAD</button>',
       '</div>',
       '<div id="v5-live-lab-gui-notice" class="v5ll-notice"></div>',
       '<div id="v5ll-body" class="v5ll-body">',
@@ -4314,13 +4471,36 @@
     });
     wireGuiButton(doc, "v5ll-log-folder", async function () {
       const status = await connectSituationDirectory();
-      guiNotice(
-        status.active
-          ? "Log-Datei verbunden: " + status.fileName + " (alle 30 Sekunden)."
-          : "Ordner verbunden, aber Schreibrecht fehlt.",
-        status.active ? "success" : "danger"
-      );
+      if (status.directFileActive) {
+        guiNotice(
+          "Log-Datei verbunden: " + status.fileName + " (alle 30 Sekunden).",
+          "success"
+        );
+      } else {
+        guiNotice(
+          "Kein direkter Ordnerzugriff. Browser-Snapshot aktiv; Kopieren/Download verwenden.",
+          "info"
+        );
+      }
       refreshGui();
+    });
+    wireGuiButton(doc, "v5ll-situation-copy", async function () {
+      const result = await copySituationToClipboard();
+      guiNotice(
+        result.ok
+          ? "Situation kopiert (" + result.fileName + ")."
+          : "Situation konnte nicht kopiert werden.",
+        result.ok ? "success" : "danger"
+      );
+    });
+    wireGuiButton(doc, "v5ll-situation-download", async function () {
+      const result = downloadSituationFile();
+      guiNotice(
+        result.ok
+          ? "Situation heruntergeladen: " + result.fileName
+          : "Download nicht verfügbar; bitte SITUATION KOPIEREN verwenden.",
+        result.ok ? "success" : "info"
+      );
     });
     wireGuiButton(doc, "v5ll-report", async function () {
       const result = await copyBugReportToClipboard();
@@ -4392,6 +4572,8 @@
     refreshGui: refreshGui,
     buildBugReportText: buildBugReportText,
     copyBugReportToClipboard: copyBugReportToClipboard,
+    copySituationToClipboard: copySituationToClipboard,
+    downloadSituationFile: downloadSituationFile,
     connectSituationDirectory: connectSituationDirectory,
     writeSituationFileNow: writeSituationFileNow,
     startSituationWriter: startSituationWriter,
