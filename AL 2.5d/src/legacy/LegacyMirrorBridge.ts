@@ -12,7 +12,8 @@ import type {
   RenderSkillEntry,
   RenderPartyMember,
   RenderChatMessage,
-  RenderChatChannel
+  RenderChatChannel,
+  RenderQuestEvent
 } from "../render/RenderBridge";
 import {
   LegacySnapshotAdapter,
@@ -25,6 +26,8 @@ export type LegacyGameDataLike = Readonly<{
   tilesets?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   items?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   skills?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  monsters?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  events?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }>;
 
 export type LegacyGlobalsLike = Readonly<{
@@ -40,6 +43,7 @@ export type LegacyGlobalsLike = Readonly<{
   game_chats?: readonly unknown[];
   cwindows?: readonly string[];
   document?: Document;
+  S?: Readonly<Record<string, unknown>>;
   G?: LegacyGameDataLike;
 }>;
 
@@ -749,6 +753,118 @@ export function snapshotLegacyParty(
   return Object.freeze(result);
 }
 
+function titleCaseKey(value: string): string {
+  return value
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+export function snapshotLegacyQuestEvents(
+  globals: LegacyGlobalsLike,
+  character: LegacyEntityLike | null
+): readonly RenderQuestEvent[] {
+  const rows: RenderQuestEvent[] = [];
+  const statuses = character?.s ?? {};
+  const hunt = recordValue(statuses.monsterhunt);
+
+  if (hunt) {
+    const monsterId = stringValue(hunt.id);
+    const monsterDefinition = monsterId
+      ? globals.G?.monsters?.[monsterId]
+      : undefined;
+    const monsterName =
+      stringValue(monsterDefinition?.name) ??
+      (monsterId ? titleCaseKey(monsterId) : "Monster");
+    const remaining = finiteNumber(hunt.c);
+
+    rows.push(
+      Object.freeze({
+        id: "monsterhunt",
+        kind: "quest" as const,
+        title: "Monster Hunt",
+        detail:
+          remaining === undefined
+            ? `Defeat ${monsterName}`
+            : `Defeat ${Math.max(0, Math.floor(remaining))} × ${monsterName}`,
+        status: "Active",
+        ...(remaining === undefined
+          ? {}
+          : { remaining: Math.max(0, Math.floor(remaining)) })
+      })
+    );
+  }
+
+  const anniversaryVisit = recordValue(statuses.anniversary_visit);
+  if (anniversaryVisit) {
+    const expiresAt = finiteNumber(anniversaryVisit.expires);
+    rows.push(
+      Object.freeze({
+        id: "anniversary_visit",
+        kind: "event" as const,
+        title: "Anniversary Visit",
+        detail: "Realm visit invitation",
+        status: "Invitation",
+        ...(expiresAt === undefined ? {} : { expiresAt })
+      })
+    );
+  }
+
+  if (statuses.holidayspirit) {
+    rows.push(
+      Object.freeze({
+        id: "holidayspirit",
+        kind: "event" as const,
+        title: "Holiday Spirit",
+        detail: "Seasonal event status",
+        status: "Active"
+      })
+    );
+  }
+
+  for (const [eventId, rawState] of Object.entries(globals.S ?? {})) {
+    const definition = globals.G?.events?.[eventId];
+    const state = recordValue(rawState);
+    const active =
+      rawState === true ||
+      state?.active === true ||
+      state?.live === true ||
+      Boolean(definition && rawState);
+
+    if (!active) continue;
+
+    const id = `event:${eventId}`;
+    if (rows.some((row) => row.id === id)) continue;
+
+    const title =
+      stringValue(state?.name) ??
+      stringValue(definition?.name) ??
+      titleCaseKey(eventId);
+    const detail =
+      stringValue(state?.message) ??
+      stringValue(definition?.description);
+    const map = stringValue(state?.map);
+    const expiresAt =
+      finiteNumber(state?.end) ??
+      finiteNumber(state?.expires);
+
+    rows.push(
+      Object.freeze({
+        id,
+        kind: "event" as const,
+        title,
+        ...(detail ? { detail } : {}),
+        status: "Active",
+        ...(map ? { map } : {}),
+        ...(expiresAt === undefined ? {} : { expiresAt })
+      })
+    );
+  }
+
+  return Object.freeze(rows);
+}
+
 function snapshotPrimitiveMetadata(
   source: Readonly<Record<string, unknown>> | undefined
 ): Readonly<Record<string, string | number | boolean | null>> {
@@ -852,18 +968,25 @@ export class LegacyMirrorBridge {
     const party = snapshotLegacyParty(globals, character, map);
     const chat = snapshotLegacyChat(globals);
     const chatChannels = snapshotLegacyChatChannels(globals);
+    const questEvents = snapshotLegacyQuestEvents(globals, character);
     const hasExtendedChat =
       chatChannels.length > 1 ||
       chatChannels.some((channel) => channel.messages.length > 0);
     const snapshot: GameFrameSnapshot =
-      mapState || playerUi || party.length || chat.length || hasExtendedChat
+      mapState ||
+      playerUi ||
+      party.length ||
+      chat.length ||
+      hasExtendedChat ||
+      questEvents.length
         ? Object.freeze({
             ...entitySnapshot,
             ...(mapState ? { mapState } : {}),
             ...(playerUi ? { playerUi } : {}),
             ...(party.length ? { party } : {}),
             ...(chat.length ? { chat } : {}),
-            ...(hasExtendedChat ? { chatChannels } : {})
+            ...(hasExtendedChat ? { chatChannels } : {}),
+            ...(questEvents.length ? { questEvents } : {})
           })
         : entitySnapshot;
 

@@ -110,7 +110,8 @@ Deliverable: walkable Main with original gameplay logic.
 - [x] unified character/equipment/inventory presentation surface
 - [x] interactive inventory/equipment baseline: select, equip, unequip and inventory swap through original CODE-runner public functions only
 - [ ] advanced item actions, tooltips and transactional UX
-- [ ] quests/events
+- [x] quests/events baseline: Monster Hunt + known character event states + active S/G.events server events
+- [ ] quest/event interactions, navigation hints and richer event-specific progress
 - [x] minimap baseline from immutable map bounds, collision lines and entity snapshots
 - [ ] expanded world-map / route interaction layer
 - [x] first-party gameplay menu baseline

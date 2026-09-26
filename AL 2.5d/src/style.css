@@ -1777,3 +1777,67 @@ canvas {
     grid-column: 1 / -1;
   }
 }
+
+
+/* v38 read-only quest/event tracker from character.s and authoritative S/G.events. */
+.al25d-quest-list {
+  display: grid;
+  gap: 8px;
+  padding: 4px;
+}
+
+.al25d-quest-card {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 11px;
+  border: 1px solid rgba(145, 171, 168, .14);
+  border-radius: 10px;
+  background:
+    linear-gradient(90deg, rgba(92, 137, 137, .06), transparent 45%),
+    rgba(7, 13, 17, .42);
+}
+
+.al25d-quest-card > i {
+  display: grid;
+  place-items: center;
+  min-height: 26px;
+  border-radius: 7px;
+  border: 1px solid rgba(207, 178, 103, .35);
+  background: rgba(113, 84, 39, .22);
+  color: #e7cb86;
+  font-style: normal;
+  font-size: 7px;
+  font-weight: 900;
+  letter-spacing: .07em;
+}
+
+.al25d-quest-card[data-kind="event"] > i {
+  border-color: rgba(100, 186, 194, .34);
+  background: rgba(45, 108, 116, .2);
+  color: #9edce0;
+}
+
+.al25d-quest-card > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.al25d-quest-card strong {
+  color: #ece8da;
+  font-size: 11px;
+}
+
+.al25d-quest-card span {
+  color: #a5b5b6;
+  font-size: 9px;
+  line-height: 1.35;
+}
+
+.al25d-quest-card small {
+  color: #71868b;
+  font-size: 8px;
+  line-height: 1.3;
+}

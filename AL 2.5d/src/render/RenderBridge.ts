@@ -142,6 +142,17 @@ export type RenderChatChannel = Readonly<{
   messages: readonly RenderChatMessage[];
 }>;
 
+export type RenderQuestEvent = Readonly<{
+  id: string;
+  kind: "quest" | "event";
+  title: string;
+  detail?: string;
+  status?: string;
+  remaining?: number;
+  map?: string;
+  expiresAt?: number;
+}>;
+
 export type RenderPartyMember = Readonly<{
   name: string;
   role?: string;
@@ -166,6 +177,7 @@ export type GameFrameSnapshot = Readonly<{
   party?: readonly RenderPartyMember[];
   chat?: readonly RenderChatMessage[];
   chatChannels?: readonly RenderChatChannel[];
+  questEvents?: readonly RenderQuestEvent[];
   entities: readonly RenderEntity[];
 }>;
 

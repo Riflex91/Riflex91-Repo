@@ -8,7 +8,8 @@ import type {
   RenderSkillEntry,
   RenderPartyMember,
   RenderChatMessage,
-  RenderChatChannel
+  RenderChatChannel,
+  RenderQuestEvent
 } from "../render/RenderBridge";
 import {
   buildHudModel,
@@ -46,7 +47,13 @@ type BarElements = Readonly<{
   label: HTMLSpanElement;
 }>;
 
-type PanelName = "character" | "inventory" | "skills" | "chat" | "settings";
+type PanelName =
+  | "character"
+  | "inventory"
+  | "skills"
+  | "quests"
+  | "chat"
+  | "settings";
 
 const DEFAULT_PRESENTATION_SETTINGS: HudPresentationSettings = Object.freeze({
   minimapVisible: true,
@@ -143,6 +150,7 @@ export class HudOverlay {
   private latestPlayerUi: RenderPlayerUi | undefined;
   private latestChat: readonly RenderChatMessage[] = Object.freeze([]);
   private latestChatChannels: readonly RenderChatChannel[] = Object.freeze([]);
+  private latestQuestEvents: readonly RenderQuestEvent[] = Object.freeze([]);
   private selectedChatChannelId = "main";
   private latestModel: HudModel = Object.freeze({ player: null, target: null });
   private presentationSettings: HudPresentationSettings =
@@ -201,6 +209,7 @@ export class HudOverlay {
       ["character", "CHAR", "Character & Equipment"],
       ["inventory", "BAG", "Inventory"],
       ["skills", "SKILLS", "Skills"],
+      ["quests", "QUEST", "Quests & Events"],
       ["chat", "CHAT", "Chat"],
       ["settings", "SET", "Presentation settings"]
     ] as const) {
@@ -253,12 +262,14 @@ export class HudOverlay {
     const partyKey = JSON.stringify(snapshot.party ?? null);
     const chatKey = JSON.stringify(snapshot.chat ?? null);
     const chatChannelsKey = JSON.stringify(snapshot.chatChannels ?? null);
+    const questEventsKey = JSON.stringify(snapshot.questEvents ?? null);
     const key =
       JSON.stringify(model) +
       playerUiKey +
       partyKey +
       chatKey +
-      chatChannelsKey;
+      chatChannelsKey +
+      questEventsKey;
 
     if (key === this.lastKey) return;
     this.lastKey = key;
@@ -274,6 +285,7 @@ export class HudOverlay {
           messages: this.latestChat
         })
       ]);
+    this.latestQuestEvents = snapshot.questEvents ?? Object.freeze([]);
     this.latestModel = model;
     this.renderModel(model);
     this.renderParty(snapshot.party ?? []);
@@ -296,6 +308,7 @@ export class HudOverlay {
     this.latestPlayerUi = undefined;
     this.latestChat = Object.freeze([]);
     this.latestChatChannels = Object.freeze([]);
+    this.latestQuestEvents = Object.freeze([]);
     this.selectedChatChannelId = "main";
     this.latestModel = Object.freeze({ player: null, target: null });
     this.selectedInventoryIndex = null;
@@ -429,6 +442,12 @@ export class HudOverlay {
   private renderPanel(panel: PanelName): void {
     const playerUi = this.latestPlayerUi;
     this.panelBody.replaceChildren();
+
+    if (panel === "quests") {
+      this.panelTitle.textContent = "Quests & Events";
+      this.renderQuestEvents(this.latestQuestEvents);
+      return;
+    }
 
     if (panel === "chat") {
       this.panelTitle.textContent = "Chat";
@@ -925,6 +944,65 @@ export class HudOverlay {
 
     camera.append(cameraCopy, presets, reset);
     list.appendChild(camera);
+    this.panelBody.appendChild(list);
+  }
+
+  private renderQuestEvents(rows: readonly RenderQuestEvent[]): void {
+    const list = document.createElement("div");
+    list.className = "al25d-quest-list";
+
+    if (!rows.length) {
+      const empty = document.createElement("p");
+      empty.className = "al25d-panel-empty";
+      empty.textContent = "Keine aktiven Quests oder Events gespiegelt.";
+      list.appendChild(empty);
+      this.panelBody.appendChild(list);
+      return;
+    }
+
+    for (const entry of rows) {
+      const card = document.createElement("article");
+      card.className = "al25d-quest-card";
+      card.dataset.kind = entry.kind;
+
+      const badge = document.createElement("i");
+      badge.textContent = entry.kind === "quest" ? "QUEST" : "EVENT";
+
+      const body = document.createElement("div");
+      const title = document.createElement("strong");
+      title.textContent = entry.title;
+      body.appendChild(title);
+
+      if (entry.detail) {
+        const detail = document.createElement("span");
+        detail.textContent = entry.detail;
+        body.appendChild(detail);
+      }
+
+      const metaValues = [
+        entry.status,
+        entry.map ? `Map: ${entry.map}` : null,
+        entry.remaining !== undefined
+          ? `${Math.max(0, Math.floor(entry.remaining))} remaining`
+          : null,
+        entry.expiresAt !== undefined
+          ? `Ends ${new Date(entry.expiresAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit"
+            })}`
+          : null
+      ].filter(Boolean);
+
+      if (metaValues.length) {
+        const meta = document.createElement("small");
+        meta.textContent = metaValues.join(" · ");
+        body.appendChild(meta);
+      }
+
+      card.append(badge, body);
+      list.appendChild(card);
+    }
+
     this.panelBody.appendChild(list);
   }
 
