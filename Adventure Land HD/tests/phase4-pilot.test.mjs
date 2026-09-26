@@ -48,3 +48,12 @@ test("logical 3x4 frame geometry remains exactly 26x36",()=>{
   assert.equal(item.hdPixels.width/item.scale/item.runtimeGrid.columns,26);
   assert.equal(item.hdPixels.height/item.scale/item.runtimeGrid.rows,36);
 });
+test("Jubchan direction rows preserve Adventure Land full-sprite order",()=>{
+  const item=manifest.replacements[0];
+  const file=path.join(root,"hd-assets",...item.hdPath.split("/"));
+  const svg=svgSize(file).text;
+  assert.match(svg,/<\/defs>\s*<g><use href="#front"\/>/);
+  assert.match(svg,/<g transform="translate\(0 36\)"><use href="#left"\/>/);
+  assert.match(svg,/<g transform="translate\(0 72\)"><use href="#right"\/>/);
+  assert.match(svg,/<g transform="translate\(0 108\)"><use href="#back"\/>/);
+});

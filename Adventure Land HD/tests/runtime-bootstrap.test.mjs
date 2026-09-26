@@ -28,7 +28,7 @@ function run(manifest, search="") {
 
 const active={schemaVersion:1,replacements:[{
   sourcePath:"images/all_characters/mchar16.png",
-  runtimeUrl:"/images/alhd/characters/mchar16@4x.png",
+  runtimeUrl:"/images/alhd/characters/mchar16@4x.png?alhdv=abc123def456",
   scale:4,
   state:"active",
   preserveLogicalSize:true,
@@ -37,7 +37,7 @@ const active={schemaVersion:1,replacements:[{
 
 test("HD mode applies matching active visual override only",()=>{
   const {window,original}=run(active,"?alhd=on");
-  assert.equal(original.file,"/images/alhd/characters/mchar16@4x.png");
+  assert.equal(original.file,"/images/alhd/characters/mchar16@4x.png?alhdv=abc123def456");
   assert.equal(original.rows,2);
   assert.equal(original.columns,4);
   assert.equal(original.gameplayMarker.hp,123);
@@ -48,7 +48,7 @@ test("HD mode applies matching active visual override only",()=>{
 test("default mode is HD when no override flag is present",()=>{
   const {window,original}=run(active,"?server=EU");
   assert.equal(window.ALHD.mode,"HD");
-  assert.equal(original.file,"/images/alhd/characters/mchar16@4x.png");
+  assert.equal(original.file,"/images/alhd/characters/mchar16@4x.png?alhdv=abc123def456");
 });
 
 test("alhd=off provides a pure original A/B control",()=>{
