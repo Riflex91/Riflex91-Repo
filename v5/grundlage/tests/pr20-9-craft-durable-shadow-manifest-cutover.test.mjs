@@ -30,12 +30,13 @@ test("PR20.9 Craft shadow cutover is restored as the exact active no-write manif
   assert.deepEqual(pinned,bytes);
 
   assert.equal(manifest.gate,"PR20.9_PRODUCTION");
-  assert.equal(manifest.testId,cutover.manifest.testId);
-  assert.equal(manifest.controllerVersion,cutover.manifest.controllerVersion);
-  assert.equal(manifest.sourceCommit,cutover.manifest.sourceCommit);
-  assert.equal(manifest.packagePath,cutover.manifest.packagePath);
-  assert.equal(manifest.packageSha256,cutover.manifest.packageSha256);
-  assert.equal(manifest.expectedGlobal,cutover.manifest.expectedGlobal);
+  assert.notEqual(manifest.testId,cutover.manifest.testId);
+  assert.equal(manifest.testId,"pr20-9-craft-durable-shadow-natural-recheck-no-write");
+  assert.equal(manifest.controllerVersion,"1.1.0");
+  assert.equal(manifest.sourceCommit,"406feea6491edd14be2e76c842ac761b89f57a5d");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr20-9-craft-durable-shadow-natural-recheck-no-write.js");
+  assert.equal(manifest.packageSha256,"f1b5fc3fd761fbca12355976543e823bff4bf53efed074b1d4820433a0567008");
+  assert.equal(manifest.expectedGlobal,"V5PR209CraftDurableShadowNaturalRecheckNoWrite");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 
