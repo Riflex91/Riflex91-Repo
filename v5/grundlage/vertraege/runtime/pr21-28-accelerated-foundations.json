@@ -249,7 +249,9 @@
             "currentPr20_9RatificationCredit": false,
             "durableIntentCreated": false,
             "productiveCraftAuthorityOpened": false,
-            "normalRuntimeAllowed": false
+            "normalRuntimeAllowed": false,
+            "gateSettlementEvidenceRequired": true,
+            "missingSettlementEvidenceMarker": "VERIFIED_GATE_SETTLEMENT"
           },
           "featureGateBinding": {
             "status": "PREPARED_NOT_RATIFIED",
@@ -294,7 +296,29 @@
             "candidateAcquisitionOrMutationAllowedNow": false,
             "durableIntentCreated": false,
             "productiveCraftAuthorityOpened": false,
-            "normalRuntimeAllowed": false
+            "normalRuntimeAllowed": false,
+            "gateSettlementEvidenceBinding": {
+              "status": "PREPARED_REPLAY_ONLY",
+              "settlementSource": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
+              "ledgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+              "contract": "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+              "test": "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+              "stateField": "gateSettlement",
+              "gateApplyVerifiedRequiresSettlementRecord": true,
+              "requiredSettlementStatus": "APPLIED_VERIFIED_RECORD_ONLY",
+              "settlementStageMustMatchLedgerStage": true,
+              "settlementFingerprintRequired": true,
+              "cap022BindingRequiredForStages": [
+                "PR22",
+                "PR23"
+              ],
+              "cap022BindingMustBeStageConsistent": true,
+              "gateApplyBooleanAloneInsufficient": true,
+              "missingEvidenceBlockerSuffix": "_VERIFIED_GATE_SETTLEMENT_REQUIRED",
+              "replayMutatesGate": false,
+              "replayIssuesAuthority": false,
+              "normalRuntimeAllowed": false
+            }
           },
           "milestoneRunnerBinding": {
             "status": "PREPARED_NO_WRITE",
@@ -638,7 +662,9 @@
             "currentPr20_9RatificationCredit": false,
             "durableIntentCreated": false,
             "productiveCraftAuthorityOpened": false,
-            "normalRuntimeAllowed": false
+            "normalRuntimeAllowed": false,
+            "gateSettlementEvidenceRequired": true,
+            "missingSettlementEvidenceMarker": "VERIFIED_GATE_SETTLEMENT"
           },
           "featureGateBinding": {
             "status": "PREPARED_NOT_RATIFIED",
@@ -683,7 +709,29 @@
             "candidateAcquisitionOrMutationAllowedNow": false,
             "durableIntentCreated": false,
             "productiveCraftAuthorityOpened": false,
-            "normalRuntimeAllowed": false
+            "normalRuntimeAllowed": false,
+            "gateSettlementEvidenceBinding": {
+              "status": "PREPARED_REPLAY_ONLY",
+              "settlementSource": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
+              "ledgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+              "contract": "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+              "test": "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+              "stateField": "gateSettlement",
+              "gateApplyVerifiedRequiresSettlementRecord": true,
+              "requiredSettlementStatus": "APPLIED_VERIFIED_RECORD_ONLY",
+              "settlementStageMustMatchLedgerStage": true,
+              "settlementFingerprintRequired": true,
+              "cap022BindingRequiredForStages": [
+                "PR22",
+                "PR23"
+              ],
+              "cap022BindingMustBeStageConsistent": true,
+              "gateApplyBooleanAloneInsufficient": true,
+              "missingEvidenceBlockerSuffix": "_VERIFIED_GATE_SETTLEMENT_REQUIRED",
+              "replayMutatesGate": false,
+              "replayIssuesAuthority": false,
+              "normalRuntimeAllowed": false
+            }
           },
           "milestoneRunnerBinding": {
             "status": "PREPARED_NO_WRITE",
@@ -1067,7 +1115,9 @@
         "currentPr20_9RatificationCredit": false,
         "durableIntentCreated": false,
         "productiveCraftAuthorityOpened": false,
-        "normalRuntimeAllowed": false
+        "normalRuntimeAllowed": false,
+        "gateSettlementEvidenceRequired": true,
+        "missingSettlementEvidenceMarker": "VERIFIED_GATE_SETTLEMENT"
       },
       "featureGateBinding": {
         "status": "PREPARED_NOT_RATIFIED",
@@ -1112,7 +1162,29 @@
         "candidateAcquisitionOrMutationAllowedNow": false,
         "durableIntentCreated": false,
         "productiveCraftAuthorityOpened": false,
-        "normalRuntimeAllowed": false
+        "normalRuntimeAllowed": false,
+        "gateSettlementEvidenceBinding": {
+          "status": "PREPARED_REPLAY_ONLY",
+          "settlementSource": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
+          "ledgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+          "contract": "v5/grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json",
+          "test": "v5/grundlage/tests/pr21-28-stage-ledger-replay.test.mjs",
+          "stateField": "gateSettlement",
+          "gateApplyVerifiedRequiresSettlementRecord": true,
+          "requiredSettlementStatus": "APPLIED_VERIFIED_RECORD_ONLY",
+          "settlementStageMustMatchLedgerStage": true,
+          "settlementFingerprintRequired": true,
+          "cap022BindingRequiredForStages": [
+            "PR22",
+            "PR23"
+          ],
+          "cap022BindingMustBeStageConsistent": true,
+          "gateApplyBooleanAloneInsufficient": true,
+          "missingEvidenceBlockerSuffix": "_VERIFIED_GATE_SETTLEMENT_REQUIRED",
+          "replayMutatesGate": false,
+          "replayIssuesAuthority": false,
+          "normalRuntimeAllowed": false
+        }
       },
       "milestoneRunnerBinding": {
         "status": "PREPARED_NO_WRITE",
