@@ -46,6 +46,9 @@ export type HudActions = Readonly<{
   }>) => unknown;
   onPartyInvite?: (name: string) => unknown;
   onPartyRequest?: (name: string) => unknown;
+  onPartyAcceptInvite?: (name: string) => unknown;
+  onPartyAcceptRequest?: (name: string) => unknown;
+  onPartyKick?: (name: string) => unknown;
   onPartyLeave?: () => unknown;
 }>;
 
@@ -205,6 +208,38 @@ function appendItemDetails(
   }
 
   owner.appendChild(surface);
+}
+
+export type PendingPartyAction = Readonly<{
+  kind: "invite" | "request";
+  name: string;
+}>;
+
+export function pendingPartyActions(
+  messages: readonly RenderChatMessage[]
+): readonly PendingPartyAction[] {
+  const result: PendingPartyAction[] = [];
+  const seen = new Set<string>();
+
+  for (const message of messages) {
+    if (typeof message.id !== "string") continue;
+
+    const kind =
+      message.id.startsWith("pin")
+        ? "invite"
+        : message.id.startsWith("rq")
+          ? "request"
+          : null;
+    if (!kind) continue;
+
+    const name = message.id.slice(kind === "invite" ? 3 : 2).trim();
+    const key = `${kind}:${name}`;
+    if (!name || seen.has(key)) continue;
+    seen.add(key);
+    result.push(Object.freeze({ kind, name }));
+  }
+
+  return Object.freeze(result);
 }
 
 export class HudOverlay {
@@ -516,6 +551,48 @@ export class HudOverlay {
     const shell = document.createElement("div");
     shell.className = "al25d-party-manager";
 
+    const pending = pendingPartyActions(this.latestChat);
+    if (pending.length) {
+      const pendingSection = document.createElement("section");
+      pendingSection.className = "al25d-party-pending";
+      const pendingTitle = document.createElement("strong");
+      pendingTitle.textContent = "PENDING";
+      pendingSection.appendChild(pendingTitle);
+
+      for (const action of pending) {
+        const row = document.createElement("div");
+        const copy = document.createElement("span");
+        copy.textContent =
+          action.kind === "invite"
+            ? `${action.name} invited you`
+            : `${action.name} wants to join`;
+
+        const accept = document.createElement("button");
+        accept.type = "button";
+        accept.textContent = "ACCEPT";
+        accept.disabled =
+          action.kind === "invite"
+            ? !this.actions.onPartyAcceptInvite
+            : !this.actions.onPartyAcceptRequest;
+        accept.addEventListener("click", () => {
+          this.runPanelAction(
+            action.kind === "invite"
+              ? `Accept invite ← ${action.name}`
+              : `Accept request ← ${action.name}`,
+            () =>
+              action.kind === "invite"
+                ? this.actions.onPartyAcceptInvite!(action.name)
+                : this.actions.onPartyAcceptRequest!(action.name)
+          );
+        });
+
+        row.append(copy, accept);
+        pendingSection.appendChild(row);
+      }
+
+      shell.appendChild(pendingSection);
+    }
+
     const list = document.createElement("div");
     list.className = "al25d-party-manager-list";
 
@@ -543,6 +620,8 @@ export class HudOverlay {
         ].filter(Boolean).join(" · ");
         identity.append(name, meta);
 
+        const actions = document.createElement("div");
+        actions.className = "al25d-party-member-actions";
         const state = document.createElement("small");
         state.textContent =
           member.hp !== undefined &&
@@ -552,8 +631,24 @@ export class HudOverlay {
             : member.sameMap === false
               ? "REMOTE"
               : "ONLINE";
+        actions.appendChild(state);
 
-        row.append(identity, state);
+        if (!member.local) {
+          const kick = document.createElement("button");
+          kick.type = "button";
+          kick.textContent = "KICK";
+          kick.disabled = !this.actions.onPartyKick;
+          kick.addEventListener("click", () => {
+            if (!this.actions.onPartyKick) return;
+            this.runPanelAction(
+              `Kick ${member.name}`,
+              () => this.actions.onPartyKick!(member.name)
+            );
+          });
+          actions.appendChild(kick);
+        }
+
+        row.append(identity, actions);
         list.appendChild(row);
       }
     }

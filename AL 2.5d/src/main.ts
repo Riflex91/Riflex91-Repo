@@ -244,6 +244,24 @@ async function boot(): Promise<void> {
         }
         return legacyRuntime.dispatchPartyRequest(name);
       },
+      onPartyAcceptInvite: (name) => {
+        if (!legacyRuntime?.ready) {
+          throw new Error("Original Adventure Land runtime is not ready");
+        }
+        return legacyRuntime.dispatchPartyAcceptInvite(name);
+      },
+      onPartyAcceptRequest: (name) => {
+        if (!legacyRuntime?.ready) {
+          throw new Error("Original Adventure Land runtime is not ready");
+        }
+        return legacyRuntime.dispatchPartyAcceptRequest(name);
+      },
+      onPartyKick: (name) => {
+        if (!legacyRuntime?.ready) {
+          throw new Error("Original Adventure Land runtime is not ready");
+        }
+        return legacyRuntime.dispatchPartyKick(name);
+      },
       onPartyLeave: () => {
         if (!legacyRuntime?.ready) {
           throw new Error("Original Adventure Land runtime is not ready");

@@ -64,6 +64,9 @@ type LegacyCodeRunner = Readonly<{
   swap?: (a: number, b: number) => unknown;
   send_party_invite?: (name: string) => unknown;
   send_party_request?: (name: string) => unknown;
+  accept_party_invite?: (name: string) => unknown;
+  accept_party_request?: (name: string) => unknown;
+  kick_party_member?: (name: string) => unknown;
   leave_party?: () => unknown;
 }>;
 
@@ -473,6 +476,45 @@ export class LegacyCompatibilityRuntime {
     return dispatchLegacyRunnerAction(
       this.requireSource(),
       "send_party_request",
+      [target]
+    );
+  }
+
+  dispatchPartyAcceptInvite(name: string): unknown {
+    const target = name.trim();
+    if (!target) {
+      throw new Error("Party invite sender is required");
+    }
+
+    return dispatchLegacyRunnerAction(
+      this.requireSource(),
+      "accept_party_invite",
+      [target]
+    );
+  }
+
+  dispatchPartyAcceptRequest(name: string): unknown {
+    const target = name.trim();
+    if (!target) {
+      throw new Error("Party request sender is required");
+    }
+
+    return dispatchLegacyRunnerAction(
+      this.requireSource(),
+      "accept_party_request",
+      [target]
+    );
+  }
+
+  dispatchPartyKick(name: string): unknown {
+    const target = name.trim();
+    if (!target) {
+      throw new Error("Party kick target is required");
+    }
+
+    return dispatchLegacyRunnerAction(
+      this.requireSource(),
+      "kick_party_member",
       [target]
     );
   }

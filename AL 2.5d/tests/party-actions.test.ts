@@ -17,6 +17,18 @@ function source(calls: string[]): LegacyCompatibilitySource {
       calls.push(`request:${name}`);
       return "request-ok";
     },
+    accept_party_invite(name: string) {
+      calls.push(`accept-invite:${name}`);
+      return "accept-invite-ok";
+    },
+    accept_party_request(name: string) {
+      calls.push(`accept-request:${name}`);
+      return "accept-request-ok";
+    },
+    kick_party_member(name: string) {
+      calls.push(`kick:${name}`);
+      return "kick-ok";
+    },
     leave_party() {
       calls.push("leave");
       return "leave-ok";
@@ -48,16 +60,22 @@ function source(calls: string[]): LegacyCompatibilitySource {
 }
 
 describe("party actions", () => {
-  it("delegates invite, request and leave to original CODE-runner functions", () => {
+  it("delegates party actions to original CODE-runner functions", () => {
     const calls: string[] = [];
     const runtime = new LegacyCompatibilityRuntime().attach(source(calls));
 
     expect(runtime.dispatchPartyInvite(" Alice ")).toBe("invite-ok");
     expect(runtime.dispatchPartyRequest(" Bob ")).toBe("request-ok");
+    expect(runtime.dispatchPartyAcceptInvite(" Carol ")).toBe("accept-invite-ok");
+    expect(runtime.dispatchPartyAcceptRequest(" Dave ")).toBe("accept-request-ok");
+    expect(runtime.dispatchPartyKick(" Eve ")).toBe("kick-ok");
     expect(runtime.dispatchPartyLeave()).toBe("leave-ok");
     expect(calls).toEqual([
       "invite:Alice",
       "request:Bob",
+      "accept-invite:Carol",
+      "accept-request:Dave",
+      "kick:Eve",
       "leave"
     ]);
   });
@@ -70,6 +88,9 @@ describe("party actions", () => {
 
     expect(() => runtime.dispatchPartyInvite("Alice")).toThrow(/CODE runner/);
     expect(() => runtime.dispatchPartyRequest("Alice")).toThrow(/CODE runner/);
+    expect(() => runtime.dispatchPartyAcceptInvite("Alice")).toThrow(/CODE runner/);
+    expect(() => runtime.dispatchPartyAcceptRequest("Alice")).toThrow(/CODE runner/);
+    expect(() => runtime.dispatchPartyKick("Alice")).toThrow(/CODE runner/);
     expect(() => runtime.dispatchPartyLeave()).toThrow(/CODE runner/);
   });
 
@@ -79,6 +100,9 @@ describe("party actions", () => {
 
     expect(main).toContain("dispatchPartyInvite");
     expect(main).toContain("dispatchPartyRequest");
+    expect(main).toContain("dispatchPartyAcceptInvite");
+    expect(main).toContain("dispatchPartyAcceptRequest");
+    expect(main).toContain("dispatchPartyKick");
     expect(main).toContain("dispatchPartyLeave");
     expect(hud).toContain('"party", "PARTY"');
     expect(hud).toContain("al25d-party-controls");

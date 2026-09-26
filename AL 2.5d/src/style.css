@@ -2148,3 +2148,56 @@ html.al25d-high-contrast #al25d-hud input:focus-visible {
   outline: 2px solid #ffe19a;
   outline-offset: 2px;
 }
+
+
+/* v44 pending party invitations/requests and server-authoritative kick controls. */
+.al25d-party-pending {
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid rgba(218, 183, 92, .24);
+  border-radius: 9px;
+  background: rgba(77, 58, 27, .14);
+}
+
+.al25d-party-pending > strong {
+  color: #d9bf7b;
+  font-size: 7px;
+  letter-spacing: .1em;
+}
+
+.al25d-party-pending > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.al25d-party-pending span {
+  color: #b5c1be;
+  font-size: 9px;
+}
+
+.al25d-party-pending button,
+.al25d-party-member-actions button {
+  min-width: 54px;
+  height: 25px;
+  border: 1px solid rgba(141, 172, 168, .22);
+  border-radius: 7px;
+  background: rgba(25, 38, 42, .9);
+  color: #d3dfdc;
+  font: 900 7px/1 Inter, "Segoe UI", Arial, sans-serif;
+  letter-spacing: .05em;
+  cursor: pointer;
+}
+
+.al25d-party-member-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.al25d-party-member-actions button {
+  border-color: rgba(211, 111, 92, .25);
+  color: #d9a39a;
+}
