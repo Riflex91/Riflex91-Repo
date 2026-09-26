@@ -1,0 +1,81 @@
+name: Mewthisch Guides Recorder v0.5
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "world of warcraft/MewthischGuidesRecorder/**"
+      - ".github/workflows/mewthisch-guides-recorder.yml"
+  pull_request:
+    paths:
+      - "world of warcraft/MewthischGuidesRecorder/**"
+      - ".github/workflows/mewthisch-guides-recorder.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Lua 5.1
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1 zip
+
+      - name: Validate Lua syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "world of warcraft/MewthischGuidesRecorder" -name '*.lua' -print0 | while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            luac5.1 -p "$file"
+          done
+
+      - name: Validate recorder contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="world of warcraft/MewthischGuidesRecorder"
+          TOC="$ROOT/MewthischGuidesRecorder.toc"
+
+          grep -q '^## Interface: 16001$' "$TOC"
+          grep -q '^## Title: Mewthisch Guides Recorder$' "$TOC"
+          grep -q '^## Version: 0.5.0$' "$TOC"
+          grep -q '^## SavedVariables: MewthischGuidesRecorderDB$' "$TOC"
+          grep -q '^Activity.lua$' "$TOC"
+          grep -q '^Recorder.lua$' "$TOC"
+
+          grep -q 'MGR.AUTO_RECORDING = true' "$ROOT/Core.lua"
+          grep -q 'MewthischGuidesRecorderDB' "$ROOT/Core.lua"
+          grep -q 'AUTO RECORDING' "$ROOT/Recorder.lua"
+          grep -q 'C_Timer.NewTicker(2' "$ROOT/Recorder.lua"
+          grep -q 'PLAYER_TARGET_CHANGED' "$ROOT/Activity.lua"
+          grep -q 'UNIT_SPELLCAST_SUCCEEDED' "$ROOT/Activity.lua"
+          grep -q 'MERCHANT_SHOW' "$ROOT/Activity.lua"
+          grep -q 'TAXIMAP_OPENED' "$ROOT/Activity.lua"
+
+          if grep -R -n 'ForeverGuideRecorder' "$ROOT"; then
+            echo "Legacy ForeverGuideRecorder identifier found in renamed addon."
+            exit 1
+          fi
+
+      - name: Package recorder
+        shell: bash
+        run: |
+          mkdir -p artifacts/MewthischGuidesRecorder
+          cp -R "world of warcraft/MewthischGuidesRecorder/"* artifacts/MewthischGuidesRecorder/
+          cd artifacts
+          zip -r MewthischGuidesRecorder-v0.5.zip MewthischGuidesRecorder
+
+      - name: Upload recorder
+        uses: actions/upload-artifact@v4
+        with:
+          name: MewthischGuidesRecorder-v0.5
+          path: artifacts/MewthischGuidesRecorder-v0.5.zip
+          if-no-files-found: error
