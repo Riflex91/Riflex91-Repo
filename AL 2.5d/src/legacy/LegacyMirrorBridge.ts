@@ -10,7 +10,8 @@ import type {
   RenderEquipmentSlot,
   RenderHotbarEntry,
   RenderSkillEntry,
-  RenderPartyMember
+  RenderPartyMember,
+  RenderChatMessage
 } from "../render/RenderBridge";
 import {
   LegacySnapshotAdapter,
@@ -35,6 +36,7 @@ export type LegacyGlobalsLike = Readonly<{
   keymap?: Readonly<Record<string, unknown>>;
   party_list?: readonly string[];
   party?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  game_chats?: readonly unknown[];
   G?: LegacyGameDataLike;
 }>;
 
@@ -460,6 +462,60 @@ function snapshotLegacyPlayerUi(
   });
 }
 
+export function snapshotLegacyChat(
+  globals: LegacyGlobalsLike,
+  limit = 50
+): readonly RenderChatMessage[] {
+  if (!Array.isArray(globals.game_chats) || limit <= 0) {
+    return Object.freeze([]);
+  }
+
+  const messages: RenderChatMessage[] = [];
+  const source = globals.game_chats.slice(-Math.max(1, Math.floor(limit)));
+
+  for (const candidate of source) {
+    if (!Array.isArray(candidate) || candidate.length < 2) continue;
+
+    const owner =
+      typeof candidate[0] === "string" && candidate[0]
+        ? candidate[0]
+        : undefined;
+    const rawMessage = candidate[1];
+    const message =
+      typeof rawMessage === "string"
+        ? rawMessage
+        : typeof rawMessage === "number"
+          ? String(rawMessage)
+          : undefined;
+    if (message === undefined) continue;
+
+    const color =
+      typeof candidate[2] === "string" && candidate[2]
+        ? candidate[2]
+        : undefined;
+    const rawId = candidate[3];
+    const id =
+      typeof rawId === "string" || typeof rawId === "number"
+        ? rawId
+        : undefined;
+    const repeat = finiteNumber(candidate[4]);
+
+    messages.push(
+      Object.freeze({
+        ...(owner ? { owner } : {}),
+        message,
+        ...(color ? { color } : {}),
+        ...(id === undefined ? {} : { id }),
+        ...(repeat === undefined || repeat <= 1
+          ? {}
+          : { repeat: Math.floor(repeat) })
+      })
+    );
+  }
+
+  return Object.freeze(messages);
+}
+
 export function snapshotLegacyParty(
   globals: LegacyGlobalsLike,
   character: LegacyEntityLike | null,
@@ -666,13 +722,15 @@ export class LegacyMirrorBridge {
     const mapState = snapshotLegacyMapState(globals, map);
     const playerUi = snapshotLegacyPlayerUi(globals, character);
     const party = snapshotLegacyParty(globals, character, map);
+    const chat = snapshotLegacyChat(globals);
     const snapshot: GameFrameSnapshot =
-      mapState || playerUi || party.length
+      mapState || playerUi || party.length || chat.length
         ? Object.freeze({
             ...entitySnapshot,
             ...(mapState ? { mapState } : {}),
             ...(playerUi ? { playerUi } : {}),
-            ...(party.length ? { party } : {})
+            ...(party.length ? { party } : {}),
+            ...(chat.length ? { chat } : {})
           })
         : entitySnapshot;
 

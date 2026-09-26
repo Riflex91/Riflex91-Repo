@@ -123,6 +123,14 @@ export type RenderPlayerUi = Readonly<{
   skills: readonly RenderSkillEntry[];
 }>;
 
+export type RenderChatMessage = Readonly<{
+  owner?: string;
+  message: string;
+  color?: string;
+  id?: string | number;
+  repeat?: number;
+}>;
+
 export type RenderPartyMember = Readonly<{
   name: string;
   role?: string;
@@ -145,6 +153,7 @@ export type GameFrameSnapshot = Readonly<{
   mapState?: RenderMapState;
   playerUi?: RenderPlayerUi;
   party?: readonly RenderPartyMember[];
+  chat?: readonly RenderChatMessage[];
   entities: readonly RenderEntity[];
 }>;
 

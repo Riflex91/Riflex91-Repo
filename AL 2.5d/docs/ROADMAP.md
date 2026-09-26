@@ -102,7 +102,8 @@ Deliverable: walkable Main with original gameplay logic.
 - [ ] interactive party controls and party-status edge cases
 - [x] target frame baseline
 - [x] skill/hotbar baseline driven by original live keymap
-- [ ] chat
+- [x] chat baseline: read-only main game log mirrored from original game_chats
+- [ ] party/PM channels, unread state and original send-path integration
 - [x] inventory/equipment read-only baseline
 - [x] unified character/equipment/inventory presentation surface
 - [x] interactive inventory/equipment baseline: select, equip, unequip and inventory swap through original CODE-runner public functions only

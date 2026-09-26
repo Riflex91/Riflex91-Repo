@@ -1602,3 +1602,68 @@ canvas {
     transform-origin: top left;
   }
 }
+
+
+/* v35 read-only main chat mirror from original game_chats. */
+.al25d-chat-list {
+  display: grid;
+  gap: 5px;
+  max-height: min(52vh, 440px);
+  overflow-y: auto;
+  padding: 4px 6px 8px;
+  overscroll-behavior: contain;
+}
+
+.al25d-chat-entry {
+  position: relative;
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: baseline;
+  padding: 7px 8px 7px 11px;
+  border-radius: 8px;
+  background: rgba(7, 13, 17, .4);
+  border: 1px solid rgba(139, 163, 160, .09);
+}
+
+.al25d-chat-entry::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 2px;
+  border-radius: 999px;
+  background: var(--al25d-chat-accent, rgba(129, 183, 185, .55));
+  opacity: .75;
+}
+
+.al25d-chat-entry strong {
+  overflow: hidden;
+  color: #dbe8e4;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.al25d-chat-entry span {
+  color: #9fb1b3;
+  font-size: 9px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.al25d-chat-entry em {
+  color: #d6bd80;
+  font-size: 8px;
+  font-style: normal;
+}
+
+.al25d-chat-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.al25d-chat-list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(139, 171, 169, .24);
+}

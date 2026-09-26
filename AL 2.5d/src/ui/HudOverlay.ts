@@ -6,7 +6,8 @@ import type {
   RenderInventorySlot,
   RenderPlayerUi,
   RenderSkillEntry,
-  RenderPartyMember
+  RenderPartyMember,
+  RenderChatMessage
 } from "../render/RenderBridge";
 import {
   buildHudModel,
@@ -39,7 +40,7 @@ type BarElements = Readonly<{
   label: HTMLSpanElement;
 }>;
 
-type PanelName = "character" | "inventory" | "skills" | "settings";
+type PanelName = "character" | "inventory" | "skills" | "chat" | "settings";
 
 const DEFAULT_PRESENTATION_SETTINGS: HudPresentationSettings = Object.freeze({
   minimapVisible: true,
@@ -134,6 +135,7 @@ export class HudOverlay {
 
   private lastKey = "";
   private latestPlayerUi: RenderPlayerUi | undefined;
+  private latestChat: readonly RenderChatMessage[] = Object.freeze([]);
   private latestModel: HudModel = Object.freeze({ player: null, target: null });
   private presentationSettings: HudPresentationSettings =
     DEFAULT_PRESENTATION_SETTINGS;
@@ -191,6 +193,7 @@ export class HudOverlay {
       ["character", "CHAR", "Character & Equipment"],
       ["inventory", "BAG", "Inventory"],
       ["skills", "SKILLS", "Skills"],
+      ["chat", "CHAT", "Chat"],
       ["settings", "SET", "Presentation settings"]
     ] as const) {
       const button = document.createElement("button");
@@ -240,11 +243,13 @@ export class HudOverlay {
     const model = buildHudModel(snapshot);
     const playerUiKey = JSON.stringify(snapshot.playerUi ?? null);
     const partyKey = JSON.stringify(snapshot.party ?? null);
-    const key = JSON.stringify(model) + playerUiKey + partyKey;
+    const chatKey = JSON.stringify(snapshot.chat ?? null);
+    const key = JSON.stringify(model) + playerUiKey + partyKey + chatKey;
 
     if (key === this.lastKey) return;
     this.lastKey = key;
     this.latestPlayerUi = snapshot.playerUi;
+    this.latestChat = snapshot.chat ?? Object.freeze([]);
     this.latestModel = model;
     this.renderModel(model);
     this.renderParty(snapshot.party ?? []);
@@ -265,6 +270,7 @@ export class HudOverlay {
   clear(): void {
     this.lastKey = "";
     this.latestPlayerUi = undefined;
+    this.latestChat = Object.freeze([]);
     this.latestModel = Object.freeze({ player: null, target: null });
     this.selectedInventoryIndex = null;
     this.selectedEquipmentSlot = null;
@@ -397,6 +403,12 @@ export class HudOverlay {
   private renderPanel(panel: PanelName): void {
     const playerUi = this.latestPlayerUi;
     this.panelBody.replaceChildren();
+
+    if (panel === "chat") {
+      this.panelTitle.textContent = "Chat";
+      this.renderChat(this.latestChat);
+      return;
+    }
 
     if (panel === "settings") {
       this.panelTitle.textContent = "Settings";
@@ -888,6 +900,55 @@ export class HudOverlay {
     camera.append(cameraCopy, presets, reset);
     list.appendChild(camera);
     this.panelBody.appendChild(list);
+  }
+
+  private renderChat(messages: readonly RenderChatMessage[]): void {
+    const shell = document.createElement("div");
+    shell.className = "al25d-chat-list";
+
+    if (!messages.length) {
+      const empty = document.createElement("p");
+      empty.className = "al25d-panel-empty";
+      empty.textContent = "Noch keine Chat-Nachrichten gespiegelt.";
+      shell.appendChild(empty);
+      this.panelBody.appendChild(shell);
+      return;
+    }
+
+    for (const entry of messages.slice(-50)) {
+      const row = document.createElement("div");
+      row.className = "al25d-chat-entry";
+
+      const owner = document.createElement("strong");
+      owner.textContent =
+        entry.owner && entry.owner !== "^"
+          ? entry.owner
+          : entry.owner === "^"
+            ? "SYSTEM"
+            : "GAME";
+
+      const message = document.createElement("span");
+      message.textContent = entry.message;
+
+      if (entry.color) {
+        row.style.setProperty("--al25d-chat-accent", entry.color);
+      }
+
+      if (entry.repeat && entry.repeat > 1) {
+        const repeat = document.createElement("em");
+        repeat.textContent = `×${entry.repeat}`;
+        row.append(owner, message, repeat);
+      } else {
+        row.append(owner, message);
+      }
+
+      shell.appendChild(row);
+    }
+
+    this.panelBody.appendChild(shell);
+    queueMicrotask(() => {
+      shell.scrollTop = shell.scrollHeight;
+    });
   }
 
   private renderSkills(skills: readonly RenderSkillEntry[]): void {
