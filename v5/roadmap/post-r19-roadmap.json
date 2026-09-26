@@ -117,7 +117,8 @@
     "PR21 Merchant Observer-Handoff ist NO-WRITE vorbereitet: Checkpoint/Segment bleiben auf PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT bzw. pr21-merchant-integration gepinnt, 900s Ziel mit 5s Sampling und maximal 15s Sample-Gap. Health muss GESUND sein, Operations aktuell, Recorder-Drops=0 und die aktive Authority-Menge exakt runtime:merchant; jede unerwartete Authority blockiert fail-closed. Der Observer startet keine Runtime und erteilt keine Gameplay-/Raw-Write-/NormalRuntime-Authority. Naechster Schritt ist die bounded Sample-Collector-Grenze.",
     "PR21 Merchant Sample-Collector ist NO-WRITE vorbereitet: maximal 184 In-Memory-Samples, 900s Ziel, 5s Sampling, maximal 15s Gap. Jeder Health/Operations/Authority-/Safety-Fehler friert die Serie fail-closed ein; ein sauberer 181-Sample-Lauf ist direkt mit dem bestehenden PR21-28-Milestone-Runner kompatibel. Der Collector startet keine Runtime und erteilt keine Gameplay-/Raw-Write-/NormalRuntime-Authority. Naechster Schritt ist der Freeze/Evaluation-Handoff.",
     "PR21 Merchant Freeze/Evaluation-Handoff ist NO-WRITE vorbereitet: nur eine sauber eingefrorene 181-Sample/900s-Serie mit final BEOBACHTUNG_BEREIT wird durch den bestehenden Milestone-/Live-Evidence-/Result-Package-Pfad gefuehrt. Ergebnis ist maximal READY_FOR_MANUAL_RATIFICATION plus AWAITING_EXPLICIT_RATIFICATION; keine automatische Ratifizierung, keine Gate-Mutation und keine Authority-Ausgabe.",
-    "PR21 Merchant Ratification-Record-Boundary ist vorbereitet: ausschließlich ein READY_FOR_EXPLICIT_MANUAL_RATIFICATION-Handoff mit exakt passendem Bestätigungstext darf einen RATIFIED_RECORD_ONLY erzeugen. Der Record mutiert kein Gate, erteilt keine Authority und hält das Result-Package unverändert; nächster Entwicklungsschritt ist die Gate-Advance-Proposal-Grenze."
+    "PR21 Merchant Ratification-Record-Boundary ist vorbereitet: ausschließlich ein READY_FOR_EXPLICIT_MANUAL_RATIFICATION-Handoff mit exakt passendem Bestätigungstext darf einen RATIFIED_RECORD_ONLY erzeugen. Der Record mutiert kein Gate, erteilt keine Authority und hält das Result-Package unverändert; nächster Entwicklungsschritt ist die Gate-Advance-Proposal-Grenze.",
+    "PR21 Merchant Gate-Proposal-Boundary ist proposal-only vorbereitet: nur PR21 RATIFIED_RECORD_ONLY + frischer Main + identischer Package-Fingerprint + produktiv berechtigte PR21-Feature-Gate-Sicht ergeben READY_FOR_SEPARATE_GATE_APPLY. Die Grenze mutiert kein Gate und erteilt keine Authority; naechster Schritt ist die Default-Off Gate-Apply-Boundary."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -1500,7 +1501,7 @@
     },
     {
       "id": "PR21_MERCHANT_INTEGRATION",
-      "status": "RATIFICATION_RECORD_BOUNDARY_PREPARED_EXPLICIT_CONFIRMATION_ONLY",
+      "status": "GATE_PROPOSAL_BOUNDARY_PREPARED_PROPOSAL_ONLY",
       "blockedBy": [],
       "gameplayAuthority": false,
       "artifact": "v5/dokumentation/PR21-MERCHANT-INTEGRATION-TESTPLAN.md",
@@ -1559,7 +1560,10 @@
         "v5/grundlage/tests/pr21-merchant-freeze-evaluation-handoff.test.mjs",
         "v5/grundlage/quelle/merchant/pr21-merchant-ratification-record-boundary.ts",
         "v5/grundlage/vertraege/runtime/pr21-merchant-ratification-record-boundary.json",
-        "v5/grundlage/tests/pr21-merchant-ratification-record-boundary.test.mjs"
+        "v5/grundlage/tests/pr21-merchant-ratification-record-boundary.test.mjs",
+        "v5/grundlage/quelle/merchant/pr21-merchant-gate-proposal-boundary.ts",
+        "v5/grundlage/vertraege/runtime/pr21-merchant-gate-proposal-boundary.json",
+        "v5/grundlage/tests/pr21-merchant-gate-proposal-boundary.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1575,12 +1579,13 @@
       "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
       "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
       "manualPr20_9Override": "v5/roadmap/pr20-9-craft-manual-development-override.json",
-      "nextAction": "PREPARE_PR21_GATE_ADVANCE_PROPOSAL_BOUNDARY",
+      "nextAction": "PREPARE_PR21_DEFAULT_OFF_GATE_APPLY_BOUNDARY",
       "checkpointAdmission": "v5/grundlage/vertraege/runtime/pr21-merchant-checkpoint-admission.json",
       "observerHandoff": "v5/grundlage/vertraege/runtime/pr21-merchant-observer-handoff.json",
       "sampleCollector": "v5/grundlage/vertraege/runtime/pr21-merchant-sample-collector.json",
       "freezeEvaluationHandoff": "v5/grundlage/vertraege/runtime/pr21-merchant-freeze-evaluation-handoff.json",
-      "ratificationRecordBoundary": "v5/grundlage/vertraege/runtime/pr21-merchant-ratification-record-boundary.json"
+      "ratificationRecordBoundary": "v5/grundlage/vertraege/runtime/pr21-merchant-ratification-record-boundary.json",
+      "gateProposalBoundary": "v5/grundlage/vertraege/runtime/pr21-merchant-gate-proposal-boundary.json"
     },
     {
       "id": "PR22_MULTI_CHARACTER",
@@ -6497,7 +6502,7 @@
     }
   },
   "pr21": {
-    "status": "RATIFICATION_RECORD_BOUNDARY_PREPARED_EXPLICIT_CONFIRMATION_ONLY",
+    "status": "GATE_PROPOSAL_BOUNDARY_PREPARED_PROPOSAL_ONLY",
     "foundationStatus": "PREPARED_NO_WRITE",
     "ziel": "Merchant Gesamtintegration",
     "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
@@ -6598,7 +6603,7 @@
       "normalRuntimeAllowed": false,
       "nextAction": "OBSERVER_HANDOFF_PREPARED"
     },
-    "nextAction": "PREPARE_PR21_GATE_ADVANCE_PROPOSAL_BOUNDARY",
+    "nextAction": "PREPARE_PR21_DEFAULT_OFF_GATE_APPLY_BOUNDARY",
     "observerHandoff": {
       "status": "PREPARED_NO_WRITE_NO_START_AUTHORITY",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-observer-handoff.ts",
@@ -6701,7 +6706,29 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PREPARE_PR21_GATE_ADVANCE_PROPOSAL_BOUNDARY"
+      "nextAction": "GATE_PROPOSAL_BOUNDARY_PREPARED"
+    },
+    "gateProposalBoundary": {
+      "status": "PREPARED_PROPOSAL_ONLY_DEFAULT_OFF",
+      "source": "v5/grundlage/quelle/merchant/pr21-merchant-gate-proposal-boundary.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-gate-proposal-boundary.json",
+      "test": "v5/grundlage/tests/pr21-merchant-gate-proposal-boundary.test.mjs",
+      "stage": "PR21",
+      "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+      "ratificationStatus": "RATIFIED_RECORD_ONLY",
+      "freshMainRequired": true,
+      "packageFingerprintMatchRequired": true,
+      "featureGateProductiveEligibleRequired": true,
+      "proposalStatus": "READY_FOR_SEPARATE_GATE_APPLY",
+      "separateApplyRequired": true,
+      "requiresFreshMainCheckAtApply": true,
+      "gateMutationPerformed": false,
+      "authorityIssued": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadRuntimeGrant": false,
+      "normalRuntimeAllowed": false,
+      "nextAction": "PREPARE_PR21_DEFAULT_OFF_GATE_APPLY_BOUNDARY"
     }
   },
   "pr22": {
