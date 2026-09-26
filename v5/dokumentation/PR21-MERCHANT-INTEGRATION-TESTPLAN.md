@@ -366,6 +366,23 @@ Diese Entwicklungsstufe fuehrt keinen solchen Apply aus; der Repository-
 Status bleibt bis zu einer spaeteren explizit autorisierten Execution
 unveraendert.
 
+## Repository-Stage-State-Post-Execution-Finalization-Boundary
+
+Nach einem spaeter tatsaechlich verifizierten Repository-State-Apply wird
+kein weiterer Zustand automatisch mutiert. Die Finalization-Boundary
+revalidiert den `APPLIED_VERIFIED_REPOSITORY_STAGE_STATE_RECORD_ONLY`-
+Fingerprint und den beobachteten Repository-Postzustand.
+
+Nur PR21=`COMPLETE`, PR22=`IN_PROGRESS`, `currentStage=PR22`,
+`currentGate=PR22_MULTI_CHARACTER_COORDINATION` und weiterhin false
+gesetzte PR22-Produktiv-Authority duerfen
+`READY_FOR_PR22_DEVELOPMENT_HANDOFF_RECORD_ONLY` erzeugen.
+
+Der Finalization-Record bindet den urspruenglichen Source-Main, den
+Finalization-Main sowie Transaction-, Transition-, Completion- und
+Repository-Execution-Fingerprint. Er fuehrt keine weitere Repository- oder
+Control-Plane-Mutation aus und bereitet keinen produktiven PR22-Handoff vor.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
