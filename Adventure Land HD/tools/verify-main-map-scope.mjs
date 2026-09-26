@@ -33,7 +33,7 @@ const {seedMaps}=load("scripts/seed_mongodb.js");
 const main=maps[scope.mapId];
 if(!main) errors.push("missing map definition: "+scope.mapId);
 
-const normalize=file=>String(file||"").split("?")[0].replace(/^\\/+/, "");
+const normalize=file=>String(file||"").split("?")[0].replace(/^[/]+/, "");
 const sort=a=>[...a].sort((x,y)=>String(x).localeCompare(String(y)));
 const spriteIndex=new Map();
 function addSprite(name,file){
@@ -60,8 +60,13 @@ if(!geometry) errors.push("missing bundled geometry for "+main.key);
 
 const runtimeSource=fs.readFileSync(path.join(upstream,"js","old_common_functions.js"),"utf8");
 const runtimeMonsterPlacements=[];
-for(const match of runtimeSource.matchAll(/G\\.maps\\.main\\.monsters\\.push\\((\\{[^\\n;]+\\})\\);/g)){
-  try{runtimeMonsterPlacements.push({...JSON.parse(match[1]),source:"runtime-augmentation"});}
+const marker="G.maps.main.monsters.push(";
+for(const line of runtimeSource.split("\\n")){
+  const at=line.indexOf(marker);
+  if(at<0) continue;
+  const close=line.indexOf(");",at+marker.length);
+  if(close<0){errors.push("could not parse main monster runtime augmentation");continue;}
+  try{runtimeMonsterPlacements.push({...JSON.parse(line.slice(at+marker.length,close)),source:"runtime-augmentation"});}
   catch{errors.push("could not parse main monster runtime augmentation");}
 }
 
