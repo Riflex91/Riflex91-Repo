@@ -44,7 +44,7 @@ test("PR20.9 manual development override advances roadmap without inventing Craf
   const pr21=roadmap.stages.find(x=>x.id==="PR21");
   assert.equal(pr20?.status,"COMPLETE_MANUAL_OVERRIDE");
   assert.equal(pr21?.status,"IN_PROGRESS");
-  assert.equal(roadmap.pr21.status,"PR22_COORDINATION_PRODUCTIVE_GATE_APPLY_POST_SETTLEMENT_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION");
+  assert.equal(roadmap.pr21.status,"PR22_COORDINATION_PRODUCTIVE_AUTHORITY_DEFAULT_OFF_APPLY_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION");
   assert.deepEqual(roadmap.pr21.blockedBy,[]);
   assert.equal(roadmap.pr21.liveExecutionAllowed,false);
   assert.equal(roadmap.pr21.livePreflight.manualPr20_9OverrideAccepted,true);
@@ -185,6 +185,13 @@ test("PR20.9 manual development override advances roadmap without inventing Craf
   assert.equal(roadmap.pr22.coordinationProductiveGateApplyPostSettlementBoundary.productiveAuthorityIssued,false);
   assert.equal(roadmap.pr22.coordinationProductiveGateApplyPostSettlementBoundary.sendCmAuthority,false);
   assert.equal(roadmap.pr22.coordinationProductiveGateApplyPostSettlementBoundary.pr22ProductiveAuthorityIssued,false);
+  assert.equal(roadmap.pr22.coordinationProductiveAuthorityDefaultOffApplyBoundary.status,"PREPARED_PR22_PRODUCTIVE_AUTHORITY_DEFAULT_OFF_APPLY_NO_EXECUTION");
+  assert.equal(roadmap.pr22.coordinationProductiveAuthorityDefaultOffApplyBoundary.currentBlockedByPr21Execution,true);
+  assert.equal(roadmap.pr22.coordinationProductiveAuthorityDefaultOffApplyBoundary.authorityApplyAdapterInstalled,false);
+  assert.equal(roadmap.pr22.coordinationProductiveAuthorityDefaultOffApplyBoundary.executionEnabled,false);
+  assert.equal(roadmap.pr22.coordinationProductiveAuthorityDefaultOffApplyBoundary.productiveAuthorityIssued,false);
+  assert.equal(roadmap.pr22.coordinationProductiveAuthorityDefaultOffApplyBoundary.sendCmAuthority,false);
+  assert.equal(roadmap.pr22.coordinationProductiveAuthorityDefaultOffApplyBoundary.pr22ProductiveAuthorityIssued,false);
   assert.equal(roadmap.pr21.repositoryStageStatePostExecutionFinalizationBoundary.additionalRepositoryMutationPerformed,false);
   assert.equal(roadmap.pr21.applyExecutionAuthorizationBoundary.executionEnabled,false);
 });
@@ -222,7 +229,7 @@ test("Merchant and PR21 contracts accept only the development override, never ru
 
   assert.equal(
     foundations.stages.pr21.status,
-    "PR22_COORDINATION_PRODUCTIVE_GATE_APPLY_POST_SETTLEMENT_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION",
+    "PR22_COORDINATION_PRODUCTIVE_AUTHORITY_DEFAULT_OFF_APPLY_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION",
   );
   assert.equal(foundations.stages.pr21.livePreflight.manualPr20_9OverrideAccepted,true);
   assert.deepEqual(foundations.stages.pr21.livePreflight.currentMissingRatifications,[]);
@@ -361,6 +368,13 @@ test("Merchant and PR21 contracts accept only the development override, never ru
   assert.equal(foundations.stages.pr22.coordinationProductiveGateApplyPostSettlementBoundary.productiveAuthorityIssued,false);
   assert.equal(foundations.stages.pr22.coordinationProductiveGateApplyPostSettlementBoundary.sendCmAuthority,false);
   assert.equal(foundations.stages.pr22.coordinationProductiveGateApplyPostSettlementBoundary.pr22ProductiveAuthorityIssued,false);
+  assert.equal(foundations.stages.pr22.coordinationProductiveAuthorityDefaultOffApplyBoundary.status,"PREPARED_PR22_PRODUCTIVE_AUTHORITY_DEFAULT_OFF_APPLY_NO_EXECUTION");
+  assert.equal(foundations.stages.pr22.coordinationProductiveAuthorityDefaultOffApplyBoundary.currentBlockedByPr21Execution,true);
+  assert.equal(foundations.stages.pr22.coordinationProductiveAuthorityDefaultOffApplyBoundary.authorityApplyAdapterInstalled,false);
+  assert.equal(foundations.stages.pr22.coordinationProductiveAuthorityDefaultOffApplyBoundary.executionEnabled,false);
+  assert.equal(foundations.stages.pr22.coordinationProductiveAuthorityDefaultOffApplyBoundary.productiveAuthorityIssued,false);
+  assert.equal(foundations.stages.pr22.coordinationProductiveAuthorityDefaultOffApplyBoundary.sendCmAuthority,false);
+  assert.equal(foundations.stages.pr22.coordinationProductiveAuthorityDefaultOffApplyBoundary.pr22ProductiveAuthorityIssued,false);
   assert.equal(foundations.stages.pr21.repositoryStageStatePostExecutionFinalizationBoundary.additionalRepositoryMutationPerformed,false);
   assert.equal(foundations.stages.pr21.applyExecutionAuthorizationBoundary.executionEnabled,false);
 });
