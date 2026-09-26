@@ -158,6 +158,15 @@ Gate-Settlement / Rollback-Bindung:
 
 Auch der terminale Gate-Settlement-Record uebernimmt fuer PR22/PR23 die stage-konsistente CAP-022-Full-Chain-Bindung in seinen Fingerprint. Ein Settlement mit fehlender, falscher oder nicht erfuellter Bindung wird verworfen. Ein spaeterer Default-Off-Rollback-Plan darf nur aus einem verifizierten Applied-Settlement mit weiterhin erfuellter CAP-022-Bindung entstehen und traegt dieselbe Bindung weiter. Weder Settlement noch Rollback-Plan fuehren selbst eine Gate- oder Gameplay-Mutation aus.
 
+
+Readiness-Snapshot / terminale Settlement-Sichtbarkeit:
+
+- `grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts`
+- `grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json`
+- `grundlage/tests/pr21-28-readiness-snapshot.test.mjs`
+
+Der zentrale Readiness-Snapshot spiegelt fuer PR22/PR23 nun die terminale CAP-022-Settlement-Bindung aus dem Stage-Ledger read-only. Fehlende Bindungen erscheinen als eigener `CAP022_TERMINAL_SETTLEMENT`-Missing-Grund; vorhandene Settlement-Fingerprints werden mit dem jeweiligen Stage sichtbar gemacht. Das aendert die technische Vorbereitungsgrenze nicht: `TECHNICALLY_PREPARED_LIVE_EVIDENCE_PENDING` darf auch ohne spaeteres Settlement bestehen, waehrend `PRODUCTIVE_CHAIN_ELIGIBLE` die terminale Bindung ueber das Ledger nicht umgehen kann. Der Snapshot erzeugt weder Authority noch Gate-Mutationen oder PR20.9-Ratification-Credit.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf

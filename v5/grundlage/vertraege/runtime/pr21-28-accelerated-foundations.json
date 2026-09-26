@@ -249,7 +249,17 @@
             "currentPr20_9RatificationCredit": false,
             "durableIntentCreated": false,
             "productiveCraftAuthorityOpened": false,
-            "normalRuntimeAllowed": false
+            "normalRuntimeAllowed": false,
+            "cap022TerminalSettlementRequiredStages": [
+              "PR22",
+              "PR23"
+            ],
+            "terminalSettlementLedgerStateField": "cap022TerminalSettlementBinding",
+            "terminalSettlementSnapshotReadyField": "cap022TerminalSettlementBindingsReady",
+            "terminalSettlementSnapshotFingerprintField": "cap022TerminalSettlementFingerprints",
+            "terminalSettlementMissingMarker": "CAP022_TERMINAL_SETTLEMENT",
+            "productiveChainEligibleRequiresTerminalSettlementBinding": true,
+            "technicallyPreparedDoesNotRequireTerminalSettlement": true
           },
           "featureGateBinding": {
             "status": "PREPARED_NOT_RATIFIED",
@@ -652,7 +662,17 @@
             "currentPr20_9RatificationCredit": false,
             "durableIntentCreated": false,
             "productiveCraftAuthorityOpened": false,
-            "normalRuntimeAllowed": false
+            "normalRuntimeAllowed": false,
+            "cap022TerminalSettlementRequiredStages": [
+              "PR22",
+              "PR23"
+            ],
+            "terminalSettlementLedgerStateField": "cap022TerminalSettlementBinding",
+            "terminalSettlementSnapshotReadyField": "cap022TerminalSettlementBindingsReady",
+            "terminalSettlementSnapshotFingerprintField": "cap022TerminalSettlementFingerprints",
+            "terminalSettlementMissingMarker": "CAP022_TERMINAL_SETTLEMENT",
+            "productiveChainEligibleRequiresTerminalSettlementBinding": true,
+            "technicallyPreparedDoesNotRequireTerminalSettlement": true
           },
           "featureGateBinding": {
             "status": "PREPARED_NOT_RATIFIED",
@@ -1095,7 +1115,17 @@
         "currentPr20_9RatificationCredit": false,
         "durableIntentCreated": false,
         "productiveCraftAuthorityOpened": false,
-        "normalRuntimeAllowed": false
+        "normalRuntimeAllowed": false,
+        "cap022TerminalSettlementRequiredStages": [
+          "PR22",
+          "PR23"
+        ],
+        "terminalSettlementLedgerStateField": "cap022TerminalSettlementBinding",
+        "terminalSettlementSnapshotReadyField": "cap022TerminalSettlementBindingsReady",
+        "terminalSettlementSnapshotFingerprintField": "cap022TerminalSettlementFingerprints",
+        "terminalSettlementMissingMarker": "CAP022_TERMINAL_SETTLEMENT",
+        "productiveChainEligibleRequiresTerminalSettlementBinding": true,
+        "technicallyPreparedDoesNotRequireTerminalSettlement": true
       },
       "featureGateBinding": {
         "status": "PREPARED_NOT_RATIFIED",

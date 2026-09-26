@@ -21,8 +21,7 @@ function states(overrides={}){
     orchestrationPrepared:true,
     featureGatePrepared:true,
     cap022FullChainReady:true,
-    cap022TerminalSettlementBinding:
-      stage==="PR22"||stage==="PR23" ? terminalBinding(stage) : null,
+    cap022TerminalSettlementBinding:null,
     milestoneRunnerPrepared:true,
     checkpointRunbookPrepared:true,
     ratificationRecordPrepared:true,
@@ -91,6 +90,11 @@ test("snapshot reports technical preparation through PR28 while live evidence is
   assert.equal(snapshot.cap022FullChainReady,true);
   assert.equal(snapshot.cap022FullChainStatus,"CAP022_FULL_CHAIN_BEREIT_NO_WRITE");
   assert.deepEqual(snapshot.cap022FullChainBlocker,[]);
+  assert.equal(snapshot.cap022TerminalSettlementBindingsReady,false);
+  assert.deepEqual(snapshot.cap022TerminalSettlementFingerprints,[]);
+  assert.equal(snapshot.stages[1].cap022TerminalSettlementRequired,true);
+  assert.equal(snapshot.stages[1].cap022TerminalSettlementSatisfied,false);
+  assert.ok(snapshot.stages[1].missing.includes("CAP022_TERMINAL_SETTLEMENT"));
   assert.equal(snapshot.liveEvidenceBoundaryReached,true);
   assert.equal(snapshot.highestPreparationCompleteStage,"PR28");
   assert.equal(snapshot.highestProductiveEligibleStage,null);
@@ -126,6 +130,8 @@ test("fully hypothetical ratified chain reports productive eligibility without c
     liveEvidenceRatified:true,
     explicitRatificationRecorded:true,
     gateApplyVerified:true,
+    cap022TerminalSettlementBinding:
+      stage==="PR22"||stage==="PR23" ? terminalBinding(stage) : null,
   }]));
   const ledger=bauePr21_28StageLedger(states(all));
   const snapshot=bauePr21_28ReadinessSnapshot({
@@ -142,6 +148,11 @@ test("fully hypothetical ratified chain reports productive eligibility without c
   assert.equal(snapshot.status,"PRODUCTIVE_CHAIN_ELIGIBLE");
   assert.equal(snapshot.highestProductiveEligibleStage,"PR28");
   assert.equal(snapshot.nextRequiredCheckpoint,null);
+  assert.equal(snapshot.cap022TerminalSettlementBindingsReady,true);
+  assert.deepEqual(snapshot.cap022TerminalSettlementFingerprints,[
+    {stage:"PR22",settlementFingerprint:"1111111111111111"},
+    {stage:"PR23",settlementFingerprint:"2222222222222222"},
+  ]);
   assert.equal(snapshot.gateMutationPerformed,false);
   assert.equal(snapshot.authorityIssued,false);
 });
@@ -159,6 +170,29 @@ test("partial preparation remains distinct from live-evidence boundary",()=>{
   assert.equal(snapshot.preparationThroughPr28Complete,false);
   assert.equal(snapshot.liveEvidenceBoundaryReached,false);
   assert.ok(snapshot.stages.at(-1).missing.includes("PREPARATION_INCOMPLETE"));
+});
+
+test("snapshot surfaces partial terminal CAP-022 settlement binding without granting authority",()=>{
+  const ledger=bauePr21_28StageLedger(states({
+    PR22:{cap022TerminalSettlementBinding:terminalBinding("PR22")},
+  }));
+  const snapshot=bauePr21_28ReadinessSnapshot({
+    schemaVersion:1,
+    mainCommit:"6b7828d06b440ddc2fbce5fd0e22bb544674e8fb",
+    ledger,
+    cap022FoundationChain:cap022Chain(),
+    checkpoints:checkpoints(),
+  });
+  assert.equal(snapshot.cap022TerminalSettlementBindingsReady,false);
+  assert.deepEqual(snapshot.cap022TerminalSettlementFingerprints,[
+    {stage:"PR22",settlementFingerprint:"1111111111111111"},
+  ]);
+  assert.equal(snapshot.stages[1].cap022TerminalSettlementSatisfied,true);
+  assert.equal(snapshot.stages[2].cap022TerminalSettlementSatisfied,false);
+  assert.ok(snapshot.stages[2].missing.includes("CAP022_TERMINAL_SETTLEMENT"));
+  assert.equal(snapshot.authorityIssued,false);
+  assert.equal(snapshot.gateMutationPerformed,false);
+  assert.equal(snapshot.normalRuntimeAllowed,false);
 });
 
 test("readiness snapshot rejects incomplete checkpoint set",()=>{
@@ -238,6 +272,8 @@ test("hypothetisch produktiver Ledger kann CAP-022 Full-Chain nicht umgehen",()=
     liveEvidenceRatified:true,
     explicitRatificationRecorded:true,
     gateApplyVerified:true,
+    cap022TerminalSettlementBinding:
+      stage==="PR22"||stage==="PR23" ? terminalBinding(stage) : null,
   }]));
   const ledger=bauePr21_28StageLedger(states(all));
   const ready=cap022Chain();
@@ -287,6 +323,25 @@ test("Readiness-Snapshot-Vertrag und Roadmap binden CAP-022 Full-Chain fail-clos
   assert.equal(boundary.rawWriteAuthority,false);
   assert.equal(boundary.normalRuntimeAllowed,false);
 
+  const terminal=contract.cap022TerminalSettlementBoundary;
+  assert.deepEqual(terminal.requiredStages,["PR22","PR23"]);
+  assert.equal(terminal.ledgerStateField,"cap022TerminalSettlementBinding");
+  assert.equal(terminal.snapshotReadyField,"cap022TerminalSettlementBindingsReady");
+  assert.equal(terminal.snapshotFingerprintField,"cap022TerminalSettlementFingerprints");
+  assert.equal(terminal.missingMarker,"CAP022_TERMINAL_SETTLEMENT");
+  assert.equal(terminal.terminalSettlementRequiresAppliedVerifiedStatus,true);
+  assert.equal(terminal.terminalSettlementMustMatchStage,true);
+  assert.equal(terminal.terminalSettlementFingerprintRequired,true);
+  assert.equal(terminal.productiveChainEligibleRequiresBinding,true);
+  assert.equal(terminal.technicallyPreparedDoesNotRequireTerminalSettlement,true);
+  assert.equal(terminal.snapshotPerformsGateMutation,false);
+  assert.equal(terminal.snapshotIssuesAuthority,false);
+  assert.equal(terminal.currentPr20_9RatificationCredit,false);
+  assert.equal(terminal.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(terminal.durableIntentCreated,false);
+  assert.equal(terminal.productiveCraftAuthorityOpened,false);
+  assert.equal(terminal.normalRuntimeAllowed,false);
+
   const roadmap=JSON.parse(fs.readFileSync(
     "roadmap/post-r19-roadmap.json",
     "utf8",
@@ -303,6 +358,13 @@ test("Readiness-Snapshot-Vertrag und Roadmap binden CAP-022 Full-Chain fail-clos
   assert.equal(binding.technicallyPreparedRequiresFullChain,true);
   assert.equal(binding.productiveChainEligibleRequiresFullChain,true);
   assert.equal(binding.missingOrBlockedChainForcesStatus,"PARTIALLY_PREPARED");
+  assert.deepEqual(binding.cap022TerminalSettlementRequiredStages,["PR22","PR23"]);
+  assert.equal(binding.terminalSettlementLedgerStateField,"cap022TerminalSettlementBinding");
+  assert.equal(binding.terminalSettlementSnapshotReadyField,"cap022TerminalSettlementBindingsReady");
+  assert.equal(binding.terminalSettlementSnapshotFingerprintField,"cap022TerminalSettlementFingerprints");
+  assert.equal(binding.terminalSettlementMissingMarker,"CAP022_TERMINAL_SETTLEMENT");
+  assert.equal(binding.productiveChainEligibleRequiresTerminalSettlementBinding,true);
+  assert.equal(binding.technicallyPreparedDoesNotRequireTerminalSettlement,true);
   assert.equal(binding.currentPr20_9RatificationCredit,false);
   assert.equal(binding.durableIntentCreated,false);
   assert.equal(binding.productiveCraftAuthorityOpened,false);
