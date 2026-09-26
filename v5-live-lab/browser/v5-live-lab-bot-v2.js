@@ -2,10 +2,10 @@
   "use strict";
 
   const PROFILE_ID = "V5_LIVE_LAB_PR28";
-  const VERSION = "0.6.0";
+  const VERSION = "0.6.1";
   const SOURCE_MAIN_SHA = "ed7bb76fa7a30b74c3a1f09a4846113b865d80bf";
   const BUILD_CHANNEL = "chatgpt/v5-live-lab-full-autonomy-r9";
-  const BUILD_ID = "V5_LIVE_LAB_FULL_AUTONOMY_R9_1";
+  const BUILD_ID = "V5_LIVE_LAB_FULL_AUTONOMY_R9_2";
   const AL25D_PINNED_UPSTREAM_COMMIT = "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4";
   const START_ACK = "V5_LIVE_LAB_START";
   const MAX_LOGS = 4000;
@@ -16,6 +16,10 @@
   const SITUATION_DB_NAME = "v5-live-lab";
   const SITUATION_DB_STORE = "handles";
   const SITUATION_DB_KEY = "situation-directory";
+  const VERIFICATION_ONLY = true;
+  const WINDOWS_BRIDGE_COMMUNICATION = false;
+  const EXTERNAL_HOST_TRANSPORT = false;
+  const TRANSPORT_POLICY = "ADVENTURE_LAND_PUBLIC_FUNCTIONS_ONLY";
 
   const CAPABILITIES_BY_CLASS = Object.freeze({
     warrior: Object.freeze(["TANK", "SINGLE_TARGET", "AOE", "CC"]),
@@ -752,6 +756,27 @@
 
   function fullAutonomyEnabled() {
     return !!(config.autonomy && config.autonomy.enabled === true);
+  }
+
+  function bridgeIsolationStatus() {
+    return Object.freeze({
+      verificationOnly: VERIFICATION_ONLY,
+      windowsBridgeCommunication: WINDOWS_BRIDGE_COMMUNICATION,
+      externalHostTransport: EXTERNAL_HOST_TRANSPORT,
+      transportPolicy: TRANSPORT_POLICY,
+      cdpTransport: false,
+      httpTransport: false,
+      webSocketTransport: false,
+      supabaseTransport: false,
+      localSituationFileDirectBrowserIo: true,
+      allowedRuntimeChannels: Object.freeze([
+        "ADVENTURE_LAND_PUBLIC_FUNCTIONS",
+        "ADVENTURE_LAND_SEND_CM",
+        "BROWSER_LOCAL_STORAGE",
+        "BROWSER_INDEXED_DB",
+        "USER_AUTHORIZED_FILE_SYSTEM",
+      ]),
+    });
   }
 
   function isMerchantCharacter(value) {
@@ -3859,6 +3884,9 @@
         + String(status.gameplayAuthority === true) + "/"
         + String(status.normalRuntimeAllowed === true),
       "- rawWriteAuthority: " + String(status.rawWriteAuthority === true),
+      "- Verification-only: " + String(status.bridgeIsolation && status.bridgeIsolation.verificationOnly === true),
+      "- Windows Bridge communication: " + String(status.bridgeIsolation && status.bridgeIsolation.windowsBridgeCommunication === true),
+      "- External host transport: " + String(status.bridgeIsolation && status.bridgeIsolation.externalHostTransport === true),
       "- Runtime environment: " + String(status.runtimeEnvironment && status.runtimeEnvironment.mode || "—"),
       "- AL25D detected: " + String(status.runtimeEnvironment && status.runtimeEnvironment.al25dDetected === true),
       "- AL25D legacy ready: " + String(status.runtimeEnvironment && status.runtimeEnvironment.al25dLegacyRuntimeReady === true),
@@ -4090,7 +4118,8 @@
 
     guiSetText(
       "v5ll-authority",
-      (status.fullDecisionAuthority ? "FULL AUTO · " : "")
+      (status.bridgeIsolation && status.bridgeIsolation.verificationOnly ? "VERIFY ONLY · " : "")
+        + (status.fullDecisionAuthority ? "FULL AUTO · " : "")
         + "Exec " + (status.liveExecutionAllowed ? "✓" : "×")
         + " · Gameplay " + (status.gameplayAuthority ? "✓" : "×")
         + " · Normal " + (status.normalRuntimeAllowed ? "✓" : "×")
@@ -4371,6 +4400,7 @@
     buildSituationFileText: buildSituationFileText,
     capabilityLedger: capabilityLedgerSnapshot,
     runtimeEnvironment: runtimeEnvironment,
+    bridgeIsolation: bridgeIsolationStatus,
 
     startEvidenceSegment: function (options) {
       options = options || {};
@@ -4397,6 +4427,10 @@
         gameplayAuthority: running && safety.admitted,
         normalRuntimeAllowed: running && safety.admitted,
         rawWriteAuthority: false,
+        verificationOnly: VERIFICATION_ONLY,
+        windowsBridgeCommunication: WINDOWS_BRIDGE_COMMUNICATION,
+        externalHostTransport: EXTERNAL_HOST_TRANSPORT,
+        bridgeIsolation: bridgeIsolationStatus(),
         fullDecisionAuthority: fullAutonomyEnabled(),
         autonomy: Object.freeze({
           enabled: fullAutonomyEnabled(),
@@ -4536,6 +4570,10 @@
     gameplayAuthority: false,
     normalRuntimeAllowed: false,
     rawWriteAuthority: false,
+    verificationOnly: VERIFICATION_ONLY,
+    windowsBridgeCommunication: WINDOWS_BRIDGE_COMMUNICATION,
+    externalHostTransport: EXTERNAL_HOST_TRANSPORT,
+    transportPolicy: TRANSPORT_POLICY,
     fullDecisionAuthority: fullAutonomyEnabled(),
     pr24GroupRuntime: true,
     pr25LiveEvidence: true,

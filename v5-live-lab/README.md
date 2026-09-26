@@ -10,8 +10,8 @@ Current integrated browser runtime:
 
 Current runtime version/build:
 
-- `0.6.0`
-- `V5_LIVE_LAB_FULL_AUTONOMY_R9_1`
+- `0.6.1`
+- `V5_LIVE_LAB_FULL_AUTONOMY_R9_2`
 - branch `chatgpt/v5-live-lab-full-autonomy-r9`
 
 Live Lab is intentionally isolated from the official V5 verification track. The official `main:v5/` roadmap, historical evidence, dependency gates and step-by-step automated tests remain authoritative and are not modified by Live Lab operation.
@@ -42,7 +42,31 @@ Direct/raw transport authority intentionally remains closed:
 
 All gameplay mutations go through public Adventure Land functions or the bounded V5 Live Lab ports. The runtime does not use `socket.emit(...)` or `api_call(...)` as a mutation bypass.
 
-## Full local autonomy (v0.6.0)
+## Verification-only / Windows-Bridge isolation (v0.6.1)
+
+This Live Lab build exists only to validate bot functionality early and shorten the official V5 development/test loop.
+
+It deliberately has **no communication path to the Windows Bridge app**. The browser runtime contains no Windows-Bridge/CDP client, no HTTP `fetch` transport, no WebSocket transport, no `XMLHttpRequest`, no `EventSource`, no `BroadcastChannel`, no Supabase telemetry client and no external-host command channel.
+
+Runtime status exposes the contract explicitly:
+
+- `verificationOnly = true`
+- `windowsBridgeCommunication = false`
+- `externalHostTransport = false`
+- `bridgeIsolation.transportPolicy = ADVENTURE_LAND_PUBLIC_FUNCTIONS_ONLY`
+
+Allowed runtime channels are limited to:
+
+- Adventure Land public gameplay functions;
+- Adventure Land `send_cm` for in-game character coordination;
+- browser-local `localStorage` / IndexedDB for bounded local state;
+- the user-authorized File System Access API for the optional local situation file.
+
+The optional `V5-Live-Situation.md` writer is direct browser-to-file I/O after the user chooses a directory. It is not sent through the Windows Bridge and is not uploaded externally by Live Lab.
+
+CI includes a bridge-isolation guard that fails if Windows-Bridge/CDP/host-network transport markers are later introduced into `v5-live-lab-bot-v2.js`.
+
+## Full local autonomy (v0.6.1)
 
 In the local AL 2.5D loopback sandbox, Live Lab now defaults to a full-decision mode.
 
@@ -205,7 +229,7 @@ An irreversible public call that throws after dispatch is classified as `UNKNOWN
 
 ## In-game GUI
 
-The v0.6.0 runtime mounts an in-game HUD automatically when the runner is loaded.
+The v0.6.1 runtime mounts an in-game HUD automatically when the runner is loaded.
 
 The HUD provides:
 
@@ -272,7 +296,7 @@ V5LiveLab.unmountGui()
 
 ## 30-second current-situation file
 
-Live Lab v0.6.0 can maintain one continuously updated file for later analysis:
+Live Lab v0.6.1 can maintain one continuously updated file for later analysis:
 
 `D:\\v5-Test\\V5-Live-Situation.md`
 
@@ -372,7 +396,7 @@ V5LiveLab.situationWriterStatus()
 
 ## Local Adventure Land 2.5D compatibility
 
-Live Lab v0.6.0 is compatible with the local **AL 2.5D** client architecture used by
+Live Lab v0.6.1 is compatible with the local **AL 2.5D** client architecture used by
 `chatgpt/al-2.5d-local-sandbox-v7`.
 
 That client deliberately keeps the pinned original Adventure Land gameplay runtime authoritative
