@@ -289,6 +289,24 @@ Die Runtime-Boundary schreibt keine Repository-Roadmap und keinen Stage-
 Ledger um. UNKNOWN oder eine nicht eindeutig verifizierte Postcondition
 fuehrt fail-closed in Reconciliation ohne Same-Intent-Retry.
 
+## Stage-Completion-Post-Execution-Transition-Boundary
+
+Nach einem verifiziert erfolgreichen Stage-Completion-Versuch wird der
+Repository-Status nicht automatisch umgeschrieben. Die nachgelagerte
+Transition-Boundary akzeptiert ausschließlich
+`APPLIED_VERIFIED_STAGE_TRANSITION_RECORD_ONLY` und revalidiert den
+Completion-Fingerprint sowie den gepinnten Source-Main.
+
+Bei Erfolg entsteht nur
+`READY_FOR_SEPARATE_REPOSITORY_STAGE_STATE_APPLY`. Dieser Record beschreibt
+als spaeteres Ziel PR21=`COMPLETE`, PR22=`IN_PROGRESS` und
+`currentStage=PR22`, waehrend PR22-Produktiv-Authority weiterhin false
+bleibt.
+
+Die Boundary selbst veraendert weder Roadmap noch Stage-Ledger oder
+Control-Plane. Vor einem separaten Repository-State-Apply muessen Main und
+Completion-Fingerprint erneut exakt passen.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
