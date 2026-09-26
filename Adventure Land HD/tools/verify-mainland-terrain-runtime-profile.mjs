@@ -16,6 +16,7 @@ const upstream=path.resolve(process.cwd(),upstreamArg);
 const lock=JSON.parse(fs.readFileSync(path.join(root,"UPSTREAM.lock.json"),"utf8"));
 const plan=JSON.parse(fs.readFileSync(path.join(root,"manifests","mainland-terrain-plan.json"),"utf8"));
 const profile=JSON.parse(fs.readFileSync(path.join(root,"manifests","mainland-terrain-runtime-profile.json"),"utf8"));
+const hdManifest=JSON.parse(fs.readFileSync(path.join(root,"manifests","hd-assets.json"),"utf8"));
 const errors=[];
 const head=execFileSync("git",["-C",upstream,"rev-parse","HEAD"],{encoding:"utf8"}).trim();
 if(head!==lock.commit) errors.push("wrong upstream commit: "+head);
@@ -55,8 +56,20 @@ for(const entry of entries){
   maxEdge=Math.max(maxEdge,w*scale,h*scale);
 }
 
+const terrainBySource=new Map(entries.map(entry=>[String(entry.sourcePath||"").replace(/^\\/+/, ""),entry]));
+const activeTerrain=(hdManifest.replacements||[]).filter(item=>item?.state==="active"&&terrainBySource.has(String(item.sourcePath||"").replace(/^\\/+/, "")));
+let activeTerrainBytes=0;
+for(const item of activeTerrain){
+  const sourcePath=String(item.sourcePath||"").replace(/^\\/+/, "");
+  const entry=terrainBySource.get(sourcePath);
+  const expectedScale=profile.scales?.[entry.id];
+  if(item.scale!==expectedScale) errors.push(entry.id+": active HD manifest scale "+item.scale+" does not match runtime profile scale "+expectedScale);
+  activeTerrainBytes+=entry.originalPixels.width*entry.originalPixels.height*item.scale*item.scale*profile.decodedBytesPerPixel;
+}
+
 const budgetBytes=profile.decodedTerrainBudgetMiB*1024*1024;
 if(totalBytes>budgetBytes) errors.push("runtime profile exceeds decoded terrain budget: "+totalBytes+" > "+budgetBytes);
+if(activeTerrainBytes>budgetBytes) errors.push("active Mainland terrain replacements exceed decoded terrain budget");
 if(all8Bytes<=budgetBytes) errors.push("all-8x comparison unexpectedly fits the budget; review the budget rationale");
 if(profile.exceptionPolicy?.projectDefaultScale!==8) errors.push("projectDefaultScale must remain 8");
 if(profile.exceptionPolicy?.worldAtlasBaselineScale!==4) errors.push("worldAtlasBaselineScale must be 4");
@@ -73,5 +86,7 @@ console.log("Mainland terrain runtime profile verified:",
   "all8x="+mib(all8Bytes)+" MiB;",
   "budget="+profile.decodedTerrainBudgetMiB+" MiB;",
   "maxEdge="+maxEdge+"px;",
+  "activeTerrain="+activeTerrain.length+";",
+  "activeTerrain="+mib(activeTerrainBytes)+" MiB;",
   "global G.tilesets preload confirmed."
 );
