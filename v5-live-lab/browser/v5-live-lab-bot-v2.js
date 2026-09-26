@@ -4087,7 +4087,8 @@
 
     guiSetText(
       "v5ll-authority",
-      "Exec " + (status.liveExecutionAllowed ? "✓" : "×")
+      (status.fullDecisionAuthority ? "FULL AUTO · " : "")
+        + "Exec " + (status.liveExecutionAllowed ? "✓" : "×")
         + " · Gameplay " + (status.gameplayAuthority ? "✓" : "×")
         + " · Normal " + (status.normalRuntimeAllowed ? "✓" : "×")
         + " · Raw " + (status.rawWriteAuthority ? "✓" : "×")
