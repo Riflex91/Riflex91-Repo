@@ -165,6 +165,35 @@ Auch ein erfolgreich erzeugter Authorization-Record fuehrt selbst keinen Apply
 aus: Apply-Adapter und Execution bleiben aus, es erfolgt keine Gate-Mutation und
 keine Gameplay-/Raw-Write-/Broad-Runtime-Authority wird erteilt.
 
+## One-Shot Gate-Apply-Execution-Boundary
+
+Die nachgelagerte Execution-Grenze ist jetzt als schmale PR21-Control-Plane-
+Mutation vorbereitet. Sie akzeptiert ausschließlich einen noch nicht
+verbrauchten `AUTHORIZED_ONE_SHOT_RECORD_ONLY` fuer exakt dieselbe
+`PREPARED_DEFAULT_OFF`-Transaktion. Direkt vor dem Versuch muessen Main,
+Transaction-Fingerprint, Package-Fingerprint und Ratification-Fingerprint
+weiterhin exakt passen; ein Restart seit Authorization blockiert die direkte
+Ausfuehrung.
+
+Vor dem einzigen Gate-Mutationsversuch muss ein exakt gebundener Durable Intent
+persistent als neu bestaetigt werden. Existiert derselbe Intent bereits, wird
+nicht resumed und nicht erneut mutiert, sondern zwingend reconciled. Die einzige
+Mutationsschnittstelle ist `applyPr21MerchantIntegrationGate(...)`; eine
+generische execute-/mutieren-Hintertuer existiert nicht.
+
+Nach jedem Mutationsversuch ist eine getrennte Postcondition-Beobachtung Pflicht.
+UNKNOWN, fehlender terminaler Mutation-Record oder eine nicht verifizierte
+Postcondition fuehren in `reconcilePr21_28GateApply(...)` und verbieten einen
+Same-Intent-Retry. Nur eine verifizierte PR21-Postcondition mit terminalem Record
+wird ueber `recordPr21_28GateSettlement(...)` als
+`APPLIED_VERIFIED_RECORD_ONLY` festgehalten.
+
+Diese Grenze kann ausschließlich den PR21 Feature-Gate-Control-Plane-Zustand
+mutieren. Sie erteilt keine Movement-, Combat-, Merchant-Gameplay-, Craft-,
+Upgrade-, Compound-, Exchange-, Bank-Write-, Raw-Socket-, Broad-Runtime- oder
+Normal-Runtime-Authority. PR22 bleibt bis zum separaten verifizierten
+Post-Settlement-/Roadmap-/Ledger-Uebergang blockiert.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
