@@ -34,6 +34,7 @@
 - [x] Multi-Asset Runtime/Overlay-Smoke für gleichzeitige Terrain-, NPC- und Monster-Overrides vorbereitet
 - [x] Mainland-Terrain-Produktionsvertrag gepinnt: 14 Tilesets mit Original-Blob, Originalmaß, exaktem 8×-Zielmaß und Animationsmetadaten
 - [x] `doors.png` als erster aktiver deterministischer 8×-Terrain-Technikpilot erzeugt, per SHA-256 gepinnt und in Runtime/Overlay verdrahtet (noch kein finaler Art-Remaster)
+- [x] Mainland-Terrain-Memory-Profil gepinnt: globales `G.tilesets`-Preloading verifiziert; sichere Startstufe `doors@8x + 13×4x` = 396,84 MiB statt 1551,38 MiB bei 14×8x
 - [ ] Mainland Terrain/Tilesets vollständig auf HD umstellen
 - [ ] Mainland NPC-Sheets vollständig auf HD umstellen
 - [ ] Mainland Monster-/Tier-/Target-Sheets vollständig auf HD umstellen
