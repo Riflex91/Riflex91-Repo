@@ -13,7 +13,7 @@
   },
   "stages": {
     "pr21": {
-      "status": "CHECKPOINT_ADMISSION_PREPARED_NO_WRITE_MANUAL_PR20_9_OVERRIDE",
+      "status": "OBSERVER_HANDOFF_PREPARED_NO_WRITE_MANUAL_PR20_9_OVERRIDE",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
       "purpose": "Merchant Gesamtintegration Readiness und Safety/Thrash/Starvation Gate",
       "productiveGate": "PR20_COMPLETE_AND_15M_MERCHANT_INTEGRATION_EVIDENCE",
@@ -64,7 +64,38 @@
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
         "normalRuntimeAllowed": false,
-        "nextMilestone": "PREPARE_PR21_15M_OBSERVER_HANDOFF"
+        "nextMilestone": "OBSERVER_HANDOFF_PREPARED"
+      },
+      "observerHandoff": {
+        "status": "PREPARED_NO_WRITE_NO_START_AUTHORITY",
+        "source": "v5/grundlage/quelle/merchant/pr21-merchant-observer-handoff.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-observer-handoff.json",
+        "test": "v5/grundlage/tests/pr21-merchant-observer-handoff.test.mjs",
+        "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+        "segmentId": "pr21-merchant-integration",
+        "milestoneArt": "MERCHANT_INTEGRATION_15M",
+        "minimumSeconds": 900,
+        "targetSeconds": 900,
+        "sampleIntervalMs": 5000,
+        "maximumSampleGapMs": 15000,
+        "expectedSamplesForTarget": 181,
+        "requiredHealthState": "GESUND",
+        "requiredActiveAuthorityIds": [
+          "runtime:merchant"
+        ],
+        "allowedActiveAuthorityIds": [
+          "runtime:merchant"
+        ],
+        "recorderDropsAllowed": 0,
+        "backpressureAllowed": false,
+        "manualPr20_9OverrideAccepted": true,
+        "liveCraftEvidenceSatisfied": false,
+        "observerOnly": true,
+        "externalRuntimeStartAuthorized": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false,
+        "nextMilestone": "PREPARE_PR21_15M_SAMPLE_COLLECTOR_BOUNDARY"
       }
     },
     "pr22": {
