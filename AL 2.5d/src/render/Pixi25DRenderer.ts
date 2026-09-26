@@ -1172,6 +1172,21 @@ export class Pixi25DRenderer implements RenderBridge {
       return;
     }
 
+    if (kind === "projectile") {
+      graphics
+        .circle(0, -10, 5.5)
+        .fill({ color: 0x9de8ff, alpha: 0.96 })
+        .stroke({ color: 0xf1fdff, width: 1.2, alpha: 0.95 });
+      graphics
+        .circle(0, -10, 10)
+        .stroke({ color: 0x6dcfff, width: 1.4, alpha: 0.32 });
+      graphics
+        .moveTo(-15, -10)
+        .lineTo(-6, -10)
+        .stroke({ color: 0x79dbff, width: 2.2, alpha: 0.44 });
+      return;
+    }
+
     graphics
       .poly([0, -24, 13, -10, 0, 0, -13, -10])
       .fill({ color: 0x7a817d, alpha: 1 })
