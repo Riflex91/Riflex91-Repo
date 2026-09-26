@@ -144,7 +144,16 @@ test('pre-running Merchant runtime is observed without restart and is not stoppe
 });
 
 test('native unhealthy state fails closed even when legacy facade looks harmless',async()=>{
-  const {status,counts}=await execute(sandbox({nativeHealth:'DEGRADED'}));
+  const box=sandbox({nativeHealth:'DEGRADED'});
+  vm.runInNewContext(source,box,{filename:'pr21-merchant-integration-live-15m-v1-0-1.js'});
+  const api=box.V5PR21MerchantIntegrationLive15mV101;
+  await assert.rejects(
+    api.start(),
+    /PR21_MERCHANT_RUNTIME_READINESS_TIMEOUT:RUNNING:DEGRADED:CURRENT/,
+  );
+  await new Promise(resolve=>setImmediate(resolve));
+  const status=api.status();
+  const counts=box.__counts();
   assert.equal(status.status,'FEHLER');
   assert.equal(status.terminal,true);
   assert.ok(status.blocker.some(x=>String(x).includes('PR21_MERCHANT_RUNTIME_READINESS_TIMEOUT')));
