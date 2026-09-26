@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_PR22_COORDINATION_DEVELOPMENT_PREFLIGHT_NO_WRITE",
+  "sourceMain": "6a49364670dece415736256ec89a309719ae588b",
+  "source": "v5/grundlage/quelle/koordination/pr22-coordination-development-preflight-boundary.ts",
+  "test": "v5/grundlage/tests/pr22-coordination-development-preflight-boundary.test.mjs",
+  "requiredHandoffStatus": "READY_FOR_PR22_SHADOW_DEVELOPMENT_RECORD_ONLY",
+  "handoffFingerprintRevalidationRequired": true,
+  "currentMainMustMatchHandoffPreparedMain": true,
+  "repositoryStateRevalidationRequired": true,
+  "requiredPostState": {
+    "pr21StageStatus": "COMPLETE",
+    "pr22StageStatus": "IN_PROGRESS",
+    "currentStage": "PR22",
+    "currentGate": "PR22_MULTI_CHARACTER_COORDINATION",
+    "pr22ProductiveAuthorityIssued": false
+  },
+  "preflight": {
+    "shadowAdmissionEvaluator": "pruefePr22CoordinationShadowAdmission",
+    "shadowAdmissionRequiredStatus": "BEREIT_NO_WRITE",
+    "shadowWorkflowEvaluator": "bewertePr22ShadowWorkflow",
+    "shadowWorkflowInitialStatus": "ACK_AUSSTEHEND",
+    "messageWorkflowCorrelationRequired": true,
+    "restartReconciledRequired": true,
+    "externalRuntimeStartAuthorized": false,
+    "shadowTransportSendPerformed": false,
+    "productiveEvidenceRequired": true,
+    "cap022FullChainRecheckRequiredBeforeProductiveEvidence": true,
+    "separateProductiveRatificationRequired": true
+  },
+  "success": {
+    "status": "READY_FOR_PR22_COORDINATION_SHADOW_PREFLIGHT_RECORD_ONLY",
+    "shadowDevelopmentAllowed": true,
+    "pr22ProductiveAuthorityIssued": false
+  },
+  "safety": {
+    "sendCmAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadRuntimeGrant": false,
+    "normalRuntimeAllowed": false,
+    "repositoryMutationPerformed": false,
+    "controlPlaneMutationPerformed": false
+  },
+  "preflightExecutedInRepository": false,
+  "nextAction": "PREPARE_PR22_COORDINATION_SHADOW_EVIDENCE_BOUNDARY"
+}
