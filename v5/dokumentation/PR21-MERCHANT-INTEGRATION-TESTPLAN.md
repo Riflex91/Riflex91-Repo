@@ -220,6 +220,31 @@ Der maximal erreichbare Zustand dieser Grenze ist
 Erst ein separater, spaeterer Stage-Completion-Apply darf den verifizierten
 Transition-Record auf die PR21/PR22-Stage-Grenze anwenden.
 
+## Stage-Completion-Apply-Boundary
+
+Die erste Apply-Grenze fuer den Stage-Uebergang bleibt bewusst default-off.
+Sie akzeptiert ausschließlich einen unveraenderten
+`READY_FOR_SEPARATE_STAGE_COMPLETION_APPLY`-Record, revalidiert dessen
+Transition-Fingerprint und verlangt, dass der aktuelle Main weiterhin exakt
+dem im Transition-Record gepinnten Source-Main entspricht.
+
+Bei erfolgreicher Vorbereitung entsteht nur eine
+`PREPARED_STAGE_COMPLETION_DEFAULT_OFF`-Transaktion. Diese Transaktion bindet
+PR21, PR22, Settlement-, Ledger- und Transition-Fingerprint deterministisch
+und verlangt fuer eine spaetere Execution erneut:
+
+- frischen Main-Check;
+- Transition-Fingerprint-Recheck;
+- Durable Intent vor jeder Stage-Mutation;
+- One-Shot-Ausfuehrung;
+- keinen Same-Intent-Retry;
+- Postcondition-Verifikation;
+- Reconciliation bei UNKNOWN.
+
+Die Apply-Boundary selbst installiert keinen Stage-Completion-Adapter, fuehrt
+keine Execution aus, schliesst PR21 nicht ab und aktiviert PR22 nicht.
+Ein eigener Execution-Authorization-Schritt bleibt erforderlich.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
