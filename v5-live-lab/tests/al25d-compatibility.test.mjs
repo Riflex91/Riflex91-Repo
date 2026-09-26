@@ -222,8 +222,8 @@ test("direct Adventure Land runtime remains supported", () => {
   const env = install(game);
   const status = env.root.V5LiveLab.status();
 
-  assert.equal(env.root.V5LiveLab.version, "0.5.0");
-  assert.equal(env.root.V5LiveLab.buildId, "V5_LIVE_LAB_AL25D_R6_1");
+  assert.equal(env.root.V5LiveLab.version, "0.6.0");
+  assert.equal(env.root.V5LiveLab.buildId, "V5_LIVE_LAB_FULL_AUTONOMY_R8_1");
   assert.equal(status.runtimeEnvironment.mode, "ADVENTURE_LAND_DIRECT");
   assert.equal(status.character, "DirectRanger");
   assert.equal(env.root.V5LiveLab.inspectPorts().attack, true);
@@ -463,4 +463,128 @@ test("AL25D legacy iframe reload rebinds CM handler and subsequent gameplay to n
   assert.equal(typeof first.game.on_cm, "undefined");
   assert.equal(typeof second.game.on_cm, "function");
   assert.ok(second.calls.some((row) => row[0] === "attack"));
+});
+
+
+test("local AL25D full autonomy auto-starts and farms without manual configure", async () => {
+  const legacy = makeLegacyGame("AutoWarrior");
+  legacy.game.character.ctype = "warrior";
+  legacy.game.character.level = 1;
+  legacy.game.character.hp = 500;
+  legacy.game.character.max_hp = 500;
+  legacy.game.G.monsters.goo = { hp: 80, attack: 10, level: 1 };
+  legacy.game.attack = async (target) => {
+    legacy.calls.push(["attack", target?.id]);
+    return { ok: true };
+  };
+
+  const frame = { contentWindow: legacy.game };
+  const host = {
+    AL25D: { legacyRuntimeReady: () => true },
+    location: { hostname: "127.0.0.1" },
+    localStorage: { getItem: () => null, setItem() {} },
+    navigator: { clipboard: { async writeText() {} } },
+  };
+  host.document = makeDocument(frame);
+  host.parent = host;
+  legacy.game.parent = host;
+  legacy.game.document = makeDocument();
+
+  const env = install(legacy.game);
+  await settle();
+  env.advance(1500);
+  await env.root.V5LiveLab.tickNow();
+  await settle();
+
+  const status = env.root.V5LiveLab.status();
+  assert.equal(status.running, true);
+  assert.equal(status.fullDecisionAuthority, true);
+  assert.equal(status.autonomy.enabled, true);
+  assert.equal(status.autonomy.localAutoStart, true);
+  assert.equal(status.optimizer.status, "LIVE_SELECTION_READY");
+  assert.equal(status.currentTask.type, "FARM");
+  assert.equal(status.currentTargetId, "goo1");
+  assert.ok(legacy.calls.some((row) => row[0] === "attack" && row[1] === "goo1"));
+});
+
+test("full autonomy creates a farm-search task and roams when no monster is visible", async () => {
+  const legacy = makeLegacyGame("AutoRogue");
+  legacy.game.character.ctype = "rogue";
+  legacy.game.character.level = 1;
+  legacy.game.entities = {};
+  legacy.game.G.monsters.goo = { hp: 80, attack: 10, level: 1 };
+  legacy.game.G.maps = { main: { monsters: [{ type: "goo" }] } };
+  legacy.game.smart_move = async (destination) => {
+    legacy.calls.push(["smart_move", destination]);
+    return { ok: true };
+  };
+
+  const frame = { contentWindow: legacy.game };
+  const host = {
+    AL25D: { legacyRuntimeReady: () => true },
+    location: { hostname: "127.0.0.1" },
+    localStorage: { getItem: () => null, setItem() {} },
+    navigator: { clipboard: { async writeText() {} } },
+  };
+  host.document = makeDocument(frame);
+  host.parent = host;
+  legacy.game.parent = host;
+  legacy.game.document = makeDocument();
+
+  const env = install(legacy.game);
+  await settle();
+  env.advance(1500);
+  await env.root.V5LiveLab.tickNow();
+  await settle();
+
+  const status = env.root.V5LiveLab.status();
+  assert.equal(status.running, true);
+  assert.equal(status.currentTask.type, "FARM");
+  assert.match(status.currentTask.id, /^farm:search:goo/);
+  assert.ok(legacy.calls.some((row) => row[0] === "smart_move" && row[1] === "goo"));
+});
+
+test("merchant full autonomy is not blocked by SINGLE_TARGET and services potion stock", async () => {
+  const legacy = makeLegacyGame("AutoMerchant");
+  legacy.game.character.ctype = "merchant";
+  legacy.game.character.level = 1;
+  legacy.game.entities = {};
+  legacy.game.smart_move = async (destination) => {
+    legacy.calls.push(["smart_move", destination]);
+    return { ok: true };
+  };
+  legacy.game.buy = async (item, quantity) => {
+    legacy.calls.push(["buy", item, quantity]);
+    return { ok: true };
+  };
+
+  const frame = { contentWindow: legacy.game };
+  const host = {
+    AL25D: { legacyRuntimeReady: () => true },
+    location: { hostname: "127.0.0.1" },
+    localStorage: { getItem: () => null, setItem() {} },
+    navigator: { clipboard: { async writeText() {} } },
+  };
+  host.document = makeDocument(frame);
+  host.parent = host;
+  legacy.game.parent = host;
+  legacy.game.document = makeDocument();
+
+  const env = install(legacy.game);
+  await settle();
+  env.advance(2000);
+  await env.root.V5LiveLab.tickNow();
+  await settle();
+
+  const status = env.root.V5LiveLab.status();
+  assert.equal(status.running, true);
+  assert.equal(status.group.status, "LIVE_GROUP_READY");
+  assert.deepEqual([...status.group.requiredCapabilities], []);
+  assert.equal(status.group.blocker.length, 0);
+  assert.ok(
+    legacy.calls.some((row) =>
+      (row[0] === "smart_move" && row[1] === "potions")
+      || (row[0] === "buy" && row[1] === "hpot0")
+    ),
+  );
 });
