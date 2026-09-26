@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "phase": "3-runtime-bridge",
+  "rules": {
+    "allowedScales": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "preserveLogicalSize": true,
+    "originalFallbackRequired": true,
+    "resolutionSuffixRequired": true,
+    "activeOverridesAllowed": true,
+    "note": "Active entries are routed only through the presentation bootstrap. No gameplay/network/server authority is introduced."
+  },
+  "replacements": []
+}
