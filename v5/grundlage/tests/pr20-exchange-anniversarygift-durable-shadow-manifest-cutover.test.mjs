@@ -48,7 +48,7 @@ test("historical shadow cutover package bytes remain exact after later manifest 
   ],{encoding:null,maxBuffer:256*1024});
   assert.deepEqual(pinned,bytes);
   assert.notEqual(manifest.testId,cutover.manifest.testId);
-  assert.equal(manifest.testId,"pr21-merchant-integration-live-15m");
+  assert.equal(manifest.testId,"pr21-merchant-integration-live-15m-v1-0-1");
 });
 
 test("cutover remains no-send, no-authority and non-ratifying",()=>{
