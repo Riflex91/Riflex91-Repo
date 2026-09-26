@@ -194,6 +194,32 @@ Upgrade-, Compound-, Exchange-, Bank-Write-, Raw-Socket-, Broad-Runtime- oder
 Normal-Runtime-Authority. PR22 bleibt bis zum separaten verifizierten
 Post-Settlement-/Roadmap-/Ledger-Uebergang blockiert.
 
+## Post-Settlement-Transition-Boundary
+
+Nach einem verifizierten `APPLIED_VERIFIED_RECORD_ONLY` wird der PR21-Abschluss
+nicht automatisch in Roadmap oder Stage-Ledger geschrieben. Die Transition-
+Boundary revalidiert zuerst den Settlement-Record, die erfolgreiche
+`ALREADY_APPLIED_REQUIRES_RECORD_ONLY`-Reconciliation und den aktuellen Main.
+
+Der uebergebene Stage-Ledger wird aus seinen Entry-States erneut aufgebaut.
+Ledger- und Entry-Fingerprints muessen exakt dem Rebuild entsprechen. PR21 muss
+darin `preparationComplete`, Live-Evidence, explizite Ratifikation und
+`gateApplyVerified` besitzen und als hoechste produktiv eligible Stage stehen.
+PR22 darf zu diesem Zeitpunkt noch nicht produktiv eligible sein.
+
+Der maximal erreichbare Zustand dieser Grenze ist
+`READY_FOR_SEPARATE_STAGE_COMPLETION_APPLY`. Die Grenze selbst:
+
+- schliesst PR21 nicht ab;
+- aktiviert PR22 nicht;
+- veraendert Roadmap oder Ledger nicht;
+- erteilt keine PR22-Produktiv-Authority;
+- verlangt vor einem spaeteren Completion-Apply erneut einen frischen Main-Check;
+- erteilt keine Gameplay-, Raw-Write-, Broad-Runtime- oder Normal-Runtime-Authority.
+
+Erst ein separater, spaeterer Stage-Completion-Apply darf den verifizierten
+Transition-Record auf die PR21/PR22-Stage-Grenze anwenden.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
