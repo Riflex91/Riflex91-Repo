@@ -418,6 +418,22 @@ erteilt keine produktive PR22-, Gameplay-, Raw-Write- oder NormalRuntime-
 Authority. Produktive Evidence und separate Ratifizierung bleiben spaeter
 eigenstaendige Gates.
 
+## PR22-Coordination-Shadow-Evidence-Boundary
+
+Ein spaeter ausgefuehrter Development-Preflight darf nur als Shadow-Evidence
+fortgesetzt werden. Der Preflight-Fingerprint, derselbe Main und der
+Repository-Zustand werden erneut revalidiert.
+
+Der vorhandene Shadow-Workflow muss terminal `ABGESCHLOSSEN` sein. ACK und
+Settlement muessen beide beobachtet und mit derselben Message-/Workflow-
+Identitaet korreliert sein; die Zeitfolge muss monoton bleiben.
+
+Zusaetzlich muessen exakt 0 `send_cm`-, Gameplay- und Raw-Write-Calls
+beobachtet worden sein. Das Ergebnis
+`READY_FOR_PR22_COORDINATION_SHADOW_EVIDENCE_RECORD_ONLY` ist ausschliesslich
+Shadow-Evidence: es erfuellt keine Productive Evidence und darf keine
+produktive PR22-Ratifizierung freigeben.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne

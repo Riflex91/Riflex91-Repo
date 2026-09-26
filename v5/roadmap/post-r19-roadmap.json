@@ -133,7 +133,8 @@
     "PR21 Repository-Stage-State-One-Shot-Execution-Boundary ist vorbereitet: nur ein noch nicht verbrauchter AUTHORIZED_REPOSITORY_STAGE_STATE_ONE_SHOT_RECORD_ONLY darf nach frischem Main-, Transaction-, Repository-Transition-, Completion-Fingerprint- und Repository-State-Recheck sowie neu persistiertem Durable Intent genau einen typisierten applyPr21RepositoryStageStateTransition-Versuch ausloesen. Danach ist eine separate Postcondition-Lesung Pflicht; UNKNOWN, fehlender terminaler Mutation-Record oder bereits vorhandener Durable Intent erzwingen Reconciliation ohne Same-Intent-Retry. Ein verifizierter Erfolg wuerde PR21=COMPLETE, PR22=IN_PROGRESS, currentStage=PR22 und currentGate=PR22_MULTI_CHARACTER_COORDINATION bestaetigen, waehrend PR22-Produktiv-Authority false bleibt. In dieser Entwicklungsstufe wurde keine solche Execution ausgefuehrt; der aktuelle Repository-Status bleibt PR21/IN_PROGRESS.",
     "PR21 Repository-Stage-State-Post-Execution-Finalization-Boundary ist record-only vorbereitet: nur ein kryptografisch revalidierter APPLIED_VERIFIED_REPOSITORY_STAGE_STATE_RECORD_ONLY mit erneut bestaetigtem Repository-Postzustand PR21=COMPLETE, PR22=IN_PROGRESS, currentStage=PR22 und currentGate=PR22_MULTI_CHARACTER_COORDINATION darf READY_FOR_PR22_DEVELOPMENT_HANDOFF_RECORD_ONLY erzeugen. Der Finalization-Record bindet Source-Main, aktuellen Finalization-Main und alle Execution-Fingerprints, fuehrt aber keine weitere Repository- oder Control-Plane-Mutation aus. PR22-Development-Handoff kann damit spaeter vorbereitet werden; PR22-Produktiv-Handoff, Gameplay-/Raw-Write-/Broad-Runtime-/NormalRuntime-Authority bleiben geschlossen. In dieser Entwicklungsstufe wurde weiterhin keine Repository-State-Execution ausgefuehrt.",
     "PR22 Development-Handoff-Boundary ist record-only vorbereitet, bleibt aber bis zu einer tatsaechlich verifizierten PR21 Repository-State-Execution plus Finalization blockiert. Nur READY_FOR_PR22_DEVELOPMENT_HANDOFF_RECORD_ONLY mit revalidiertem Finalization-Fingerprint, identischem Finalization-Main und Repository-Postzustand PR21=COMPLETE/PR22=IN_PROGRESS darf READY_FOR_PR22_SHADOW_DEVELOPMENT_RECORD_ONLY erzeugen. Danach darf nur Shadow-/NO-WRITE-Entwicklung an der bestehenden PR22-Coordination-Admission fortgesetzt werden; send_cm-, Gameplay-, Raw-Write-, Broad-Runtime- und NormalRuntime-Authority sowie produktive PR22-Ratifizierung bleiben geschlossen.",
-    "PR22 Coordination-Development-Preflight-Boundary ist NO-WRITE vorbereitet, bleibt aber bis zu einer tatsaechlich verifizierten PR21 Repository-State-Execution/Finalization und ausgefuehrtem PR22-Development-Handoff blockiert. Der Preflight revalidiert Handoff-Fingerprint, Handoff-Main und Repository-State und fuehrt dann die bestehende PR22-Coordination-Shadow-Admission sowie den Shadow-Workflow als korrelierte Probe aus. Nur BEREIT_NO_WRITE plus initial ACK_AUSSTEHEND darf READY_FOR_PR22_COORDINATION_SHADOW_PREFLIGHT_RECORD_ONLY erzeugen. Es wird kein send_cm ausgefuehrt, kein externer Runtime-Start autorisiert und keine produktive PR22-Authority erteilt."
+    "PR22 Coordination-Development-Preflight-Boundary ist NO-WRITE vorbereitet, bleibt aber bis zu einer tatsaechlich verifizierten PR21 Repository-State-Execution/Finalization und ausgefuehrtem PR22-Development-Handoff blockiert. Der Preflight revalidiert Handoff-Fingerprint, Handoff-Main und Repository-State und fuehrt dann die bestehende PR22-Coordination-Shadow-Admission sowie den Shadow-Workflow als korrelierte Probe aus. Nur BEREIT_NO_WRITE plus initial ACK_AUSSTEHEND darf READY_FOR_PR22_COORDINATION_SHADOW_PREFLIGHT_RECORD_ONLY erzeugen. Es wird kein send_cm ausgefuehrt, kein externer Runtime-Start autorisiert und keine produktive PR22-Authority erteilt.",
+    "PR22 Coordination-Shadow-Evidence-Boundary ist NO-WRITE vorbereitet und bleibt bis zur realen PR21-Execution/Finalization sowie ausgefuehrtem PR22-Development-Handoff und Preflight blockiert. Nur ein revalidierter Preflight plus derselbe Main/Repository-State und ein terminaler ABGESCHLOSSEN-Shadow-Workflow mit korreliertem ACK+Settlement und exakt 0 send_cm-/Gameplay-/Raw-Write-Calls darf READY_FOR_PR22_COORDINATION_SHADOW_EVIDENCE_RECORD_ONLY erzeugen. Dieser Record ist shadow-only, erfuellt keine Productive Evidence und erlaubt keine produktive Ratifizierung."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -6525,7 +6526,7 @@
     }
   },
   "pr21": {
-    "status": "PR22_COORDINATION_DEVELOPMENT_PREFLIGHT_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION",
+    "status": "PR22_COORDINATION_SHADOW_EVIDENCE_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION",
     "foundationStatus": "PREPARED_NO_WRITE",
     "ziel": "Merchant Gesamtintegration",
     "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
@@ -6626,7 +6627,7 @@
       "normalRuntimeAllowed": false,
       "nextAction": "OBSERVER_HANDOFF_PREPARED"
     },
-    "nextAction": "PREPARE_PR22_COORDINATION_SHADOW_EVIDENCE_BOUNDARY",
+    "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ADMISSION_BOUNDARY",
     "observerHandoff": {
       "status": "PREPARED_NO_WRITE_NO_START_AUTHORITY",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-observer-handoff.ts",
@@ -7706,7 +7707,45 @@
       "normalRuntimeAllowed": false,
       "repositoryMutationPerformed": false,
       "controlPlaneMutationPerformed": false,
-      "nextAction": "PREPARE_PR22_COORDINATION_SHADOW_EVIDENCE_BOUNDARY"
+      "nextAction": "PR22_COORDINATION_SHADOW_EVIDENCE_BOUNDARY_PREPARED"
+    },
+    "coordinationShadowEvidenceBoundary": {
+      "status": "PREPARED_PR22_COORDINATION_SHADOW_EVIDENCE_NO_WRITE",
+      "source": "v5/grundlage/quelle/koordination/pr22-coordination-shadow-evidence-boundary.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr22-coordination-shadow-evidence-boundary.json",
+      "test": "v5/grundlage/tests/pr22-coordination-shadow-evidence-boundary.test.mjs",
+      "requiredPreflightStatus": "READY_FOR_PR22_COORDINATION_SHADOW_PREFLIGHT_RECORD_ONLY",
+      "successStatus": "READY_FOR_PR22_COORDINATION_SHADOW_EVIDENCE_RECORD_ONLY",
+      "preflightFingerprintRevalidationRequired": true,
+      "currentMainMustMatchPreflightMain": true,
+      "repositoryStateRevalidationRequired": true,
+      "workflowTerminalStatusRequired": "ABGESCHLOSSEN",
+      "ackObservedRequired": true,
+      "settlementObservedRequired": true,
+      "ackCorrelationRequired": true,
+      "settlementCorrelationRequired": true,
+      "zeroObservedWritesRequired": true,
+      "shadowEvidenceCompleteOnSuccess": true,
+      "shadowOnly": true,
+      "productiveEvidenceSatisfied": false,
+      "productiveRatificationAllowedFromShadow": false,
+      "separateProductiveEvidenceAdmissionRequired": true,
+      "separateProductiveRatificationRequired": true,
+      "currentBlockedByPr21Execution": true,
+      "shadowEvidenceExecuted": false,
+      "externalRuntimeStartAuthorized": false,
+      "sendCmCallsObserved": 0,
+      "gameplayCallsObserved": 0,
+      "rawWriteCallsObserved": 0,
+      "sendCmAuthority": false,
+      "pr22ProductiveAuthorityIssued": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadRuntimeGrant": false,
+      "normalRuntimeAllowed": false,
+      "repositoryMutationPerformed": false,
+      "controlPlaneMutationPerformed": false,
+      "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ADMISSION_BOUNDARY"
     }
   },
   "pr23": {

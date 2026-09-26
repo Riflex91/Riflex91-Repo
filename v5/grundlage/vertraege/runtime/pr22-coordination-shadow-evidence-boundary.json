@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_PR22_COORDINATION_SHADOW_EVIDENCE_NO_WRITE",
+  "sourceMain": "9d632559d08e73479bd2c29408f9f46f729908de",
+  "source": "v5/grundlage/quelle/koordination/pr22-coordination-shadow-evidence-boundary.ts",
+  "test": "v5/grundlage/tests/pr22-coordination-shadow-evidence-boundary.test.mjs",
+  "requiredPreflightStatus": "READY_FOR_PR22_COORDINATION_SHADOW_PREFLIGHT_RECORD_ONLY",
+  "preflightFingerprintRevalidationRequired": true,
+  "currentMainMustMatchPreflightMain": true,
+  "repositoryStateRevalidationRequired": true,
+  "workflow": {
+    "evaluator": "bewertePr22ShadowWorkflow",
+    "terminalStatusRequired": "ABGESCHLOSSEN",
+    "ackObservedRequired": true,
+    "settlementObservedRequired": true,
+    "ackCorrelationRequired": true,
+    "settlementCorrelationRequired": true,
+    "ttlFreshRequired": true,
+    "recipientFreshRequired": true,
+    "restartRequiresReconciliation": true,
+    "timeOrderRequired": [
+      "preflight.preparedAtMs <= ackObservedAtMs",
+      "ackObservedAtMs <= settlementObservedAtMs",
+      "settlementObservedAtMs <= observedAtMs"
+    ]
+  },
+  "success": {
+    "status": "READY_FOR_PR22_COORDINATION_SHADOW_EVIDENCE_RECORD_ONLY",
+    "workflowTerminalStatus": "ABGESCHLOSSEN",
+    "shadowEvidenceComplete": true,
+    "shadowOnly": true,
+    "productiveEvidenceSatisfied": false,
+    "productiveRatificationAllowedFromShadow": false,
+    "separateProductiveEvidenceAdmissionRequired": true,
+    "separateProductiveRatificationRequired": true
+  },
+  "safety": {
+    "externalRuntimeStartAuthorized": false,
+    "sendCmCallsObserved": 0,
+    "gameplayCallsObserved": 0,
+    "rawWriteCallsObserved": 0,
+    "sendCmAuthority": false,
+    "pr22ProductiveAuthorityIssued": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadRuntimeGrant": false,
+    "normalRuntimeAllowed": false,
+    "repositoryMutationPerformed": false,
+    "controlPlaneMutationPerformed": false
+  },
+  "shadowEvidenceExecutedInRepository": false,
+  "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ADMISSION_BOUNDARY"
+}
