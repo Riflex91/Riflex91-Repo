@@ -5,23 +5,55 @@ import {bauePr21_28StageLedger,bauePr21_28ReadinessSnapshot,bewerteCap022Foundat
 
 const STAGES=["PR21","PR22","PR23","PR24","PR25","PR26","PR27","PR28"];
 
-function states(overrides={}){
-  return STAGES.map(stage=>({
+function settlement(stage,overrides={}){
+  const cap022Required=stage==="PR22"||stage==="PR23";
+  return {
+    schemaVersion:1,
+    transactionFingerprint:"0011223344556677",
+    transactionId:"tx-"+stage.toLowerCase(),
     stage,
-    foundationPrepared:true,
-    orchestrationPrepared:true,
-    featureGatePrepared:true,
-    cap022FullChainReady:true,
-    milestoneRunnerPrepared:true,
-    checkpointRunbookPrepared:true,
-    ratificationRecordPrepared:true,
-    gateApplyTransactionPrepared:true,
-    gateSettlementPrepared:true,
-    liveEvidenceRatified:false,
-    explicitRatificationRecorded:false,
-    gateApplyVerified:false,
-    ...(overrides[stage]??{}),
-  }));
+    sourceMainCommit:"7497da76cd62a53c1aca77535ec98193dab943de",
+    cap022FullChainRequired:cap022Required,
+    cap022FullChainSatisfied:true,
+    settledAtMs:2000,
+    status:"APPLIED_VERIFIED_RECORD_ONLY",
+    durableIntentObserved:true,
+    postconditionVerified:true,
+    terminalSettlementObserved:true,
+    gateMutationPerformedBySettlement:false,
+    authorityIssuedBySettlement:false,
+    broadRuntimeGrant:false,
+    settlementFingerprint:"8899aabbccddeeff",
+    ...overrides,
+  };
+}
+
+function states(overrides={}){
+  return STAGES.map(stage=>{
+    const stageOverride=overrides[stage]??{};
+    const row={
+      stage,
+      foundationPrepared:true,
+      orchestrationPrepared:true,
+      featureGatePrepared:true,
+      cap022FullChainReady:true,
+      milestoneRunnerPrepared:true,
+      checkpointRunbookPrepared:true,
+      ratificationRecordPrepared:true,
+      gateApplyTransactionPrepared:true,
+      gateSettlementPrepared:true,
+      liveEvidenceRatified:false,
+      explicitRatificationRecorded:false,
+      gateApplyVerified:false,
+      gateSettlement:null,
+      ...stageOverride,
+    };
+    if(row.gateApplyVerified===true
+        && !Object.prototype.hasOwnProperty.call(stageOverride,"gateSettlement")){
+      row.gateSettlement=settlement(stage);
+    }
+    return row;
+  });
 }
 
 
@@ -148,6 +180,29 @@ test("partial preparation remains distinct from live-evidence boundary",()=>{
   assert.equal(snapshot.preparationThroughPr28Complete,false);
   assert.equal(snapshot.liveEvidenceBoundaryReached,false);
   assert.ok(snapshot.stages.at(-1).missing.includes("PREPARATION_INCOMPLETE"));
+});
+
+
+
+test("readiness snapshot akzeptiert gateApplyVerified nicht ohne Settlement-Evidence",()=>{
+  const ledger=bauePr21_28StageLedger(states({
+    PR21:{
+      liveEvidenceRatified:true,
+      explicitRatificationRecorded:true,
+      gateApplyVerified:true,
+      gateSettlement:null,
+    },
+  }));
+  const snapshot=bauePr21_28ReadinessSnapshot({
+    schemaVersion:1,
+    mainCommit:"6b7828d06b440ddc2fbce5fd0e22bb544674e8fb",
+    ledger,
+    cap022FoundationChain:cap022Chain(),
+    checkpoints:checkpoints(),
+  });
+  assert.equal(snapshot.highestProductiveEligibleStage,null);
+  assert.ok(snapshot.stages[0].missing.includes("VERIFIED_GATE_APPLY"));
+  assert.equal(snapshot.authorityIssued,false);
 });
 
 test("readiness snapshot rejects incomplete checkpoint set",()=>{
