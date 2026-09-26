@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_MERCHANT_LIVE_RESULT_FREEZE_ADAPTER_V1",
+  "status": "PREPARED_EVIDENCE_ONLY_WAITING_FOR_TERMINAL_LIVE_RESULT",
+  "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+  "stage": "PR21",
+  "purpose": "Bind the real PR21 Merchant browser result to the existing frozen sample and result-package evaluation chain without ratifying or mutating repository gates.",
+  "bindings": {
+    "liveTestId": "pr21-merchant-integration-live-15m-v1-0-2",
+    "liveVersion": "1.0.2",
+    "segmentId": "pr21-merchant-integration",
+    "targetDurationMs": 900000,
+    "expectedSamples": 181,
+    "sampleIntervalMs": 5000,
+    "maximumSampleGapMs": 15000,
+    "requiredRuntimeAuthorityId": "runtime:merchant",
+    "observationSource": "AIO_V3.__operations"
+  },
+  "admission": {
+    "terminalStatusRequired": "BESTANDEN",
+    "terminalPhaseRequired": "COMPLETE",
+    "evidenceStatusRequired": "EVIDENCE_READY_TARGET_REACHED",
+    "finalResourceObservabilityRequired": true,
+    "resourceMetricsMayBeInvented": false,
+    "sampleSeriesMustBeRevalidated": true,
+    "liveResultBindingMustMatchExactly": true
+  },
+  "normalization": {
+    "browserSpecificFieldsMayBeDiscarded": true,
+    "milestoneSampleFieldsRetainedExactly": true,
+    "externalRuntimeAuthorizationIsObservedButNotTransferredToCollector": true,
+    "collectorFrozenOnAdmission": true
+  },
+  "safety": {
+    "evidenceOnly": true,
+    "automaticRatification": false,
+    "gateMutationAllowed": false,
+    "productiveAuthorityIssued": false,
+    "collectorRuntimeStartAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "failClosedOnIncompleteLiveResult": true,
+    "failClosedOnSampleDrift": true,
+    "failClosedOnObservabilityDrift": true
+  },
+  "nextBoundary": "EXPLICIT_MANUAL_RATIFICATION_ONLY_AFTER_READY_RESULT_PACKAGE"
+}
