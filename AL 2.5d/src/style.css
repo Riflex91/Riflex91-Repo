@@ -2201,3 +2201,45 @@ html.al25d-high-contrast #al25d-hud input:focus-visible {
   border-color: rgba(211, 111, 92, .25);
   color: #d9a39a;
 }
+
+
+/* v44 authoritative chest-removal feedback. */
+.al25d-loot-feedback {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  color: #f5d77f;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, .92),
+    0 0 9px rgba(239, 189, 76, .46);
+  animation: al25d-loot-opened .78s ease-out forwards;
+}
+
+.al25d-loot-feedback i {
+  font-style: normal;
+  font-size: 13px;
+}
+
+.al25d-loot-feedback b {
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .1em;
+}
+
+@keyframes al25d-loot-opened {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%) scale(.78);
+  }
+  24% {
+    opacity: 1;
+    transform: translate(-50%, -55%) scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -115%) scale(.96);
+  }
+}

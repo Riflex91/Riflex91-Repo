@@ -3,7 +3,8 @@ import type {
   CameraState,
   GameFrameSnapshot,
   RenderEntity,
-  RenderSkillVisualKind
+  RenderSkillVisualKind,
+  RenderLootChest
 } from "../render/RenderBridge";
 import type { GraphicsMode } from "../legacy/LegacyCompatibilityRuntime";
 
@@ -72,6 +73,30 @@ export function diffEntityHitPoints(
   });
 }
 
+export type LootChestDiff = Readonly<{
+  removed: readonly RenderLootChest[];
+  next: ReadonlyMap<string, RenderLootChest>;
+}>;
+
+export function diffLootChests(
+  previous: ReadonlyMap<string, RenderLootChest>,
+  snapshot: GameFrameSnapshot
+): LootChestDiff {
+  const next = new Map<string, RenderLootChest>(
+    (snapshot.lootChests ?? []).map((chest) => [chest.id, chest])
+  );
+  const removed: RenderLootChest[] = [];
+
+  for (const [id, chest] of previous) {
+    if (!next.has(id)) removed.push(chest);
+  }
+
+  return Object.freeze({
+    removed: Object.freeze(removed),
+    next
+  });
+}
+
 function entityById(
   snapshot: GameFrameSnapshot,
   entityId: string
@@ -82,6 +107,8 @@ function entityById(
 export class CombatFeedbackOverlay {
   private readonly root = document.createElement("div");
   private previousHp: ReadonlyMap<string, number> = new Map();
+  private previousLoot: ReadonlyMap<string, RenderLootChest> = new Map();
+  private previousMap: string | null = null;
   private mode: GraphicsMode = "original";
   private enabled = true;
 
@@ -109,7 +136,20 @@ export class CombatFeedbackOverlay {
     const diff = diffEntityHitPoints(this.previousHp, snapshot);
     this.previousHp = diff.nextHp;
 
+    const lootDiff = diffLootChests(
+      this.previousMap === snapshot.map
+        ? this.previousLoot
+        : new Map<string, RenderLootChest>(),
+      snapshot
+    );
+    this.previousLoot = lootDiff.next;
+    this.previousMap = snapshot.map;
+
     if (this.root.hidden) return;
+
+    for (const chest of lootDiff.removed) {
+      this.spawnLootOpened(chest, camera, viewport);
+    }
 
     for (const event of diff.events) {
       const entity = entityById(snapshot, event.entityId);
@@ -206,12 +246,35 @@ export class CombatFeedbackOverlay {
 
   clear(): void {
     this.previousHp = new Map();
+    this.previousLoot = new Map();
+    this.previousMap = null;
     this.root.replaceChildren();
   }
 
   destroy(): void {
     this.clear();
     this.root.remove();
+  }
+
+  private spawnLootOpened(
+    chest: RenderLootChest,
+    camera: CameraState,
+    viewport: ViewportSize
+  ): void {
+    const point = worldToViewport(chest, camera, viewport);
+    const marker = document.createElement("span");
+    marker.className = "al25d-loot-feedback";
+    marker.style.left = `${point.x}px`;
+    marker.style.top = `${point.y - 22 * camera.zoom}px`;
+
+    const icon = document.createElement("i");
+    icon.textContent = "✦";
+    const text = document.createElement("b");
+    text.textContent = "CHEST OPENED";
+
+    marker.append(icon, text);
+    this.root.appendChild(marker);
+    this.removeAfterAnimation(marker, 860);
   }
 
   private impact(

@@ -99,7 +99,8 @@ Deliverable: walkable Main with original gameplay logic.
 - [ ] full death/respawn presentation parity
 - [x] authoritative HP-transition respawn feedback baseline
 - [x] loot/chest baseline: immutable original chest mirror + first-party world/minimap visuals + original open_chest click routing
-- [ ] richer loot presentation and chest-open reward feedback
+- [x] chest-open disappearance feedback derived from authoritative chest removal
+- [ ] item/gold reward-detail feedback when authoritative reward data is safely mirrorable
 - [x] combat UI baseline: target frame + attack pulse + floating feedback
 
 ## AL25D-06 — Full HUD replacement

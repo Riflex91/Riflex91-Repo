@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { diffEntityHitPoints } from "../src/ui/CombatFeedbackOverlay";
+import {
+  diffEntityHitPoints,
+  diffLootChests
+} from "../src/ui/CombatFeedbackOverlay";
 import type { GameFrameSnapshot } from "../src/render/RenderBridge";
 
 function frame(hp: number): GameFrameSnapshot {
@@ -57,4 +60,35 @@ describe("combat feedback", () => {
     ]);
     expect(diff.nextHp.get("goo")).toBe(100);
   });
+
+  it("derives chest-open feedback only from authoritative chest removal", () => {
+    const chest = Object.freeze({
+      id: "loot-1",
+      x: 25,
+      y: 30,
+      map: "main",
+      items: 2
+    });
+
+    const present: GameFrameSnapshot = {
+      tick: 1,
+      map: "main",
+      lootChests: [chest],
+      entities: []
+    };
+    const gone: GameFrameSnapshot = {
+      tick: 2,
+      map: "main",
+      lootChests: [],
+      entities: []
+    };
+
+    const first = diffLootChests(new Map(), present);
+    expect(first.removed).toEqual([]);
+
+    const second = diffLootChests(first.next, gone);
+    expect(second.removed).toEqual([chest]);
+    expect(second.next.size).toBe(0);
+  });
+
 });
