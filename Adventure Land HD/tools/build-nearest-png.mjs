@@ -51,27 +51,34 @@ const ihdr=chunks.find(c=>c.type==="IHDR")?.data;
 if(!ihdr||ihdr.length!==13) throw new Error("PNG IHDR missing.");
 const width=ihdr.readUInt32BE(0), height=ihdr.readUInt32BE(4);
 const bitDepth=ihdr[8], colorType=ihdr[9], compression=ihdr[10], filter=ihdr[11], interlace=ihdr[12];
-if(bitDepth!==8||colorType!==3||compression!==0||filter!==0||interlace!==0){
-  throw new Error("Nearest terrain pilot currently requires 8-bit indexed, non-interlaced PNG input.");
+if(compression!==0||filter!==0||interlace!==0) throw new Error("Nearest terrain generator requires standard non-interlaced PNG input.");
+
+const indexed=colorType===3;
+const channelsByColorType={0:1,2:3,4:2,6:4};
+if(indexed){
+  if(![4,8].includes(bitDepth)) throw new Error("Indexed PNG input must use 4-bit or 8-bit palette indices.");
+  if(!chunks.find(c=>c.type==="PLTE")) throw new Error("Indexed PNG requires PLTE.");
+}else{
+  if(bitDepth!==8||!channelsByColorType[colorType]) throw new Error("Non-indexed PNG input currently requires 8-bit grayscale, RGB, grayscale-alpha or RGBA.");
 }
-const palette=chunks.find(c=>c.type==="PLTE");
-if(!palette) throw new Error("Indexed PNG requires PLTE.");
+
+const sourceStride=indexed
+  ? Math.ceil(width*bitDepth/8)
+  : width*channelsByColorType[colorType];
+const filterBpp=indexed
+  ? 1
+  : channelsByColorType[colorType];
+
 const idat=Buffer.concat(chunks.filter(c=>c.type==="IDAT").map(c=>c.data));
 const packed=zlib.inflateSync(idat);
-const stride=width;
-if(packed.length!==(stride+1)*height) throw new Error("Unexpected indexed PNG scanline size.");
+if(packed.length!==(sourceStride+1)*height) throw new Error("Unexpected PNG scanline size.");
 
-const rows=[];
-let previous=Buffer.alloc(stride);
-for(let y=0;y<height;y++){
-  const start=y*(stride+1);
-  const filterType=packed[start];
-  const filtered=packed.subarray(start+1,start+1+stride);
-  const row=Buffer.alloc(stride);
-  for(let x=0;x<stride;x++){
-    const a=x?row[x-1]:0;
+function unfilterRow(filtered,previous,bpp,filterType){
+  const row=Buffer.alloc(filtered.length);
+  for(let x=0;x<filtered.length;x++){
+    const a=x>=bpp?row[x-bpp]:0;
     const b=previous[x];
-    const c=x?previous[x-1]:0;
+    const c=x>=bpp?previous[x-bpp]:0;
     let predictor=0;
     if(filterType===0) predictor=0;
     else if(filterType===1) predictor=a;
@@ -83,17 +90,44 @@ for(let y=0;y<height;y++){
     }else throw new Error("Unsupported PNG filter "+filterType);
     row[x]=(filtered[x]+predictor)&255;
   }
+  return row;
+}
+
+const rows=[];
+let previous=Buffer.alloc(sourceStride);
+for(let y=0;y<height;y++){
+  const start=y*(sourceStride+1);
+  const row=unfilterRow(packed.subarray(start+1,start+1+sourceStride),previous,filterBpp,packed[start]);
   rows.push(row);
   previous=row;
 }
 
 const outWidth=width*scale, outHeight=height*scale;
-const raw=Buffer.alloc((outWidth+1)*outHeight);
+let outputBitDepth=bitDepth;
+let outputChannels=indexed?1:channelsByColorType[colorType];
+if(indexed&&bitDepth===4) outputBitDepth=8;
+const outStride=outWidth*outputChannels;
+const raw=Buffer.alloc((outStride+1)*outHeight);
+
+function indexedValue(row,x){
+  if(bitDepth===8) return row[x];
+  const byte=row[x>>1];
+  return (x&1)?(byte&0x0f):(byte>>4);
+}
+
 for(let y=0;y<height;y++){
-  const expanded=Buffer.alloc(outWidth);
-  for(let x=0;x<width;x++) expanded.fill(rows[y][x],x*scale,(x+1)*scale);
+  const expanded=Buffer.alloc(outStride);
+  if(indexed){
+    for(let x=0;x<width;x++) expanded.fill(indexedValue(rows[y],x),x*scale,(x+1)*scale);
+  }else{
+    const channels=outputChannels;
+    for(let x=0;x<width;x++){
+      const pixel=rows[y].subarray(x*channels,(x+1)*channels);
+      for(let sx=0;sx<scale;sx++) pixel.copy(expanded,(x*scale+sx)*channels);
+    }
+  }
   for(let sy=0;sy<scale;sy++){
-    const dst=(y*scale+sy)*(outWidth+1);
+    const dst=(y*scale+sy)*(outStride+1);
     raw[dst]=0;
     expanded.copy(raw,dst+1);
   }
@@ -102,6 +136,7 @@ for(let y=0;y<height;y++){
 const newIHDR=Buffer.from(ihdr);
 newIHDR.writeUInt32BE(outWidth,0);
 newIHDR.writeUInt32BE(outHeight,4);
+newIHDR[8]=outputBitDepth;
 const keepTypes=new Set(["gAMA","cHRM","sRGB","iCCP","PLTE","tRNS","pHYs"]);
 const out=[signature,chunk("IHDR",newIHDR)];
 for(const c of chunks){
@@ -116,6 +151,9 @@ console.log(JSON.stringify({
   input:path.resolve(input),
   output:path.resolve(output),
   scale,
+  colorType,
+  inputBitDepth:bitDepth,
+  outputBitDepth,
   originalPixels:{width,height},
   hdPixels:{width:outWidth,height:outHeight},
   bytes:fs.statSync(output).size
