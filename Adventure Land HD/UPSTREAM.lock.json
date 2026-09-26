@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "repository": "kaansoral/adventureland_mongodb",
+  "cloneUrl": "https://github.com/kaansoral/adventureland_mongodb.git",
+  "defaultBranch": "main",
+  "commit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+  "tree": "5c8c954fecc7cef1d8b72dac5f626f10835867f1",
+  "commitDate": "2026-09-21T11:54:10Z",
+  "pinnedOn": "2026-09-26",
+  "expectedInventory": {
+    "totalFiles": 2311,
+    "imageFiles": 2028,
+    "supportFiles": 283
+  },
+  "invariant": "The original game/runtime stays authoritative. Adventure Land HD replaces presentation assets only."
+}
