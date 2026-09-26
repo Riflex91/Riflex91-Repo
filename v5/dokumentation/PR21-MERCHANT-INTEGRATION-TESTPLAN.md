@@ -81,6 +81,25 @@ Der Collector besitzt weder Runtime-Startrecht noch Gameplay-, Raw-Write-
 oder Normal-Runtime-Authority und erzeugt selbst keine Gameplay/Public/Raw
 Writes.
 
+## Freeze/Evaluation-Handoff
+
+Nach dem bounded Sample-Collector ist jetzt auch der reine
+Freeze/Evaluation-Handoff vorbereitet. Er akzeptiert nur eine bereits
+eingefrorene, saubere 181-Sample-Serie mit mindestens 900 Sekunden Dauer und
+finalem `BEOBACHTUNG_BEREIT`.
+
+Der Handoff fuehrt die vorhandenen Bausteine in fester Reihenfolge aus:
+
+1. PR21-28 Milestone-Auswertung;
+2. Live-Evidence-Auswertung;
+3. Result-Package-Build;
+4. Erzeugung eines Ratification-Drafts.
+
+Der maximal erreichbare Zustand ist
+`READY_FOR_EXPLICIT_MANUAL_RATIFICATION`. Der Draft bleibt
+`AWAITING_EXPLICIT_RATIFICATION`; der Handoff ratifiziert nicht selbst,
+mutiert kein Gate und erteilt keine Authority.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne

@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_MERCHANT_FREEZE_EVALUATION_HANDOFF_V1",
+  "status": "PREPARED_NO_WRITE_NO_AUTO_RATIFICATION",
+  "sourceMain": "fb55619666d4c2c166bfc2a2c020d90bb37ec2cd",
+  "source": "v5/grundlage/quelle/merchant/pr21-merchant-freeze-evaluation-handoff.ts",
+  "test": "v5/grundlage/tests/pr21-merchant-freeze-evaluation-handoff.test.mjs",
+  "sampleCollector": "v5/grundlage/vertraege/runtime/pr21-merchant-sample-collector.json",
+  "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+  "prerequisites": {
+    "collectorStatus": "ZIEL_ERREICHT_EINGEFROREN",
+    "frozen": true,
+    "exactSamples": 181,
+    "minimumDurationMs": 900000,
+    "sampleGaps": 0,
+    "finalObservabilityStatus": "BEOBACHTUNG_BEREIT",
+    "authorityLeakCount": 0,
+    "recorderDrops": 0,
+    "resourceMetricsComplete": true
+  },
+  "output": {
+    "runnerStatus": "EVIDENCE_READY_TARGET_REACHED",
+    "liveEvidenceStatus": "EVIDENCE_RATIFIZIERBAR",
+    "resultPackageStatus": "READY_FOR_MANUAL_RATIFICATION",
+    "ratificationDraftStatus": "AWAITING_EXPLICIT_RATIFICATION",
+    "explicitConfirmationRequired": true
+  },
+  "safety": {
+    "sampleSeriesFrozen": true,
+    "samplesImmutableAtHandoff": true,
+    "automaticRatification": false,
+    "gateMutationPerformed": false,
+    "authorityIssued": false,
+    "broadRuntimeGrant": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "externalRuntimeStartAuthorized": false
+  },
+  "nextMilestone": "PREPARE_PR21_EXPLICIT_RATIFICATION_RECORD_BOUNDARY"
+}
