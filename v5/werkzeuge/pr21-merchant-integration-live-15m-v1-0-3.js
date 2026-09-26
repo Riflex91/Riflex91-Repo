@@ -715,8 +715,6 @@
     }
   }
 
-  bindSource();
-  installFacade();
   function startOnce() {
     if (runPromise === null) runPromise = run();
     return runPromise;
