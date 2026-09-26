@@ -24,6 +24,9 @@ on:
       - 'v5/werkzeuge/pr20-7-gear-read-only-autonomous.js'
       - 'v5/werkzeuge/pr21-merchant-integration-live-15m.js'
       - 'v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-1.js'
+      - 'v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-2.js'
+      - 'v5/werkzeuge/tests/pr21-merchant-integration-live-15m-v1-0-2.test.mjs'
+      - 'v5/roadmap/pr21-merchant-live-execution-authorization-v3.json'
       - 'v5/werkzeuge/tests/pr21-merchant-integration-live-15m-v1-0-1.test.mjs'
       - 'v5/roadmap/pr21-merchant-live-execution-authorization-v2.json'
       - 'v5/werkzeuge/tests/pr21-merchant-integration-live-15m.test.mjs'
@@ -154,6 +157,9 @@ on:
       - 'v5/werkzeuge/pr20-7-gear-read-only-autonomous.js'
       - 'v5/werkzeuge/pr21-merchant-integration-live-15m.js'
       - 'v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-1.js'
+      - 'v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-2.js'
+      - 'v5/werkzeuge/tests/pr21-merchant-integration-live-15m-v1-0-2.test.mjs'
+      - 'v5/roadmap/pr21-merchant-live-execution-authorization-v3.json'
       - 'v5/werkzeuge/tests/pr21-merchant-integration-live-15m-v1-0-1.test.mjs'
       - 'v5/roadmap/pr21-merchant-live-execution-authorization-v2.json'
       - 'v5/werkzeuge/tests/pr21-merchant-integration-live-15m.test.mjs'
@@ -278,6 +284,8 @@ jobs:
         run: node --check werkzeuge/pr21-merchant-integration-live-15m.js && node --test werkzeuge/tests/pr21-merchant-integration-live-15m.test.mjs
       - name: Verify PR21 merchant 15m runtime-start recovery package
         run: node --check werkzeuge/pr21-merchant-integration-live-15m-v1-0-1.js && node --test werkzeuge/tests/pr21-merchant-integration-live-15m-v1-0-1.test.mjs
+      - name: Verify PR21 merchant parser-compatible live recovery v1.0.2
+        run: node --check werkzeuge/pr21-merchant-integration-live-15m-v1-0-2.js && node --test werkzeuge/tests/pr21-merchant-integration-live-15m-v1-0-2.test.mjs
       - name: Verify PR20.8 recovery runner v1.0.1
         run: node --check werkzeuge/pr20-8-upgrade-productive-one-write-live-v1-0-1.js && node --test werkzeuge/tests/pr20-8-upgrade-productive-one-write-live-v1-0-1.test.mjs
       - name: Verify PR20.8 stale-lease recovery runner v1.0.2
