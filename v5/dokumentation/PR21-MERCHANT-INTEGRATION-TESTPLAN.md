@@ -600,6 +600,27 @@ bleiben default-off; `productiveAuthorityIssued`,
 `pr22ProductiveAuthorityIssued`, `sendCmAuthority`, Gameplay-, Raw-Write-,
 Broad-Runtime- und NormalRuntime-Authority bleiben false.
 
+## PR22-Coordination-Productive-Authority-Default-Off-Apply-Boundary
+
+Aus dem revalidierten
+`READY_FOR_SEPARATE_PR22_PRODUCTIVE_AUTHORITY_APPLY`-Post-Settlement-Record
+entsteht nur eine deterministisch gebundene
+`PREPARED_PR22_PRODUCTIVE_AUTHORITY_APPLY_DEFAULT_OFF`-Transaktion.
+
+Die Transaktion bindet Post-Settlement-, Gate-Settlement-, Gate-Transaction-,
+Proposal-, Productive-Evidence- und Ratification-Fingerprint. Vor einer
+spaeteren Execution muessen Main, alle Fingerprints, Repository-State,
+PR22-Feature-Gate und CAP-022 Full Chain erneut passen. Durable Intent,
+One-Shot-Ausfuehrung, Postcondition-Verifikation und Reconciliation bei
+UNKNOWN bleiben Pflicht; Same-Intent-Retry bleibt verboten.
+
+Authority-Apply-Adapter und Execution bleiben default-off. Die Vorbereitung
+erteilt insbesondere keine `productiveAuthority`,
+`pr22ProductiveAuthority`, `sendCm`-, Gameplay-, Raw-Write-,
+Broad-Runtime- oder NormalRuntime-Authority. Eine separate
+Execution-Authorization ist weiterhin erforderlich.
+
+
 
 
 
