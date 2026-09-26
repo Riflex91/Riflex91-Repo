@@ -13,7 +13,7 @@
   },
   "stages": {
     "pr21": {
-      "status": "FREEZE_EVALUATION_HANDOFF_PREPARED_NO_AUTO_RATIFICATION",
+      "status": "RATIFICATION_RECORD_BOUNDARY_PREPARED_EXPLICIT_CONFIRMATION_ONLY",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
       "purpose": "Merchant Gesamtintegration Readiness und Safety/Thrash/Starvation Gate",
       "productiveGate": "PR20_COMPLETE_AND_15M_MERCHANT_INTEGRATION_EVIDENCE",
@@ -137,7 +137,24 @@
         "gameplayAuthority": false,
         "rawWriteAuthority": false,
         "normalRuntimeAllowed": false,
-        "nextMilestone": "PREPARE_PR21_EXPLICIT_RATIFICATION_RECORD_BOUNDARY"
+        "nextMilestone": "RATIFICATION_RECORD_BOUNDARY_PREPARED"
+      },
+      "ratificationRecordBoundary": {
+        "status": "PREPARED_EXPLICIT_CONFIRMATION_ONLY",
+        "source": "v5/grundlage/quelle/merchant/pr21-merchant-ratification-record-boundary.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-ratification-record-boundary.json",
+        "test": "v5/grundlage/tests/pr21-merchant-ratification-record-boundary.test.mjs",
+        "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+        "requiredHandoffStatus": "READY_FOR_EXPLICIT_MANUAL_RATIFICATION",
+        "exactConfirmationRequired": true,
+        "recordStatus": "RATIFIED_RECORD_ONLY",
+        "gateAdvanced": false,
+        "authorityIssued": false,
+        "broadRuntimeGrant": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false,
+        "nextMilestone": "PREPARE_PR21_GATE_ADVANCE_PROPOSAL_BOUNDARY"
       }
     },
     "pr22": {
