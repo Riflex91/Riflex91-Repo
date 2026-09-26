@@ -90,12 +90,12 @@ test("historical autonomy productive cutover stays exact while active manifest a
   assert.equal(cutover.prerequisite.priorCommittedTransactionMayNotGrantAuthority,true);
   assert.notEqual(manifest.testId,cutover.manifest.testId);
   assert.equal(manifest.gate,"PR21_MERCHANT_INTEGRATION");
-  assert.equal(manifest.testId,"pr21-merchant-integration-live-15m-v1-0-1");
-  assert.equal(manifest.controllerVersion,"1.0.1");
-  assert.equal(manifest.sourceCommit,"4e61c90f3575f1b96afb7deedc23b7e7f383773d");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-1.js");
-  assert.equal(manifest.packageSha256,"6ad5ec5513fe4f8ca557370147f9b6910198d36ac8d078c8807cd2403d3720e6");
-  assert.equal(manifest.expectedGlobal,"V5PR21MerchantIntegrationLive15mV101");
+  assert.equal(manifest.testId,"pr21-merchant-integration-live-15m-v1-0-2");
+  assert.equal(manifest.controllerVersion,"1.0.2");
+  assert.equal(manifest.sourceCommit,"21ca224da795c21c7aced7fe8bb3c6d4a7fb7bbb");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-2.js");
+  assert.equal(manifest.packageSha256,"9ad493bad10dbfd565613ebdc0529893610c0c0f4868e1ffda690a77224e8dda");
+  assert.equal(manifest.expectedGlobal,"V5PR21MerchantIntegrationLive15mV102");
   assert.equal(manifest.normalRuntimeAllowed,false);
   assert.equal(cutover.productiveBoundary.newAutonomousDecisionRequired,true);
   assert.equal(cutover.productiveBoundary.manualPinnedInventoryIndexForbidden,true);
