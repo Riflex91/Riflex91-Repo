@@ -9,7 +9,8 @@ import type {
   RenderPartyMember,
   RenderChatMessage,
   RenderChatChannel,
-  RenderQuestEvent
+  RenderQuestEvent,
+  RenderItemDetails
 } from "../render/RenderBridge";
 import {
   buildHudModel,
@@ -119,6 +120,81 @@ function equipmentIcon(slot: string): string {
   if (normalized.includes("cape")) return "⌁";
   if (normalized.includes("orb")) return "✦";
   return "•";
+}
+
+function itemTypeLabel(value: string): string {
+  return value
+    .split(/[_-]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function appendItemDetails(
+  owner: HTMLElement,
+  details: RenderItemDetails | undefined
+): void {
+  if (!details) return;
+
+  const surface = document.createElement("section");
+  surface.className = "al25d-item-details";
+
+  const badges = document.createElement("div");
+  badges.className = "al25d-item-detail-badges";
+
+  for (const value of [
+    details.type ? itemTypeLabel(details.type) : null,
+    details.tier !== undefined ? `Tier ${details.tier}` : null,
+    details.damageType ? itemTypeLabel(details.damageType) : null
+  ]) {
+    if (!value) continue;
+    const badge = document.createElement("span");
+    badge.textContent = value;
+    badges.appendChild(badge);
+  }
+
+  if (badges.childElementCount) {
+    surface.appendChild(badges);
+  }
+
+  if (details.explanation) {
+    const explanation = document.createElement("p");
+    explanation.textContent = details.explanation;
+    surface.appendChild(explanation);
+  }
+
+  if (details.classes?.length) {
+    const classes = document.createElement("small");
+    classes.textContent =
+      `Classes · ${details.classes.map(itemTypeLabel).join(", ")}`;
+    surface.appendChild(classes);
+  }
+
+  if (details.stats.length) {
+    const heading = document.createElement("h4");
+    heading.textContent = "Definition stats";
+    surface.appendChild(heading);
+
+    const stats = document.createElement("div");
+    stats.className = "al25d-item-stat-grid";
+
+    for (const stat of details.stats) {
+      const row = document.createElement("div");
+      row.dataset.source = stat.source;
+
+      const label = document.createElement("span");
+      label.textContent = stat.label;
+      const value = document.createElement("strong");
+      value.textContent =
+        stat.value > 0 ? `+${stat.value}` : String(stat.value);
+      row.append(label, value);
+      stats.appendChild(row);
+    }
+
+    surface.appendChild(stats);
+  }
+
+  owner.appendChild(surface);
 }
 
 export class HudOverlay {
@@ -670,6 +746,7 @@ export class HudOverlay {
       `Inventory slot ${selected.index + 1} · ` +
       "Drag auf einen anderen Slot zum Verschieben";
     copy.append(name, meta);
+    appendItemDetails(copy, selected.details);
 
     const actions = document.createElement("div");
     actions.className = "al25d-item-actions";
@@ -756,6 +833,7 @@ export class HudOverlay {
     const meta = document.createElement("span");
     meta.textContent = `Equipment slot · ${selected.slot}`;
     copy.append(name, meta);
+    appendItemDetails(copy, selected.details);
 
     const actions = document.createElement("div");
     actions.className = "al25d-item-actions";

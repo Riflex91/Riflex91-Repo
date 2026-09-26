@@ -86,12 +86,29 @@ export type RenderMapState = Readonly<{
   geometry: RenderMapGeometrySummary;
 }>;
 
+export type RenderItemStat = Readonly<{
+  key: string;
+  label: string;
+  value: number;
+  source: "definition" | "instance";
+}>;
+
+export type RenderItemDetails = Readonly<{
+  type?: string;
+  tier?: number;
+  damageType?: string;
+  explanation?: string;
+  classes?: readonly string[];
+  stats: readonly RenderItemStat[];
+}>;
+
 export type RenderInventorySlot = Readonly<{
   index: number;
   name?: string;
   displayName?: string;
   level?: number;
   quantity?: number;
+  details?: RenderItemDetails;
 }>;
 
 export type RenderEquipmentSlot = Readonly<{
@@ -100,6 +117,7 @@ export type RenderEquipmentSlot = Readonly<{
   displayName: string;
   level?: number;
   quantity?: number;
+  details?: RenderItemDetails;
 }>;
 
 export type RenderHotbarEntry = Readonly<{

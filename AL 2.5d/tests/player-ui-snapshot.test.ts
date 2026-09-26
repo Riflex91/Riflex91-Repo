@@ -47,8 +47,20 @@ describe("player UI snapshot", () => {
       },
       G: {
         items: {
-          hpot1: { name: "HP Potion" },
-          sword: { name: "Sword" }
+          hpot1: {
+            name: "HP Potion",
+            type: "pot",
+            explanation: "Restores health."
+          },
+          sword: {
+            name: "Sword",
+            type: "weapon",
+            tier: 2,
+            damage_type: "physical",
+            attack: 24,
+            str: 3,
+            class: ["warrior", "paladin"]
+          }
         },
         skills: {
           cleave: {
@@ -82,13 +94,38 @@ describe("player UI snapshot", () => {
       index: 0,
       name: "hpot1",
       displayName: "HP Potion",
-      quantity: 12
+      quantity: 12,
+      details: {
+        type: "pot",
+        explanation: "Restores health.",
+        stats: []
+      }
     });
     expect(snapshot.playerUi?.inventory[1]).toEqual({ index: 1 });
     expect(snapshot.playerUi?.equipment[0]).toMatchObject({
       slot: "mainhand",
       displayName: "Sword",
-      level: 3
+      level: 3,
+      details: {
+        type: "weapon",
+        tier: 2,
+        damageType: "physical",
+        classes: ["warrior", "paladin"],
+        stats: [
+          {
+            key: "attack",
+            label: "Attack",
+            value: 24,
+            source: "definition"
+          },
+          {
+            key: "str",
+            label: "STR",
+            value: 3,
+            source: "definition"
+          }
+        ]
+      }
     });
     expect(snapshot.playerUi?.hotbar.map((entry) => entry.key)).toEqual([
       "1",

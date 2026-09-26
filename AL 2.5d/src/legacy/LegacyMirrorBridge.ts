@@ -13,7 +13,9 @@ import type {
   RenderPartyMember,
   RenderChatMessage,
   RenderChatChannel,
-  RenderQuestEvent
+  RenderQuestEvent,
+  RenderItemDetails,
+  RenderItemStat
 } from "../render/RenderBridge";
 import {
   LegacySnapshotAdapter,
@@ -334,6 +336,96 @@ function displayNameFor(
   return stringValue(definition?.name) ?? name;
 }
 
+const ITEM_STAT_LABELS: Readonly<Record<string, string>> = Object.freeze({
+  attack: "Attack",
+  armor: "Armor",
+  resistance: "Resistance",
+  hp: "HP",
+  mp: "MP",
+  str: "STR",
+  dex: "DEX",
+  int: "INT",
+  vit: "VIT",
+  speed: "Speed",
+  range: "Range",
+  frequency: "Attack speed",
+  evasion: "Evasion",
+  reflection: "Reflection",
+  lifesteal: "Lifesteal",
+  manasteal: "Manasteal",
+  crit: "Critical",
+  dreturn: "Damage return"
+});
+
+function itemDetailsSnapshot(
+  name: string,
+  item: Readonly<Record<string, unknown>> | undefined,
+  definitions: Readonly<Record<string, Readonly<Record<string, unknown>>>> | undefined
+): RenderItemDetails | undefined {
+  const definition = definitions?.[name];
+  if (!definition) return undefined;
+
+  const stats: RenderItemStat[] = [];
+
+  for (const [key, label] of Object.entries(ITEM_STAT_LABELS)) {
+    const value = finiteNumber(definition[key]);
+    if (value === undefined || value === 0) continue;
+
+    stats.push(
+      Object.freeze({
+        key,
+        label,
+        value,
+        source: "definition" as const
+      })
+    );
+  }
+
+  const statType = stringValue(item?.stat_type);
+  const statValue = finiteNumber(item?.stat);
+  if (statType && statValue !== undefined && statValue !== 0) {
+    stats.push(
+      Object.freeze({
+        key: `instance:${statType}`,
+        label: `Bonus ${ITEM_STAT_LABELS[statType] ?? statType.toUpperCase()}`,
+        value: statValue,
+        source: "instance" as const
+      })
+    );
+  }
+
+  const type = stringValue(definition.type);
+  const tier = finiteNumber(definition.tier);
+  const damageType = stringValue(definition.damage_type);
+  const explanation = stringValue(definition.explanation);
+  const classes = Array.isArray(definition.class)
+    ? definition.class.filter(
+        (entry): entry is string =>
+          typeof entry === "string" && Boolean(entry.trim())
+      )
+    : [];
+
+  if (
+    !type &&
+    tier === undefined &&
+    !damageType &&
+    !explanation &&
+    !classes.length &&
+    !stats.length
+  ) {
+    return undefined;
+  }
+
+  return Object.freeze({
+    ...(type ? { type } : {}),
+    ...(tier === undefined ? {} : { tier }),
+    ...(damageType ? { damageType } : {}),
+    ...(explanation ? { explanation } : {}),
+    ...(classes.length ? { classes: Object.freeze([...classes]) } : {}),
+    stats: Object.freeze(stats)
+  });
+}
+
 function itemSnapshot(
   value: unknown,
   index: number,
@@ -349,12 +441,15 @@ function itemSnapshot(
   const level = finiteNumber(item?.level);
   const quantity = finiteNumber(item?.q);
 
+  const details = itemDetailsSnapshot(name, item, definitions);
+
   return Object.freeze({
     index,
     name,
     displayName: displayNameFor(name, definitions),
     ...(level === undefined ? {} : { level }),
-    ...(quantity === undefined ? {} : { quantity })
+    ...(quantity === undefined ? {} : { quantity }),
+    ...(details ? { details } : {})
   });
 }
 
@@ -396,13 +491,15 @@ function snapshotLegacyPlayerUi(
 
     const level = finiteNumber(item?.level);
     const quantity = finiteNumber(item?.q);
+    const details = itemDetailsSnapshot(name, item, itemDefinitions);
     equipment.push(
       Object.freeze({
         slot,
         name,
         displayName: displayNameFor(name, itemDefinitions),
         ...(level === undefined ? {} : { level }),
-        ...(quantity === undefined ? {} : { quantity })
+        ...(quantity === undefined ? {} : { quantity }),
+        ...(details ? { details } : {})
       })
     );
   }

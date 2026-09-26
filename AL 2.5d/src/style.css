@@ -1841,3 +1841,80 @@ canvas {
   font-size: 8px;
   line-height: 1.3;
 }
+
+
+/* v38 richer read-only item definition tooltips/details. */
+.al25d-item-details {
+  display: grid;
+  gap: 7px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(142, 166, 164, .12);
+}
+
+.al25d-item-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.al25d-item-detail-badges > span {
+  padding: 3px 6px;
+  border: 1px solid rgba(194, 168, 99, .24);
+  border-radius: 999px;
+  background: rgba(83, 65, 35, .22);
+  color: #d9c28a;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .05em;
+}
+
+.al25d-item-details > p {
+  margin: 0;
+  color: #aebbb9;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.al25d-item-details > small {
+  color: #788d91;
+  font-size: 8px;
+  line-height: 1.35;
+}
+
+.al25d-item-details > h4 {
+  margin: 2px 0 0;
+  color: #8fa1a4;
+  font-size: 7px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.al25d-item-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 7px;
+}
+
+.al25d-item-stat-grid > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background: rgba(12, 20, 23, .52);
+}
+
+.al25d-item-stat-grid span {
+  color: #85989a;
+  font-size: 8px;
+}
+
+.al25d-item-stat-grid strong {
+  color: #dce9e5;
+  font-size: 8px;
+}
+
+.al25d-item-stat-grid > div[data-source="instance"] strong {
+  color: #f0cf7b;
+}
