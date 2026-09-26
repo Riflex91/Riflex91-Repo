@@ -211,6 +211,11 @@ const allowedPackages = Object.freeze({
     path: "v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-2.js",
     expectedGlobal: "V5PR21MerchantIntegrationLive15mV102",
     gate: "PR21_MERCHANT_INTEGRATION"
+  }),
+  "pr21-merchant-integration-live-15m-v1-0-3": Object.freeze({
+    path: "v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-3.js",
+    expectedGlobal: "V5PR21MerchantIntegrationLive15mV103",
+    gate: "PR21_MERCHANT_INTEGRATION"
   })
 });
 const selected = allowedPackages[manifest.testId];
@@ -241,6 +246,11 @@ test("V5 Auto-Deploy manifest is narrow, immutable and normal-runtime closed", (
   assert.equal(manifest.packagePath, selected.path);
   assert.equal(manifest.expectedGlobal, selected.expectedGlobal);
   assert.equal(manifest.normalRuntimeAllowed, false);
+  if (manifest.testId === "pr21-merchant-integration-live-15m-v1-0-3") {
+    assert.equal(manifest.bootstrapNativeV3, true);
+    assert.ok(packageSource.includes("owner.AIO_V3_AUTOSTART = false"));
+    assert.ok(packageSource.includes("cloudflare-bootstrap-loader-v1"));
+  }
   assert.ok(manifest.maxPackageBytes >= packageBytes.length);
   assert.ok(manifest.maxPackageBytes <= 128 * 1024);
 });

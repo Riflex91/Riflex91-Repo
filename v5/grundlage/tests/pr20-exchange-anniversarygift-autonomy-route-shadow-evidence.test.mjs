@@ -96,12 +96,12 @@ test("autonomy route shadow package pin remains exact",()=>{
 });
 
 test("ratified route-shadow evidence stays immutable while active manifest advances to productive autonomy one-write",()=>{
-  assert.equal(manifest.testId,"pr21-merchant-integration-live-15m-v1-0-2");
-  assert.equal(manifest.controllerVersion,"1.0.2");
-  assert.equal(manifest.sourceCommit,"21ca224da795c21c7aced7fe8bb3c6d4a7fb7bbb");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-2.js");
-  assert.equal(manifest.packageSha256,"9ad493bad10dbfd565613ebdc0529893610c0c0f4868e1ffda690a77224e8dda");
-  assert.equal(manifest.expectedGlobal,"V5PR21MerchantIntegrationLive15mV102");
+  assert.equal(manifest.testId,"pr21-merchant-integration-live-15m-v1-0-3");
+  assert.equal(manifest.controllerVersion,"1.0.3");
+  assert.equal(manifest.sourceCommit,"b6d60251996838a2699cbaa3bbb94870cc1932b1");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-3.js");
+  assert.equal(manifest.packageSha256,"6be2fad7468f43454569b98bd8e9a61a0744449a066bfe07a5c2c2296eed598b");
+  assert.equal(manifest.expectedGlobal,"V5PR21MerchantIntegrationLive15mV103");
   assert.equal(manifest.normalRuntimeAllowed,false);
 
   const p=roadmap.pr20_8;

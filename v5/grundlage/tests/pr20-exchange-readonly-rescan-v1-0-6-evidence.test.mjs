@@ -115,11 +115,11 @@ test("fresh no-candidate evidence does not satisfy Exchange or PR20.8 exit crite
 });
 
 test("active manifest is the exact anniversarygift Exchange service mount",()=>{
-  assert.equal(manifest.testId,"pr21-merchant-integration-live-15m-v1-0-2");
-  assert.equal(manifest.controllerVersion,"1.0.2");
-  assert.equal(manifest.sourceCommit,"21ca224da795c21c7aced7fe8bb3c6d4a7fb7bbb");
-  assert.equal(manifest.packagePath,"v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-2.js");
-  assert.equal(manifest.packageSha256,"9ad493bad10dbfd565613ebdc0529893610c0c0f4868e1ffda690a77224e8dda");
-  assert.equal(manifest.expectedGlobal,"V5PR21MerchantIntegrationLive15mV102");
+  assert.equal(manifest.testId,"pr21-merchant-integration-live-15m-v1-0-3");
+  assert.equal(manifest.controllerVersion,"1.0.3");
+  assert.equal(manifest.sourceCommit,"1c1716b89754222d1129a3b8d493ba915b30771b");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-3.js");
+  assert.equal(manifest.packageSha256,"2e99fe03f12bcbe0aca582eee100bb8155d6a3afff5c5be4ef53301904786b3b");
+  assert.equal(manifest.expectedGlobal,"V5PR21MerchantIntegrationLive15mV103");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });

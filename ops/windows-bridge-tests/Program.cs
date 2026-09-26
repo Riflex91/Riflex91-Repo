@@ -368,6 +368,18 @@ Assert(CdpAdventureLandClient.RequiresNativeV3CoordinatorContext(
 Assert(!CdpAdventureLandClient.RequiresNativeV3CoordinatorContext(
     "PR20.9_PRODUCTION", "pr20-9-craft-durable-shadow-no-write"),
     "V5_CONTEXT_PR20_NATIVE_RUNTIME_NOT_REQUIRED");
+Assert(CdpAdventureLandClient.IsEligibleV5CoordinatorContext(
+    "merchant", false, "PR21_MERCHANT_INTEGRATION",
+    "pr21-merchant-integration-live-15m-v1-0-3", true),
+    "V5_CONTEXT_PR21_BOOTSTRAP_FACADE_ALLOWED");
+Assert(!CdpAdventureLandClient.RequiresNativeV3CoordinatorContext(
+    "PR21_MERCHANT_INTEGRATION",
+    "pr21-merchant-integration-live-15m-v1-0-3", true),
+    "V5_CONTEXT_PR21_BOOTSTRAP_NATIVE_RUNTIME_NOT_PREEXISTING_REQUIRED");
+Assert(!CdpAdventureLandClient.IsEligibleV5CoordinatorContext(
+    "ranger", false, "PR21_MERCHANT_INTEGRATION",
+    "pr21-merchant-integration-live-15m-v1-0-3", true),
+    "V5_CONTEXT_PR21_BOOTSTRAP_NON_MERCHANT_REJECTED");
 Assert(CdpAdventureLandClient.IsAllowedSameOriginExecutionContext(
     new Uri("https://adventure.land"),
     "https://adventure.land"), "CDP_CONTEXT_DEFAULT_SAME_ORIGIN_ALLOWED");
@@ -455,6 +467,31 @@ Assert(v5AutoManifest.TestId == "pr20-6-mluck-autonomous-live-5m", "V5_AUTO_MANI
 Assert(v5AutoManifest.CoordinatorClass == "merchant", "V5_AUTO_MANIFEST_MERCHANT_ONLY");
 Assert(v5AutoManifest.WorkerDistribution == "PACKAGE_OWNED_COMMAND_CHARACTER", "V5_AUTO_MANIFEST_WORKER_DISTRIBUTION");
 Assert(!v5AutoManifest.NormalRuntimeAllowed, "V5_AUTO_MANIFEST_NORMAL_RUNTIME_BLOCKED");
+Assert(!v5AutoManifest.BootstrapNativeV3, "V5_AUTO_MANIFEST_NATIVE_BOOTSTRAP_DEFAULT_OFF");
+
+var v5Pr21BootstrapManifestJson = """
+{
+  "schemaVersion": 1,
+  "enabled": true,
+  "repository": "Riflex91/Riflex91-Repo",
+  "branch": "main",
+  "gate": "PR21_MERCHANT_INTEGRATION",
+  "testId": "pr21-merchant-integration-live-15m-v1-0-3",
+  "controllerVersion": "1.0.3",
+  "coordinatorClass": "merchant",
+  "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
+  "sourceCommit": "1111111111111111111111111111111111111111",
+  "packagePath": "v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-3.js",
+  "packageSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "maxPackageBytes": 131072,
+  "expectedGlobal": "V5PR21MerchantIntegrationLive15mV103",
+  "normalRuntimeAllowed": false,
+  "bootstrapNativeV3": true
+}
+""";
+var v5Pr21BootstrapManifest =
+    CdpAdventureLandClient.ParseAndValidateV5AutonomousTestManifest(v5Pr21BootstrapManifestJson);
+Assert(v5Pr21BootstrapManifest.BootstrapNativeV3, "V5_PR21_NATIVE_BOOTSTRAP_MANIFEST_ACCEPTED");
 
 Assert(CdpAdventureLandClient.BuildV5AutonomousTestPackageUrl(v5AutoManifest)
     == "https://raw.githubusercontent.com/Riflex91/Riflex91-Repo/d0823081da6f07a8a60002b1b809c24916555521/v5/werkzeuge/pr20-6-mluck-autonomous-live-5m.js",

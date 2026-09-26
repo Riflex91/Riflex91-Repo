@@ -4,14 +4,15 @@
   "repository": "Riflex91/Riflex91-Repo",
   "branch": "main",
   "gate": "PR21_MERCHANT_INTEGRATION",
-  "testId": "pr21-merchant-integration-live-15m-v1-0-2",
-  "controllerVersion": "1.0.2",
+  "testId": "pr21-merchant-integration-live-15m-v1-0-3",
+  "controllerVersion": "1.0.3",
   "coordinatorClass": "merchant",
   "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
-  "sourceCommit": "21ca224da795c21c7aced7fe8bb3c6d4a7fb7bbb",
-  "packagePath": "v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-2.js",
-  "packageSha256": "9ad493bad10dbfd565613ebdc0529893610c0c0f4868e1ffda690a77224e8dda",
+  "sourceCommit": "b6d60251996838a2699cbaa3bbb94870cc1932b1",
+  "packagePath": "v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-3.js",
+  "packageSha256": "6be2fad7468f43454569b98bd8e9a61a0744449a066bfe07a5c2c2296eed598b",
   "maxPackageBytes": 131072,
-  "expectedGlobal": "V5PR21MerchantIntegrationLive15mV102",
-  "normalRuntimeAllowed": false
+  "expectedGlobal": "V5PR21MerchantIntegrationLive15mV103",
+  "normalRuntimeAllowed": false,
+  "bootstrapNativeV3": true
 }
