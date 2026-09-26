@@ -581,6 +581,26 @@ die Control-Plane-Gate-Mutation, oeffnet aber noch keine produktive Authority:
 `sendCmAuthority`, Gameplay-, Raw-Write- und NormalRuntime-Authority bleiben
 false. In der Entwicklungsstufe wird kein echter Gate-Apply ausgefuehrt.
 
+## PR22-Coordination-Productive-Gate-Apply-Post-Settlement-Boundary
+
+Nach einem spaeter tatsaechlich verifizierten PR22-Gate-Apply wird dessen
+Settlement erneut kryptografisch validiert. Current Main, PR22-Repository-
+State, produktiv eligible Feature-Gate-Sicht und CAP-022 Full Chain muessen
+weiterhin passen.
+
+Die Boundary erzeugt maximal
+`READY_FOR_SEPARATE_PR22_PRODUCTIVE_AUTHORITY_APPLY`. Der Record bindet
+Settlement-, Transaction-, Proposal-, Productive-Evidence- und
+Ratification-Fingerprint und verlangt vor einem spaeteren Authority-Apply
+erneut alle Freshness- und Fingerprint-Pruefungen.
+
+Der Post-Settlement-Schritt fuehrt keine weitere Gate-Mutation aus und
+oeffnet selbst keine produktive Authority. Authority-Adapter und Execution
+bleiben default-off; `productiveAuthorityIssued`,
+`pr22ProductiveAuthorityIssued`, `sendCmAuthority`, Gameplay-, Raw-Write-,
+Broad-Runtime- und NormalRuntime-Authority bleiben false.
+
+
 
 
 ## Ziel
