@@ -1,0 +1,14 @@
+{
+  "name": "adventure-land-hd",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "inventory:verify": "node tools/verify-inventory.mjs",
+    "inventory:audit": "node tools/audit-assets.mjs",
+    "contracts:audit": "node tools/analyze-contracts.mjs",
+    "hd:validate": "node tools/validate-hd-assets.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run inventory:verify && npm test"
+  }
+}

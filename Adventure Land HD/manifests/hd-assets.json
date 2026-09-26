@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "phase": "2-prepared-only",
+  "rules": {
+    "allowedScales": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "preserveLogicalSize": true,
+    "originalFallbackRequired": true,
+    "activeOverridesAllowed": false,
+    "note": "Phase 2 validates HD source geometry only. Activation waits for the Phase 3 presentation-only scale bridge."
+  },
+  "replacements": []
+}
