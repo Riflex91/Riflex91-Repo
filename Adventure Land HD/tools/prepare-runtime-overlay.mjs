@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -44,11 +45,12 @@ execFileSync(process.execPath,[path.join(root,"tools","build-runtime-manifest.mj
 
 const manifestTarget=path.join(upstream,"js","adventure-land-hd-manifest.js");
 const bootstrapTarget=path.join(upstream,"js","adventure-land-hd-bootstrap.js");
+const manifestVersion=crypto.createHash("sha256").update(fs.readFileSync(generatedManifest)).digest("hex").slice(0,12);
 fs.copyFileSync(generatedManifest,manifestTarget);
 fs.copyFileSync(path.join(root,"runtime","adventure-land-hd-bootstrap.js"),bootstrapTarget);
 fs.unlinkSync(generatedManifest);
 
-const injection=anchor+'\n\t\t<script src="/js/adventure-land-hd-manifest.js"></script>\n\t\t<script src="/js/adventure-land-hd-bootstrap.js"></script>';
+const injection=anchor+'\n\t\t<script src="/js/adventure-land-hd-manifest.js?alhdv='+manifestVersion+'"></script>\n\t\t<script src="/js/adventure-land-hd-bootstrap.js"></script>';
 fs.writeFileSync(indexPath,index.replace(anchor,injection),"utf8");
 
 const hdManifest=JSON.parse(fs.readFileSync(path.join(root,"manifests","hd-assets.json"),"utf8"));
