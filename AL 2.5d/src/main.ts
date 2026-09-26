@@ -111,7 +111,22 @@ async function boot(): Promise<void> {
       : "2.5d";
   let minimapVisible = window.localStorage.getItem("al25d.minimapVisible") !== "0";
   let combatVfxVisible = window.localStorage.getItem("al25d.combatVfxVisible") !== "0";
+  let reducedMotion = window.localStorage.getItem("al25d.reducedMotion") === "1";
+  let highContrast = window.localStorage.getItem("al25d.highContrast") === "1";
   let graphicsToggle: GraphicsModeToggle;
+
+  const applyAccessibilityClasses = (): void => {
+    document.documentElement.classList.toggle(
+      "al25d-reduced-motion",
+      reducedMotion
+    );
+    document.documentElement.classList.toggle(
+      "al25d-high-contrast",
+      highContrast
+    );
+  };
+
+  applyAccessibilityClasses();
 
   await renderer.mount(host);
 
@@ -171,6 +186,16 @@ async function boot(): Promise<void> {
         combatVfxVisible = visible;
         window.localStorage.setItem("al25d.combatVfxVisible", visible ? "1" : "0");
         combatFeedback.setEnabled(visible);
+      },
+      onToggleReducedMotion: (enabled) => {
+        reducedMotion = enabled;
+        window.localStorage.setItem("al25d.reducedMotion", enabled ? "1" : "0");
+        applyAccessibilityClasses();
+      },
+      onToggleHighContrast: (enabled) => {
+        highContrast = enabled;
+        window.localStorage.setItem("al25d.highContrast", enabled ? "1" : "0");
+        applyAccessibilityClasses();
       },
       onCameraZoom: (zoom) => {
         camera = { ...camera, zoom };
@@ -232,6 +257,8 @@ async function boot(): Promise<void> {
   hud.setPresentationSettings({
     minimapVisible,
     combatVfxVisible,
+    reducedMotion,
+    highContrast,
     cameraZoom: camera.zoom,
     cameraRotation: camera.rotation ?? 0
   });
@@ -392,6 +419,8 @@ async function boot(): Promise<void> {
     hud.setPresentationSettings({
       minimapVisible,
       combatVfxVisible,
+      reducedMotion,
+      highContrast,
       cameraZoom: camera.zoom,
       cameraRotation: camera.rotation ?? 0
     });

@@ -22,6 +22,8 @@ import {
 export type HudPresentationSettings = Readonly<{
   minimapVisible: boolean;
   combatVfxVisible: boolean;
+  reducedMotion: boolean;
+  highContrast: boolean;
   cameraZoom: number;
   cameraRotation: number;
 }>;
@@ -30,6 +32,8 @@ export type HudActions = Readonly<{
   onHotbar?: (key: string) => void;
   onToggleMinimap?: (visible: boolean) => void;
   onToggleCombatVfx?: (visible: boolean) => void;
+  onToggleReducedMotion?: (enabled: boolean) => void;
+  onToggleHighContrast?: (enabled: boolean) => void;
   onCameraZoom?: (zoom: number) => void;
   onResetView?: () => void;
   onInventoryEquip?: (index: number) => unknown;
@@ -63,6 +67,8 @@ type PanelName =
 const DEFAULT_PRESENTATION_SETTINGS: HudPresentationSettings = Object.freeze({
   minimapVisible: true,
   combatVfxVisible: true,
+  reducedMotion: false,
+  highContrast: false,
   cameraZoom: 1.5,
   cameraRotation: 0
 });
@@ -1090,6 +1096,34 @@ export class HudOverlay {
           combatVfxVisible: next
         });
         this.actions.onToggleCombatVfx?.(next);
+        this.renderPanel("settings");
+      }
+    ));
+
+    list.appendChild(toggleRow(
+      "Reduced Motion",
+      "Minimize HUD and combat-effect animation",
+      this.presentationSettings.reducedMotion,
+      (next) => {
+        this.presentationSettings = Object.freeze({
+          ...this.presentationSettings,
+          reducedMotion: next
+        });
+        this.actions.onToggleReducedMotion?.(next);
+        this.renderPanel("settings");
+      }
+    ));
+
+    list.appendChild(toggleRow(
+      "High Contrast",
+      "Stronger panel, text and focus contrast",
+      this.presentationSettings.highContrast,
+      (next) => {
+        this.presentationSettings = Object.freeze({
+          ...this.presentationSettings,
+          highContrast: next
+        });
+        this.actions.onToggleHighContrast?.(next);
         this.renderPanel("settings");
       }
     ));

@@ -125,7 +125,7 @@ Deliverable: walkable Main with original gameplay logic.
 - [ ] expanded world-map / route interaction layer
 - [x] first-party gameplay menu baseline
 - [x] presentation settings baseline: minimap/VFX toggles and camera presets/reset
-- [ ] advanced settings and accessibility pass
+- [x] accessibility pass: persistent reduced-motion and high-contrast presentation modes
 
 ## AL25D-07 — Content coverage
 

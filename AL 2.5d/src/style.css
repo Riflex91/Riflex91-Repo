@@ -2113,3 +2113,38 @@ canvas {
     grid-column: 1 / -1;
   }
 }
+
+
+/* v44 accessibility settings: reduced motion + high contrast. */
+html.al25d-reduced-motion #al25d-hud *,
+html.al25d-reduced-motion #al25d-combat-feedback *,
+html.al25d-reduced-motion #al25d-minimap * {
+  animation-duration: .001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: .001ms !important;
+  scroll-behavior: auto !important;
+}
+
+html.al25d-high-contrast #al25d-hud .al25d-hud-frame,
+html.al25d-high-contrast #al25d-panel,
+html.al25d-high-contrast #al25d-party-frame,
+html.al25d-high-contrast #al25d-minimap {
+  border-color: rgba(248, 224, 158, .62) !important;
+  background-color: rgba(4, 8, 10, .96) !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 235, 176, .12),
+    0 12px 34px rgba(0, 0, 0, .56) !important;
+}
+
+html.al25d-high-contrast #al25d-hud strong,
+html.al25d-high-contrast #al25d-hud span,
+html.al25d-high-contrast #al25d-hud button,
+html.al25d-high-contrast #al25d-hud input {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .9);
+}
+
+html.al25d-high-contrast #al25d-hud button:focus-visible,
+html.al25d-high-contrast #al25d-hud input:focus-visible {
+  outline: 2px solid #ffe19a;
+  outline-offset: 2px;
+}
