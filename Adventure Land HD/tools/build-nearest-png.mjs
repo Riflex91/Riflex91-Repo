@@ -6,7 +6,8 @@ const args=process.argv.slice(2);
 const value=flag=>{const i=args.indexOf(flag);return i>=0?args[i+1]:null;};
 const input=value("--input");
 const output=value("--output");
-const scale=Number(value("--scale")||8);
+const scaleValue=value("--scale");
+const scale=scaleValue===null?8:Number(scaleValue);
 
 if(!input||!output||!Number.isInteger(scale)||scale<2||scale>8){
   console.error("Usage: node tools/build-nearest-png.mjs --input <png> --output <png> [--scale 2..8]");
