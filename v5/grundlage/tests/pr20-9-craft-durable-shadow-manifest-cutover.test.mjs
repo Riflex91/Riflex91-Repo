@@ -76,7 +76,7 @@ test("PR20.9 roadmap and Merchant mirror remain no-write after no-candidate obse
   assert.equal(roadmap.pr20_9.broadGraphExecutionAuthority,false);
   assert.equal(roadmap.pr20_9.normalRuntimeAllowed,false);
   assert.equal(roadmap.pr20_9.craftDurableShadowRunner.manifestCutoverPrepared,true);
-  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.active,true);
+  assert.equal(roadmap.pr20_9.craftDurableShadowRunner.active,false);
   assert.equal(roadmap.pr20_9.craftDurableShadowRunner.liveEvidenceObserved,true);
   assert.equal(roadmap.pr20_9.craftDurableShadowRunner.latestObservedStatus,"BLOCKIERT");
   assert.equal(
