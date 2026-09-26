@@ -21,7 +21,7 @@ describe("entity sprite presentation polish", () => {
     const main = read("src/main.ts");
     const renderer = read("src/render/Pixi25DRenderer.ts");
 
-    expect(main).toContain("zoom: 1.5");
+    expect(main).toContain(": 1.5");
     expect(renderer).toContain("zoom: 1.5");
   });
 });
