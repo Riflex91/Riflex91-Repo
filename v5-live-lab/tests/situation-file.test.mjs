@@ -66,10 +66,11 @@ function makeDocument() {
   };
 }
 
-function makeEnvironment() {
+function makeEnvironment(options = {}) {
   let nowMs = 1_000_000;
   let latestFileText = "";
   let writeCount = 0;
+  const writtenFileNames = [];
   const intervals = new Map();
   let intervalSeq = 0;
 
@@ -82,7 +83,7 @@ function makeEnvironment() {
       return "granted";
     },
     async getFileHandle(name, options) {
-      assert.equal(name, "V5-Live-Situation.md");
+      writtenFileNames.push(String(name));
       assert.equal(options.create, true);
       return {
         async createWritable() {
@@ -100,7 +101,7 @@ function makeEnvironment() {
 
   const document = makeDocument();
   const character = {
-    name: "Ranger",
+    name: options.characterName || "Ranger",
     ctype: "ranger",
     map: "main",
     x: 0,
@@ -169,8 +170,8 @@ function makeEnvironment() {
     server_region: "EU",
     server_identifier: "I",
     get_party: () => ({
-      Ranger: {
-        name: "Ranger",
+      [character.name]: {
+        name: character.name,
       },
     }),
     get_player: () => null,
@@ -204,10 +205,6 @@ function makeEnvironment() {
         async writeText() {},
       },
     },
-    async showDirectoryPicker(options) {
-      assert.equal(options.mode, "readwrite");
-      return directoryHandle;
-    },
     setInterval(fn, ms) {
       const id = ++intervalSeq;
       intervals.set(id, { fn, ms });
@@ -221,6 +218,13 @@ function makeEnvironment() {
     },
     clearTimeout() {},
   };
+
+  if (options.directoryPicker !== false) {
+    context.showDirectoryPicker = async function (pickerOptions) {
+      assert.equal(pickerOptions.mode, "readwrite");
+      return directoryHandle;
+    };
+  }
 
   context.globalThis = context;
   context.window = context;
@@ -241,6 +245,9 @@ function makeEnvironment() {
     },
     writeCount() {
       return writeCount;
+    },
+    writtenFileNames() {
+      return writtenFileNames.slice();
     },
     advance(ms) {
       nowMs += ms;
@@ -267,17 +274,62 @@ test("LOG-ORDNER connects selected Windows folder and writes current situation i
   assert.equal(status.configured, true);
   assert.equal(status.directoryName, "v5-Test");
   assert.equal(status.permission, "granted");
-  assert.equal(status.fileName, "V5-Live-Situation.md");
+  assert.equal(status.fileName, "V5-Live-Situation-Ranger.md");
   assert.equal(status.intervalMs, 30000);
   assert.equal(status.active, true);
   assert.match(
     status.requestedWindowsPath,
-    /D:\\v5-Test\\V5-Live-Situation\.md/,
+    /D:\\v5-Test\\V5-Live-Situation-Ranger\.md/,
   );
 
   assert.ok(env.writeCount() >= 1);
   assert.match(env.fileText(), /# V5 Live Lab – Current Situation/);
   assert.match(env.fileText(), /## Capability Evidence Summary/);
+});
+
+test("missing showDirectoryPicker falls back without throwing and keeps browser snapshots active", async () => {
+  const env = makeEnvironment({ directoryPicker: false });
+
+  assert.equal(typeof env.root.showDirectoryPicker, "undefined");
+
+  const status = await env.root.V5LiveLab.connectSituationDirectory();
+  assert.equal(status.configured, false);
+  assert.equal(status.permission, "unsupported");
+  assert.equal(status.directFileSystemAccessAvailable, false);
+  assert.equal(status.directFileActive, false);
+  assert.equal(status.fallbackAvailable, true);
+  assert.equal(status.mode, "BROWSER_LOCAL_COPY_DOWNLOAD");
+  assert.equal(status.active, true);
+
+  const copy = await env.root.V5LiveLab.copySituationToClipboard();
+  assert.equal(copy.ok, true);
+  assert.equal(copy.fileName, "V5-Live-Situation-Ranger.md");
+  assert.match(copy.content, /# V5 Live Lab – Current Situation/);
+});
+
+test("situation filename is character-specific so four characters do not overwrite each other", async () => {
+  const names = ["test1", "test2", "test3", "test4"];
+  const files = [];
+
+  for (const characterName of names) {
+    const env = makeEnvironment({ characterName });
+    await env.root.V5LiveLab.connectSituationDirectory();
+    const status = env.root.V5LiveLab.situationWriterStatus();
+    files.push(status.fileName);
+    assert.equal(status.fileName, "V5-Live-Situation-" + characterName + ".md");
+    assert.ok(env.writtenFileNames().includes(status.fileName));
+  }
+
+  assert.equal(new Set(files).size, 4);
+});
+
+test("situation filename is Windows-safe for unexpected character text", async () => {
+  const env = makeEnvironment({ characterName: "Mage / Aux:*" });
+  await env.root.V5LiveLab.connectSituationDirectory();
+
+  const status = env.root.V5LiveLab.situationWriterStatus();
+  assert.equal(status.fileName, "V5-Live-Situation-Mage-Aux.md");
+  assert.equal(/[<>:"/\\|?*]/.test(status.fileName), false);
 });
 
 test("capability ledger records repeated successful live attack calls and situation file contains them", async () => {
@@ -343,5 +395,5 @@ test("30 second writer overwrites the same situation file with newer capability 
 
   assert.equal(env.writeCount(), writesAfterConnect + 1);
   assert.match(env.fileText(), /Diese Datei wird automatisch alle 30 Sekunden überschrieben/);
-  assert.match(env.fileText(), /Build ID: V5_LIVE_LAB_FULL_AUTONOMY_R9_2/);
+  assert.match(env.fileText(), /Build ID: V5_LIVE_LAB_FULL_AUTONOMY_R11_1/);
 });
