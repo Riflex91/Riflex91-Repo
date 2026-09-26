@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_MERCHANT_LIVE_EXECUTION_AUTHORIZATION_V2_2026_09_26",
+  "status": "AUTHORIZED_ONE_SHOT_EXTERNAL_RUNTIME_START_AND_OBSERVER",
+  "authorizedOn": "2026-09-26",
+  "authorizationBasis": "EXPLICIT_USER_DIRECTIVE",
+  "authorizationDirective": "AUTHORIZE_PR21_AUTOMATED_TESTS_EVALUATION_AND_CONTINUATION",
+  "supersedesForNextAttempt": "PR21_MERCHANT_LIVE_EXECUTION_AUTHORIZATION_2026_09_26",
+  "sourceMain": "f18f223d4036c8bceccd363e2afa72dc0c519a47",
+  "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+  "stage": "PR21",
+  "scope": {
+    "testId": "pr21-merchant-integration-live-15m-v1-0-1",
+    "targetDurationMs": 900000,
+    "sampleIntervalMs": 5000,
+    "maximumSampleGapMs": 15000,
+    "expectedSamplesForTarget": 181,
+    "startupTimeoutMs": 30000,
+    "maximumUses": 1,
+    "automaticStartAfterVerifiedManifestDeploy": true,
+    "automaticEvaluation": true
+  },
+  "externalRuntime": {
+    "requiredAuthorityId": "runtime:merchant",
+    "merchantOnly": true,
+    "maximumStartCalls": 1,
+    "stopOnlyIfStartedByCheckpoint": true,
+    "preexistingRuntimeMayBeObservedWithoutRestart": true,
+    "runtimeControlScope": "START_ONCE_AND_SAFETY_STOP_ONLY"
+  },
+  "observation": {
+    "nativeOperationsSource": "AIO_V3.__operations",
+    "nativeRuntimeSource": "AIO_V3.__runtime",
+    "legacyV5FacadeMustNotBeUsedAsHealthSource": true
+  },
+  "safety": {
+    "observerOnlyAfterRuntimeStart": true,
+    "observerGameplayWrites": 0,
+    "observerPublicGameplayFunctionCalls": 0,
+    "observerRawWriteCalls": 0,
+    "observerIssuesGameplayAuthority": false,
+    "observerIssuesBroadRuntimeAuthority": false,
+    "normalRuntimeAllowedByObserver": false,
+    "sameIntentRetry": false,
+    "failClosedOnHealthDrift": true,
+    "failClosedOnOperationsStale": true,
+    "failClosedOnRecorderDrops": true,
+    "failClosedOnUnsafeReconciliation": true,
+    "failClosedOnUnexpectedAuthority": true
+  }
+}
