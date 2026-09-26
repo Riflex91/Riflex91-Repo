@@ -285,6 +285,9 @@ test("LOG-ORDNER connects selected Windows folder and writes current situation i
   assert.ok(env.writeCount() >= 1);
   assert.match(env.fileText(), /# V5 Live Lab – Current Situation/);
   assert.match(env.fileText(), /## Capability Evidence Summary/);
+  assert.match(env.fileText(), /## Live Monster Diagnostics/);
+  assert.match(env.fileText(), /Visible monsters: 1/);
+  assert.match(env.fileText(), /goo id=goo1/);
 });
 
 test("missing showDirectoryPicker falls back without throwing and keeps browser snapshots active", async () => {
@@ -395,5 +398,5 @@ test("30 second writer overwrites the same situation file with newer capability 
 
   assert.equal(env.writeCount(), writesAfterConnect + 1);
   assert.match(env.fileText(), /Diese Datei wird automatisch alle 30 Sekunden überschrieben/);
-  assert.match(env.fileText(), /Build ID: V5_LIVE_LAB_FULL_AUTONOMY_R11_1/);
+  assert.match(env.fileText(), /Build ID: V5_LIVE_LAB_FULL_AUTONOMY_R12_1/);
 });

@@ -222,8 +222,8 @@ test("direct Adventure Land runtime remains supported", () => {
   const env = install(game);
   const status = env.root.V5LiveLab.status();
 
-  assert.equal(env.root.V5LiveLab.version, "0.6.3");
-  assert.equal(env.root.V5LiveLab.buildId, "V5_LIVE_LAB_FULL_AUTONOMY_R11_1");
+  assert.equal(env.root.V5LiveLab.version, "0.6.4");
+  assert.equal(env.root.V5LiveLab.buildId, "V5_LIVE_LAB_FULL_AUTONOMY_R12_1");
   assert.equal(status.runtimeEnvironment.mode, "ADVENTURE_LAND_DIRECT");
   assert.equal(status.character, "DirectRanger");
   assert.equal(env.root.V5LiveLab.inspectPorts().attack, true);
@@ -542,6 +542,77 @@ test("full autonomy creates a farm-search task and roams when no monster is visi
   assert.equal(status.currentTask.type, "FARM");
   assert.match(status.currentTask.id, /^farm:search:goo/);
   assert.ok(legacy.calls.some((row) => row[0] === "smart_move" && row[1] === "goo"));
+  assert.equal(status.visibleMonsterCount, 0);
+  assert.equal(status.visibleMonsters.length, 0);
+  assert.ok(
+    env.root.V5LiveLab.exportLogs().some(
+      (row) =>
+        row.event === "WORLD_MOVE_NO_PROGRESS"
+        && row.reason === "AUTO_FARM_SEARCH"
+        && row.destination === "goo"
+    )
+  );
+  assert.equal(
+    env.root.V5LiveLab.exportLogs().some(
+      (row) => row.event === "WORLD_ARRIVAL_TRANSPORT_COMPLETE"
+    ),
+    false
+  );
+  assert.ok(
+    env.root.V5LiveLab.capabilityLedger().some(
+      (row) =>
+        row.capability === "internal:movement_postcondition"
+        && row.failures >= 1
+    )
+  );
+});
+
+test("movement postcondition confirms real coordinate progress instead of public-call return only", async () => {
+  const legacy = makeLegacyGame("MovingRogue");
+  legacy.game.character.ctype = "rogue";
+  legacy.game.character.level = 1;
+  legacy.game.entities = {};
+  legacy.game.G.monsters.goo = { hp: 80, attack: 10, level: 1 };
+  legacy.game.G.maps = { main: { monsters: [{ type: "goo" }] } };
+  legacy.game.smart_move = async (destination) => {
+    legacy.calls.push(["smart_move", destination]);
+    legacy.game.character.x = 50;
+    legacy.game.character.real_x = 50;
+    return { ok: true };
+  };
+
+  const frame = { contentWindow: legacy.game };
+  const host = {
+    AL25D: { legacyRuntimeReady: () => true },
+    location: { hostname: "127.0.0.1" },
+    localStorage: { getItem: () => null, setItem() {} },
+    navigator: { clipboard: { async writeText() {} } },
+  };
+  host.document = makeDocument(frame);
+  host.parent = host;
+  legacy.game.parent = host;
+  legacy.game.document = makeDocument();
+
+  const env = install(legacy.game);
+  await settle();
+  env.advance(1500);
+  await env.root.V5LiveLab.tickNow();
+  await settle();
+
+  assert.ok(
+    env.root.V5LiveLab.exportLogs().some(
+      (row) =>
+        row.event === "WORLD_MOVE_PROGRESS_CONFIRMED"
+        && row.movedDistance >= 8
+    )
+  );
+  assert.ok(
+    env.root.V5LiveLab.capabilityLedger().some(
+      (row) =>
+        row.capability === "internal:movement_postcondition"
+        && row.confirmedSuccesses >= 1
+    )
+  );
 });
 
 test("merchant full autonomy is not blocked by SINGLE_TARGET and services potion stock", async () => {
