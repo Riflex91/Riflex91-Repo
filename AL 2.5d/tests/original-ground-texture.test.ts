@@ -9,7 +9,7 @@ const renderer = readFileSync(
 
 describe("original ground texture projection", () => {
   it("projects immutable tileset crops through an offscreen isometric raster", () => {
-    expect(renderer).toContain("addTexturedGroundSurface");
+    expect(renderer).toContain("addTexturedMapSurface");
     expect(renderer).toContain("createGroundTexture");
     expect(renderer).toContain("flatContext.drawImage");
     expect(renderer).toContain("isoContext.setTransform");
