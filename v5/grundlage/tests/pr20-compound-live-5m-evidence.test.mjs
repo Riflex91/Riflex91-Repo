@@ -113,9 +113,9 @@ test("Compound 5m ratification closes only Compound and leaves PR20.8 blocked by
 test("Compound 5m evidence stays immutable while the active manifest advances to the anniversarygift Exchange service mount",()=>{
   assert.equal(manifest.testId,"pr21-merchant-integration-live-15m-v1-0-1");
   assert.equal(manifest.controllerVersion,"1.0.1");
-  assert.equal(manifest.sourceCommit,"2fd7ed8fa1036460fc0188fa053ac48e50d35a54");
+  assert.equal(manifest.sourceCommit,"4e61c90f3575f1b96afb7deedc23b7e7f383773d");
   assert.equal(manifest.packagePath,"v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-1.js");
-  assert.equal(manifest.packageSha256,"1809a8b198b4682eafd8377f3f4b8423a5f9b6bffb52e42d6cd111489b7c3f07");
+  assert.equal(manifest.packageSha256,"6ad5ec5513fe4f8ca557370147f9b6910198d36ac8d078c8807cd2403d3720e6");
   assert.equal(manifest.expectedGlobal,"V5PR21MerchantIntegrationLive15mV101");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
