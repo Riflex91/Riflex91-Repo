@@ -13,6 +13,6 @@ describe("textured structure projection", () => {
     expect(renderer).toContain("surfaceHeight(surface)");
     expect(renderer).toContain("origin.y - elevation");
     expect(renderer).toContain('surface.layer === "structure" ? 0.98 : 0.9');
-    expect(renderer).toContain("structureTextureLayer");
+    expect(renderer).toContain("this.world.addChild(structureVisual)");
   });
 });
