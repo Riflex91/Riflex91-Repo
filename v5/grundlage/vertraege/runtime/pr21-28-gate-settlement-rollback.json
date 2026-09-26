@@ -9,7 +9,8 @@
     "appliedRecordRequiresPostcondition": true,
     "appliedRecordRequiresTerminalSettlement": true,
     "settlementPerformsGateMutation": false,
-    "settlementIssuesAuthority": false
+    "settlementIssuesAuthority": false,
+    "cap022BindingPreserved": true
   },
   "rollback": {
     "preparedOnlyAfterVerifiedAppliedSettlement": true,
@@ -20,14 +21,38 @@
     "sameIntentRetryAllowed": false,
     "rollbackAdapterInstalled": false,
     "rollbackExecutionEnabled": false,
-    "rollbackMutationPerformed": false
+    "rollbackMutationPerformed": false,
+    "cap022BindingRequired": true
   },
   "safety": {
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
     "broadRuntimeGrant": false,
-    "normalRuntimeAllowed": false
+    "normalRuntimeAllowed": false,
+    "cap022CannotBeDroppedAfterApply": true
   },
   "test": "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
-  "nextMilestone": "PREPARE_STAGE_STATE_LEDGER_AND_ADVANCE_CHAIN_REPLAY_WITHOUT_APPLYING_GATES"
+  "nextMilestone": "PREPARE_STAGE_STATE_LEDGER_WITH_CAP022_TERMINAL_SETTLEMENT_BINDING",
+  "cap022FullChainBoundary": {
+    "requiredStages": [
+      "PR22",
+      "PR23"
+    ],
+    "settlementFields": [
+      "cap022FullChainRequired",
+      "cap022FullChainSatisfied"
+    ],
+    "settlementFingerprintIncludesBinding": true,
+    "settlementRequiresStageConsistentBinding": true,
+    "rollbackPlanCarriesBinding": true,
+    "rollbackRequiresSatisfiedBinding": true,
+    "settlementPerformsGateMutation": false,
+    "settlementIssuesAuthority": false,
+    "rollbackAdapterInstalled": false,
+    "rollbackExecutionEnabled": false,
+    "currentPr20_9RatificationCredit": false,
+    "candidateAcquisitionOrMutationAllowedNow": false,
+    "durableIntentCreatedBySettlement": false,
+    "productiveCraftAuthorityOpened": false
+  }
 }
