@@ -3,7 +3,7 @@
 
   function normalize(value) {
     if (typeof value !== "string" || !value) return null;
-    return value.split("?")[0].split("#")[0].replace(/^\\/+/, "") || null;
+    return value.split("?")[0].split("#")[0].replace(/^\/+/, "") || null;
   }
 
   function validScale(value) {
@@ -13,7 +13,7 @@
   function resolutionSuffix(url, scale) {
     if (typeof url !== "string" || !validScale(scale)) return false;
     var clean = url.split("?")[0].split("#")[0];
-    return new RegExp("@" + scale + "x\\\\.[a-z0-9]+$", "i").test(clean);
+    return new RegExp("@" + scale + "x\\.[a-z0-9]+$", "i").test(clean);
   }
 
   function makeLookup(manifest) {
