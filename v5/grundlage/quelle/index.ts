@@ -209,6 +209,7 @@ export * from "./merchant/pr21-merchant-default-off-apply-boundary.js";
 export * from "./merchant/pr21-merchant-apply-execution-authorization-boundary.js";
 export * from "./merchant/pr21-merchant-one-shot-gate-apply-execution-boundary.js";
 export * from "./merchant/pr21-merchant-post-settlement-transition-boundary.js";
+export * from "./merchant/pr21-merchant-stage-completion-apply-boundary.js";
 export * from "./koordination/pr22-coordination-shadow-admission.js";
 export * from "./koordination/production-material-acquisition.js";
 export * from "./koordination/production-material-handoff.js";
