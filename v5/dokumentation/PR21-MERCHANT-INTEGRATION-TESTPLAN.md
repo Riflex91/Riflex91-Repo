@@ -111,6 +111,24 @@ Ein erfolgreicher Aufruf erzeugt nur `RATIFIED_RECORD_ONLY`. Dabei bleiben
 `broadRuntimeGrant=false`; das Result-Package bleibt unverändert gebunden.
 Damit ist Ratifizierung bewusst von einem späteren Gate-Advance getrennt.
 
+## Gate-Advance-Proposal-Grenze
+
+Nach einem expliziten `RATIFIED_RECORD_ONLY` kann die PR21-spezifische
+Proposal-Grenze den bestehenden PR21-28 Gate-Advance-Evaluator verwenden.
+
+Sie verlangt gleichzeitig:
+
+- Stage exakt `PR21`;
+- Merchant-Checkpoint `PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT`;
+- frischen Main-SHA identisch zum Ratification-Record;
+- identischen Package-Fingerprint;
+- produktiv berechtigte, blockerfreie PR21-Feature-Gate-Sicht;
+- keine Authority in der Feature-Gate-Sicht.
+
+Der maximal erreichbare Zustand ist `READY_FOR_SEPARATE_GATE_APPLY`.
+Der Proposal selbst setzt kein Gate, erteilt keine Authority und verlangt
+beim spaeteren Apply erneut einen frischen Main-Check.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne

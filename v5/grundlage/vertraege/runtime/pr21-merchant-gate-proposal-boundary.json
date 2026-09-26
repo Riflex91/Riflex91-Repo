@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_MERCHANT_GATE_PROPOSAL_BOUNDARY_V1",
+  "status": "PREPARED_PROPOSAL_ONLY_DEFAULT_OFF",
+  "sourceMain": "c5cf7c651b7b3e744ac7647afa4441ede429e832",
+  "source": "v5/grundlage/quelle/merchant/pr21-merchant-gate-proposal-boundary.ts",
+  "test": "v5/grundlage/tests/pr21-merchant-gate-proposal-boundary.test.mjs",
+  "ratificationBoundary": "v5/grundlage/vertraege/runtime/pr21-merchant-ratification-record-boundary.json",
+  "stage": "PR21",
+  "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+  "requirements": {
+    "ratificationStatus": "RATIFIED_RECORD_ONLY",
+    "ratified": true,
+    "freshMainRequired": true,
+    "packageFingerprintMatchRequired": true,
+    "featureGateProductiveEligibleRequired": true,
+    "featureGateBlockersMustBeEmpty": true,
+    "cap022FullChainRequired": false,
+    "cap022FullChainSatisfied": true
+  },
+  "output": {
+    "proposalStatus": "READY_FOR_SEPARATE_GATE_APPLY",
+    "separateApplyRequired": true,
+    "requiresFreshMainCheckAtApply": true
+  },
+  "safety": {
+    "proposalOnly": true,
+    "gateMutationPerformed": false,
+    "authorityIssued": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadRuntimeGrant": false,
+    "normalRuntimeAllowed": false,
+    "proposalDoesNotApplyGate": true
+  },
+  "nextMilestone": "PREPARE_PR21_DEFAULT_OFF_GATE_APPLY_BOUNDARY"
+}
