@@ -2,7 +2,7 @@
 
 Experimental live-runtime workspace derived from official V5 at:
 
-`ed7bb76fa7a30b74c3a1f09a4846113b865d80bf`
+`9ad5ee1404908783d0c7b13c705239012abeee97`
 
 Current integrated browser runtime:
 
@@ -10,9 +10,9 @@ Current integrated browser runtime:
 
 Current runtime version/build:
 
-- `0.6.1`
-- `V5_LIVE_LAB_FULL_AUTONOMY_R9_2`
-- branch `chatgpt/v5-live-lab-full-autonomy-r9`
+- `0.6.4`
+- `V5_LIVE_LAB_FULL_AUTONOMY_R12_1`
+- branch `chatgpt/v5-live-lab-movement-postcondition-r12`
 
 Live Lab is intentionally isolated from the official V5 verification track. The official `main:v5/` roadmap, historical evidence, dependency gates and step-by-step automated tests remain authoritative and are not modified by Live Lab operation.
 
@@ -42,7 +42,7 @@ Direct/raw transport authority intentionally remains closed:
 
 All gameplay mutations go through public Adventure Land functions or the bounded V5 Live Lab ports. The runtime does not use `socket.emit(...)` or `api_call(...)` as a mutation bypass.
 
-## Verification-only / Windows-Bridge isolation (v0.6.1)
+## Verification-only / Windows-Bridge isolation (v0.6.4)
 
 This Live Lab build exists only to validate bot functionality early and shorten the official V5 development/test loop.
 
@@ -62,11 +62,11 @@ Allowed runtime channels are limited to:
 - browser-local `localStorage` / IndexedDB for bounded local state;
 - the user-authorized File System Access API for the optional local situation file.
 
-The optional `V5-Live-Situation.md` writer is direct browser-to-file I/O after the user chooses a directory. It is not sent through the Windows Bridge and is not uploaded externally by Live Lab.
+The optional `V5-Live-Situation-<Character>.md` writer is direct browser-to-file I/O after the user chooses a directory. It is not sent through the Windows Bridge and is not uploaded externally by Live Lab.
 
 CI includes a bridge-isolation guard that fails if Windows-Bridge/CDP/host-network transport markers are later introduced into `v5-live-lab-bot-v2.js`.
 
-## Full local autonomy (v0.6.1)
+## Full local autonomy (v0.6.4)
 
 In the local AL 2.5D loopback sandbox, Live Lab now defaults to a full-decision mode.
 
@@ -229,7 +229,7 @@ An irreversible public call that throws after dispatch is classified as `UNKNOWN
 
 ## In-game GUI
 
-The v0.6.1 runtime mounts an in-game HUD automatically when the runner is loaded.
+The v0.6.4 runtime mounts an in-game HUD automatically when the runner is loaded.
 
 The HUD provides:
 
@@ -294,11 +294,53 @@ V5LiveLab.mountGui()
 V5LiveLab.unmountGui()
 ```
 
+## Per-character situation files (v0.6.4)
+
+Each running character writes to its own file in the selected situation directory. The filename is derived from the live Adventure Land character name and sanitized for Windows filenames.
+
+Examples:
+
+```text
+V5-Live-Situation-test1.md
+V5-Live-Situation-test2.md
+V5-Live-Situation-test3.md
+V5-Live-Situation-test4.md
+```
+
+This prevents multiple characters using the same selected folder from overwriting each other's evidence. The directory permission remains shared/browser-local; only the output filename is character-specific.
+
+## Semantic movement verification (v0.6.4)
+
+Live Lab no longer treats a resolved `smart_move(...)` call as proof that the character arrived or even moved.
+
+For every movement it captures the pre-call map/coordinates and verifies a semantic postcondition after the public call resolves. It records:
+
+- `WORLD_ARRIVAL_POSTCONDITION_CONFIRMED` when a coordinate destination is actually reached or a named monster becomes visible;
+- `WORLD_MOVE_PROGRESS_CONFIRMED` when map/position/moving state proves real progress;
+- `WORLD_MOVE_NO_PROGRESS` when the public call returned but the live character state did not move.
+
+The capability ledger records this separately as `internal:movement_postcondition`, so a call-level `smart_move` success can no longer be mistaken for semantic movement proof.
+
+For autonomous monster search, a named destination with no semantic progress is cooled down for 15 seconds. The bot can then try another known monster type instead of repeatedly issuing the same no-op move.
+
+Situation reports now include a **Live Monster Diagnostics** section with the live visible-monster count and nearest monster entities. This distinguishes movement/pathing bugs from a local server that is not exposing/spawning monsters.
+
+## Browser fallback when direct folder access is unavailable (v0.6.4)
+
+If `typeof window.showDirectoryPicker === "undefined"`, normal browser JavaScript cannot be granted arbitrary write access to `D:\\v5-Test` from that context. Live Lab therefore stays bridge-free and falls back automatically:
+
+- every character refreshes its own situation snapshot every 30 seconds in browser-local storage;
+- **SITUATION KOPIEREN** copies the complete current Markdown snapshot;
+- **SITUATION DOWNLOAD** downloads `V5-Live-Situation-<Character>.md` when normal browser downloads are allowed;
+- **LOG-ORDNER** remains optional and only uses direct File System Access when the browser actually exposes it.
+
+The missing folder API no longer blocks the bot and no Windows Bridge is required.
+
 ## 30-second current-situation file
 
-Live Lab v0.6.1 can maintain one continuously updated file for later analysis:
+Live Lab v0.6.4 can maintain one continuously updated file for later analysis:
 
-`D:\\v5-Test\\V5-Live-Situation.md`
+`D:\\v5-Test\\V5-Live-Situation-<Character>.md`
 
 Because normal browser JavaScript is not allowed to silently write to an arbitrary Windows folder, the directory must be authorized once from a user gesture.
 
@@ -310,7 +352,7 @@ Because normal browser JavaScript is not allowed to silently write to an arbitra
 
 The bot immediately creates/updates:
 
-`V5-Live-Situation.md`
+`V5-Live-Situation-<Character>.md`
 
 and then overwrites that same file every **30 seconds**. No growing sequence of snapshot files is created.
 
@@ -372,7 +414,7 @@ The file also contains the current PR24-28 state, selected task/party/progressio
 
 For analysis, send the current file:
 
-`D:\\v5-Test\\V5-Live-Situation.md`
+`D:\\v5-Test\\V5-Live-Situation-<Character>.md`
 
 instead of collecting many separate log snippets.
 
@@ -396,7 +438,7 @@ V5LiveLab.situationWriterStatus()
 
 ## Local Adventure Land 2.5D compatibility
 
-Live Lab v0.6.1 is compatible with the local **AL 2.5D** client architecture used by
+Live Lab v0.6.4 is compatible with the local **AL 2.5D** client architecture used by
 `chatgpt/al-2.5d-local-sandbox-v7`.
 
 That client deliberately keeps the pinned original Adventure Land gameplay runtime authoritative
@@ -496,7 +538,7 @@ V5LiveLab.inspectPorts()
 For an embedded local run, `character` and the gameplay ports must resolve from the legacy
 runtime while the Live Lab HUD stays visible over the 2.5D client.
 
-The 30-second `D:\\v5-Test\\V5-Live-Situation.md` writer continues to work in this mode.
+The 30-second `D:\\v5-Test\\V5-Live-Situation-<Character>.md` writer continues to work in this mode.
 Its browser file picker, clipboard and persistent directory handle are intentionally taken from
 the visible AL 2.5D host rather than the hidden legacy client.
 
