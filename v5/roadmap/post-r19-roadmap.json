@@ -127,7 +127,8 @@
     "PR21 Stage-Completion-Apply-Boundary ist DEFAULT-OFF vorbereitet: ein READY_FOR_SEPARATE_STAGE_COMPLETION_APPLY-Record wird nur nach Transition-Fingerprint-Revalidierung und frischem Main-Match in eine deterministisch gebundene PREPARED_STAGE_COMPLETION_DEFAULT_OFF-Transaktion ueberfuehrt. Die Boundary installiert keinen Stage-Completion-Adapter, fuehrt keine Execution aus, schliesst PR21 nicht ab und aktiviert PR22 nicht. Durable Intent, One-Shot-Execution, Postcondition-Verifikation und UNKNOWN-Reconciliation bleiben fuer eine spaetere separat autorisierte Execution Pflicht; Gameplay-, Raw-Write-, Broad-Runtime- und NormalRuntime-Authority bleiben false.",
     "PR21 Stage-Completion-Execution-Authorization-Boundary ist explizit und record-only vorbereitet: nur die exakte Bestaetigung fuer die gepinnte PREPARED_STAGE_COMPLETION_DEFAULT_OFF-Transaktion kann innerhalb maximal 1500 ms einen einmal verwendbaren AUTHORIZED_STAGE_COMPLETION_ONE_SHOT_RECORD_ONLY erzeugen. Der Authorization-Record fuehrt keine Stage-Completion aus, installiert keinen Adapter, schliesst PR21 nicht ab und aktiviert PR22 nicht. Vor einer spaeteren One-Shot-Execution bleiben frischer Main- und Transaction-/Transition-Fingerprint-Recheck, Durable Intent, Postcondition-Verifikation sowie UNKNOWN-Reconciliation Pflicht; Gameplay-, Raw-Write-, Broad-Runtime- und NormalRuntime-Authority bleiben false.",
     "PR21 Stage-Completion-One-Shot-Execution-Boundary ist als enge Control-Plane-Mutation vorbereitet: nur ein noch nicht verbrauchter AUTHORIZED_STAGE_COMPLETION_ONE_SHOT_RECORD_ONLY fuer die exakt gepinnte Default-Off-Transaktion darf nach frischem Main-/Transaction-/Transition-Fingerprint-Recheck und neu persistiertem Durable Intent genau einen applyPr21StageCompletion-Versuch ausloesen. Danach ist eine getrennte Postcondition-Lesung Pflicht. UNKNOWN, fehlender terminaler Mutation-Record oder bereits vorhandener Durable Intent erzwingen Reconciliation ohne Same-Intent-Retry. Ein verifizierter Erfolg darf nur PR21-Completion plus PR22-Development-Aktivierung festhalten; PR22-Produktiv-Authority bleibt false. Die Boundary selbst hat im Repository noch keine Execution ausgefuehrt und veraendert weder Roadmap- noch Ledger-Dateien.",
-    "PR21 Stage-Completion-Post-Execution-Transition-Boundary ist proposal-only vorbereitet: nur ein kryptografisch revalidierter APPLIED_VERIFIED_STAGE_TRANSITION_RECORD_ONLY mit PR21-Completion=true, PR22-Development-Aktivierung=true und weiterhin false gesetzter PR22-Produktiv-Authority darf einen READY_FOR_SEPARATE_REPOSITORY_STAGE_STATE_APPLY-Record erzeugen. Der Record beschreibt als spaeteres Ziel PR21=COMPLETE, PR22=IN_PROGRESS und currentStage=PR22, schreibt diese Zustände aber nicht selbst. Vor einem separaten Repository-State-Apply sind frischer Main- und Completion-Fingerprint-Recheck Pflicht; Roadmap, Ledger und Control-Plane werden von dieser Boundary nicht mutiert."
+    "PR21 Stage-Completion-Post-Execution-Transition-Boundary ist proposal-only vorbereitet: nur ein kryptografisch revalidierter APPLIED_VERIFIED_STAGE_TRANSITION_RECORD_ONLY mit PR21-Completion=true, PR22-Development-Aktivierung=true und weiterhin false gesetzter PR22-Produktiv-Authority darf einen READY_FOR_SEPARATE_REPOSITORY_STAGE_STATE_APPLY-Record erzeugen. Der Record beschreibt als spaeteres Ziel PR21=COMPLETE, PR22=IN_PROGRESS und currentStage=PR22, schreibt diese Zustände aber nicht selbst. Vor einem separaten Repository-State-Apply sind frischer Main- und Completion-Fingerprint-Recheck Pflicht; Roadmap, Ledger und Control-Plane werden von dieser Boundary nicht mutiert.",
+    "PR21 Repository-Stage-State-Apply-Boundary ist DEFAULT-OFF vorbereitet: ein READY_FOR_SEPARATE_REPOSITORY_STAGE_STATE_APPLY-Record wird nur bei frischem Main und exakt unveraendertem Repository-Ausgangszustand (currentStage=PR21, currentGate=PR21_MERCHANT_INTEGRATION, PR21=IN_PROGRESS, PR22=BLOCKED_BY_PR21) in eine PREPARED_REPOSITORY_STAGE_STATE_DEFAULT_OFF-Transaktion ueberfuehrt. Das spaetere Ziel ist PR21=COMPLETE, PR22=IN_PROGRESS, currentStage=PR22 und currentGate=PR22_MULTI_CHARACTER_COORDINATION. Die Boundary selbst installiert keinen Repository-Apply-Adapter, fuehrt keine Execution aus und veraendert keine Roadmap-/Stage-Felder."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -6519,7 +6520,7 @@
     }
   },
   "pr21": {
-    "status": "STAGE_COMPLETION_POST_EXECUTION_TRANSITION_BOUNDARY_PREPARED",
+    "status": "REPOSITORY_STAGE_STATE_APPLY_BOUNDARY_PREPARED_NO_EXECUTION",
     "foundationStatus": "PREPARED_NO_WRITE",
     "ziel": "Merchant Gesamtintegration",
     "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
@@ -6620,7 +6621,7 @@
       "normalRuntimeAllowed": false,
       "nextAction": "OBSERVER_HANDOFF_PREPARED"
     },
-    "nextAction": "PREPARE_PR21_REPOSITORY_STAGE_STATE_APPLY_BOUNDARY",
+    "nextAction": "PREPARE_PR21_REPOSITORY_STAGE_STATE_EXECUTION_AUTHORIZATION_BOUNDARY",
     "observerHandoff": {
       "status": "PREPARED_NO_WRITE_NO_START_AUTHORITY",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-observer-handoff.ts",
@@ -7005,7 +7006,46 @@
       "rawWriteAuthority": false,
       "broadRuntimeGrant": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PREPARE_PR21_REPOSITORY_STAGE_STATE_APPLY_BOUNDARY"
+      "nextAction": "REPOSITORY_STAGE_STATE_APPLY_BOUNDARY_PREPARED"
+    },
+    "repositoryStageStateApplyBoundary": {
+      "status": "PREPARED_REPOSITORY_STAGE_STATE_DEFAULT_OFF_NO_EXECUTION",
+      "source": "v5/grundlage/quelle/merchant/pr21-merchant-repository-stage-state-apply-boundary.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-repository-stage-state-apply-boundary.json",
+      "test": "v5/grundlage/tests/pr21-merchant-repository-stage-state-apply-boundary.test.mjs",
+      "requiredTransitionStatus": "READY_FOR_SEPARATE_REPOSITORY_STAGE_STATE_APPLY",
+      "transactionStatus": "PREPARED_REPOSITORY_STAGE_STATE_DEFAULT_OFF",
+      "requiredCurrentStage": "PR21",
+      "requiredCurrentGate": "PR21_MERCHANT_INTEGRATION",
+      "requiredPr21StageStatus": "IN_PROGRESS",
+      "requiredPr22StageStatus": "BLOCKED_BY_PR21",
+      "targetPr21StageStatus": "COMPLETE",
+      "targetPr22StageStatus": "IN_PROGRESS",
+      "targetCurrentStage": "PR22",
+      "targetCurrentGate": "PR22_MULTI_CHARACTER_COORDINATION",
+      "freshMainCheckRequiredAtExecution": true,
+      "repositoryTransitionFingerprintRecheckRequiredAtExecution": true,
+      "completionFingerprintRecheckRequiredAtExecution": true,
+      "repositoryStateRecheckRequiredAtExecution": true,
+      "durableIntentRequiredBeforeRepositoryMutation": true,
+      "oneShotExecutionRequired": true,
+      "sameIntentRetryAllowed": false,
+      "postconditionVerificationRequired": true,
+      "unknownOutcomeRequiresReconciliation": true,
+      "repositoryApplyAdapterInstalled": false,
+      "executionEnabled": false,
+      "repositoryStageStateApplied": false,
+      "roadmapMutationPerformed": false,
+      "stageArrayMutationPerformed": false,
+      "currentStageMutationPerformed": false,
+      "currentGateMutationPerformed": false,
+      "controlPlaneMutationPerformed": false,
+      "pr22ProductiveAuthorityIssued": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadRuntimeGrant": false,
+      "normalRuntimeAllowed": false,
+      "nextAction": "PREPARE_PR21_REPOSITORY_STAGE_STATE_EXECUTION_AUTHORIZATION_BOUNDARY"
     }
   },
   "pr22": {
