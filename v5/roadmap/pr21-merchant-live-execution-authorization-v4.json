@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_MERCHANT_LIVE_EXECUTION_AUTHORIZATION_V4_2026_09_26",
+  "status": "AUTHORIZED_ONE_SHOT_NATIVE_BOOTSTRAP_RUNTIME_START_AND_OBSERVER",
+  "authorizedOn": "2026-09-26",
+  "authorizationBasis": "EXPLICIT_USER_DIRECTIVE",
+  "authorizationDirective": "AUTHORIZE_PR21_AUTOMATED_TESTS_EVALUATION_AND_CONTINUATION",
+  "supersedesForNextAttempt": "PR21_MERCHANT_LIVE_EXECUTION_AUTHORIZATION_V3_2026_09_26",
+  "sourceMain": "5dc9d0dfbe303835a82f7b341938aa13ad1626b0",
+  "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+  "stage": "PR21",
+  "scope": {
+    "testId": "pr21-merchant-integration-live-15m-v1-0-3",
+    "controllerVersion": "1.0.3",
+    "targetDurationMs": 900000,
+    "sampleIntervalMs": 5000,
+    "maximumSampleGapMs": 15000,
+    "expectedSamplesForTarget": 181,
+    "runtimeReadinessTimeoutMs": 30000,
+    "nativeBootstrapTimeoutMs": 60000,
+    "maximumUses": 1,
+    "automaticStartAfterVerifiedManifestDeploy": true,
+    "automaticEvaluation": true
+  },
+  "nativeBootstrap": {
+    "required": true,
+    "bootstrapNativeV3": true,
+    "bootstrapVersion": "3.0.0-alpha.20.147",
+    "bootstrapSource": "EMBEDDED_VERIFIED_V3_DIST_AIO_V3_JS",
+    "bootstrapAutostartForcedOff": true,
+    "bootstrapDoesNotGrantGameplayAuthority": true,
+    "nativeHandshakeRequiresRuntimeAndOperations": true
+  },
+  "externalRuntime": {
+    "requiredAuthorityId": "runtime:merchant",
+    "merchantOnly": true,
+    "maximumStartCalls": 1,
+    "stopOnlyIfStartedByCheckpoint": true,
+    "preexistingRuntimeMayBeObservedWithoutRestart": true,
+    "runtimeControlScope": "START_ONCE_AND_SAFETY_STOP_ONLY"
+  },
+  "observation": {
+    "nativeOperationsSource": "AIO_V3.__operations",
+    "nativeRuntimeSource": "AIO_V3.__runtime",
+    "legacyV5FacadeMustNotBeUsedAsHealthSource": true
+  },
+  "safety": {
+    "normalRuntimeAllowedByObserver": false,
+    "sameIntentRetry": false,
+    "observerGameplayWrites": 0,
+    "observerPublicGameplayFunctionCalls": 0,
+    "observerRawWriteCalls": 0,
+    "observerIssuesGameplayAuthority": false,
+    "observerIssuesBroadRuntimeAuthority": false,
+    "failClosedOnBootstrapFailure": true,
+    "failClosedOnHealthDrift": true,
+    "failClosedOnOperationsStale": true,
+    "failClosedOnRecorderDrops": true,
+    "failClosedOnUnsafeReconciliation": true,
+    "failClosedOnUnexpectedAuthority": true
+  }
+}
