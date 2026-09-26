@@ -31,6 +31,7 @@
 - [x] Browser-/Spiel-Live-Test des PNG-Piloten mit originalem `aniv2`-Hat
 - [x] Nicht-8× nur mit dokumentierter Ausnahme
 - [x] vollständigen `main`-/Mainland-Scope gepinnt: 14 Tilesets / 30 NPC-Platzierungen / 38 Monster-Typen / 48 Quelldateien
+- [x] Multi-Asset Runtime/Overlay-Smoke für gleichzeitige Terrain-, NPC- und Monster-Overrides vorbereitet
 - [ ] Mainland Terrain/Tilesets vollständig auf HD umstellen
 - [ ] Mainland NPC-Sheets vollständig auf HD umstellen
 - [ ] Mainland Monster-/Tier-/Target-Sheets vollständig auf HD umstellen

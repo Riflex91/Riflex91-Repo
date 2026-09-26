@@ -28,7 +28,7 @@ for(const item of manifest.replacements||[]){
   });
 }
 
-active.sort((a,b)=>a.sourcePath.localeCompare(b.sourcePath));
+active.sort((a,b)=>a.sourcePath<b.sourcePath?-1:a.sourcePath>b.sourcePath?1:0);
 const payload={schemaVersion:1,mode:"ASSET_ONLY",upstreamCommit:"90052162eb3ebda36c893e1eb4af643913c8f984",replacements:active};
 fs.mkdirSync(path.dirname(output),{recursive:true});
 fs.writeFileSync(output,"window.__ALHD_MANIFEST__ = Object.freeze("+JSON.stringify(payload,null,2)+");\n","utf8");
