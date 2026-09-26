@@ -1243,6 +1243,7 @@
         "contract": "v5/grundlage/vertraege/runtime/pr22-coordination-productive-gate-advance-proposal-boundary.json",
         "test": "v5/grundlage/tests/pr22-coordination-productive-gate-advance-proposal-boundary.test.mjs",
         "requiredRatificationStatus": "RATIFIED_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RECORD_ONLY",
+        "successStatus": "READY_FOR_SEPARATE_PR22_PRODUCTIVE_GATE_APPLY",
         "requiredFeatureGateStage": "PR22",
         "requiredFeatureGateProductiveEligible": true,
         "requiredCap022Status": "CAP022_FULL_CHAIN_BEREIT_NO_WRITE",
