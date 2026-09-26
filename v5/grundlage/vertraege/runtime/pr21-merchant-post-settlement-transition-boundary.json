@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_POST_SETTLEMENT_TRANSITION_PROPOSAL_ONLY",
+  "sourceMain": "18a350c475b7b5b8e5d9c384201fc47827e9f520",
+  "stage": "PR21",
+  "nextStage": "PR22",
+  "source": "v5/grundlage/quelle/merchant/pr21-merchant-post-settlement-transition-boundary.ts",
+  "test": "v5/grundlage/tests/pr21-merchant-post-settlement-transition-boundary.test.mjs",
+  "requiredExecutionStatus": "APPLIED_VERIFIED_RECORD_ONLY",
+  "requiredSettlementStatus": "APPLIED_VERIFIED_RECORD_ONLY",
+  "requiredReconciliationStatus": "ALREADY_APPLIED_REQUIRES_RECORD_ONLY",
+  "requiredTransitionStatus": "READY_FOR_SEPARATE_STAGE_COMPLETION_APPLY",
+  "freshMainMustMatchSettlementSource": true,
+  "settlementFingerprintRequired": true,
+  "transactionFingerprintMustMatchExecution": true,
+  "ledger": {
+    "rebuiltFromEntryStatesBeforeUse": true,
+    "fingerprintMustMatchRebuild": true,
+    "entryFingerprintsMustMatchRebuild": true,
+    "pr21PreparationCompleteRequired": true,
+    "pr21LiveEvidenceRatifiedRequired": true,
+    "pr21ExplicitRatificationRequired": true,
+    "pr21VerifiedGateApplyRequired": true,
+    "pr21ProductiveEligibleRequired": true,
+    "highestProductiveEligibleStageRequired": "PR21",
+    "pr22ProductiveEligibleRequiredAtTransition": false
+  },
+  "apply": {
+    "freshMainCheckRequiredAtApply": true,
+    "separateStageCompletionApplyRequired": true,
+    "pr21StageCompletionApplied": false,
+    "pr22DevelopmentStageActivated": false,
+    "roadmapMutationPerformed": false,
+    "ledgerMutationPerformed": false,
+    "stageMutationPerformed": false
+  },
+  "safety": {
+    "transitionProposalOnly": true,
+    "pr22ProductiveAuthorityIssued": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadRuntimeGrant": false,
+    "normalRuntimeAllowed": false,
+    "genericExecuteBackdoorAllowed": false,
+    "genericMutationBackdoorAllowed": false
+  }
+}
