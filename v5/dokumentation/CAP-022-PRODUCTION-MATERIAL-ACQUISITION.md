@@ -126,7 +126,7 @@ PR22/PR23 Stage-Ledger-/Replay-Bindung:
 - `grundlage/vertraege/runtime/pr21-28-stage-ledger-replay.json`
 - `grundlage/tests/pr21-28-stage-ledger-replay.test.mjs`
 
-Auch das zentrale Stage-Ledger verlangt fuer PR22 und PR23 `cap022FullChainReady=true`, bevor `preparationComplete` gesetzt werden darf. Im Advance-Replay entstehen bei fehlender Bindung explizite `PR22_CAP022_FULL_CHAIN_REQUIRED` bzw. `PR23_CAP022_FULL_CHAIN_REQUIRED`-Blocker. Der Replay-Pfad mutiert keine Gates und erteilt keine Authority.
+Auch das zentrale Stage-Ledger verlangt fuer PR22 und PR23 `cap022FullChainReady=true`, bevor `preparationComplete` gesetzt werden darf. Im Advance-Replay entstehen bei fehlender Bindung explizite `PR22_CAP022_FULL_CHAIN_REQUIRED` bzw. `PR23_CAP022_FULL_CHAIN_REQUIRED`-Blocker. Zusaetzlich muss eine spaetere produktive Replay-Eignung fuer PR22/PR23 die terminale Gate-Settlement-Bindung aus einem stage-konsistenten `APPLIED_VERIFIED_RECORD_ONLY`-Settlement samt gueltigem Settlement-Fingerprint tragen. Fehlt diese Bindung, bleibt die produktive Kette mit `PR22_CAP022_TERMINAL_SETTLEMENT_REQUIRED` bzw. `PR23_CAP022_TERMINAL_SETTLEMENT_REQUIRED` geschlossen. Die Bindung fliesst ueber den Ledger-Entry-Fingerprint in den Gesamt-Ledger-Fingerprint ein. Der Replay-Pfad mutiert keine Gates und erteilt keine Authority.
 
 
 Milestone-Runner / Checkpoint-Runbook-Bindung:
