@@ -50,6 +50,7 @@ export interface Pr21MerchantObserverHandoff {
 const CHECKPOINT = "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT" as const;
 const SEGMENT = "pr21-merchant-integration" as const;
 const RUNTIME_AUTHORITY = "runtime:merchant" as const;
+const RUNTIME_AUTHORITY_IDS = Object.freeze([RUNTIME_AUTHORITY] as const);
 
 export function bereitePr21MerchantObserverHandoffVor(
   admission: Pr21MerchantCheckpointAdmission,
@@ -141,8 +142,8 @@ export function bereitePr21MerchantObserverHandoffVor(
     maximumSampleGapMs: 15_000,
     expectedSamplesForTarget: 181,
     maximumSamples: plan.maximaleSamples,
-    requiredActiveAuthorityIds: Object.freeze([RUNTIME_AUTHORITY]),
-    allowedActiveAuthorityIds: Object.freeze([RUNTIME_AUTHORITY]),
+    requiredActiveAuthorityIds: RUNTIME_AUTHORITY_IDS,
+    allowedActiveAuthorityIds: RUNTIME_AUTHORITY_IDS,
     requiredHealthState: "GESUND",
     operationsMustBeCurrent: true,
     operationsResourceMetricsRequired: Object.freeze([
