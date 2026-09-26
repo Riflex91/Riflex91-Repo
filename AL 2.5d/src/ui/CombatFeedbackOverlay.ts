@@ -6,7 +6,11 @@ import type {
 } from "../render/RenderBridge";
 import type { GraphicsMode } from "../legacy/LegacyCompatibilityRuntime";
 
-export type CombatFeedbackKind = "damage" | "heal" | "death";
+export type CombatFeedbackKind =
+  | "damage"
+  | "heal"
+  | "death"
+  | "respawn";
 
 export type CombatFeedbackEvent = Readonly<{
   entityId: string;
@@ -53,6 +57,11 @@ export function diffEntityHitPoints(
         entityId: entity.id,
         kind: "death" as const
       }));
+    } else if (before <= 0 && entity.hp > 0) {
+      events.push(Object.freeze({
+        entityId: entity.id,
+        kind: "respawn" as const
+      }));
     }
   }
 
@@ -98,7 +107,14 @@ export class CombatFeedbackOverlay {
       if (!entity) continue;
 
       if (event.kind === "death") {
-        this.spawn(entity, "KO", "death", camera, viewport);
+        this.spawn(entity, "DEFEATED", "death", camera, viewport);
+        this.impact(entity, camera, viewport, "death");
+        continue;
+      }
+
+      if (event.kind === "respawn") {
+        this.spawn(entity, "READY", "respawn", camera, viewport);
+        this.impact(entity, camera, viewport, "respawn");
         continue;
       }
 
@@ -110,7 +126,59 @@ export class CombatFeedbackOverlay {
         camera,
         viewport
       );
+
+      if (event.kind === "damage") {
+        this.impact(entity, camera, viewport, "hit");
+      }
     }
+  }
+
+  attack(
+    attacker: RenderEntity,
+    target: RenderEntity,
+    camera: CameraState,
+    viewport: ViewportSize
+  ): void {
+    if (this.root.hidden) return;
+
+    const start = worldToViewport(attacker, camera, viewport);
+    const end = worldToViewport(target, camera, viewport);
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const distance = Math.max(18, Math.min(220, Math.hypot(dx, dy)));
+    const angle = Math.atan2(dy, dx);
+
+    const trail = document.createElement("span");
+    trail.className = "al25d-attack-trail";
+    trail.style.left = `${start.x}px`;
+    trail.style.top = `${start.y - 18 * camera.zoom}px`;
+    trail.style.width = `${distance}px`;
+    trail.style.transform = `rotate(${angle}rad)`;
+    this.root.appendChild(trail);
+    this.removeAfterAnimation(trail, 360);
+
+    this.impact(target, camera, viewport, "attack");
+  }
+
+  action(
+    entity: RenderEntity,
+    key: string,
+    camera: CameraState,
+    viewport: ViewportSize
+  ): void {
+    if (this.root.hidden) return;
+
+    const point = worldToViewport(entity, camera, viewport);
+    const flare = document.createElement("span");
+    flare.className = "al25d-action-flare";
+    flare.style.left = `${point.x}px`;
+    flare.style.top = `${point.y - 18 * camera.zoom}px`;
+
+    const label = document.createElement("b");
+    label.textContent = key.toUpperCase();
+    flare.appendChild(label);
+    this.root.appendChild(flare);
+    this.removeAfterAnimation(flare, 520);
   }
 
   pulse(
@@ -118,15 +186,7 @@ export class CombatFeedbackOverlay {
     camera: CameraState,
     viewport: ViewportSize
   ): void {
-    if (this.root.hidden) return;
-
-    const point = worldToViewport(entity, camera, viewport);
-    const marker = document.createElement("span");
-    marker.className = "al25d-combat-pulse";
-    marker.style.left = `${point.x}px`;
-    marker.style.top = `${point.y - 16 * camera.zoom}px`;
-    this.root.appendChild(marker);
-    this.removeAfterAnimation(marker, 540);
+    this.impact(entity, camera, viewport, "attack");
   }
 
   clear(): void {
@@ -137,6 +197,27 @@ export class CombatFeedbackOverlay {
   destroy(): void {
     this.clear();
     this.root.remove();
+  }
+
+  private impact(
+    entity: RenderEntity,
+    camera: CameraState,
+    viewport: ViewportSize,
+    kind: "attack" | "hit" | "death" | "respawn"
+  ): void {
+    if (this.root.hidden) return;
+
+    const point = worldToViewport(entity, camera, viewport);
+    const marker = document.createElement("span");
+    marker.className = "al25d-combat-pulse";
+    marker.dataset.kind = kind;
+    marker.style.left = `${point.x}px`;
+    marker.style.top = `${point.y - 16 * camera.zoom}px`;
+
+    const spark = document.createElement("i");
+    marker.appendChild(spark);
+    this.root.appendChild(marker);
+    this.removeAfterAnimation(marker, kind === "death" ? 720 : 540);
   }
 
   private spawn(
@@ -154,7 +235,10 @@ export class CombatFeedbackOverlay {
     node.style.left = `${point.x}px`;
     node.style.top = `${point.y - 34 * camera.zoom}px`;
     this.root.appendChild(node);
-    this.removeAfterAnimation(node, kind === "death" ? 900 : 720);
+    this.removeAfterAnimation(
+      node,
+      kind === "death" || kind === "respawn" ? 940 : 720
+    );
   }
 
   private removeAfterAnimation(
