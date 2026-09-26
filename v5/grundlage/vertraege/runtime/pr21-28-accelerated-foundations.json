@@ -13,7 +13,7 @@
   },
   "stages": {
     "pr21": {
-      "status": "STAGE_COMPLETION_ONE_SHOT_EXECUTION_BOUNDARY_PREPARED",
+      "status": "STAGE_COMPLETION_POST_EXECUTION_TRANSITION_BOUNDARY_PREPARED",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
       "purpose": "Merchant Gesamtintegration Readiness und Safety/Thrash/Starvation Gate",
       "productiveGate": "PR20_COMPLETE_AND_15M_MERCHANT_INTEGRATION_EVIDENCE",
@@ -389,7 +389,37 @@
         "rawWriteAuthority": false,
         "broadRuntimeGrant": false,
         "normalRuntimeAllowed": false,
-        "nextMilestone": "PREPARE_PR21_STAGE_COMPLETION_POST_EXECUTION_TRANSITION_BOUNDARY"
+        "nextMilestone": "STAGE_COMPLETION_POST_EXECUTION_TRANSITION_BOUNDARY_PREPARED"
+      },
+      "stageCompletionPostExecutionTransitionBoundary": {
+        "status": "PREPARED_POST_EXECUTION_REPOSITORY_TRANSITION_PROPOSAL_ONLY",
+        "source": "v5/grundlage/quelle/merchant/pr21-merchant-stage-completion-post-execution-transition-boundary.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-stage-completion-post-execution-transition-boundary.json",
+        "test": "v5/grundlage/tests/pr21-merchant-stage-completion-post-execution-transition-boundary.test.mjs",
+        "completedStage": "PR21",
+        "nextDevelopmentStage": "PR22",
+        "requiredExecutionStatus": "APPLIED_VERIFIED_STAGE_TRANSITION_RECORD_ONLY",
+        "requiredCompletionRecordStatus": "APPLIED_VERIFIED_STAGE_TRANSITION_RECORD_ONLY",
+        "requiredProposalStatus": "READY_FOR_SEPARATE_REPOSITORY_STAGE_STATE_APPLY",
+        "completionFingerprintRevalidationRequired": true,
+        "currentMainMustMatchCompletionSource": true,
+        "requiredPr21StageStatusBeforeApply": "IN_PROGRESS",
+        "requiredPr22StageStatusBeforeApply": "BLOCKED_BY_PR21",
+        "targetPr21StageStatus": "COMPLETE",
+        "targetPr22StageStatus": "IN_PROGRESS",
+        "targetCurrentStage": "PR22",
+        "pr22ProductiveAuthorityIssued": false,
+        "freshMainCheckRequiredAtApply": true,
+        "separateRepositoryStageStateApplyRequired": true,
+        "repositoryStageStateApplied": false,
+        "roadmapMutationPerformed": false,
+        "ledgerMutationPerformed": false,
+        "controlPlaneMutationPerformed": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "broadRuntimeGrant": false,
+        "normalRuntimeAllowed": false,
+        "nextMilestone": "PREPARE_PR21_REPOSITORY_STAGE_STATE_APPLY_BOUNDARY"
       }
     },
     "pr22": {
