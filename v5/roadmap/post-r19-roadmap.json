@@ -145,7 +145,8 @@
     "PR22 Coordination Productive-Default-Off-Gate-Apply-Boundary ist vorbereitet: nur ein revalidierter READY_FOR_SEPARATE_PR22_PRODUCTIVE_GATE_APPLY-Proposal mit passendem Main darf eine deterministische PREPARED_PR22_PRODUCTIVE_GATE_APPLY_DEFAULT_OFF-Transaktion erzeugen. Vor einer spaeteren Execution bleiben Main-, Proposal-, Evidence-, Ratification-, Repository-State-, Feature-Gate- und CAP-022-Rechecks sowie Durable Intent, One-Shot-Ausfuehrung, Postcondition-Verifikation und Reconciliation bei UNKNOWN Pflicht. Adapter und Execution bleiben default-off; kein Gate wird mutiert und keine send_cm-/Gameplay-/Raw-Write-/Broad-Runtime-/NormalRuntime-Authority wird erteilt.",
     "PR22 Coordination Productive-Gate-Apply-Execution-Authorization-Boundary ist explizit und record-only vorbereitet: nur eine READY_DEFAULT_OFF-Transaktion darf einen kurzlebigen One-Shot-Authorization-Draft erzeugen. Nur der exakte an Transaction-Fingerprint und Source-Main gebundene Confirmation-Text darf AUTHORIZED_PR22_PRODUCTIVE_GATE_APPLY_ONE_SHOT_RECORD_ONLY erzeugen; generische Texte wie 'ok' oder 'mach weiter' reichen nicht. TTL bleibt maximal 1500 ms, maximumUses=1; vor einer spaeteren Execution sind Main-, Transaction-, Proposal-, Evidence-, Ratification-, Repository-State-, Feature-Gate- und CAP-022-Rechecks Pflicht. Die Authorization selbst fuehrt keinen Apply aus, mutiert kein Gate und erteilt keine send_cm-/Gameplay-/Raw-Write-/Broad-Runtime-/NormalRuntime-Authority.",
     "PR22 Coordination Productive-One-Shot-Gate-Apply-Execution-Boundary ist vorbereitet: nur ein noch nicht verbrauchter AUTHORIZED_PR22_PRODUCTIVE_GATE_APPLY_ONE_SHOT_RECORD_ONLY darf nach frischen Main-, Transaction-, Proposal-, Productive-Evidence-, Ratification-, Repository-State-, Feature-Gate- und CAP-022-Rechecks einen Durable Intent persistieren und exakt einen typisierten Control-Plane-Apply-Versuch ausloesen. Danach ist eine separate Postcondition-Lesung Pflicht. Vorhandener Durable Intent, Restart, UNKNOWN oder unverifizierte Mutation erzwingen Reconciliation ohne Same-Intent-Retry. Ein verifizierter Erfolg erzeugt nur APPLIED_VERIFIED_PR22_PRODUCTIVE_GATE_RECORD_ONLY; productiveAuthorityIssued, pr22ProductiveAuthorityIssued und sendCmAuthority bleiben false. In der Entwicklung wurde keine echte Gate-Mutation ausgefuehrt.",
-    "PR22 Coordination Productive-Gate-Apply-Post-Settlement-Boundary ist proposal-only vorbereitet: nur ein kryptografisch revalidierter APPLIED_VERIFIED_PR22_PRODUCTIVE_GATE_RECORD_ONLY mit passendem Main, Repository-State, produktiv eligibler PR22-Feature-Gate-Sicht und vollstaendiger CAP-022 Full-Chain darf READY_FOR_SEPARATE_PR22_PRODUCTIVE_AUTHORITY_APPLY erzeugen. Der Post-Settlement-Record bindet Settlement-, Transaction-, Proposal-, Productive-Evidence- und Ratification-Fingerprint. Er fuehrt keine weitere Gate-Mutation aus und oeffnet keine productiveAuthority, pr22ProductiveAuthority oder sendCm-/Gameplay-/Raw-Write-/Broad-Runtime-/NormalRuntime-Authority. In der Entwicklung wurde kein echter Gate-Apply ausgefuehrt; PR22 bleibt durch PR21 blockiert."
+    "PR22 Coordination Productive-Gate-Apply-Post-Settlement-Boundary ist proposal-only vorbereitet: nur ein kryptografisch revalidierter APPLIED_VERIFIED_PR22_PRODUCTIVE_GATE_RECORD_ONLY mit passendem Main, Repository-State, produktiv eligibler PR22-Feature-Gate-Sicht und vollstaendiger CAP-022 Full-Chain darf READY_FOR_SEPARATE_PR22_PRODUCTIVE_AUTHORITY_APPLY erzeugen. Der Post-Settlement-Record bindet Settlement-, Transaction-, Proposal-, Productive-Evidence- und Ratification-Fingerprint. Er fuehrt keine weitere Gate-Mutation aus und oeffnet keine productiveAuthority, pr22ProductiveAuthority oder sendCm-/Gameplay-/Raw-Write-/Broad-Runtime-/NormalRuntime-Authority. In der Entwicklung wurde kein echter Gate-Apply ausgefuehrt; PR22 bleibt durch PR21 blockiert.",
+    "PR22 Coordination Productive-Authority-Default-Off-Apply-Boundary ist vorbereitet: nur ein kryptografisch revalidierter READY_FOR_SEPARATE_PR22_PRODUCTIVE_AUTHORITY_APPLY-Post-Settlement-Record mit passendem Main darf eine PREPARED_PR22_PRODUCTIVE_AUTHORITY_APPLY_DEFAULT_OFF-Transaktion erzeugen. Die Transaktion bindet Post-Settlement-, Gate-Settlement-, Gate-Transaction-, Proposal-, Productive-Evidence- und Ratification-Fingerprint und verlangt vor spaeterer Execution erneute Repository-State-, Feature-Gate- und CAP-022-Rechecks, Durable Intent, One-Shot und Postcondition-Verifikation. Adapter und Execution bleiben aus; productiveAuthorityIssued, pr22ProductiveAuthorityIssued, sendCmAuthority und alle Gameplay-/Raw-Write-/Broad-Runtime-/NormalRuntime-Authorities bleiben false."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -6537,7 +6538,7 @@
     }
   },
   "pr21": {
-    "status": "PR22_COORDINATION_PRODUCTIVE_GATE_APPLY_POST_SETTLEMENT_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION",
+    "status": "PR22_COORDINATION_PRODUCTIVE_AUTHORITY_DEFAULT_OFF_APPLY_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION",
     "foundationStatus": "PREPARED_NO_WRITE",
     "ziel": "Merchant Gesamtintegration",
     "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
@@ -6638,7 +6639,7 @@
       "normalRuntimeAllowed": false,
       "nextAction": "OBSERVER_HANDOFF_PREPARED"
     },
-    "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_AUTHORITY_DEFAULT_OFF_APPLY_BOUNDARY",
+    "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_AUTHORITY_APPLY_EXECUTION_AUTHORIZATION_BOUNDARY",
     "observerHandoff": {
       "status": "PREPARED_NO_WRITE_NO_START_AUTHORITY",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-observer-handoff.ts",
@@ -8111,7 +8112,46 @@
       "normalRuntimeAllowed": false,
       "repositoryMutationPerformed": false,
       "controlPlaneMutationPerformed": false,
-      "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_AUTHORITY_DEFAULT_OFF_APPLY_BOUNDARY"
+      "nextAction": "PR22_COORDINATION_PRODUCTIVE_AUTHORITY_DEFAULT_OFF_APPLY_BOUNDARY_PREPARED"
+    },
+    "coordinationProductiveAuthorityDefaultOffApplyBoundary": {
+      "status": "PREPARED_PR22_PRODUCTIVE_AUTHORITY_DEFAULT_OFF_APPLY_NO_EXECUTION",
+      "source": "v5/grundlage/quelle/koordination/pr22-coordination-productive-authority-default-off-apply-boundary.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr22-coordination-productive-authority-default-off-apply-boundary.json",
+      "test": "v5/grundlage/tests/pr22-coordination-productive-authority-default-off-apply-boundary.test.mjs",
+      "requiredPostSettlementStatus": "READY_FOR_SEPARATE_PR22_PRODUCTIVE_AUTHORITY_APPLY",
+      "successStatus": "PREPARED_PR22_PRODUCTIVE_AUTHORITY_APPLY_DEFAULT_OFF",
+      "postSettlementFingerprintRevalidationRequired": true,
+      "currentMainMustMatchPostSettlementSource": true,
+      "freshMainCheckRequiredAtExecution": true,
+      "postSettlementFingerprintRecheckRequiredAtExecution": true,
+      "settlementFingerprintRecheckRequiredAtExecution": true,
+      "gateTransactionFingerprintRecheckRequiredAtExecution": true,
+      "proposalFingerprintRecheckRequiredAtExecution": true,
+      "evidenceFingerprintRecheckRequiredAtExecution": true,
+      "ratificationFingerprintRecheckRequiredAtExecution": true,
+      "repositoryStateRecheckRequiredAtExecution": true,
+      "featureGateRecheckRequiredAtExecution": true,
+      "cap022FullChainRecheckRequiredAtExecution": true,
+      "durableIntentRequiredBeforeAuthorityMutation": true,
+      "oneShotExecutionRequired": true,
+      "sameIntentRetryAllowed": false,
+      "postconditionVerificationRequired": true,
+      "unknownOutcomeRequiresReconciliation": true,
+      "separateExecutionAuthorizationRequired": true,
+      "currentBlockedByPr21Execution": true,
+      "authorityApplyAdapterInstalled": false,
+      "executionEnabled": false,
+      "productiveAuthorityIssued": false,
+      "pr22ProductiveAuthorityIssued": false,
+      "sendCmAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "broadRuntimeGrant": false,
+      "normalRuntimeAllowed": false,
+      "repositoryMutationPerformed": false,
+      "controlPlaneMutationPerformed": false,
+      "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_AUTHORITY_APPLY_EXECUTION_AUTHORIZATION_BOUNDARY"
     }
   },
   "pr23": {
