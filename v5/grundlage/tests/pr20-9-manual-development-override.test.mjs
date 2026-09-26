@@ -1,0 +1,93 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+const read=path=>JSON.parse(fs.readFileSync(path,"utf8"));
+
+const override=read("roadmap/pr20-9-craft-manual-development-override.json");
+const roadmap=read("roadmap/post-r19-roadmap.json");
+const merchant=read("grundlage/vertraege/runtime/merchant-remaining-production-preparation.json");
+const preflight=read("grundlage/vertraege/runtime/pr21-merchant-integration-live-preflight.json");
+const foundations=read("grundlage/vertraege/runtime/pr21-28-accelerated-foundations.json");
+const historical=read("roadmap/pr20-9-craft-durable-shadow-no-candidate-evidence.json");
+
+test("PR20.9 manual development override advances roadmap without inventing Craft evidence",()=>{
+  assert.equal(override.status,"MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT");
+  assert.equal(override.basis.kind,"OPERATOR_MANUAL_OVERRIDE");
+  assert.equal(override.basis.liveCraftEvidenceProduced,false);
+  assert.equal(override.basis.historicalNoCandidateEvidencePreserved,true);
+  assert.equal(override.effects.countsAsPr20_9RoadmapRatification,true);
+  assert.equal(override.effects.countsAsPr20CompletionForDevelopment,true);
+  assert.equal(override.effects.unblocksPr21Development,true);
+  assert.equal(override.effects.countsAsLiveCraftEvidence,false);
+  assert.equal(override.effects.authorizesExternalRuntimeStart,false);
+  assert.equal(override.effects.authorizesCraftMutation,false);
+  assert.equal(override.authority.craftAuthority,false);
+  assert.equal(override.authority.gameplayAuthority,false);
+  assert.equal(override.authority.rawWriteAuthority,false);
+  assert.equal(override.authority.broadGraphExecutionAuthority,false);
+  assert.equal(override.authority.normalRuntimeAllowed,false);
+
+  assert.equal(roadmap.currentStage,"PR21");
+  assert.equal(roadmap.currentGate,"PR21_MERCHANT_INTEGRATION");
+  assert.equal(roadmap.pr20_9.status,"MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT");
+  assert.equal(roadmap.pr20_9.exitGate.satisfied,true);
+  assert.equal(roadmap.pr20_9.exitGate.satisfiedByManualDevelopmentOverride,true);
+  assert.equal(roadmap.pr20_9.exitGate.liveCraftEvidenceSatisfied,false);
+  assert.equal(roadmap.pr20_9.manualDevelopmentOverride.status,"BESTANDEN_MANUELL");
+  assert.equal(roadmap.pr20_9.productiveCraftAuthority,false);
+  assert.equal(roadmap.pr20_9.gameplayAuthority,false);
+  assert.equal(roadmap.pr20_9.rawWriteAuthority,false);
+  assert.equal(roadmap.pr20_9.normalRuntimeAllowed,false);
+
+  const pr20=roadmap.stages.find(x=>x.id==="PR20");
+  const pr21=roadmap.stages.find(x=>x.id==="PR21");
+  assert.equal(pr20?.status,"COMPLETE_MANUAL_OVERRIDE");
+  assert.equal(pr21?.status,"IN_PROGRESS");
+  assert.equal(roadmap.pr21.status,"IN_PROGRESS_MANUAL_PR20_9_OVERRIDE");
+  assert.deepEqual(roadmap.pr21.blockedBy,[]);
+  assert.equal(roadmap.pr21.liveExecutionAllowed,false);
+  assert.equal(roadmap.pr21.livePreflight.manualPr20_9OverrideAccepted,true);
+  assert.deepEqual(roadmap.pr21.livePreflight.missingRatifications,[]);
+  assert.equal(roadmap.pr21.livePreflight.externalRuntimeStartAuthorized,false);
+});
+
+test("historical PR20.9 no-candidate evidence remains unchanged in meaning",()=>{
+  assert.equal(historical.status,"RATIFIED_BLOCKED_NO_NORMAL_CANDIDATE_ZERO_WRITE");
+  assert.equal(historical.testId,"pr20-9-craft-durable-shadow-no-write");
+  assert.equal(historical.terminalStatus,"BLOCKIERT");
+  assert.equal(historical.blocker,"PR20_9_CRAFT_SHADOW_KEIN_NORMALKANDIDAT");
+  assert.equal(historical.conclusion.craftRatified,false);
+  assert.equal(historical.conclusion.productiveCraftAuthorityOpened,false);
+  assert.equal(historical.conclusion.candidateAcquisitionOrMutationAllowed,false);
+  assert.equal(historical.safety.gameplayWrites,0);
+  assert.equal(historical.safety.publicFunctionCalls,0);
+  assert.equal(historical.safety.rawWriteCalls,0);
+  assert.equal(historical.safety.normalRuntimeAllowed,false);
+});
+
+test("Merchant and PR21 contracts accept only the development override, never runtime authority",()=>{
+  assert.equal(merchant.pr20_9.status,"MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT");
+  assert.equal(merchant.pr20_9.manualDevelopmentOverride.liveCraftEvidenceProduced,false);
+  assert.equal(merchant.pr21.status,"AKTIV_FUER_WEITERENTWICKLUNG_NO_WRITE");
+  assert.equal(merchant.pr21.manualPr20_9Override.accepted,true);
+
+  assert.equal(preflight.status,"PREPARED_NO_WRITE_MANUAL_PR20_9_OVERRIDE");
+  assert.deepEqual(preflight.currentRepositoryState.missingRatifications,[]);
+  assert.equal(preflight.currentRepositoryState.manualPr20_9OverrideAccepted,true);
+  assert.equal(preflight.currentRepositoryState.liveCraftEvidenceSatisfied,false);
+  assert.equal(preflight.currentRepositoryState.externalRuntimeStartAuthorized,false);
+  assert.equal(preflight.safety.manualDevelopmentRatificationCredit,true);
+  assert.equal(preflight.safety.currentPr20_9RatificationCredit,false);
+  assert.equal(preflight.safety.gameplayAuthority,false);
+  assert.equal(preflight.safety.rawWriteAuthority,false);
+  assert.equal(preflight.safety.normalRuntimeAllowed,false);
+
+  assert.equal(
+    foundations.stages.pr21.status,
+    "FOUNDATION_PREPARED_NO_WRITE_PR21_ACTIVE_BY_MANUAL_PR20_9_OVERRIDE",
+  );
+  assert.equal(foundations.stages.pr21.livePreflight.manualPr20_9OverrideAccepted,true);
+  assert.deepEqual(foundations.stages.pr21.livePreflight.currentMissingRatifications,[]);
+  assert.equal(foundations.stages.pr21.livePreflight.externalRuntimeStartAuthorized,false);
+});
