@@ -180,6 +180,18 @@ export type RenderQuestEvent = Readonly<{
   expiresAt?: number;
 }>;
 
+export type RenderProjectileEffect = Readonly<{
+  id: string;
+  kind: "projectile" | "ray";
+  animation: string;
+  x: number;
+  y: number;
+  originX?: number;
+  originY?: number;
+  targetX?: number;
+  targetY?: number;
+}>;
+
 export type RenderLootChest = Readonly<{
   id: string;
   x: number;
@@ -215,6 +227,7 @@ export type GameFrameSnapshot = Readonly<{
   chatChannels?: readonly RenderChatChannel[];
   questEvents?: readonly RenderQuestEvent[];
   lootChests?: readonly RenderLootChest[];
+  projectileEffects?: readonly RenderProjectileEffect[];
   entities: readonly RenderEntity[];
 }>;
 

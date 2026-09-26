@@ -86,8 +86,10 @@ Deliverable: walkable Main with original gameplay logic.
 - [x] attack animation baseline driven only by already-dispatched original attack input
 - [ ] frame-accurate attack animation parity by class/weapon
 - [x] attack intent VFX baseline: local-to-target slash trail + impact spark
-- [ ] projectiles
-- [x] mirrored projectile recognition + first-party projectile fallback visual
+- [x] projectile baseline from original map_animations matched against G.projectiles
+- [x] first-party moving projectile + ray visuals driven by mirrored original animation positions
+- [x] explicit type=projectile entity fallback retained without misclassifying projectile-using monsters/players
+- [ ] frame/effect-accurate projectile art and hit-animation parity
 - [x] skill-VFX category baseline from immutable G.skills metadata
 - [ ] frame/effect-accurate skill VFX parity per skill
 - [x] hotbar action/cast flare baseline while original action dispatch stays authoritative

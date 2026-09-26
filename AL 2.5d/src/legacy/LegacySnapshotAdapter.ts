@@ -17,7 +17,7 @@ export type LegacyEntityLike = Readonly<{
   ctype?: string;
   mtype?: string;
   npc?: string | boolean;
-  projectile?: boolean;
+  projectile?: string | boolean;
   skin?: string;
   texture?: unknown;
   going_x?: number;
@@ -192,7 +192,7 @@ export class LegacySnapshotAdapter {
   }
 
   private detectKind(entity: LegacyEntityLike): EntityKind {
-    if (entity.projectile || entity.type === "projectile") {
+    if (entity.type === "projectile") {
       return "projectile";
     }
 

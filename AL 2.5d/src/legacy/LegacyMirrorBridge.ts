@@ -17,7 +17,8 @@ import type {
   RenderItemDetails,
   RenderItemStat,
   RenderSkillVisualKind,
-  RenderLootChest
+  RenderLootChest,
+  RenderProjectileEffect
 } from "../render/RenderBridge";
 import {
   LegacySnapshotAdapter,
@@ -32,6 +33,7 @@ export type LegacyGameDataLike = Readonly<{
   skills?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   monsters?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   events?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  projectiles?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
 }>;
 
 export type LegacyGlobalsLike = Readonly<{
@@ -45,6 +47,7 @@ export type LegacyGlobalsLike = Readonly<{
   party_list?: readonly string[];
   party?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   chests?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
+  map_animations?: Readonly<Record<string, Readonly<Record<string, unknown>>>>;
   game_chats?: readonly unknown[];
   cwindows?: readonly string[];
   document?: Document;
@@ -902,6 +905,86 @@ export function snapshotLegacyParty(
   return Object.freeze(result);
 }
 
+function legacyPoint(
+  value: unknown
+): Readonly<{ x: number; y: number }> | undefined {
+  const record = recordValue(value);
+  if (!record) return undefined;
+
+  const x =
+    finiteNumber(record.real_x) ??
+    finiteNumber(record.x);
+  const y =
+    finiteNumber(record.real_y) ??
+    finiteNumber(record.y);
+
+  if (x === undefined || y === undefined) return undefined;
+  return Object.freeze({ x, y });
+}
+
+export function snapshotLegacyProjectileEffects(
+  globals: LegacyGlobalsLike
+): readonly RenderProjectileEffect[] {
+  const animationKinds = new Map<string, "projectile" | "ray">();
+
+  for (const definition of Object.values(globals.G?.projectiles ?? {})) {
+    const animation = stringValue(definition.animation);
+    const ray = stringValue(definition.ray);
+    if (animation) animationKinds.set(animation, "projectile");
+    if (ray) animationKinds.set(ray, "ray");
+  }
+
+  if (!animationKinds.size) return Object.freeze([]);
+
+  const effects: RenderProjectileEffect[] = [];
+
+  for (const [key, raw] of Object.entries(globals.map_animations ?? {})) {
+    const effect = recordValue(raw);
+    if (!effect || effect.to_delete) continue;
+
+    const animation =
+      stringValue(effect.skin) ??
+      stringValue(effect.name);
+    if (!animation) continue;
+
+    const kind = animationKinds.get(animation);
+    if (!kind) continue;
+
+    const x = finiteNumber(effect.x);
+    const y = finiteNumber(effect.y);
+    if (x === undefined || y === undefined) continue;
+
+    const id = stringValue(effect.id) ?? key;
+    const origin = legacyPoint(effect.origin);
+    const target = legacyPoint(effect.target);
+    const targetX =
+      target?.x ??
+      finiteNumber(effect.going_x);
+    const targetY =
+      target?.y ??
+      finiteNumber(effect.going_y);
+
+    effects.push(
+      Object.freeze({
+        id,
+        kind,
+        animation,
+        x,
+        y,
+        ...(origin
+          ? { originX: origin.x, originY: origin.y }
+          : {}),
+        ...(targetX === undefined || targetY === undefined
+          ? {}
+          : { targetX, targetY })
+      })
+    );
+  }
+
+  effects.sort((a, b) => a.id.localeCompare(b.id));
+  return Object.freeze(effects);
+}
+
 export function snapshotLegacyLootChests(
   globals: LegacyGlobalsLike,
   mapId: string
@@ -1157,6 +1240,7 @@ export class LegacyMirrorBridge {
     const chatChannels = snapshotLegacyChatChannels(globals);
     const questEvents = snapshotLegacyQuestEvents(globals, character);
     const lootChests = snapshotLegacyLootChests(globals, map);
+    const projectileEffects = snapshotLegacyProjectileEffects(globals);
     const hasExtendedChat =
       chatChannels.length > 1 ||
       chatChannels.some((channel) => channel.messages.length > 0);
@@ -1167,7 +1251,8 @@ export class LegacyMirrorBridge {
       chat.length ||
       hasExtendedChat ||
       questEvents.length ||
-      lootChests.length
+      lootChests.length ||
+      projectileEffects.length
         ? Object.freeze({
             ...entitySnapshot,
             ...(mapState ? { mapState } : {}),
@@ -1176,7 +1261,8 @@ export class LegacyMirrorBridge {
             ...(chat.length ? { chat } : {}),
             ...(hasExtendedChat ? { chatChannels } : {}),
             ...(questEvents.length ? { questEvents } : {}),
-            ...(lootChests.length ? { lootChests } : {})
+            ...(lootChests.length ? { lootChests } : {}),
+            ...(projectileEffects.length ? { projectileEffects } : {})
           })
         : entitySnapshot;
 

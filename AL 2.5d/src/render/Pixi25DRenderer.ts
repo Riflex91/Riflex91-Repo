@@ -19,7 +19,8 @@ import type {
   RenderMapBounds,
   RenderMapSurface,
   RenderSpriteFrame,
-  RenderLootChest
+  RenderLootChest,
+  RenderProjectileEffect
 } from "./RenderBridge";
 import { resolveHudVisibility } from "./hudLayout";
 import { projectWorldToScreen } from "./projection";
@@ -63,6 +64,12 @@ type LootChestVisual = {
   container: Container;
   body: Graphics;
   label: Text;
+  key: string;
+};
+
+type ProjectileEffectVisual = {
+  container: Container;
+  body: Graphics;
   key: string;
 };
 
@@ -121,6 +128,7 @@ export class Pixi25DRenderer implements RenderBridge {
   > = [];
   private readonly visuals = new Map<string, EntityVisual>();
   private readonly lootChestVisuals = new Map<string, LootChestVisual>();
+  private readonly projectileEffectVisuals = new Map<string, ProjectileEffectVisual>();
   private readonly textureLoads = new Map<string, Promise<Texture | null>>();
   private readonly imageLoads = new Map<
     string,
@@ -172,6 +180,7 @@ export class Pixi25DRenderer implements RenderBridge {
 
     this.renderMap(snapshot);
     this.renderLootChests(snapshot.lootChests ?? []);
+    this.renderProjectileEffects(snapshot.projectileEffects ?? []);
 
     const alive = new Set<string>();
 
@@ -196,6 +205,10 @@ export class Pixi25DRenderer implements RenderBridge {
       visual.container.destroy({ children: true });
     }
     this.lootChestVisuals.clear();
+    for (const visual of this.projectileEffectVisuals.values()) {
+      visual.container.destroy({ children: true });
+    }
+    this.projectileEffectVisuals.clear();
     this.clearStructureVisuals();
     this.textureLoads.clear();
     this.imageLoads.clear();
@@ -884,6 +897,13 @@ export class Pixi25DRenderer implements RenderBridge {
       visual.container.rotation = -(this.camera.rotation ?? 0);
     }
 
+    for (const visual of this.projectileEffectVisuals.values()) {
+      visual.container.zIndex = this.cameraDepth({
+        x: visual.container.position.x,
+        y: visual.container.position.y
+      }) + 0.08;
+    }
+
     for (const entry of this.structureVisuals) {
       entry.container.zIndex = this.structureDepth(entry.surface);
     }
@@ -1111,6 +1131,108 @@ export class Pixi25DRenderer implements RenderBridge {
       ])
       .fill({ color: 0x385248, alpha: 0.6 })
       .stroke({ color: 0x6f9587, width: 1, alpha: 0.75 });
+  }
+
+  private projectileEffectColor(animation: string): number {
+    const palette = [
+      0x8fdcff,
+      0xffcc78,
+      0xc996ff,
+      0x7ef0b0,
+      0xff8f8f
+    ];
+    let hash = 2166136261;
+    for (let index = 0; index < animation.length; index += 1) {
+      hash ^= animation.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return palette[(hash >>> 0) % palette.length];
+  }
+
+  private renderProjectileEffects(
+    effects: readonly RenderProjectileEffect[]
+  ): void {
+    const alive = new Set<string>();
+
+    for (const effect of effects) {
+      alive.add(effect.id);
+      let visual = this.projectileEffectVisuals.get(effect.id);
+
+      if (!visual) {
+        const container = new Container();
+        const body = new Graphics();
+        container.addChild(body);
+        this.world.addChild(container);
+        visual = { container, body, key: "" };
+        this.projectileEffectVisuals.set(effect.id, visual);
+      }
+
+      const color = this.projectileEffectColor(effect.animation);
+      const key = [
+        effect.kind,
+        effect.animation,
+        effect.originX ?? "",
+        effect.originY ?? "",
+        effect.targetX ?? "",
+        effect.targetY ?? ""
+      ].join("|");
+
+      if (effect.kind === "ray") {
+        const origin = projectWorldToScreen({
+          x: effect.originX ?? effect.x,
+          y: effect.originY ?? effect.y
+        });
+        const target =
+          effect.targetX !== undefined && effect.targetY !== undefined
+            ? projectWorldToScreen({
+                x: effect.targetX,
+                y: effect.targetY
+              })
+            : projectWorldToScreen({ x: effect.x, y: effect.y });
+
+        visual.body.clear();
+        visual.body
+          .moveTo(0, 0)
+          .lineTo(target.x - origin.x, target.y - origin.y)
+          .stroke({ color, width: 5, alpha: 0.18 });
+        visual.body
+          .moveTo(0, 0)
+          .lineTo(target.x - origin.x, target.y - origin.y)
+          .stroke({ color, width: 2, alpha: 0.92 });
+
+        visual.container.position.set(origin.x, origin.y);
+        visual.container.rotation = 0;
+        visual.container.zIndex = this.cameraDepth(origin) + 0.08;
+        visual.key = key;
+        continue;
+      }
+
+      if (visual.key !== key) {
+        visual.key = key;
+        visual.body.clear();
+        visual.body
+          .circle(0, -8, 10)
+          .fill({ color, alpha: 0.1 });
+        visual.body
+          .circle(0, -8, 5)
+          .fill({ color, alpha: 0.92 })
+          .stroke({ color: 0xffffff, width: 1, alpha: 0.72 });
+        visual.body
+          .circle(0, -8, 13)
+          .stroke({ color, width: 1.2, alpha: 0.28 });
+      }
+
+      const projected = projectWorldToScreen(effect);
+      visual.container.position.set(projected.x, projected.y);
+      visual.container.rotation = -(this.camera.rotation ?? 0);
+      visual.container.zIndex = this.cameraDepth(projected) + 0.08;
+    }
+
+    for (const [id, visual] of this.projectileEffectVisuals) {
+      if (alive.has(id)) continue;
+      visual.container.destroy({ children: true });
+      this.projectileEffectVisuals.delete(id);
+    }
   }
 
   private renderLootChests(chests: readonly RenderLootChest[]): void {

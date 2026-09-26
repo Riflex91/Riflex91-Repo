@@ -154,6 +154,15 @@ export class MinimapOverlay {
           chest.items ?? "",
           chest.opening ? 1 : 0
         ].join(":")
+      ),
+      ...(snapshot.projectileEffects ?? []).map((effect) =>
+        [
+          "projectile",
+          effect.id,
+          Math.round(effect.x),
+          Math.round(effect.y),
+          effect.kind
+        ].join(":")
       )
     ].join("|");
 
@@ -236,6 +245,14 @@ export class MinimapOverlay {
       ctx.lineWidth = 1;
       ctx.strokeRect(-3.5, -3.5, 7, 7);
       ctx.restore();
+    }
+
+    for (const effect of snapshot.projectileEffects ?? []) {
+      const point = mapPoint(effect.x, effect.y);
+      ctx.beginPath();
+      ctx.fillStyle = effect.kind === "ray" ? "#b7f6ff" : "#8fe7ff";
+      ctx.arc(point.x, point.y, effect.kind === "ray" ? 1.6 : 2.2, 0, Math.PI * 2);
+      ctx.fill();
     }
 
     const entities = [...snapshot.entities].sort((a, b) =>

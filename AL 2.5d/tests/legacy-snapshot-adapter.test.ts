@@ -124,6 +124,26 @@ describe("LegacySnapshotAdapter", () => {
     });
   });
 
+  it("does not mistake a monster's projectile weapon for a projectile entity", () => {
+    const adapter = new LegacySnapshotAdapter();
+    const monster = Object.freeze({
+      id: "archer-1",
+      type: "monster",
+      mtype: "archer",
+      projectile: "arrow",
+      x: 10,
+      y: 20
+    });
+
+    const snapshot = adapter.toSnapshot({
+      tick: 10,
+      map: "main",
+      entities: { monster }
+    });
+
+    expect(snapshot.entities[0]?.kind).toBe("monster");
+  });
+
   it("deduplicates the local character if it is also present in entities", () => {
     const adapter = new LegacySnapshotAdapter({
       classTypes: new Set(["mage"])
