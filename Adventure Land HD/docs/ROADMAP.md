@@ -32,6 +32,7 @@
 - [x] Nicht-8× nur mit dokumentierter Ausnahme
 - [x] vollständigen `main`-/Mainland-Scope gepinnt: 14 Tilesets / 30 NPC-Platzierungen / 38 Monster-Typen / 48 Quelldateien
 - [x] Multi-Asset Runtime/Overlay-Smoke für gleichzeitige Terrain-, NPC- und Monster-Overrides vorbereitet
+- [x] Mainland-Terrain-Produktionsvertrag gepinnt: 14 Tilesets mit Original-Blob, Originalmaß, exaktem 8×-Zielmaß und Animationsmetadaten
 - [ ] Mainland Terrain/Tilesets vollständig auf HD umstellen
 - [ ] Mainland NPC-Sheets vollständig auf HD umstellen
 - [ ] Mainland Monster-/Tier-/Target-Sheets vollständig auf HD umstellen
