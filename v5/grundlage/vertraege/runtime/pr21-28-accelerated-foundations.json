@@ -16,7 +16,37 @@
       "status": "FOUNDATION_PREPARED_NO_WRITE_BLOCKED_BY_PR20",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
       "purpose": "Merchant Gesamtintegration Readiness und Safety/Thrash/Starvation Gate",
-      "productiveGate": "PR20_COMPLETE_AND_15M_MERCHANT_INTEGRATION_EVIDENCE"
+      "productiveGate": "PR20_COMPLETE_AND_15M_MERCHANT_INTEGRATION_EVIDENCE",
+      "livePreflight": {
+        "status": "PREPARED_NO_WRITE_BLOCKED_BY_PR20_9",
+        "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-live-preflight.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-integration-live-preflight.json",
+        "test": "v5/grundlage/tests/pr21-merchant-integration-live-preflight.test.mjs",
+        "targetCheckpoint": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+        "requiredProductiveRatifications": [
+          "PR20.1",
+          "PR20.2",
+          "PR20.3",
+          "PR20.4",
+          "PR20.5",
+          "PR20.6",
+          "PR20.7",
+          "PR20.8",
+          "PR20.9"
+        ],
+        "currentMissingRatifications": [
+          "PR20.9"
+        ],
+        "currentMainMustMatchPinnedMain": true,
+        "readinessSnapshotMainMustMatchCurrentMain": true,
+        "checkpointBindingRequired": true,
+        "merchantReadinessRequired": true,
+        "externalRuntimeStartAuthorized": false,
+        "separateExternalAuthorizationRequired": true,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false
+      }
     },
     "pr22": {
       "status": "FOUNDATION_PREPARED_NO_WRITE_BLOCKED_BY_PR21",
