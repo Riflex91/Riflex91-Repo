@@ -198,6 +198,7 @@ export * from "./equipment/pr20-7-weapon-offhand-acquisition-shadow.js";
 export * from "./equipment/pr20-7-weapon-offhand-acquisition-purchase-preparation.js";
 
 export * from "./merchant/pr21-merchant-integration-readiness.js";
+export * from "./merchant/pr21-merchant-integration-live-preflight.js";
 export * from "./koordination/pr22-coordination-shadow-admission.js";
 export * from "./koordination/production-material-acquisition.js";
 export * from "./koordination/production-material-handoff.js";
