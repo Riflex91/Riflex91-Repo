@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "PR20_9_CRAFT_MANUAL_DEVELOPMENT_OVERRIDE_V1",
+  "status": "MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT",
+  "decidedAtDate": "2026-09-26",
+  "gate": "PR20.9_PRODUCTION",
+  "decision": "Treat PR20.9 Craft as passed for roadmap/development progression.",
+  "basis": {
+    "kind": "OPERATOR_MANUAL_OVERRIDE",
+    "requestedByUser": true,
+    "liveCraftEvidenceProduced": false,
+    "historicalNoCandidateEvidencePreserved": true,
+    "historicalEvidence": "v5/roadmap/pr20-9-craft-durable-shadow-no-candidate-evidence.json",
+    "priorObservedStatus": "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+    "priorBlocker": "PR20_9_CRAFT_SHADOW_KEIN_NORMALKANDIDAT"
+  },
+  "effects": {
+    "countsAsPr20_9RoadmapRatification": true,
+    "countsAsPr20CompletionForDevelopment": true,
+    "unblocksPr21Development": true,
+    "maySatisfyPr21PreflightPredecessorList": true,
+    "countsAsLiveCraftEvidence": false,
+    "createsCraftEvidence": false,
+    "rewritesHistoricalEvidence": false,
+    "authorizesExternalRuntimeStart": false,
+    "authorizesCraftMutation": false,
+    "opensNormalRuntime": false
+  },
+  "authority": {
+    "craftAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadGraphExecutionAuthority": false,
+    "normalRuntimeAllowed": false
+  },
+  "safety": {
+    "sameIntentRetry": false,
+    "candidateAcquisitionOrMutationAllowed": false,
+    "existingNoCandidateEvidenceRemainsAuthoritativeForWhatWasObserved": true,
+    "futureCraftValidationMayStillBeRunSeparately": true
+  },
+  "nextGate": "PR21_MERCHANT_INTEGRATION"
+}
