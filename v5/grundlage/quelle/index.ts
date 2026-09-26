@@ -229,6 +229,7 @@ export * from "./koordination/pr22-coordination-productive-default-off-gate-appl
 export * from "./koordination/pr22-coordination-productive-gate-apply-execution-authorization-boundary.js";
 export * from "./koordination/pr22-coordination-productive-one-shot-gate-apply-execution-boundary.js";
 export * from "./koordination/pr22-coordination-productive-gate-apply-post-settlement-boundary.js";
+export * from "./koordination/pr22-coordination-productive-authority-default-off-apply-boundary.js";
 export * from "./koordination/pr22-coordination-shadow-admission.js";
 export * from "./koordination/production-material-acquisition.js";
 export * from "./koordination/production-material-handoff.js";
