@@ -22,7 +22,7 @@
   "replacements": [
     {
       "sourcePath": "images/tiles/characters/jubchan_1.png",
-      "hdPath": "characters/jubchan_1@8x.svg",
+      "hdPath": "characters/jubchan_1@8x.png",
       "scale": 8,
       "state": "active",
       "preserveLogicalSize": true,
@@ -45,8 +45,14 @@
         "width": 26,
         "height": 36
       },
+      "directionRows": [
+        "front/down",
+        "left",
+        "right",
+        "back/up"
+      ],
       "artDirection": "blue-gold chibi remaster",
-      "note": "Presentation-only 8x pilot; original gameplay/runtime semantics remain authoritative."
+      "note": "Presentation-only 8x PNG pilot live-validated with Mira (direction=0, j=0) and original aniv2 hat; original gameplay/runtime semantics remain authoritative."
     }
   ]
 }
