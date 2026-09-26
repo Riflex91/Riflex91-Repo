@@ -129,6 +129,11 @@ export function bereitePr21MerchantApplyExecutionAuthorizationVor(
   }
 
   const tx = boundary.transaction;
+  if (tx === null) {
+    throw new Error(
+      "PR21_MERCHANT_APPLY_AUTH_DEFAULT_OFF_BOUNDARY_NICHT_BEREIT",
+    );
+  }
   sha40(tx.sourceMainCommit, "PR21_MERCHANT_APPLY_AUTH_TX_MAIN_UNGUELTIG");
   fp16(
     tx.transactionFingerprint,
