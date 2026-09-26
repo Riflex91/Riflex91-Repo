@@ -53,6 +53,29 @@
       ],
       "artDirection": "blue-gold chibi remaster",
       "note": "Presentation-only 8x PNG pilot live-validated with Mira (direction=0, j=0) and original aniv2 hat; original gameplay/runtime semantics remain authoritative."
+    },
+    {
+      "sourcePath": "images/tiles/map/doors.png",
+      "hdPath": "map/doors@8x.png",
+      "scale": 8,
+      "state": "active",
+      "preserveLogicalSize": true,
+      "originalFallback": true,
+      "role": "mainland-terrain-technical-8x-pilot",
+      "originalBlobSha": "09921450572b33ca17dab98ff5e705dba8adea1c",
+      "originalPixels": {
+        "width": 192,
+        "height": 256
+      },
+      "hdPixels": {
+        "width": 1536,
+        "height": 2048
+      },
+      "generator": {
+        "method": "nearest-neighbor-png",
+        "expectedSha256": "66fef5c19149ac4cf8a625b0c1b19a5ca6a359f35e1c0ec9d4350bf69de2235f"
+      },
+      "note": "Presentation-only deterministic 8x technical terrain pilot for Mainland doors atlas. Exact logical atlas geometry and original fallback are preserved; no gameplay or map geometry is changed."
     }
   ]
 }
