@@ -7,6 +7,7 @@ import {fileURLToPath} from "node:url";
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const plan=JSON.parse(fs.readFileSync(path.join(root,"manifests","mainland-terrain-plan.json"),"utf8"));
 const profile=JSON.parse(fs.readFileSync(path.join(root,"manifests","mainland-terrain-runtime-profile.json"),"utf8"));
+const hdManifest=JSON.parse(fs.readFileSync(path.join(root,"manifests","hd-assets.json"),"utf8"));
 
 function decodedMiB(scales){
   const bytes=(plan.tilesets||[]).reduce((sum,entry)=>{
@@ -35,4 +36,14 @@ test("safe baseline stays within budget while full 8x does not",()=>{
   assert.ok(all8>profile.decodedTerrainBudgetMiB);
   assert.ok(Math.abs(baseline-396.84375)<0.00001);
   assert.ok(Math.abs(all8-1551.375)<0.00001);
+});
+
+test("active Mainland terrain overrides use the exact budgeted runtime scales",()=>{
+  const bySource=new Map(plan.tilesets.map(entry=>[entry.sourcePath.replace(/^\\/+/, ""),entry]));
+  const active=(hdManifest.replacements||[]).filter(item=>item.state==="active"&&bySource.has(item.sourcePath.replace(/^\\/+/, "")));
+  assert.ok(active.length>=1);
+  for(const item of active){
+    const entry=bySource.get(item.sourcePath.replace(/^\\/+/, ""));
+    assert.equal(item.scale,profile.scales[entry.id],entry.id);
+  }
 });
