@@ -96,8 +96,8 @@
   "tilesets": [
     "castle",
     "custom",
-    "custom2",
     "custom_a",
+    "custom2",
     "doors",
     "dungeon",
     "fort",
@@ -136,9 +136,9 @@
     "images/tiles/characters/sheet_winnersa.png",
     "images/tiles/characters/winners_jpa.png",
     "images/tiles/map/castle.png",
+    "images/tiles/map/custom_a.png",
     "images/tiles/map/custom.png",
     "images/tiles/map/custom2.png",
-    "images/tiles/map/custom_a.png",
     "images/tiles/map/doors.png",
     "images/tiles/map/dungeon.png",
     "images/tiles/map/fort.png",
@@ -154,10 +154,10 @@
     "images/tiles/monsters/custom1.png",
     "images/tiles/monsters/custom2.png",
     "images/tiles/monsters/fairies.png",
-    "images/tiles/monsters/monster1.png",
-    "images/tiles/monsters/monster2.png",
     "images/tiles/monsters/monster_bird1.png",
-    "images/tiles/monsters/monster_phoenix.png"
+    "images/tiles/monsters/monster_phoenix.png",
+    "images/tiles/monsters/monster1.png",
+    "images/tiles/monsters/monster2.png"
   ],
   "knownUnresolvedCosmetics": [
     {
