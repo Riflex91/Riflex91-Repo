@@ -2,10 +2,10 @@
   "use strict";
 
   const PROFILE_ID = "V5_LIVE_LAB_PR28";
-  const VERSION = "0.5.0";
-  const SOURCE_MAIN_SHA = "0fa25598787fe373ee0531b90071f3c73431e94e";
-  const BUILD_CHANNEL = "chatgpt/v5-live-lab-al25d-r6";
-  const BUILD_ID = "V5_LIVE_LAB_AL25D_R6_1";
+  const VERSION = "0.6.0";
+  const SOURCE_MAIN_SHA = "dcf9f47b2d77fe85039838d2beb15e1cc23cb392";
+  const BUILD_CHANNEL = "chatgpt/v5-live-lab-full-autonomy-r8";
+  const BUILD_ID = "V5_LIVE_LAB_FULL_AUTONOMY_R8_1";
   const AL25D_PINNED_UPSTREAM_COMMIT = "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4";
   const START_ACK = "V5_LIVE_LAB_START";
   const MAX_LOGS = 4000;
@@ -52,8 +52,19 @@
     lootGapMs: 1000,
     respawnGapMs: 3000,
 
+    autonomy: Object.freeze({
+      enabled: true,
+      autoStartOnLocalAL25D: true,
+      autoDiscoverFarmTargets: true,
+      autoRoamForTargets: true,
+      autoGroupFromParty: true,
+      autoPartyHeartbeats: true,
+      autoMerchant: true,
+      preferConfiguredRules: true,
+    }),
+
     farm: Object.freeze({
-      enabled: false,
+      enabled: true,
       monsters: Object.freeze([]),
       moveToTarget: true,
       loot: true,
@@ -98,7 +109,7 @@
     evidence: Object.freeze({
       enabled: true,
       autoIntegration: true,
-      autoCapability: false,
+      autoCapability: true,
       integrationDurationMs: 15 * 60 * 1000,
       capabilityDurationMs: 5 * 60 * 1000,
     }),
@@ -128,7 +139,7 @@
     }),
 
     merchant: Object.freeze({
-      enabled: false,
+      enabled: true,
       serviceSettleMs: 1500,
       serviceCooldownMs: 12000,
       minimumFreeSlots: 2,
@@ -739,6 +750,15 @@
     return (CAPABILITIES_BY_CLASS[String(ctype || "").toLowerCase()] || []).slice();
   }
 
+  function fullAutonomyEnabled() {
+    return !!(config.autonomy && config.autonomy.enabled === true);
+  }
+
+  function isMerchantCharacter(value) {
+    const c = value || character();
+    return String(c && (c.ctype || c.type) || "").toLowerCase() === "merchant";
+  }
+
   function partySnapshot() {
     let party = {};
     try {
@@ -757,6 +777,46 @@
       memberNames: Object.freeze(names.sort()),
       size: names.length,
     });
+  }
+
+  function coordinationPeerNames() {
+    const c = character();
+    const ownName = String(c && c.name || "");
+    const names = new Set(
+      (config.coordination.peers || []).map(String).filter(Boolean)
+    );
+    if (fullAutonomyEnabled() && config.autonomy.autoPartyHeartbeats === true) {
+      for (const name of partySnapshot().memberNames) {
+        if (name && name !== ownName) names.add(name);
+      }
+    }
+    names.delete(ownName);
+    return Array.from(names).sort();
+  }
+
+  function autonomousGroupEnabled() {
+    if (config.group.enabled) return true;
+    if (
+      !fullAutonomyEnabled()
+      || config.autonomy.autoGroupFromParty !== true
+      || isMerchantCharacter()
+    ) return false;
+    return coordinationPeerNames().length > 0 || peerSnapshot().length > 0;
+  }
+
+  function effectiveTopologyId() {
+    if (!autonomousGroupEnabled()) return config.group.topologyId;
+    const active = allMembers().filter(function (m) {
+      return m.sessionFresh && m.rosterFresh && m.lifecycleActive && m.ctype !== "merchant";
+    });
+    if (active.length <= 1) return "solo";
+    const caps = new Set(active.flatMap(function (m) { return m.capabilities; }));
+    if (active.length >= 3 && caps.has("TANK") && caps.has("HEAL") && caps.has("AOE")) {
+      return "tank-heal-aoe";
+    }
+    if (active.length >= 2 && caps.has("TANK") && caps.has("HEAL")) return "tank-heal";
+    if (active.length >= 3) return "three-farmer";
+    return "two-farmer";
   }
 
   function liveSafety() {
@@ -1028,7 +1088,7 @@
     if (now() - lastHeartbeatAt < config.coordination.heartbeatMs) return;
     lastHeartbeatAt = now();
     const payload = heartbeatPayload();
-    for (const peer of config.coordination.peers) {
+    for (const peer of coordinationPeerNames()) {
       if (typeof peer !== "string" || !peer.trim()) continue;
       try {
         await executePublic("SEND_CM", "send_cm", [peer, payload]);
@@ -1204,14 +1264,19 @@
   }
 
   function evaluateGroup() {
-    const topology = TOPOLOGIES[config.group.topologyId] || TOPOLOGIES.solo;
+    const topologyId = effectiveTopologyId();
+    const topology = TOPOLOGIES[topologyId] || TOPOLOGIES.solo;
     const members = allMembers();
     const active = members.filter(function (m) {
       return m.sessionFresh && m.rosterFresh && m.lifecycleActive;
     });
-    const required = Array.isArray(config.group.requiredCapabilities)
-      ? unique(config.group.requiredCapabilities.slice())
-      : topology.required.slice();
+    const required = isMerchantCharacter()
+      ? []
+      : (
+          config.group.enabled && Array.isArray(config.group.requiredCapabilities)
+            ? unique(config.group.requiredCapabilities.slice())
+            : topology.required.slice()
+        );
     const available = unique(active.flatMap(function (m) { return m.capabilities; }));
     const missing = required.filter(function (capability) { return !available.includes(capability); });
     const blockers = [];
@@ -1222,7 +1287,7 @@
     missing.forEach(function (x) { blockers.push("PR24_CAPABILITY_FEHLT:" + x); });
 
     if (members.some(function (m) { return !m.sessionFresh || !m.rosterFresh; })) faults.push("ROSTER_SESSION_DRIFT");
-    for (const peerName of config.coordination.peers || []) {
+    for (const peerName of coordinationPeerNames()) {
       const peer = peers.get(String(peerName));
       if (!peer || now() - peer.receivedAtMs > config.coordination.staleMs) faults.push("DISCONNECT");
     }
@@ -1270,7 +1335,7 @@
       status: blockers.length === 0 ? "LIVE_GROUP_READY" : "BLOCKED",
       blocker: Object.freeze(unique(blockers)),
       faults: Object.freeze(unique(faults)),
-      topologyId: config.group.topologyId,
+      topologyId: topologyId,
       requiredCapabilities: Object.freeze(required),
       availableCapabilities: Object.freeze(available),
       missingCapabilities: Object.freeze(missing),
@@ -1592,22 +1657,94 @@
     return allowedNames.has(normalizeMonsterName(entity));
   }
 
+  function monsterRiskScore(name, entity) {
+    const G = globalGameData();
+    const def = G.monsters && G.monsters[name] || {};
+    const hp = Math.max(
+      1,
+      number(entity && (entity.max_hp != null ? entity.max_hp : entity.hp), number(def.hp, 1))
+    );
+    const attackValue = Math.max(0, number(entity && entity.attack, number(def.attack, 0)));
+    const c = character();
+    const charHp = Math.max(1, number(c && (c.max_hp != null ? c.max_hp : c.hp), 1));
+    const charLevel = Math.max(1, number(c && c.level, 1));
+    const monsterLevel = Math.max(1, number(entity && entity.level, number(def.level, 1)));
+    return (
+      Math.max(0, monsterLevel - charLevel) * 100000
+      + hp / charHp * 1000
+      + attackValue * 10
+      + distance(c, entity)
+    );
+  }
+
+  function autonomousFarmMonsterNames() {
+    const explicit = (config.farm.monsters || [])
+      .map(function (x) { return String(x).toLowerCase(); })
+      .filter(Boolean);
+    if (explicit.length) return unique(explicit);
+    if (
+      !fullAutonomyEnabled()
+      || config.autonomy.autoDiscoverFarmTargets !== true
+      || isMerchantCharacter()
+    ) return [];
+
+    const G = globalGameData();
+    const defs = G.monsters && typeof G.monsters === "object" ? G.monsters : {};
+    const live = Object.values(entities())
+      .filter(function (entity) {
+        if (!entity || entity.type !== "monster" || entity.dead || entity.rip) return false;
+        const name = normalizeMonsterName(entity);
+        return !!name && !!defs[name];
+      })
+      .map(function (entity) {
+        const name = normalizeMonsterName(entity);
+        return { name: name, score: monsterRiskScore(name, entity) };
+      })
+      .sort(function (a, b) {
+        return a.score - b.score || a.name.localeCompare(b.name);
+      });
+
+    if (live.length) {
+      return unique(live.map(function (row) { return row.name; })).slice(0, 6);
+    }
+
+    const c = character();
+    const map = G.maps && c && G.maps[c.map];
+    const spawns = map && Array.isArray(map.monsters) ? map.monsters : [];
+    const rows = [];
+    for (const spawn of spawns) {
+      const name = String(spawn && (spawn.type || spawn.mtype || spawn.monster) || "").toLowerCase();
+      if (!name || !defs[name]) continue;
+      rows.push({ name: name, score: monsterRiskScore(name, null) });
+    }
+    rows.sort(function (a, b) {
+      return a.score - b.score || a.name.localeCompare(b.name);
+    });
+    return unique(rows.map(function (row) { return row.name; })).slice(0, 6);
+  }
+
+  function resolvedFarmMonsterNames(names) {
+    const explicit = (Array.isArray(names) ? names : [])
+      .map(function (x) { return String(x).toLowerCase(); })
+      .filter(Boolean);
+    return explicit.length ? unique(explicit) : autonomousFarmMonsterNames();
+  }
+
   function nearestMonster(names) {
     const c = character();
     if (!c) return null;
-    const allowed = new Set((Array.isArray(names) ? names : []).map(function (x) {
-      return String(x).toLowerCase();
-    }).filter(Boolean));
+    const allowed = new Set(resolvedFarmMonsterNames(names));
     if (!allowed.size) return null;
 
     let best = null;
-    let bestDistance = Infinity;
+    let bestScore = Infinity;
     for (const entity of Object.values(entities())) {
       if (!eligibleMonster(entity, allowed)) continue;
-      const d = distance(c, entity);
-      if (d < bestDistance) {
+      const name = normalizeMonsterName(entity);
+      const score = monsterRiskScore(name, entity);
+      if (score < bestScore) {
         best = entity;
-        bestDistance = d;
+        bestScore = score;
       }
     }
     return best;
@@ -1989,7 +2126,17 @@
   }
 
   function groupAssistTarget() {
-    const leader = config.group.leader || config.coordination.assistLeader;
+    let leader = config.group.leader || config.coordination.assistLeader;
+    if (!leader && fullAutonomyEnabled() && autonomousGroupEnabled()) {
+      const tank = currentGroup && currentGroup.roles && currentGroup.roles.TANK;
+      if (tank && tank !== String(character() && character().name || "")) leader = tank;
+      if (!leader) {
+        const row = peerSnapshot().find(function (peer) {
+          return peer.targetId && peer.ageMs <= config.coordination.staleMs;
+        });
+        leader = row && (row.character || row.name) || null;
+      }
+    }
     if (!leader) return null;
     const row = peers.get(String(leader));
     if (!row || now() - row.receivedAtMs > config.coordination.staleMs || !row.targetId) return null;
@@ -2124,7 +2271,7 @@
         candidateId: "group-assist:" + String(assist.id || normalizeMonsterName(assist)),
         taskId: "group-assist:" + String(assist.id || normalizeMonsterName(assist)),
         partyId: config.group.topologyId || "group",
-        hardAllowed: !config.group.enabled || currentGroup && currentGroup.status === "LIVE_GROUP_READY",
+        hardAllowed: !autonomousGroupEnabled() || currentGroup && currentGroup.status === "LIVE_GROUP_READY",
         safetyOk: true,
         worldEvidenceFresh: true,
         requiredCapabilities: ["SINGLE_TARGET"],
@@ -2144,28 +2291,36 @@
       candidates.push.apply(candidates, expandCandidateAcrossParties(base));
     }
 
-    if (config.farm.enabled) {
-      const target = nearestMonster(config.farm.monsters);
-      if (target) {
+    if (config.farm.enabled && !isMerchantCharacter(c)) {
+      const monsterNames = resolvedFarmMonsterNames(config.farm.monsters);
+      const target = nearestMonster(monsterNames);
+      if (target || monsterNames.length > 0) {
+        const targetKey = target
+          ? String(target.id || normalizeMonsterName(target))
+          : "search:" + String(monsterNames[0] || "local");
         const farmBase = {
-          candidateId: "farm:" + String(target.id || normalizeMonsterName(target)),
-          taskId: "farm:" + String(target.id || normalizeMonsterName(target)),
-          partyId: config.group.topologyId || "local",
+          candidateId: "farm:" + targetKey,
+          taskId: "farm:" + targetKey,
+          partyId: currentGroup && currentGroup.topologyId || config.group.topologyId || "local",
           hardAllowed: (
-            (!config.group.enabled || currentGroup && currentGroup.status === "LIVE_GROUP_READY")
+            (!autonomousGroupEnabled() || currentGroup && currentGroup.status === "LIVE_GROUP_READY")
             && optionalProgressionWorkAllowed()
           ),
           safetyOk: true,
           worldEvidenceFresh: true,
           requiredCapabilities: ["SINGLE_TARGET"],
           availableCapabilities: available,
-          successScore: 0.7,
-          realPerformanceScore: 0.7,
-          travelCost: distance(c, target),
+          successScore: target ? 0.75 : 0.55,
+          realPerformanceScore: target ? 0.75 : 0.45,
+          travelCost: target ? distance(c, target) : 500,
           resourceCost: 0,
           learningScore: 0,
           deterministicPriority: config.optimizer.farmPriority,
-          payload: { type: "FARM", target: target },
+          payload: {
+            type: "FARM",
+            target: target,
+            monsterNames: monsterNames,
+          },
         };
         candidates.push.apply(candidates, expandCandidateAcrossParties(farmBase));
       }
@@ -2199,6 +2354,7 @@
         target: result.selected.payload && result.selected.payload.target || null,
         worldObservation: result.selected.payload && result.selected.payload.worldObservation || null,
         action: result.selected.payload && result.selected.payload.action || null,
+        monsterNames: result.selected.payload && result.selected.payload.monsterNames || null,
         score: result.selected.score,
         partyId: result.selected.partyId,
         partyMemberIds: result.selected.payload && result.selected.payload.partyMemberIds || null,
@@ -2265,7 +2421,7 @@
   }
 
   async function roleSupportTick(target) {
-    if (!config.group.enabled || !currentGroup || currentGroup.status !== "LIVE_GROUP_READY") return false;
+    if (!autonomousGroupEnabled() || !currentGroup || currentGroup.status !== "LIVE_GROUP_READY") return false;
     const c = character();
     if (!c) return false;
     const name = String(c.name || "");
@@ -2430,16 +2586,31 @@
     if (queueBusy(c)) return;
 
     let target = task && task.target || null;
+    let desiredNames = task && Array.isArray(task.monsterNames)
+      ? task.monsterNames
+      : resolvedFarmMonsterNames(config.farm.monsters);
     if (!target && task && task.worldObservation && task.worldObservation.payload) {
       const names = task.worldObservation.payload.monsterNames || [];
-      if (names.length) target = nearestMonster(names);
+      if (names.length) {
+        desiredNames = names;
+        target = nearestMonster(names);
+      }
     }
+    if (!target) target = nearestMonster(desiredNames);
 
     if (!targetStillUsable(target)) {
       if (target) evidenceNote("staleTargetActions", 1);
       currentTargetId = null;
       if (task && task.worldObservation && task.worldObservation.payload && task.worldObservation.payload.destination) {
         await moveToDestination(task.worldObservation.payload.destination, task.type);
+        return;
+      }
+      if (
+        fullAutonomyEnabled()
+        && config.autonomy.autoRoamForTargets === true
+        && desiredNames.length > 0
+      ) {
+        await moveToDestination(desiredNames[0], "AUTO_FARM_SEARCH");
       }
       return;
     }
@@ -2514,6 +2685,89 @@
       lastServiceAt = now();
       serviceArrivalAt = now();
     }
+  }
+
+  async function autonomousMerchantFallback() {
+    if (
+      !fullAutonomyEnabled()
+      || config.autonomy.autoMerchant !== true
+      || !isMerchantCharacter()
+    ) return false;
+
+    const c = character();
+    if (!c || c.rip || c.dead || c.moving || c.target != null || queueBusy(c)) return false;
+
+    const free = freeInventorySlots();
+    if (free <= config.merchant.minimumFreeSlots) {
+      const slot = nextBankSlot();
+      if (slot) {
+        const protectedNames = new Set(["hpot0", "hpot1", "mpot0", "mpot1", "stand0"]);
+        const items = inventory();
+        for (let i = 0; i < items.length; i += 1) {
+          const item = items[i];
+          if (!item || protectedNames.has(String(item.name || "")) || item.l === true || item.locked === true) continue;
+          const intentId = ["auto-bank-store", c.name, item.name, i, slot.pack, slot.index, number(item.q, 1)].join(":");
+          try {
+            await executePublic("BANK_STORE", "bank_store", [i, slot.pack, slot.index], {
+              intentId: intentId,
+              irreversibleAction: true,
+            });
+            return true;
+          } catch (error) {
+            log("MERCHANT_AUTO_BANK_STORE_FAILED", {
+              item: item.name || null,
+              error: String(error && error.message || error),
+            });
+            return false;
+          }
+        }
+      }
+      if (serviceAllowed("bank")) {
+        markService("bank");
+        await moveToDestination("bank", "MERCHANT_AUTO_BANK");
+        serviceArrivalAt = now();
+        return true;
+      }
+    }
+
+    const stockRules = [
+      { item: "hpot0", minimum: 50, target: 200 },
+      { item: "mpot0", minimum: 50, target: 200 },
+    ];
+    for (const rule of stockRules) {
+      const have = inventory().filter(function (item) {
+        return item && item.name === rule.item;
+      }).reduce(function (sum, item) {
+        return sum + number(item.q, 1);
+      }, 0);
+      if (have >= rule.minimum) continue;
+      if (lastService !== "buy") {
+        if (!serviceAllowed("buy")) return false;
+        markService("buy");
+        await moveToDestination("potions", "MERCHANT_AUTO_BUY");
+        serviceArrivalAt = now();
+        return true;
+      }
+      if (!serviceAllowed("buy")) return false;
+      const quantity = Math.max(1, rule.target - have);
+      const intentId = ["auto-buy", c.name, rule.item, quantity, have].join(":");
+      try {
+        await executePublic("BUY", "buy", [rule.item, quantity], {
+          intentId: intentId,
+          irreversibleAction: true,
+        });
+        return true;
+      } catch (error) {
+        log("MERCHANT_AUTO_BUY_FAILED", {
+          item: rule.item,
+          quantity: quantity,
+          error: String(error && error.message || error),
+        });
+        return false;
+      }
+    }
+
+    return false;
   }
 
   async function merchantTick() {
@@ -2595,6 +2849,8 @@
       }
       return;
     }
+
+    await autonomousMerchantFallback();
   }
 
   async function executeWorldAction(task) {
@@ -2776,6 +3032,7 @@
 
   function validateConfig(next) {
     if (!Number.isSafeInteger(next.loopMs) || next.loopMs < 100 || next.loopMs > 5000) throw new Error("LIVE_LAB_CONFIG_LOOP_INVALID");
+    if (!next.autonomy || typeof next.autonomy.enabled !== "boolean") throw new Error("LIVE_LAB_CONFIG_AUTONOMY_INVALID");
     if (!Array.isArray(next.farm.monsters) || !Array.isArray(next.farm.skills)) throw new Error("LIVE_LAB_CONFIG_FARM_INVALID");
     if (!Array.isArray(next.coordination.peers)) throw new Error("LIVE_LAB_CONFIG_PEERS_INVALID");
     if (!Array.isArray(next.optimizer.partyProfiles)) throw new Error("LIVE_LAB_CONFIG_PARTY_PROFILES_INVALID");
@@ -2837,7 +3094,7 @@
       updateEvidenceLifecycle();
 
       if (
-        config.group.enabled
+        autonomousGroupEnabled()
         && config.group.failClosedOnFault
         && currentGroup.status !== "LIVE_GROUP_READY"
       ) {
@@ -2899,11 +3156,19 @@
   }
 
   function start(options) {
-    if (!options || options.ack !== START_ACK) throw new Error("LIVE_LAB_START_ACK_REQUIRED:" + START_ACK);
     if (running) return api.status();
+    const environment = runtimeEnvironment();
+    const localAutonomyStart = !!(
+      fullAutonomyEnabled()
+      && config.autonomy.autoStartOnLocalAL25D === true
+      && environment.al25dDetected
+      && environment.loopbackHost === true
+    );
+    if ((!options || options.ack !== START_ACK) && !localAutonomyStart) {
+      throw new Error("LIVE_LAB_START_ACK_REQUIRED:" + START_ACK);
+    }
     const conflict = alternativeRuntimeActive();
     if (conflict) throw new Error("LIVE_LAB_RUNTIME_CONFLICT:" + conflict);
-    const environment = runtimeEnvironment();
     if (environment.al25dDetected && !environment.al25dLegacyRuntimeReady) {
       throw new Error("LIVE_LAB_AL25D_LEGACY_RUNTIME_NOT_READY");
     }
@@ -2929,6 +3194,8 @@
       gameplayAuthority: true,
       normalRuntimeAllowed: true,
       rawWriteAuthority: false,
+      fullDecisionAuthority: fullAutonomyEnabled(),
+      autonomousLocalStart: localAutonomyStart,
       pr24GroupRuntime: true,
       pr25LiveEvidence: true,
       pr26Optimizer: true,
@@ -4126,6 +4393,19 @@
         gameplayAuthority: running && safety.admitted,
         normalRuntimeAllowed: running && safety.admitted,
         rawWriteAuthority: false,
+        fullDecisionAuthority: fullAutonomyEnabled(),
+        autonomy: Object.freeze({
+          enabled: fullAutonomyEnabled(),
+          localAutoStart: !!(
+            fullAutonomyEnabled()
+            && config.autonomy.autoStartOnLocalAL25D === true
+            && runtimeEnvironment().al25dDetected
+            && runtimeEnvironment().loopbackHost === true
+          ),
+          autoFarmTargets: !!config.autonomy.autoDiscoverFarmTargets,
+          autoGroup: !!config.autonomy.autoGroupFromParty,
+          autoMerchant: !!config.autonomy.autoMerchant,
+        }),
         runtimeEnvironment: runtimeEnvironment(),
         situationWriter: situationWriterStatus(),
         capabilityLedger: capabilityLedgerSnapshot(),
@@ -4216,6 +4496,7 @@
         "send_cm", "change_server", "buy", "sell", "exchange", "upgrade",
         "compound", "craft", "send_item", "send_gold", "bank_store",
         "bank_retrieve", "bank_swap", "get_player", "get_party", "join",
+        "send_party_invite", "accept_party_invite", "leave_party",
       ];
       const out = {};
       names.forEach(function (name) { out[name] = !!publicFunction(name); });
@@ -4251,6 +4532,7 @@
     gameplayAuthority: false,
     normalRuntimeAllowed: false,
     rawWriteAuthority: false,
+    fullDecisionAuthority: fullAutonomyEnabled(),
     pr24GroupRuntime: true,
     pr25LiveEvidence: true,
     pr26Optimizer: true,
@@ -4261,4 +4543,32 @@
     restartReconciled: restartReconciled,
     runtimeEnvironment: runtimeEnvironment(),
   });
+
+  try {
+    const environment = runtimeEnvironment();
+    if (
+      fullAutonomyEnabled()
+      && config.autonomy.autoStartOnLocalAL25D === true
+      && environment.al25dDetected
+      && environment.loopbackHost === true
+      && character()
+    ) {
+      Promise.resolve().then(function () {
+        try {
+          api.start({ ack: START_ACK, automatic: true });
+          log("FULL_AUTONOMY_AUTO_STARTED", {
+            runtimeEnvironment: runtimeEnvironment(),
+          });
+        } catch (error) {
+          log("FULL_AUTONOMY_AUTO_START_FAILED", {
+            error: String(error && error.message || error),
+          });
+        }
+      });
+    }
+  } catch (error) {
+    log("FULL_AUTONOMY_AUTO_START_FAILED", {
+      error: String(error && error.message || error),
+    });
+  }
 })(typeof globalThis !== "undefined" ? globalThis : window);
