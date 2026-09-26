@@ -434,6 +434,27 @@ beobachtet worden sein. Das Ergebnis
 Shadow-Evidence: es erfuellt keine Productive Evidence und darf keine
 produktive PR22-Ratifizierung freigeben.
 
+## PR22-Coordination-Productive-Evidence-Admission-Boundary
+
+Der Wechsel von Shadow-Evidence in die spaetere echte PR22-Evidence bleibt
+default-off. Ein `READY_FOR_PR22_COORDINATION_SHADOW_EVIDENCE_RECORD_ONLY`
+wird erneut kryptografisch geprueft; Main und Repository-Zustand muessen
+unveraendert auf PR22 Development stehen.
+
+Zusaetzlich ist die vollstaendige CAP-022 Foundation-Chain mit Status
+`CAP022_FULL_CHAIN_BEREIT_NO_WRITE` Pflicht. Fehlende Foundation oder
+Authority-Drift blockiert die Admission.
+
+Bei Erfolg entsteht nur
+`READY_FOR_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ADMISSION_RECORD_ONLY`.
+Dieser Record fordert fuer die spaetere echte Evidence realen CM-Transport,
+ACK/Settlement, TTL/Dedupe und Roster-/Session-Epochen, startet aber keine
+externe Runtime und erteilt noch keine `send_cm`-Authority.
+
+Vor dem spaeteren Send bleiben eine separate exakte One-Shot-Authorization,
+Durable Intent, erneute CAP-022-/Repository-/Evidence-Rechecks und
+Reconciliation bei UNKNOWN Pflicht.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
