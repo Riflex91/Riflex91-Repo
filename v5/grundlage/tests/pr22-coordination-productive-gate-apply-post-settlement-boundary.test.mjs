@@ -182,12 +182,13 @@ test("stale main or unverified execution blocks post-settlement proposal",()=>{
   assert.equal(stale.record,null);
   assert.ok(stale.blocker.includes("PR22_GATE_POST_SETTLEMENT_MAIN_STALE"));
 
-  const badExecution=execution(null,{
+  const badExecution=execution(undefined,{
     status:"BLOCKIERT_RECONCILIATION_REQUIRED",
     blocker:["unknown"],
     authorizationConsumed:true,
     gateMutationPerformed:false,
     controlPlaneMutationPerformed:false,
+    settlement:null,
   });
   const bad=
     bereitePr22CoordinationProductiveGateApplyPostSettlementVor(request({
