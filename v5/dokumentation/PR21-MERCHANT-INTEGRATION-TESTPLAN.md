@@ -561,6 +561,27 @@ Ratification-, Repository-State-, Feature-Gate- und CAP-022-Rechecks,
 Durable Intent, One-Shot-Ausfuehrung und Postcondition-Verifikation Pflicht.
 UNKNOWN erzwingt Reconciliation; Same-Intent-Retry bleibt verboten.
 
+## PR22-Coordination-Productive-One-Shot-Gate-Apply-Execution-Boundary
+
+Die eigentliche Gate-Mutation bleibt auf einen typisierten Control-Plane-
+Adapter begrenzt. Vor dem exakt einen Versuch muessen Main, Transaction-,
+Proposal-, Productive-Evidence- und Ratification-Fingerprint sowie
+Repository-State, PR22-Feature-Gate und CAP-022 Full Chain erneut passen.
+
+Ein neuer Durable Intent muss vor der Mutation persistent bestaetigt sein.
+Ein bereits vorhandener Intent oder ein Restart seit Authorization erzwingt
+Reconciliation; Blind-Resume und Same-Intent-Retry bleiben verboten. Nach
+dem Versuch wird die Postcondition separat gelesen und mit allen gebundenen
+Fingerprints abgeglichen.
+
+Nur ein terminal dokumentierter Apply mit passender Postcondition erzeugt
+`APPLIED_VERIFIED_PR22_PRODUCTIVE_GATE_RECORD_ONLY`. Dieser Record bestaetigt
+die Control-Plane-Gate-Mutation, oeffnet aber noch keine produktive Authority:
+`productiveAuthorityIssued`, `pr22ProductiveAuthorityIssued`,
+`sendCmAuthority`, Gameplay-, Raw-Write- und NormalRuntime-Authority bleiben
+false. In der Entwicklungsstufe wird kein echter Gate-Apply ausgefuehrt.
+
+
 
 ## Ziel
 
