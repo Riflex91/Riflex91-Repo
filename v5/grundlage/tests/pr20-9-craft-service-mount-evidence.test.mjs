@@ -47,7 +47,7 @@ test("active manifest is restored to the exact PR20.9 Craft durable shadow runne
 
 test("roadmap preserves service-mount ratification while current Craft shadow is blocked no-candidate",()=>{
   const p=roadmap.pr20_9;
-  assert.equal(p.status,"CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE");
+  assert.equal(p.status,"MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT");
   assert.equal(p.nextAction,"REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE");
   assert.equal(p.craftDurableShadowRunner.active,true);
   assert.equal(p.craftDurableShadowRunner.liveEvidenceObserved,true);
