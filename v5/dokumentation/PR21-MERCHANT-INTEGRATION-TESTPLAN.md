@@ -512,6 +512,21 @@ Repository. Er erteilt keine `send_cm`-, Gameplay-, Raw-Write- oder
 NormalRuntime-Authority. Ein separater Gate-Advance-Proposal-Schritt bleibt
 Pflicht.
 
+## PR22-Coordination-Productive-Gate-Advance-Proposal-Boundary
+
+Nach einer spaeter tatsaechlich erzeugten PR22-Productive-Evidence-
+Ratifikation wird vor jedem Gate-Apply noch einmal ein separater Proposal-
+Schritt verlangt. Ratification-Fingerprint, Productive-Evidence-Fingerprint,
+Main, PR22-Repository-State, PR22-Feature-Gate und CAP-022 Full-Chain muessen
+erneut exakt passen.
+
+Nur dann darf `READY_FOR_SEPARATE_PR22_PRODUCTIVE_GATE_APPLY` entstehen.
+Der Proposal selbst mutiert kein Gate und erteilt keine `send_cm`-,
+Gameplay-, Raw-Write- oder NormalRuntime-Authority.
+
+Der eigentliche Gate-Apply bleibt ein separater, default-off Schritt mit
+erneuten Freshness- und Fingerprint-Pruefungen.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
