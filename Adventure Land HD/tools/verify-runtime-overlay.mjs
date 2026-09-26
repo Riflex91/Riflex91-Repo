@@ -37,6 +37,9 @@ if(!errors.length){
   if(/socket\.emit|api_call\(|smart_move\(|use_skill\(|attack\(/.test(bootstrap)) errors.push("gameplay transport found in bootstrap");
 
   const active=(hdManifest.replacements||[]).filter(x=>x.state==="active");
+  if(!active.length) errors.push("runtime overlay requires at least one active HD asset");
+  const sourcePaths=active.map(item=>item.sourcePath);
+  if(new Set(sourcePaths).size!==sourcePaths.length) errors.push("active HD sourcePath values must be unique");
   for(const item of active){
     const local=path.join(root,"hd-assets",...item.hdPath.split("/"));
     const materialized=path.join(upstream,"images","alhd",...item.hdPath.split("/"));
@@ -46,11 +49,13 @@ if(!errors.length){
     const runtimeUrl="/images/alhd/"+item.hdPath.replace(/^\/+/, "")+"?alhdv="+assetVersion;
     if(!runtimeManifest.includes(JSON.stringify(runtimeUrl))) errors.push("runtime manifest missing "+runtimeUrl);
   }
-  if(active.length!==1) errors.push("Phase 4 smoke expects exactly one active pilot, found "+active.length);
+  const runtimeEntryCount=(runtimeManifest.match(/"state": "active"/g)||[]).length;
+  if(runtimeEntryCount!==active.length) errors.push("runtime manifest active count mismatch: expected "+active.length+", found "+runtimeEntryCount);
 }
 
 if(errors.length){
   console.error(errors.join("\n"));
   process.exit(1);
 }
-console.log("Runtime overlay materialization verified: data.js -> manifest -> bootstrap, active asset copied byte-for-byte.");
+const activeCount=(hdManifest.replacements||[]).filter(x=>x.state==="active").length;
+console.log("Runtime overlay materialization verified: data.js -> manifest -> bootstrap,",activeCount,"active assets copied byte-for-byte.");
