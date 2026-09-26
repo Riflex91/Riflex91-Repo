@@ -68,10 +68,10 @@ test("active manifest remains the exact no-write durable shadow",()=>{
 
 test("roadmap and Merchant mirror remain blocked without Craft ratification",()=>{
   const p=roadmap.pr20_9;
-  assert.equal(p.status,"CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE");
+  assert.equal(p.status,"MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT");
   assert.equal(
     p.nextAction,
-    "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
+    "ADVANCE_TO_PR21_MERCHANT_INTEGRATION_DEVELOPMENT",
   );
   assert.equal(p.liveExecutionAllowed,false);
   assert.equal(p.productiveCraftAuthority,false);

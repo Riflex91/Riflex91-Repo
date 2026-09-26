@@ -394,12 +394,12 @@ test("PR20.9 Craft shadow runner stays no-write while current observation is blo
 
   assert.equal(
     roadmap.pr20_9.status,
-    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+    "MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT",
   );
   assert.equal(prep.pr20_9.status,roadmap.pr20_9.status);
   assert.equal(
     roadmap.pr20_9.nextAction,
-    "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
+    "ADVANCE_TO_PR21_MERCHANT_INTEGRATION_DEVELOPMENT",
   );
   assert.equal(prep.pr20_9.nextAction,roadmap.pr20_9.nextAction);
   assert.equal(roadmap.pr20_9.liveExecutionAllowed,false);

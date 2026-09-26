@@ -1916,7 +1916,7 @@
   },
   "pr20_9": {
     "ziel": "Craft und Production produktiv",
-    "status": "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+    "status": "MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT",
     "actionContracts": [
       [
         "AL-ACTION-CRAFT",
@@ -1976,7 +1976,7 @@
       "normalRuntimeAllowed": false,
       "nextGate": "PR20_9_CRAFT_DURABLE_SHADOW_NO_WRITE_PREPARATION"
     },
-    "nextAction": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
+    "nextAction": "ADVANCE_TO_PR21_MERCHANT_INTEGRATION_DEVELOPMENT",
     "craftDurableShadow": {
       "status": "FOUNDATION_BEREIT_NO_WRITE",
       "source": "grundlage/quelle/produktion/pr20-9-craft-durable-shadow.ts",
@@ -2009,7 +2009,8 @@
       "latestRunStartedAtMs": 1790370242200,
       "latestObservedAtMs": 1790370242562,
       "noCandidateEvidence": "roadmap/pr20-9-craft-durable-shadow-no-candidate-evidence.json",
-      "candidateAcquisitionOrMutationAllowed": false
+      "candidateAcquisitionOrMutationAllowed": false,
+      "roadmapGateSatisfiedByManualOverride": true
     },
     "craftDurableShadowRunner": {
       "status": "MANIFEST_CUTOVER_PREPARED_NO_WRITE",
@@ -2046,7 +2047,8 @@
       "craftRatified": false,
       "latestObservedStatus": null,
       "latestBlocker": null,
-      "serviceBlockEvidence": "roadmap/pr20-9-craft-durable-shadow-service-block-evidence.json"
+      "serviceBlockEvidence": "roadmap/pr20-9-craft-durable-shadow-service-block-evidence.json",
+      "roadmapGateSatisfiedByManualOverride": true
     },
     "craftServiceMount": {
       "status": "RATIFIED_BESTANDEN_ONE_SHOT_MOVEMENT",
@@ -2102,7 +2104,9 @@
       "normalRuntimeAllowed": false,
       "craftRatified": false,
       "candidateAcquisitionOrMutationAllowed": false,
-      "nextGate": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE"
+      "nextGate": "REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
+      "historicalEvidencePreserved": true,
+      "supersededAsRoadmapBlockerByManualOverride": true
     },
     "deferredAutomaticMaterialAcquisition": {
       "capability": "CAP-022",
@@ -2428,12 +2432,24 @@
         "broadGraphExecutionAuthority": false,
         "normalRuntimeAllowed": false
       }
+    },
+    "manualDevelopmentOverride": {
+      "status": "BESTANDEN_MANUELL",
+      "evidence": "roadmap/pr20-9-craft-manual-development-override.json",
+      "countsAsPr20_9RoadmapRatification": true,
+      "countsAsPr20CompletionForDevelopment": true,
+      "liveCraftEvidenceProduced": false,
+      "historicalNoCandidateEvidencePreserved": true,
+      "craftAuthority": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false
     }
   },
   "pr21": {
     "ziel": "Merchant Gesamtintegration",
-    "status": "TESTPLAN_VORBEREITET_NO_WRITE",
-    "voraussetzung": "PR20.1-PR20.9 produktiv einzeln ratifiziert",
+    "status": "AKTIV_FUER_WEITERENTWICKLUNG_NO_WRITE",
+    "voraussetzung": "PR20.1-PR20.8 produktiv ratifiziert; PR20.9 per dokumentiertem Operator-Override fuer Entwicklungsfortschritt akzeptiert",
     "testDimensionen": [
       "Bank -> Markt -> Supply -> Collection -> Gear -> Production -> Delivery",
       "Scheduler Prioritaet/Aging/Locality",
@@ -2461,6 +2477,15 @@
       "testplan": "dokumentation/PR21-MERCHANT-INTEGRATION-TESTPLAN.md",
       "produktiveIntegrationVorPR20Abschluss": false,
       "gameplayAuthority": false
+    },
+    "manualPr20_9Override": {
+      "accepted": true,
+      "evidence": "roadmap/pr20-9-craft-manual-development-override.json",
+      "countsAsPredecessorRatificationForDevelopment": true,
+      "liveCraftEvidenceSatisfied": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false
     }
   }
 }

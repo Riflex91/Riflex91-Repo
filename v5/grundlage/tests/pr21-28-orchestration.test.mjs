@@ -551,7 +551,7 @@ test("PR21-28 Vertrag und Roadmap verlangen die komplette CAP-022 NO-WRITE-Kette
   ));
   assert.equal(
     roadmap.pr20_9.status,
-    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+    "MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT",
   );
   const roadmapChain=
     roadmap.pr20_9.deferredAutomaticMaterialRecheck

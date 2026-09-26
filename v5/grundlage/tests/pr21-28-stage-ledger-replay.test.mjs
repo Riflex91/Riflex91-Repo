@@ -245,7 +245,7 @@ test("Stage-Ledger-Vertrag und Roadmap binden PR22/PR23 an CAP-022 Full-Chain",(
   ));
   assert.equal(
     roadmap.pr20_9.status,
-    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+    "MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT",
   );
   const binding=
     roadmap.pr22.materialAcquisitionFoundation

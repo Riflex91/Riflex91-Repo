@@ -48,7 +48,7 @@ test("PR20.1 Exit-Gate öffnet nur PR20.2 und keine breite Gameplay-Authority", 
   assert.equal(evidence.liveReport.hostNachher.actionAuthority, false);
   assert.equal(evidence.liveReport.breiteRuntimeFreigabeDurchDiesenTest, false);
   assert.equal(evidence.liveReport.rawWriteBypass, false);
-  assert.equal(roadmap.currentStage, "PR20");
+  assert.equal(roadmap.currentStage, "PR21");
   assert.equal(roadmapIstMindestens(roadmap.currentGate, "PR20.2_BANK_PRODUKTIVIERUNG"), true);
   assert.equal(roadmap.pr20_1.status, "BESTANDEN");
   assert.equal(roadmap.pr20_1.evidence, "v5/roadmap/pr20-1-equip-production-evidence.json");

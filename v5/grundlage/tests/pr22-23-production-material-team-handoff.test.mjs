@@ -358,7 +358,7 @@ test("CAP-022 Multi-Source-Handoff-Vertrag und Roadmap bleiben fail-closed", () 
   ));
   assert.equal(
     roadmap.pr20_9.status,
-    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+    "MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT",
   );
   const batch =
     roadmap.pr20_9.deferredAutomaticMaterialRecheck.teamCollectionHandoffFoundation;

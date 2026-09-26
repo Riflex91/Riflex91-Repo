@@ -464,7 +464,7 @@ test("CAP-022 Batch-Recovery-Vertrag und Roadmap halten PR20.9 geschlossen", () 
   ));
   assert.equal(
     roadmap.pr20_9.status,
-    "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
+    "MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT",
   );
   assert.equal(
     roadmap.pr20_9.craftDurableShadowRunner.candidateAcquisitionOrMutationAllowed,
