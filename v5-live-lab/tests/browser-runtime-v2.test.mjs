@@ -201,7 +201,7 @@ test("v2 installs PR24-28 live surfaces stopped and without raw authority", () =
   const env = makeEnv();
   const status = env.box.V5LiveLab.status();
 
-  assert.equal(env.box.V5LiveLab.version, "0.5.0");
+  assert.equal(env.box.V5LiveLab.version, "0.6.0");
   assert.equal(status.running, false);
   assert.equal(status.liveExecutionAllowed, false);
   assert.equal(status.gameplayAuthority, false);
