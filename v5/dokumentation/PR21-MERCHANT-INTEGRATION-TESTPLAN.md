@@ -57,6 +57,30 @@ Runtime-Autorisierung bleibt ein separater Schritt. Der dokumentierte
 PR20.9-Development-Override bleibt weiterhin explizit von echter Craft-
 Live-Evidence getrennt.
 
+## Bounded Sample-Collector
+
+Nach dem Observer-Handoff ist der PR21-Sample-Collector jetzt als reine
+NO-WRITE-Grenze vorbereitet. Er uebersetzt validierte Supervisor-/Observability-
+Snapshots in die bestehenden `Pr21_28MilestoneSample`-Rows.
+
+Grenzen:
+
+- maximal 184 Samples im Speicher;
+- Zielzeit 900 Sekunden;
+- 5 Sekunden Sollintervall;
+- maximal 15 Sekunden Sample-Gap;
+- 181 Samples fuer den normalen 0..900s-Lauf;
+- monotone Beobachtungszeit;
+- jeder Observability-/Safety-Fehler friert die Serie sofort fail-closed ein;
+- Erreichen des 900s-Ziels friert die Serie deterministisch ein;
+- Erreichen des Sample-Limits vor dem Ziel blockiert fail-closed;
+- die eingefrorenen Samples sind direkt mit dem bestehenden
+  PR21-28-Milestone-Runner auswertbar.
+
+Der Collector besitzt weder Runtime-Startrecht noch Gameplay-, Raw-Write-
+oder Normal-Runtime-Authority und erzeugt selbst keine Gameplay/Public/Raw
+Writes.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
