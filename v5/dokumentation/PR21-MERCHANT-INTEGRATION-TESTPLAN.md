@@ -33,6 +33,30 @@ observer-only Runbook. Sie startet keine Runtime. Die externe
 Runtime-Autorisierung bleibt ein separater Schritt; Preflight und Admission
 besitzen keine Gameplay-, Raw-Write- oder Normal-Runtime-Authority.
 
+## Observer-Handoff
+
+Nach der Checkpoint-Admission ist der PR21-Observer-Handoff jetzt explizit
+gebunden. Er verwendet den bestehenden R11/PR21-28-Observability-Pfad und
+definiert fuer den Merchant-Checkpoint:
+
+- Segment `pr21-merchant-integration`;
+- exakt 900 Sekunden Ziel- und Mindestdauer;
+- 5 Sekunden Sample-Intervall;
+- maximal 15 Sekunden Abstand zwischen zwei Samples;
+- 181 erwartete Samples fuer einen vollstaendigen 0..900s-Lauf;
+- Health-Zustand muss `GESUND` sein;
+- Operations muessen aktuell sein;
+- SSD-Latenz, IO-Queue und freie Bytes muessen vorhanden sein;
+- Recorder-Drops muessen 0 bleiben;
+- Backpressure muss false bleiben;
+- aktive Runtime-Authority muss exakt `runtime:merchant` sein;
+- jede zusaetzliche oder fehlende Runtime-Authority blockiert fail-closed.
+
+Der Handoff startet die Runtime nicht und erteilt keine Authority. Externe
+Runtime-Autorisierung bleibt ein separater Schritt. Der dokumentierte
+PR20.9-Development-Override bleibt weiterhin explizit von echter Craft-
+Live-Evidence getrennt.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
