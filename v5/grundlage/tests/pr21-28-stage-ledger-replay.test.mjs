@@ -4,6 +4,15 @@ import fs from "node:fs";
 import {bauePr21_28StageLedger,replayPr21_28AdvanceChain} from "../../erzeugt/index.js";
 
 const STAGES=["PR21","PR22","PR23","PR24","PR25","PR26","PR27","PR28"];
+function terminalBinding(stage,fp=stage==="PR22"?"1111111111111111":"2222222222222222"){
+  return {
+    stage,
+    settlementFingerprint:fp,
+    status:"APPLIED_VERIFIED_RECORD_ONLY",
+    cap022FullChainRequired:true,
+    cap022FullChainSatisfied:true,
+  };
+}
 function states(overrides={}){
   return STAGES.map(stage=>({
     stage,
@@ -11,6 +20,7 @@ function states(overrides={}){
     orchestrationPrepared:true,
     featureGatePrepared:true,
     cap022FullChainReady:true,
+    cap022TerminalSettlementBinding:null,
     milestoneRunnerPrepared:true,
     checkpointRunbookPrepared:true,
     ratificationRecordPrepared:true,
@@ -50,7 +60,7 @@ test("all PR21-28 preparation can be complete while productive chain remains clo
 test("productive replay is strictly ordered and closes after first incomplete stage",()=>{
   const ledger=bauePr21_28StageLedger(states({
     PR21:{liveEvidenceRatified:true,explicitRatificationRecorded:true,gateApplyVerified:true},
-    PR22:{liveEvidenceRatified:true,explicitRatificationRecorded:true,gateApplyVerified:true},
+    PR22:{liveEvidenceRatified:true,explicitRatificationRecorded:true,gateApplyVerified:true,cap022TerminalSettlementBinding:terminalBinding("PR22")},
     PR23:{liveEvidenceRatified:false,explicitRatificationRecorded:false,gateApplyVerified:false},
     PR24:{liveEvidenceRatified:true,explicitRatificationRecorded:true,gateApplyVerified:true},
   }));
@@ -67,6 +77,8 @@ test("fully hypothetical evidence chain can replay eligible without mutating gat
     liveEvidenceRatified:true,
     explicitRatificationRecorded:true,
     gateApplyVerified:true,
+    cap022TerminalSettlementBinding:
+      stage==="PR22"||stage==="PR23" ? terminalBinding(stage) : null,
   }]));
   const ledger=bauePr21_28StageLedger(states(all));
   const replay=replayPr21_28AdvanceChain(ledger);
@@ -124,11 +136,52 @@ test("PR22/PR23 Stage-Ledger verlangt CAP-022 Full-Chain fuer Preparation",()=>{
       liveEvidenceRatified:true,
       explicitRatificationRecorded:true,
       gateApplyVerified:true,
+      cap022TerminalSettlementBinding:terminalBinding("PR22"),
     },
   }));
   const directReplay=replayPr21_28AdvanceChain(directPr23);
   assert.ok(directReplay.blocker.includes("PR23_CAP022_FULL_CHAIN_REQUIRED"));
   assert.equal(directPr23.entries[2].cap022FullChainSatisfied,false);
+});
+
+test("PR22/PR23 productive replay requires terminal CAP-022 settlement binding",()=>{
+  const missing=bauePr21_28StageLedger(states({
+    PR21:{liveEvidenceRatified:true,explicitRatificationRecorded:true,gateApplyVerified:true},
+    PR22:{liveEvidenceRatified:true,explicitRatificationRecorded:true,gateApplyVerified:true},
+  }));
+  assert.equal(missing.entries[1].preparationComplete,true);
+  assert.equal(missing.entries[1].cap022TerminalSettlementRequired,true);
+  assert.equal(missing.entries[1].cap022TerminalSettlementSatisfied,false);
+  assert.equal(missing.entries[1].productiveChainEligible,false);
+  const missingReplay=replayPr21_28AdvanceChain(missing);
+  assert.ok(missingReplay.blocker.includes("PR22_CAP022_TERMINAL_SETTLEMENT_REQUIRED"));
+  assert.equal(missingReplay.stages[1].requiresCap022TerminalSettlement,true);
+
+  const bound=bauePr21_28StageLedger(states({
+    PR21:{liveEvidenceRatified:true,explicitRatificationRecorded:true,gateApplyVerified:true},
+    PR22:{
+      liveEvidenceRatified:true,
+      explicitRatificationRecorded:true,
+      gateApplyVerified:true,
+      cap022TerminalSettlementBinding:terminalBinding("PR22"),
+    },
+  }));
+  assert.equal(bound.entries[1].cap022TerminalSettlementSatisfied,true);
+  assert.equal(bound.entries[1].cap022TerminalSettlementFingerprint,"1111111111111111");
+  assert.equal(bound.entries[1].productiveChainEligible,true);
+
+  assert.throws(
+    ()=>bauePr21_28StageLedger(states({
+      PR22:{cap022TerminalSettlementBinding:terminalBinding("PR23")},
+    })),
+    /PR21_28_STAGE_LEDGER_CAP022_SETTLEMENT_BINDING_UNGUELTIG:PR22/,
+  );
+  assert.throws(
+    ()=>bauePr21_28StageLedger(states({
+      PR21:{cap022TerminalSettlementBinding:terminalBinding("PR22")},
+    })),
+    /PR21_28_STAGE_LEDGER_CAP022_SETTLEMENT_UNERWARTET:PR21/,
+  );
 });
 
 test("ledger rejects duplicate or incomplete stage sets",()=>{
@@ -156,6 +209,21 @@ test("Stage-Ledger-Vertrag und Roadmap binden PR22/PR23 an CAP-022 Full-Chain",(
   assert.equal(boundary.stateField,"cap022FullChainReady");
   assert.equal(boundary.preparationCompleteRequiresFullChain,true);
   assert.equal(boundary.productiveReplayCannotBypassFullChain,true);
+  assert.equal(boundary.terminalSettlementStateField,"cap022TerminalSettlementBinding");
+  assert.deepEqual(boundary.terminalSettlementRequiredStages,["PR22","PR23"]);
+  assert.equal(boundary.terminalSettlementRequiresAppliedVerifiedStatus,true);
+  assert.equal(boundary.terminalSettlementFingerprintRequired,true);
+  assert.equal(boundary.terminalSettlementMustMatchStage,true);
+  assert.equal(boundary.productiveReplayRequiresTerminalSettlementBinding,true);
+  assert.equal(boundary.entryFingerprintIncludesTerminalSettlementBinding,true);
+  assert.equal(
+    boundary.explicitTerminalSettlementBlockerByStage.PR22,
+    "PR22_CAP022_TERMINAL_SETTLEMENT_REQUIRED",
+  );
+  assert.equal(
+    boundary.explicitTerminalSettlementBlockerByStage.PR23,
+    "PR23_CAP022_TERMINAL_SETTLEMENT_REQUIRED",
+  );
   assert.equal(
     boundary.explicitReplayBlockerByStage.PR22,
     "PR22_CAP022_FULL_CHAIN_REQUIRED",
@@ -186,6 +254,9 @@ test("Stage-Ledger-Vertrag und Roadmap binden PR22/PR23 an CAP-022 Full-Chain",(
   assert.equal(binding.stateField,"cap022FullChainReady");
   assert.equal(binding.preparationCompleteRequiresFullChain,true);
   assert.equal(binding.productiveReplayCannotBypassFullChain,true);
+  assert.equal(binding.terminalSettlementStateField,"cap022TerminalSettlementBinding");
+  assert.equal(binding.productiveReplayRequiresTerminalSettlementBinding,true);
+  assert.equal(binding.entryFingerprintIncludesTerminalSettlementBinding,true);
   assert.equal(binding.replayMutatesGate,false);
   assert.equal(binding.replayIssuesAuthority,false);
   assert.equal(binding.currentPr20_9RatificationCredit,false);
