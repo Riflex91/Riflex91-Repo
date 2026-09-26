@@ -30,9 +30,11 @@
 - [x] Row 0 Front/Down, Row 3 Back/Up live mit Mira bestätigt
 - [x] Browser-/Spiel-Live-Test des PNG-Piloten mit originalem `aniv2`-Hat
 - [x] Nicht-8× nur mit dokumentierter Ausnahme
-- [ ] vollständige Charakterfamilie
-- [ ] 5 Monster/NPCs
-- [ ] 1 Map-/Tileset-Bereich
+- [x] vollständigen `main`-/Mainland-Scope gepinnt: 14 Tilesets / 30 NPC-Platzierungen / 38 Monster-Typen / 48 Quelldateien
+- [ ] Mainland Terrain/Tilesets vollständig auf HD umstellen
+- [ ] Mainland NPC-Sheets vollständig auf HD umstellen
+- [ ] Mainland Monster-/Tier-/Target-Sheets vollständig auf HD umstellen
+- [ ] vollständige Charakterfamilie außerhalb Mainland
 - [ ] 10 Item/UI-Assets
 - [ ] 2–3 VFX
 
