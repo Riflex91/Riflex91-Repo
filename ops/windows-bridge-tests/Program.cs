@@ -350,6 +350,24 @@ Assert(CdpAdventureLandClient.OperationsContextPriority(true, false, null, null,
 Assert(CdpAdventureLandClient.OperationsContextPriority(true, true, "WORKER", "HEARTBEAT", "priest") == 50, "V5_CONTEXT_WORKER_PRIORITY");
 Assert(CdpAdventureLandClient.OperationsContextPriority(true, true, "WAITING_FOR_4_CHARACTERS", "ROSTER", "priest") == 100, "V5_CONTEXT_NONWORKER_PRIORITY");
 Assert(CdpAdventureLandClient.OperationsContextPriority(true, true, "RUNNING", "FIFTEEN_MINUTE_NO_WRITE", "merchant") == 200, "V5_CONTEXT_MERCHANT_COORDINATOR_PRIORITY");
+Assert(CdpAdventureLandClient.IsEligibleV5CoordinatorContext(
+    "merchant", false, "PR20.9_PRODUCTION", "pr20-9-craft-durable-shadow-no-write"),
+    "V5_CONTEXT_PR20_LEGACY_MERCHANT_ALLOWED");
+Assert(!CdpAdventureLandClient.IsEligibleV5CoordinatorContext(
+    "merchant", false, "PR21_MERCHANT_INTEGRATION", "pr21-merchant-integration-live-15m-v1-0-2"),
+    "V5_CONTEXT_PR21_FACADE_ONLY_REJECTED");
+Assert(CdpAdventureLandClient.IsEligibleV5CoordinatorContext(
+    "merchant", true, "PR21_MERCHANT_INTEGRATION", "pr21-merchant-integration-live-15m-v1-0-2"),
+    "V5_CONTEXT_PR21_NATIVE_RUNTIME_ACCEPTED");
+Assert(!CdpAdventureLandClient.IsEligibleV5CoordinatorContext(
+    "ranger", true, "PR21_MERCHANT_INTEGRATION", "pr21-merchant-integration-live-15m-v1-0-2"),
+    "V5_CONTEXT_PR21_NON_MERCHANT_REJECTED");
+Assert(CdpAdventureLandClient.RequiresNativeV3CoordinatorContext(
+    "PR21_MERCHANT_INTEGRATION", "pr21-merchant-integration-live-15m-v1-0-2"),
+    "V5_CONTEXT_PR21_NATIVE_RUNTIME_REQUIRED");
+Assert(!CdpAdventureLandClient.RequiresNativeV3CoordinatorContext(
+    "PR20.9_PRODUCTION", "pr20-9-craft-durable-shadow-no-write"),
+    "V5_CONTEXT_PR20_NATIVE_RUNTIME_NOT_REQUIRED");
 Assert(CdpAdventureLandClient.IsAllowedSameOriginExecutionContext(
     new Uri("https://adventure.land"),
     "https://adventure.land"), "CDP_CONTEXT_DEFAULT_SAME_ORIGIN_ALLOWED");
