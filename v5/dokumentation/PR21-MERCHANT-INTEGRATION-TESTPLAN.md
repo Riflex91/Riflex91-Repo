@@ -542,6 +542,26 @@ Verifikation bleiben Pflicht; UNKNOWN erzwingt Reconciliation.
 Die Boundary installiert keinen Apply-Adapter, aktiviert keine Execution
 und mutiert weder Gate noch Repository.
 
+## PR22-Coordination-Productive-Gate-Apply-Execution-Authorization-Boundary
+
+Die Gate-Apply-Execution bleibt hinter einer separaten, kurzlebigen
+One-Shot-Authorization. Aus einer gueltigen `READY_DEFAULT_OFF`-Boundary
+entsteht zunaechst nur ein Draft mit maximal 1500 ms TTL und genau einer
+zulaessigen Verwendung.
+
+Nur der exakte, an Transaction-Fingerprint und Source-Main gebundene
+Confirmation-Text darf einen
+`AUTHORIZED_PR22_PRODUCTIVE_GATE_APPLY_ONE_SHOT_RECORD_ONLY` erzeugen.
+Generische Texte wie `ok`, `weiter` oder `mach weiter` gelten ausdruecklich
+nicht als Authorization.
+
+Auch der autorisierte Record fuehrt keinen Apply aus. Vor einer spaeteren
+Execution bleiben frischer Main sowie Transaction-, Proposal-, Evidence-,
+Ratification-, Repository-State-, Feature-Gate- und CAP-022-Rechecks,
+Durable Intent, One-Shot-Ausfuehrung und Postcondition-Verifikation Pflicht.
+UNKNOWN erzwingt Reconciliation; Same-Intent-Retry bleibt verboten.
+
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
