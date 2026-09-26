@@ -3,6 +3,8 @@ name: v5-pr21-28-gate-settlement-rollback
 on:
   push:
     paths:
+      - 'v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts'
+      - 'v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts'
       - 'v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts'
       - 'v5/grundlage/quelle/index.ts'
       - 'v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs'
@@ -11,6 +13,8 @@ on:
       - '.github/workflows/v5-pr21-28-gate-settlement-rollback.yml'
   pull_request:
     paths:
+      - 'v5/grundlage/quelle/runtime/pr21-28-gate-apply-transaction.ts'
+      - 'v5/grundlage/quelle/runtime/pr21-28-gate-apply-reconciliation.ts'
       - 'v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts'
       - 'v5/grundlage/quelle/index.ts'
       - 'v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs'
