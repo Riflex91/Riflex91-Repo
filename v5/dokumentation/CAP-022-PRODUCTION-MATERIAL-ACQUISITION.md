@@ -158,6 +158,11 @@ Gate-Settlement / Rollback-Bindung:
 
 Auch der terminale Gate-Settlement-Record uebernimmt fuer PR22/PR23 die stage-konsistente CAP-022-Full-Chain-Bindung in seinen Fingerprint. Ein Settlement mit fehlender, falscher oder nicht erfuellter Bindung wird verworfen. Ein spaeterer Default-Off-Rollback-Plan darf nur aus einem verifizierten Applied-Settlement mit weiterhin erfuellter CAP-022-Bindung entstehen und traegt dieselbe Bindung weiter. Weder Settlement noch Rollback-Plan fuehren selbst eine Gate- oder Gameplay-Mutation aus.
 
+
+Stage-Ledger Settlement-Evidence:
+
+Das Stage-Ledger akzeptiert `gateApplyVerified=true` nicht mehr als alleinigen Produktivnachweis. Jeder produktiv eligible Stage benoetigt zusaetzlich einen konkreten terminalen `Pr21_28GateSettlement` im Zustand `APPLIED_VERIFIED_RECORD_ONLY`. Der Record muss Stage, Durable-Intent-/Postcondition-/Terminal-Settlement-Nachweis sowie fuer PR22/PR23 die CAP-022-Full-Chain exakt binden. Fehlt dieser Record oder driftet die Bindung, bleibt die produktive Kette geschlossen und Replay/Readiness melden `VERIFIED_GATE_SETTLEMENT` als fehlende Evidence.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf
