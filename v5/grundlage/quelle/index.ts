@@ -221,6 +221,7 @@ export * from "./koordination/pr22-development-handoff-boundary.js";
 export * from "./koordination/pr22-coordination-development-preflight-boundary.js";
 export * from "./koordination/pr22-coordination-shadow-evidence-boundary.js";
 export * from "./koordination/pr22-coordination-productive-evidence-admission-boundary.js";
+export * from "./koordination/pr22-coordination-productive-evidence-execution-authorization-boundary.js";
 export * from "./koordination/pr22-coordination-shadow-admission.js";
 export * from "./koordination/production-material-acquisition.js";
 export * from "./koordination/production-material-handoff.js";

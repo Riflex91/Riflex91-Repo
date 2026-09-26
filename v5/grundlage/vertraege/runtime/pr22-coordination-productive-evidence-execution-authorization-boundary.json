@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_EXPLICIT_PR22_PRODUCTIVE_EVIDENCE_ONE_SHOT_AUTHORIZATION_NO_EXECUTION",
+  "sourceMain": "0f6059ebc63972fd995d16dfb3fd497b6e6bec6b",
+  "source": "v5/grundlage/quelle/koordination/pr22-coordination-productive-evidence-execution-authorization-boundary.ts",
+  "test": "v5/grundlage/tests/pr22-coordination-productive-evidence-execution-authorization-boundary.test.mjs",
+  "requiredAdmissionStatus": "READY_FOR_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ADMISSION_RECORD_ONLY",
+  "admissionFingerprintRevalidationRequired": true,
+  "authorization": {
+    "draftStatus": "AWAITING_EXPLICIT_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_AUTHORIZATION",
+    "recordStatus": "AUTHORIZED_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ONE_SHOT_RECORD_ONLY",
+    "exactConfirmationRequired": true,
+    "maximumTtlMs": 1500,
+    "maximumUses": 1,
+    "repositoryStateRecheckRequiredAtExecution": true,
+    "admissionFingerprintRecheckRequiredAtExecution": true,
+    "shadowEvidenceFingerprintRecheckRequiredAtExecution": true,
+    "cap022FullChainRecheckRequiredAtExecution": true,
+    "durableIntentRequiredBeforeSend": true,
+    "oneShotSendRequired": true,
+    "sameIntentRetryAllowed": false,
+    "unknownOutcomeRequiresReconciliation": true,
+    "ackEvidenceRequired": true,
+    "settlementEvidenceRequired": true,
+    "ttlAndDedupeEvidenceRequired": true,
+    "rosterSessionEpochEvidenceRequired": true
+  },
+  "safety": {
+    "authorizationRecordDoesNotExecuteTransport": true,
+    "externalRuntimeStartAuthorized": false,
+    "transportExecutionPerformed": false,
+    "productiveEvidenceSatisfied": false,
+    "productiveRatificationAllowed": false,
+    "sendCmAuthority": false,
+    "pr22ProductiveAuthorityIssued": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadRuntimeGrant": false,
+    "normalRuntimeAllowed": false
+  },
+  "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ONE_SHOT_EXECUTION_BOUNDARY"
+}
