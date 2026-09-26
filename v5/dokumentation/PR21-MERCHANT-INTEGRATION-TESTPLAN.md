@@ -455,6 +455,23 @@ Vor dem spaeteren Send bleiben eine separate exakte One-Shot-Authorization,
 Durable Intent, erneute CAP-022-/Repository-/Evidence-Rechecks und
 Reconciliation bei UNKNOWN Pflicht.
 
+## PR22-Coordination-Productive-Evidence-Execution-Authorization-Boundary
+
+Die spaetere echte PR22-CM-Evidence erhaelt eine eigene explizite,
+kurzlebige One-Shot-Autorisierung. Die Authorization wird exakt an
+Admission-Fingerprint und Source-Main gebunden und ist maximal 1500 ms
+gueltig.
+
+Generische Bestaetigungen wie `ok` oder `mach weiter` duerfen diese
+Authorization nicht erzeugen. Nur der vollstaendige Confirmation-Text darf
+`AUTHORIZED_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ONE_SHOT_RECORD_ONLY`
+erzeugen.
+
+Auch dieser Record sendet noch keine CM-Nachricht. Vor der spaeteren
+Execution werden Repository-State, Admission-, Shadow-Evidence- und
+CAP-022-Full-Chain erneut geprueft; Durable Intent muss vor Send vorliegen.
+Same-Intent-Retry bleibt verboten und UNKNOWN erzwingt Reconciliation.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
