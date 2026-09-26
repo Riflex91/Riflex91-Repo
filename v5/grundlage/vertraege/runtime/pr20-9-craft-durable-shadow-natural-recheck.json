@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "gate": "PR20.9_PRODUCTION",
+  "id": "PR20_9_CRAFT_DURABLE_SHADOW_NATURAL_RECHECK",
+  "status": "PREPARED_NO_WRITE",
+  "successorTo": {
+    "testId": "pr20-9-craft-durable-shadow-no-write",
+    "controllerVersion": "1.0.0",
+    "historicalEvidenceRemainsImmutable": true,
+    "latestObservedBlocker": "PR20_9_CRAFT_SHADOW_KEIN_NORMALKANDIDAT"
+  },
+  "testId": "pr20-9-craft-durable-shadow-natural-recheck-no-write",
+  "controllerVersion": "1.1.0",
+  "expectedGlobal": "V5PR209CraftDurableShadowNaturalRecheckNoWrite",
+  "package": "v5/werkzeuge/pr20-9-craft-durable-shadow-natural-recheck-no-write.js",
+  "test": "v5/werkzeuge/tests/pr20-9-craft-durable-shadow-natural-recheck-no-write.test.mjs",
+  "scope": "NORMAL_CRAFT_ONLY",
+  "recheckPolicy": {
+    "intervalMs": 60000,
+    "onlyAfterExactNoCandidateObservation": true,
+    "naturalCurrentInventoryOnly": true,
+    "candidateAcquisitionOrMutationAllowed": false,
+    "waitState": "WAITING_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
+    "candidateFoundTerminalState": "BESTANDEN"
+  },
+  "durableShadowSemantics": {
+    "stableDoubleObservationRequired": true,
+    "stablePostIntentReobserveRequired": true,
+    "durableStorage": "browser localStorage",
+    "exactPhysicalInputIndexesPinned": true,
+    "journalTerminalArt": "ABBRUCH",
+    "sendBoundaryState": "NICHT_GESENDET",
+    "reconciliationClassification": "NOT_APPLIED",
+    "sameIntentRetry": false
+  },
+  "authority": {
+    "authorityIssued": false,
+    "craftAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadGraphExecutionAuthority": false,
+    "normalRuntimeAllowed": false
+  },
+  "writes": {
+    "maximumGameplayWrites": 0,
+    "maximumPublicFunctionCalls": 0,
+    "maximumRawWriteCalls": 0
+  },
+  "pr21Boundary": {
+    "countsAsPr20_9ProductiveRatification": false,
+    "successfulDurableShadowStillRequiresSeparateProductiveCraftEvidence": true,
+    "pr21LivePreflightRemainsBlockedUntilPr20_9Ratified": true
+  }
+}
