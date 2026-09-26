@@ -149,6 +149,15 @@ Result-Package / Ratification / Gate-Apply-Bindung:
 
 Die CAP-022-Bindung bleibt nach dem Milestone-Lauf im unveraenderlichen Result-Package erhalten und fliesst in dessen Fingerprint ein. Der Group-Checkpoint kann ohne `cap022FullChainSatisfied=true` kein ratifizierbares Package erzeugen. Draft und Ratification-Record bewahren diese Bindung. PR22-/PR23-Gate-Advance-Proposals verlangen zusaetzlich eine stage-konsistente Feature-Gate-Sicht mit erfuellter Full-Chain. Die Default-Off-Gate-Apply-Transaktion nimmt die CAP-022-Felder in ihren Fingerprint auf; Validation und Reconciliation verwerfen fehlende oder inkonsistente Bindungen. Keine dieser Stufen erteilt selbst Gameplay-Authority oder fuehrt Gate-Mutationen aus.
 
+
+Gate-Settlement / Rollback-Bindung:
+
+- `grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts`
+- `grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json`
+- `grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs`
+
+Auch der terminale Gate-Settlement-Record uebernimmt fuer PR22/PR23 die stage-konsistente CAP-022-Full-Chain-Bindung in seinen Fingerprint. Ein Settlement mit fehlender, falscher oder nicht erfuellter Bindung wird verworfen. Ein spaeterer Default-Off-Rollback-Plan darf nur aus einem verifizierten Applied-Settlement mit weiterhin erfuellter CAP-022-Bindung entstehen und traegt dieselbe Bindung weiter. Weder Settlement noch Rollback-Plan fuehren selbst eine Gate- oder Gameplay-Mutation aus.
+
 Die Implementierung wird neu auf V5-Vertraegen gebaut. `v3/src/party/production-material-acquisition.js` bleibt ausschliesslich Wissens- und Fehlerquelle.
 
 ## Ablauf
