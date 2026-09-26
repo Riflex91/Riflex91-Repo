@@ -38,8 +38,8 @@
 <circle cx="5.5" cy="26.6" r="1.55" fill="#f7fbff" stroke="#29333d" stroke-width=".65"/><circle cx="20.5" cy="26.6" r="1.55" fill="#f7fbff" stroke="#29333d" stroke-width=".65"/>
 </g>
 </defs>
-<g><use href="#front"/><g transform="translate(26 .35)"><use href="#front"/></g><g transform="translate(52 0)"><use href="#front"/></g></g>
+<g><use href="#back"/><g transform="translate(26 .35)"><use href="#back"/></g><g transform="translate(52 0)"><use href="#back"/></g></g>
 <g transform="translate(0 36)"><use href="#left"/><g transform="translate(26 .35)"><use href="#left"/></g><g transform="translate(52 0)"><use href="#left"/></g></g>
 <g transform="translate(0 72)"><use href="#right"/><g transform="translate(26 .35)"><use href="#right"/></g><g transform="translate(52 0)"><use href="#right"/></g></g>
-<g transform="translate(0 108)"><use href="#back"/><g transform="translate(26 .35)"><use href="#back"/></g><g transform="translate(52 0)"><use href="#back"/></g></g>
+<g transform="translate(0 108)"><use href="#front"/><g transform="translate(26 .35)"><use href="#front"/></g><g transform="translate(52 0)"><use href="#front"/></g></g>
 </svg>
