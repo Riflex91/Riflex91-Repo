@@ -307,6 +307,26 @@ Die Boundary selbst veraendert weder Roadmap noch Stage-Ledger oder
 Control-Plane. Vor einem separaten Repository-State-Apply muessen Main und
 Completion-Fingerprint erneut exakt passen.
 
+## Repository-Stage-State-Apply-Boundary
+
+Der Repository-Uebergang bleibt zunaechst default-off. Ein
+`READY_FOR_SEPARATE_REPOSITORY_STAGE_STATE_APPLY`-Record wird nur akzeptiert,
+wenn Main und Repository-Ausgangszustand weiterhin exakt dem gepinnten
+PR21-Zustand entsprechen: `currentStage=PR21`,
+`currentGate=PR21_MERCHANT_INTEGRATION`, PR21=`IN_PROGRESS` und
+PR22=`BLOCKED_BY_PR21`.
+
+Bei erfolgreicher Vorbereitung entsteht nur eine
+`PREPARED_REPOSITORY_STAGE_STATE_DEFAULT_OFF`-Transaktion. Sie bindet den
+spaeteren Zielzustand PR21=`COMPLETE`, PR22=`IN_PROGRESS`,
+`currentStage=PR22` und `currentGate=PR22_MULTI_CHARACTER_COORDINATION`.
+
+Die Boundary selbst installiert keinen Repository-Apply-Adapter und fuehrt
+keine Mutation aus. Vor einer spaeteren Execution bleiben frischer Main-,
+Repository-Transition-, Completion-Fingerprint- und Repository-State-Recheck
+sowie Durable Intent, One-Shot-Ausfuehrung, Postcondition-Verifikation und
+Reconciliation bei UNKNOWN Pflicht.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
