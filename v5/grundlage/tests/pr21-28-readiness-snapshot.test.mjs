@@ -201,7 +201,7 @@ test("readiness snapshot akzeptiert gateApplyVerified nicht ohne Settlement-Evid
     checkpoints:checkpoints(),
   });
   assert.equal(snapshot.highestProductiveEligibleStage,null);
-  assert.ok(snapshot.stages[0].missing.includes("VERIFIED_GATE_APPLY"));
+  assert.ok(snapshot.stages[0].missing.includes("VERIFIED_GATE_SETTLEMENT"));
   assert.equal(snapshot.authorityIssued,false);
 });
 
