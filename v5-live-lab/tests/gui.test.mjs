@@ -286,7 +286,7 @@ test("Fehler melden copies a complete V5 Live-Test Bug report", async () => {
   assert.match(report, /# V5 Live-Test Bug/);
   assert.match(report, /## Build \/ Version/);
   assert.match(report, /V5_LIVE_LAB_FULL_AUTONOMY_R10_1/);
-  assert.match(report, /chatgpt\/v5-live-lab-full-autonomy-r9/);
+  assert.match(report, /chatgpt\/v5-live-lab-character-situation-files-r10/);
   assert.match(report, /## Game context/);
   assert.match(report, /## Current task \/ PR26 party selection/);
   assert.match(report, /## PR24\/25 group \+ evidence/);
