@@ -472,6 +472,29 @@ Execution werden Repository-State, Admission-, Shadow-Evidence- und
 CAP-022-Full-Chain erneut geprueft; Durable Intent muss vor Send vorliegen.
 Same-Intent-Retry bleibt verboten und UNKNOWN erzwingt Reconciliation.
 
+## PR22-Coordination-Productive-Evidence-One-Shot-Execution-Boundary
+
+Die eigentliche Productive-Evidence-Execution bleibt auf einen exakt
+autorisierten, einzelnen Transportversuch begrenzt. Vor dem Send werden
+Main, Admission-, Shadow-Evidence-, CAP-022-Full-Chain-, Repository-State-,
+Transport-Fence- und Payload-Fingerprint erneut geprueft.
+
+Ein neuer Durable Intent muss vor dem Transport persistent bestaetigt sein.
+Die einzige Transport-Schnittstelle lautet
+`sendPr22CoordinationProductiveEvidenceMessage(...)`; allgemeine Runtime-
+oder Generic-Execute-Backdoors sind nicht Teil dieser Boundary.
+
+Nach dem Versuch wird die Evidence separat gelesen. Erfolg verlangt exakt
+einen beobachteten CM-Send, korreliertes ACK und terminales Settlement,
+TTL-/Dedupe-Nachweis sowie unveraenderte Roster-/Session-Epochen. Erst dann
+darf `READY_FOR_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RECORD_ONLY`
+entstehen.
+
+Dieser Productive-Evidence-Record ist noch keine PR22-Ratifizierung und
+erteilt keine dauerhafte `send_cm`-, Gameplay- oder NormalRuntime-Authority.
+UNKNOWN oder unvollstaendige Evidence erzwingt Reconciliation ohne Retry.
+In der Entwicklungsstufe selbst wird kein echter Transport ausgefuehrt.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
