@@ -55,6 +55,14 @@ local function shallowCopy(value)
     return out
 end
 
+local function copyCoordinateList(list)
+    local out = {}
+    for _, value in ipairs(list or {}) do
+        out[#out + 1] = shallowCopy(value)
+    end
+    return out
+end
+
 local function append(list, value)
     list[#list + 1] = value
     return value
@@ -412,12 +420,20 @@ function Import:BuildGuides()
 
             for stepIndex, rawStep in ipairs(rawGuide.steps or {}) do
                 local lastCoordinate = nil
+                local stepCoordinates = {}
                 local stepHasQuestAction = false
 
                 for actionIndex, action in ipairs(rawStep.actions or {}) do
                     if action.kind == "goto" or action.kind == "waypoint" then
                         lastCoordinate = parseCoordinate(action.args)
-                        if lastCoordinate then lastGuideCoordinate = shallowCopy(lastCoordinate) end
+                        if lastCoordinate then
+                            lastGuideCoordinate = shallowCopy(lastCoordinate)
+                            if lastCoordinate.mapID and
+                               (lastCoordinate.x or lastCoordinate.worldX) then
+                                stepCoordinates[#stepCoordinates + 1] =
+                                    shallowCopy(lastCoordinate)
+                            end
+                        end
                     elseif action.kind == "accept" or
                            action.kind == "turnin" or
                            action.kind == "complete" then
@@ -448,6 +464,7 @@ function Import:BuildGuides()
                                 tags = shallowCopy(rawStep.tags),
                                 coordinate = lastCoordinate and shallowCopy(lastCoordinate) or
                                     (lastGuideCoordinate and shallowCopy(lastGuideCoordinate) or nil),
+                                routeCoordinates = copyCoordinateList(stepCoordinates),
                                 rawGuideIndex = rawIndex,
                                 leadFromStep = lastQuestBearingStep + 1,
                                 sourceStep = stepIndex,
@@ -505,40 +522,126 @@ function Import:QuestDefinitionApplies(definition, profile)
     return false
 end
 
-function Import:GetCoordinate(definition, phase, profile)
+local function occurrenceOrder(occurrence)
+    return (tonumber(occurrence and occurrence.sourceStep) or 0) * 100 +
+        (tonumber(occurrence and occurrence.sourceAction) or 0)
+end
+
+function Import:GetProgressOccurrence(definition, phase, profile, objectiveIndex)
     local occurrences = definition and definition.rxpOccurrences
     if type(occurrences) ~= "table" then return nil end
 
+    profile = profile or (MG.GetPlayerProfile and MG:GetPlayerProfile()) or {}
+    objectiveIndex = tonumber(objectiveIndex)
+
     local best = nil
     for _, occurrence in ipairs(occurrences) do
-        if occurrence.phase == phase and occurrence.coordinate and
+        local objectiveMatches =
+            not objectiveIndex or
+            not tonumber(occurrence.objective) or
+            tonumber(occurrence.objective) == objectiveIndex
+
+        local phaseMatches = occurrence.phase == phase or phase == "complete"
+        if phaseMatches and objectiveMatches and
            self:OccurrenceMatches(occurrence, profile) then
-            best = shallowCopy(occurrence.coordinate)
-            best.phaseMatch = true
-            best.rxpSourceStep = occurrence.sourceStep
-            best.rxpSourceAction = occurrence.sourceAction
-            -- Later occurrences tend to be more precise for objectives.
-            if phase ~= "objectives" then return best end
+            if not best or occurrenceOrder(occurrence) > occurrenceOrder(best) then
+                best = occurrence
+            end
+        end
+    end
+
+    -- If RXP does not number this objective, fall back to the latest
+    -- applicable occurrence for the phase instead of losing the route.
+    if not best and objectiveIndex then
+        for _, occurrence in ipairs(occurrences) do
+            local phaseMatches = occurrence.phase == phase or phase == "complete"
+            if phaseMatches and self:OccurrenceMatches(occurrence, profile) then
+                if not best or occurrenceOrder(occurrence) > occurrenceOrder(best) then
+                    best = occurrence
+                end
+            end
         end
     end
 
     return best
 end
 
-function Import:GetHints(definition, phase, profile, maximum)
+function Import:GetProgressOrder(definition, phase, profile, objectiveIndex)
+    local occurrence = self:GetProgressOccurrence(
+        definition, phase, profile, objectiveIndex)
+    if not occurrence then return tonumber(definition and definition.order) end
+    return occurrenceOrder(occurrence)
+end
+
+local function distanceToCoordinate(coordinate, player)
+    if not coordinate or not player then return nil end
+
+    if tonumber(coordinate.mapID) == tonumber(player.mapID) and
+       tonumber(coordinate.x) and tonumber(coordinate.y) and
+       tonumber(player.x) and tonumber(player.y) then
+        local dx = coordinate.x - player.x
+        local dy = coordinate.y - player.y
+        return math.sqrt(dx * dx + dy * dy)
+    end
+
+    if tonumber(coordinate.worldX) and tonumber(coordinate.worldY) and
+       MG.ForeverAPI and MG.ForeverAPI.MapToRestedXPWorld then
+        local playerWorld = MG.ForeverAPI:MapToRestedXPWorld(
+            player.mapID, player.x, player.y)
+        if playerWorld then
+            local dx = tonumber(coordinate.worldX) - playerWorld.x
+            local dy = tonumber(coordinate.worldY) - playerWorld.y
+            return math.sqrt(dx * dx + dy * dy)
+        end
+    end
+
+    return nil
+end
+
+function Import:GetCoordinate(definition, phase, profile, objectiveIndex)
+    local occurrence = self:GetProgressOccurrence(
+        definition, phase, profile, objectiveIndex)
+
+    if not occurrence or not occurrence.coordinate then return nil end
+
+    local best = occurrence.coordinate
+    local routePointIndex = nil
+
+    if phase == "objectives" and type(occurrence.routeCoordinates) == "table" and
+       #occurrence.routeCoordinates > 1 and MG.ForeverAPI then
+        local player = MG.ForeverAPI:GetPlayerPosition()
+        local bestDistance = nil
+
+        for index, coordinate in ipairs(occurrence.routeCoordinates) do
+            local distance = distanceToCoordinate(coordinate, player)
+            if distance and (bestDistance == nil or distance < bestDistance) then
+                bestDistance = distance
+                best = coordinate
+                routePointIndex = index
+            end
+        end
+    end
+
+    best = shallowCopy(best)
+    best.phaseMatch = true
+    best.rxpSourceStep = occurrence.sourceStep
+    best.rxpSourceAction = occurrence.sourceAction
+    best.rxpObjective = occurrence.objective
+    best.rxpRoutePointCount = type(occurrence.routeCoordinates) == "table" and
+        #occurrence.routeCoordinates or 0
+    best.rxpRoutePointIndex = routePointIndex
+    return best
+end
+
+function Import:GetHints(definition, phase, profile, maximum, objectiveIndex)
     local occurrences = definition and definition.rxpOccurrences
     if type(occurrences) ~= "table" then return {} end
 
     profile = profile or (MG.GetPlayerProfile and MG:GetPlayerProfile()) or {}
     maximum = math.max(1, tonumber(maximum) or 4)
 
-    local selected = nil
-    for _, occurrence in ipairs(occurrences) do
-        if occurrence.phase == phase and self:OccurrenceMatches(occurrence, profile) then
-            selected = occurrence
-            if phase ~= "objectives" then break end
-        end
-    end
+    local selected = self:GetProgressOccurrence(
+        definition, phase, profile, objectiveIndex)
     if not selected then return {} end
 
     local rawGuide = self:ParseRaw()[tonumber(selected.rawGuideIndex or 0)]
