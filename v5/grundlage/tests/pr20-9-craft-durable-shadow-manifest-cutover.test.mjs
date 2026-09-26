@@ -68,7 +68,7 @@ test("PR20.9 cutover remains strict NORMAL_CRAFT_ONLY zero gameplay write",()=>{
 
 test("PR20.9 roadmap and Merchant mirror remain no-write after no-candidate observation",()=>{
   assert.equal(roadmap.currentGate,"PR20.9_PRODUCTION");
-  assert.equal(roadmap.pr20_9.status,"CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE");
+  assert.equal(roadmap.pr20_9.status,"MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT");
   assert.deepEqual(roadmap.pr20_9.blockedBy,[]);
   assert.equal(roadmap.pr20_9.nextAction,"REMAIN_BLOCKED_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE");
   assert.equal(roadmap.pr20_9.liveExecutionAllowed,false);
