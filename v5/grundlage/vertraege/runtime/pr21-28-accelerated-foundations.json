@@ -13,7 +13,7 @@
   },
   "stages": {
     "pr21": {
-      "status": "FOUNDATION_PREPARED_NO_WRITE_PR21_ACTIVE_BY_MANUAL_PR20_9_OVERRIDE",
+      "status": "CHECKPOINT_ADMISSION_PREPARED_NO_WRITE_MANUAL_PR20_9_OVERRIDE",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
       "purpose": "Merchant Gesamtintegration Readiness und Safety/Thrash/Starvation Gate",
       "productiveGate": "PR20_COMPLETE_AND_15M_MERCHANT_INTEGRATION_EVIDENCE",
@@ -47,6 +47,24 @@
         "manualPr20_9OverrideAccepted": true,
         "manualPr20_9OverrideEvidence": "v5/roadmap/pr20-9-craft-manual-development-override.json",
         "liveCraftEvidenceSatisfied": false
+      },
+      "checkpointAdmission": {
+        "status": "PREPARED_NO_WRITE_MANUAL_PR20_9_OVERRIDE",
+        "source": "v5/grundlage/quelle/merchant/pr21-merchant-checkpoint-admission.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-checkpoint-admission.json",
+        "test": "v5/grundlage/tests/pr21-merchant-checkpoint-admission.test.mjs",
+        "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+        "minimumSeconds": 900,
+        "targetSeconds": 900,
+        "sampleIntervalMs": 5000,
+        "manualPr20_9OverrideAccepted": true,
+        "liveCraftEvidenceSatisfied": false,
+        "observerOnly": true,
+        "externalRuntimeStartAuthorized": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "normalRuntimeAllowed": false,
+        "nextMilestone": "PREPARE_PR21_15M_OBSERVER_HANDOFF"
       }
     },
     "pr22": {

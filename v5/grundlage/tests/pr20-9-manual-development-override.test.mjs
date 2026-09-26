@@ -44,7 +44,7 @@ test("PR20.9 manual development override advances roadmap without inventing Craf
   const pr21=roadmap.stages.find(x=>x.id==="PR21");
   assert.equal(pr20?.status,"COMPLETE_MANUAL_OVERRIDE");
   assert.equal(pr21?.status,"IN_PROGRESS");
-  assert.equal(roadmap.pr21.status,"IN_PROGRESS_MANUAL_PR20_9_OVERRIDE");
+  assert.equal(roadmap.pr21.status,"CHECKPOINT_ADMISSION_PREPARED_NO_WRITE");
   assert.deepEqual(roadmap.pr21.blockedBy,[]);
   assert.equal(roadmap.pr21.liveExecutionAllowed,false);
   assert.equal(roadmap.pr21.livePreflight.manualPr20_9OverrideAccepted,true);
@@ -85,7 +85,7 @@ test("Merchant and PR21 contracts accept only the development override, never ru
 
   assert.equal(
     foundations.stages.pr21.status,
-    "FOUNDATION_PREPARED_NO_WRITE_PR21_ACTIVE_BY_MANUAL_PR20_9_OVERRIDE",
+    "CHECKPOINT_ADMISSION_PREPARED_NO_WRITE_MANUAL_PR20_9_OVERRIDE",
   );
   assert.equal(foundations.stages.pr21.livePreflight.manualPr20_9OverrideAccepted,true);
   assert.deepEqual(foundations.stages.pr21.livePreflight.currentMissingRatifications,[]);

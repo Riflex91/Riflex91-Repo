@@ -112,7 +112,8 @@
     "PR22/PR23 Stage-Ledger und Advance-Replay bewahren jetzt zusaetzlich die terminale CAP-022-Gate-Settlement-Bindung: produktive Replay-Eignung verlangt einen stage-konsistenten APPLIED_VERIFIED_RECORD_ONLY-Settlement-Fingerprint; fehlende oder manipulierte Bindung blockiert fail-closed, ohne Gate- oder Gameplay-Authority zu erteilen.",
     "Der Readiness-Snapshot macht die terminale CAP-022-Settlement-Bindung fuer PR22/PR23 jetzt explizit sichtbar: fehlende Bindungen erscheinen als CAP022_TERMINAL_SETTLEMENT, vorhandene Settlement-Fingerprints werden read-only gespiegelt; TECHNICALLY_PREPARED bleibt davon getrennt und produktive Eignung kann die Bindung nicht umgehen.",
     "PR21 besitzt jetzt einen fail-closed Live-Preflight vor dem 15m-Merchant-Checkpoint: current main, Merchant-Readiness, Checkpoint/Runbook-Bindung und alle PR20.1-PR20.9-Ratifizierungen muessen zusammen passen. Der aktuelle Stand bleibt wegen PR20.9 BLOCKED_BY_PR20_9; der Preflight selbst startet keine Runtime und erteilt keine Authority.",
-    "PR20.9 Craft wurde auf ausdrueckliche Operator-Entscheidung fuer den Entwicklungsfortschritt manuell als BESTANDEN gewertet. Die historische No-Candidate-Evidence bleibt unveraendert und gilt weiterhin als Nachweis dafuer, dass kein natuerlicher NORMAL_CRAFT_ONLY-Kandidat beobachtet wurde. Der Override erzeugt keine Live-Craft-Evidence und erteilt keine Craft-/Gameplay-/Raw-Write-/NormalRuntime-Authority. PR21 ist damit fuer die Weiterentwicklung aktiv."
+    "PR20.9 Craft wurde auf ausdrueckliche Operator-Entscheidung fuer den Entwicklungsfortschritt manuell als BESTANDEN gewertet. Die historische No-Candidate-Evidence bleibt unveraendert und gilt weiterhin als Nachweis dafuer, dass kein natuerlicher NORMAL_CRAFT_ONLY-Kandidat beobachtet wurde. Der Override erzeugt keine Live-Craft-Evidence und erteilt keine Craft-/Gameplay-/Raw-Write-/NormalRuntime-Authority. PR21 ist damit fuer die Weiterentwicklung aktiv.",
+    "PR21 Merchant-Checkpoint-Admission ist NO-WRITE vorbereitet: der aktive PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT ist fest an 900s MERCHANT_INTEGRATION_15M, 5s Sampling, Observer-only Milestone-Runner und Runbook gebunden. Der manuelle PR20.9-Override bleibt explizit von echter Craft-Live-Evidence getrennt. Die Admission startet keine Runtime und erteilt keine Gameplay-/Raw-Write-/NormalRuntime-Authority; naechster Schritt ist der Observer-Handoff."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -1495,7 +1496,7 @@
     },
     {
       "id": "PR21_MERCHANT_INTEGRATION",
-      "status": "IN_PROGRESS_MANUAL_PR20_9_OVERRIDE",
+      "status": "CHECKPOINT_ADMISSION_PREPARED_NO_WRITE",
       "blockedBy": [],
       "gameplayAuthority": false,
       "artifact": "v5/dokumentation/PR21-MERCHANT-INTEGRATION-TESTPLAN.md",
@@ -1539,7 +1540,10 @@
         "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
         "v5/grundlage/vertraege/runtime/pr21-28-readiness-snapshot.json",
         "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs",
-        "v5/roadmap/pr20-9-craft-manual-development-override.json"
+        "v5/roadmap/pr20-9-craft-manual-development-override.json",
+        "v5/grundlage/quelle/merchant/pr21-merchant-checkpoint-admission.ts",
+        "v5/grundlage/vertraege/runtime/pr21-merchant-checkpoint-admission.json",
+        "v5/grundlage/tests/pr21-merchant-checkpoint-admission.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1554,7 +1558,9 @@
       "gateRollbackStatus": "PREPARED_DEFAULT_OFF",
       "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
       "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
-      "manualPr20_9Override": "v5/roadmap/pr20-9-craft-manual-development-override.json"
+      "manualPr20_9Override": "v5/roadmap/pr20-9-craft-manual-development-override.json",
+      "nextAction": "PREPARE_PR21_15M_OBSERVER_HANDOFF",
+      "checkpointAdmission": "v5/grundlage/vertraege/runtime/pr21-merchant-checkpoint-admission.json"
     },
     {
       "id": "PR22_MULTI_CHARACTER",
@@ -6471,7 +6477,7 @@
     }
   },
   "pr21": {
-    "status": "IN_PROGRESS_MANUAL_PR20_9_OVERRIDE",
+    "status": "CHECKPOINT_ADMISSION_PREPARED_NO_WRITE",
     "foundationStatus": "PREPARED_NO_WRITE",
     "ziel": "Merchant Gesamtintegration",
     "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
@@ -6550,7 +6556,29 @@
       "evidence": "v5/roadmap/pr20-9-craft-manual-development-override.json",
       "countsAsPredecessorRatificationForDevelopment": true,
       "liveCraftEvidenceSatisfied": false
-    }
+    },
+    "checkpointAdmission": {
+      "status": "PREPARED_NO_WRITE_MANUAL_PR20_9_OVERRIDE",
+      "source": "v5/grundlage/quelle/merchant/pr21-merchant-checkpoint-admission.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-checkpoint-admission.json",
+      "test": "v5/grundlage/tests/pr21-merchant-checkpoint-admission.test.mjs",
+      "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+      "milestoneArt": "MERCHANT_INTEGRATION_15M",
+      "minimumSeconds": 900,
+      "targetSeconds": 900,
+      "sampleIntervalMs": 5000,
+      "pr20_9RatificationBasis": "MANUAL_DEVELOPMENT_OVERRIDE",
+      "manualOverrideEvidence": "v5/roadmap/pr20-9-craft-manual-development-override.json",
+      "liveCraftEvidenceSatisfied": false,
+      "observerOnly": true,
+      "externalRuntimeStartAuthorized": false,
+      "separateExternalAuthorizationRequired": true,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "nextAction": "PREPARE_PR21_15M_OBSERVER_HANDOFF"
+    },
+    "nextAction": "PREPARE_PR21_15M_OBSERVER_HANDOFF"
   },
   "pr22": {
     "status": "BLOCKED_BY_PR21",

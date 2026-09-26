@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "PR21_MERCHANT_LIVE_PREFLIGHT_V1",
   "status": "PREPARED_NO_WRITE_MANUAL_PR20_9_OVERRIDE",
-  "sourceMain": "683e1bc03da09fe83230ff50275944b09b712dc5",
+  "sourceMain": "99b336dbd57715eae4ddabd2cb3490ac5013d315",
   "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-live-preflight.ts",
   "test": "v5/grundlage/tests/pr21-merchant-integration-live-preflight.test.mjs",
   "targetCheckpoint": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
@@ -51,5 +51,5 @@
     "candidateAcquisitionOrMutationAllowedNow": false,
     "manualDevelopmentRatificationCredit": true
   },
-  "nextMilestone": "PR21_MERCHANT_INTEGRATION_DEVELOPMENT_AND_15M_CHECKPOINT_PREPARATION"
+  "nextMilestone": "PR21_MERCHANT_CHECKPOINT_ADMISSION_PREPARED_THEN_OBSERVER_HANDOFF"
 }

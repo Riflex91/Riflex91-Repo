@@ -1,7 +1,8 @@
 # PR21 – Merchant Gesamtintegration: Testplan
 
-**Status:** VORBEREITET / NO-WRITE  
-**Voraussetzung fuer reale Ausfuehrung:** PR20.1–PR20.9 einzeln produktiv ratifiziert.
+**Status:** CHECKPOINT-ADMISSION VORBEREITET / NO-WRITE  
+**Aktueller Development-Gate:** PR21 Merchant Gesamtintegration.  
+**PR20.9-Basis:** dokumentierter manueller Development-Override; keine erfundene Craft-Live-Evidence.
 
 ## Maschinenlesbarer Live-Preflight
 
@@ -20,14 +21,17 @@ Der Preflight bindet:
 - den aktuellen PR21-28-Readiness-Snapshot;
 - alle neun produktiven Einzelratifizierungen PR20.1 bis PR20.9.
 
-Der aktuelle Repository-Stand bleibt deshalb **BLOCKED_BY_PR20_9**, solange
-PR20.9 weiterhin
-`CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE` ist.
+Der aktuelle Repository-Stand akzeptiert PR20.9 fuer den **Entwicklungsfortschritt**
+ueber `roadmap/pr20-9-craft-manual-development-override.json`. Die historische
+No-Candidate-Evidence bleibt unveraendert und wird nicht als echte Craft-Live-
+Ratifizierung umgedeutet.
 
-Auch ein spaeter erfolgreiches Preflight-Ergebnis
-`PRECHECK_BEREIT_NO_START_AUTHORITY` startet keine Runtime. Die externe
-Runtime-Autorisierung bleibt ein separater Schritt; der Preflight besitzt
-keine Gameplay-, Raw-Write- oder Normal-Runtime-Authority.
+Die PR21-Checkpoint-Admission bindet den
+`PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT` an exakt 900 Sekunden
+`MERCHANT_INTEGRATION_15M` mit 5-Sekunden-Sampling und dem bestehenden
+observer-only Runbook. Sie startet keine Runtime. Die externe
+Runtime-Autorisierung bleibt ein separater Schritt; Preflight und Admission
+besitzen keine Gameplay-, Raw-Write- oder Normal-Runtime-Authority.
 
 ## Ziel
 
