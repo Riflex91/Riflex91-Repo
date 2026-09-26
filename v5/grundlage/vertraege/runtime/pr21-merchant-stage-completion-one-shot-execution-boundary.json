@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_ONE_SHOT_STAGE_COMPLETION_CONTROL_PLANE_EXECUTION",
+  "sourceMain": "c39c5b818a62e32a59391125d353197afc28cdcf",
+  "stage": "PR21",
+  "nextStage": "PR22",
+  "source": "v5/grundlage/quelle/merchant/pr21-merchant-stage-completion-one-shot-execution-boundary.ts",
+  "test": "v5/grundlage/tests/pr21-merchant-stage-completion-one-shot-execution-boundary.test.mjs",
+  "requiredAuthorizationStatus": "AUTHORIZED_STAGE_COMPLETION_ONE_SHOT_RECORD_ONLY",
+  "authorizationConsumedRequired": false,
+  "maximumUses": 1,
+  "maximumTtlMs": 1500,
+  "execution": {
+    "freshMainCheckRequiredAtExecution": true,
+    "transactionFingerprintRecheckRequiredAtExecution": true,
+    "transitionFingerprintRecheckRequiredAtExecution": true,
+    "transactionFingerprintRecomputedBeforeMutation": true,
+    "durableIntentRequiredBeforeMutation": true,
+    "existingDurableIntentRequiresReconciliation": true,
+    "typedControlPlaneAdapterOnly": true,
+    "controlPlaneAdapterMethod": "applyPr21StageCompletion",
+    "separatePostconditionReadRequired": true,
+    "postconditionMethod": "readPr21StageCompletionPostcondition",
+    "terminalMutationRecordRequired": true,
+    "authorizationConsumedAfterMutationAttempt": true,
+    "sameIntentRetryAllowed": false,
+    "blindResumeAfterRestartAllowed": false,
+    "unknownOutcomeRequiresReconciliation": true
+  },
+  "success": {
+    "status": "APPLIED_VERIFIED_STAGE_TRANSITION_RECORD_ONLY",
+    "pr21StageCompletionApplied": true,
+    "pr22DevelopmentStageActivated": true,
+    "pr22ProductiveAuthorityIssued": false,
+    "controlPlaneMutationOnly": true
+  },
+  "safety": {
+    "roadmapMutationPerformedByBoundary": false,
+    "ledgerMutationPerformedByBoundary": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadRuntimeGrant": false,
+    "normalRuntimeAllowed": false,
+    "genericExecuteBackdoorAllowed": false,
+    "genericMutationBackdoorAllowed": false
+  },
+  "nextAction": "PREPARE_PR21_STAGE_COMPLETION_POST_EXECUTION_TRANSITION_BOUNDARY"
+}
