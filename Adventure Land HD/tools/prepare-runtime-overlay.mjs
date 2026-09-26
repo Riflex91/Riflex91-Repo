@@ -40,6 +40,8 @@ if(checkOnly) process.exit(0);
 const dirtyBefore=execFileSync("git",["-C",upstream,"status","--porcelain"],{encoding:"utf8"}).trim();
 if(dirtyBefore) throw new Error("Upstream checkout must be clean before applying the HD overlay.");
 
+execFileSync(process.execPath,[path.join(root,"tools","materialize-generated-hd-assets.mjs"),"--upstream",upstream],{stdio:"inherit"});
+
 const generatedManifest=path.join(root,"runtime",".generated-manifest.js");
 execFileSync(process.execPath,[path.join(root,"tools","build-runtime-manifest.mjs"),"--output",generatedManifest],{stdio:"inherit"});
 
