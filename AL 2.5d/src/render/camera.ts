@@ -11,18 +11,42 @@ export type ViewportSize = Readonly<{
   height: number;
 }>;
 
+function cameraRotation(camera: CameraState): number {
+  return camera.rotation ?? 0;
+}
+
+function rotatePoint(point: ScreenPoint, radians: number): ScreenPoint {
+  if (radians === 0) return point;
+
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+
+  return {
+    x: point.x * cosine - point.y * sine,
+    y: point.x * sine + point.y * cosine
+  };
+}
+
 /**
  * Camera x/y are expressed in projected scene coordinates, not authoritative
- * gameplay coordinates. This keeps camera movement strictly visual.
+ * gameplay coordinates. Rotation and zoom are presentation-only.
  */
 export function projectedToViewport(
   point: ScreenPoint,
   camera: CameraState,
   viewport: ViewportSize
 ): ScreenPoint {
+  const relative = rotatePoint(
+    {
+      x: point.x - camera.x,
+      y: point.y - camera.y
+    },
+    cameraRotation(camera)
+  );
+
   return {
-    x: (point.x - camera.x) * camera.zoom + viewport.width / 2,
-    y: (point.y - camera.y) * camera.zoom + viewport.height / 2
+    x: relative.x * camera.zoom + viewport.width / 2,
+    y: relative.y * camera.zoom + viewport.height / 2
   };
 }
 
@@ -35,9 +59,17 @@ export function viewportToProjected(
     throw new Error("Camera zoom must be greater than zero");
   }
 
+  const relative = rotatePoint(
+    {
+      x: (point.x - viewport.width / 2) / camera.zoom,
+      y: (point.y - viewport.height / 2) / camera.zoom
+    },
+    -cameraRotation(camera)
+  );
+
   return {
-    x: (point.x - viewport.width / 2) / camera.zoom + camera.x,
-    y: (point.y - viewport.height / 2) / camera.zoom + camera.y
+    x: relative.x + camera.x,
+    y: relative.y + camera.y
   };
 }
 

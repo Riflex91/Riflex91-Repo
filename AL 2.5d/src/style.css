@@ -661,3 +661,37 @@ canvas {
     transform: translate(-50%, -50%) scale(1.65);
   }
 }
+
+
+#al25d-camera-help {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2147482575;
+  padding: 7px 10px;
+  border: 1px solid rgba(145, 184, 191, 0.26);
+  border-radius: 8px;
+  background: rgba(8, 15, 18, 0.72);
+  color: rgba(226, 241, 239, 0.72);
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  pointer-events: none;
+  user-select: none;
+  backdrop-filter: blur(4px);
+}
+
+#al25d-camera-help[hidden] {
+  display: none !important;
+}
+
+#game.al25d-camera-dragging,
+#al25d-attached-renderer.al25d-camera-dragging {
+  cursor: grabbing !important;
+}
+
+#game,
+#al25d-attached-renderer {
+  overscroll-behavior: none;
+}

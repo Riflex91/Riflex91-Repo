@@ -17,6 +17,10 @@ import {
 import { AssetRegistry, type AssetEntry } from "./render/AssetRegistry";
 import { CUSTOM_ENTITY_ASSETS } from "./render/CustomEntityArt";
 import { viewportToWorld, worldToViewport } from "./render/camera";
+import {
+  rotateCameraByDrag,
+  zoomCameraByWheel
+} from "./render/cameraControls";
 import { Pixi25DRenderer } from "./render/Pixi25DRenderer";
 import type {
   CameraState,
@@ -84,7 +88,19 @@ async function boot(): Promise<void> {
 
   const assets = new AssetRegistry(CUSTOM_ENTITY_ASSETS);
   const renderer = new Pixi25DRenderer(assets);
-  let camera: CameraState = { x: 0, y: 0, zoom: 1.5 };
+  const storedZoom = Number(window.localStorage.getItem("al25d.cameraZoom"));
+  const storedRotation = Number(
+    window.localStorage.getItem("al25d.cameraRotation")
+  );
+  let camera: CameraState = {
+    x: 0,
+    y: 0,
+    zoom:
+      Number.isFinite(storedZoom) && storedZoom > 0
+        ? storedZoom
+        : 1.5,
+    rotation: Number.isFinite(storedRotation) ? storedRotation : 0
+  };
   let legacyMirror: LegacyMirrorBridge | null = null;
   let legacyRuntime: LegacyCompatibilityRuntime | null = null;
   let latestSnapshot: GameFrameSnapshot | null = null;
@@ -119,6 +135,12 @@ async function boot(): Promise<void> {
   const combatFeedback = new CombatFeedbackOverlay(document.body);
   combatFeedback.setMode(graphicsMode);
 
+  const cameraHelp = document.createElement("div");
+  cameraHelp.id = "al25d-camera-help";
+  cameraHelp.textContent = "MMB drehen · Mausrad zoomen";
+  cameraHelp.hidden = graphicsMode !== "2.5d";
+  document.body.appendChild(cameraHelp);
+
   graphicsToggle = new GraphicsModeToggle((nextMode) => {
     graphicsMode = nextMode;
     window.localStorage.setItem("al25d.graphicsMode", nextMode);
@@ -126,6 +148,7 @@ async function boot(): Promise<void> {
     graphicsToggle.setMode(nextMode);
     hud.setMode(nextMode);
     combatFeedback.setMode(nextMode);
+    cameraHelp.hidden = nextMode !== "2.5d";
   });
   graphicsToggle.setMode(graphicsMode);
 
@@ -143,9 +166,9 @@ async function boot(): Promise<void> {
         if (local) {
           const projected = projectWorldToScreen(local);
           camera = {
+            ...camera,
             x: projected.x,
-            y: projected.y,
-            zoom: camera.zoom
+            y: projected.y
           };
           renderer.setCamera(camera);
         }
@@ -242,11 +265,25 @@ async function boot(): Promise<void> {
       graphicsToggle.setMode(mode);
       hud.setMode(mode);
       combatFeedback.setMode(mode);
+      cameraHelp.hidden = mode !== "2.5d";
     },
     getGraphicsMode: () => graphicsMode
   };
 
   window.AL25D = api;
+
+  let cameraDrag: Readonly<{
+    pointerId: number;
+    lastX: number;
+  }> | null = null;
+
+  const persistCameraView = (): void => {
+    window.localStorage.setItem("al25d.cameraZoom", String(camera.zoom));
+    window.localStorage.setItem(
+      "al25d.cameraRotation",
+      String(camera.rotation ?? 0)
+    );
+  };
 
   const findEntityHit = (clientX: number, clientY: number) => {
     const rect = host.getBoundingClientRect();
@@ -276,7 +313,56 @@ async function boot(): Promise<void> {
     return { rect, point, viewport, hit };
   };
 
+  host.addEventListener("pointerdown", (event) => {
+    if (graphicsMode !== "2.5d" || event.button !== 1) return;
+
+    event.preventDefault();
+    cameraDrag = Object.freeze({
+      pointerId: event.pointerId,
+      lastX: event.clientX
+    });
+    host.setPointerCapture?.(event.pointerId);
+    host.classList.add("al25d-camera-dragging");
+  });
+
+  host.addEventListener("pointermove", (event) => {
+    if (!cameraDrag || cameraDrag.pointerId !== event.pointerId) return;
+
+    event.preventDefault();
+    const deltaX = event.clientX - cameraDrag.lastX;
+    cameraDrag = Object.freeze({
+      pointerId: event.pointerId,
+      lastX: event.clientX
+    });
+
+    if (deltaX !== 0) {
+      camera = rotateCameraByDrag(camera, deltaX);
+      renderer.setCamera(camera);
+      persistCameraView();
+    }
+  });
+
+  const stopCameraDrag = (event: PointerEvent): void => {
+    if (!cameraDrag || cameraDrag.pointerId !== event.pointerId) return;
+
+    event.preventDefault();
+    try {
+      host.releasePointerCapture?.(event.pointerId);
+    } catch {
+      // Capture may already be released by the browser.
+    }
+    cameraDrag = null;
+    host.classList.remove("al25d-camera-dragging");
+  };
+
+  host.addEventListener("pointercancel", stopCameraDrag);
+
   host.addEventListener("pointerup", (event) => {
+    if (event.button === 1) {
+      stopCameraDrag(event);
+      return;
+    }
+
     if (!legacyRuntime?.ready || event.button !== 0) return;
 
     const { rect, point, viewport, hit } =
@@ -292,6 +378,25 @@ async function boot(): Promise<void> {
       legacyRuntime.dispatchWorldClick(world);
     } catch (error) {
       console.warn("AL 2.5D legacy pointer action was not dispatched", error);
+    }
+  });
+
+  host.addEventListener(
+    "wheel",
+    (event) => {
+      if (graphicsMode !== "2.5d") return;
+
+      event.preventDefault();
+      camera = zoomCameraByWheel(camera, event.deltaY);
+      renderer.setCamera(camera);
+      persistCameraView();
+    },
+    { passive: false }
+  );
+
+  host.addEventListener("auxclick", (event) => {
+    if (graphicsMode === "2.5d" && event.button === 1) {
+      event.preventDefault();
     }
   });
 
@@ -350,6 +455,7 @@ async function boot(): Promise<void> {
           graphicsToggle.setMode("original");
           hud.setMode("original");
           combatFeedback.setMode("original");
+          cameraHelp.hidden = true;
         }
 
         const runtime = new LegacyCompatibilityRuntime(host);

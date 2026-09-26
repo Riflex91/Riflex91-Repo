@@ -36,6 +36,8 @@ export type CameraState = Readonly<{
   x: number;
   y: number;
   zoom: number;
+  /** Visual clockwise rotation in radians. Gameplay coordinates stay unchanged. */
+  rotation?: number;
 }>;
 
 export type RenderCollisionLine = readonly [number, number, number];

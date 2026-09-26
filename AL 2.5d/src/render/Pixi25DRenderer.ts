@@ -40,7 +40,8 @@ type EntityVisual = {
 const DEFAULT_CAMERA: CameraState = {
   x: 0,
   y: 0,
-  zoom: 1.5
+  zoom: 1.5,
+  rotation: 0
 };
 
 const FALLBACK_BOUNDS_SIZE = 1800;
@@ -56,7 +57,9 @@ export class Pixi25DRenderer implements RenderBridge {
   private readonly app = new Application();
   private readonly world = new Container();
   private readonly mapLayer = new Container();
-  private readonly structureVisuals: Container[] = [];
+  private readonly structureVisuals: Array<
+    Readonly<{ container: Container; surface: RenderMapSurface }>
+  > = [];
   private readonly visuals = new Map<string, EntityVisual>();
   private readonly textureLoads = new Map<string, Promise<Texture | null>>();
   private readonly imageLoads = new Map<
@@ -203,7 +206,9 @@ export class Pixi25DRenderer implements RenderBridge {
       structureVisual.addChild(structureGeometry);
       structureVisual.zIndex = this.structureDepth(surface);
       this.world.addChild(structureVisual);
-      this.structureVisuals.push(structureVisual);
+      this.structureVisuals.push(
+        Object.freeze({ container: structureVisual, surface })
+      );
 
       void this.addTexturedMapSurface(
         surface,
@@ -529,17 +534,38 @@ export class Pixi25DRenderer implements RenderBridge {
     );
   }
 
+  private cameraDepth(point: Readonly<{ x: number; y: number }>): number {
+    const rotation = this.camera.rotation ?? 0;
+    return point.x * Math.sin(rotation) + point.y * Math.cos(rotation);
+  }
+
   private structureDepth(surface: RenderMapSurface): number {
-    return projectWorldToScreen({
-      x: surface.maxX,
-      y: surface.maxY
-    }).y;
+    return this.cameraDepth(
+      projectWorldToScreen({
+        x: surface.maxX,
+        y: surface.maxY
+      })
+    );
+  }
+
+  private refreshDepthOrder(): void {
+    for (const visual of this.visuals.values()) {
+      visual.container.zIndex = this.cameraDepth({
+        x: visual.container.position.x,
+        y: visual.container.position.y
+      });
+      visual.container.rotation = -(this.camera.rotation ?? 0);
+    }
+
+    for (const entry of this.structureVisuals) {
+      entry.container.zIndex = this.structureDepth(entry.surface);
+    }
   }
 
   private clearStructureVisuals(): void {
     for (const visual of this.structureVisuals.splice(0)) {
-      visual.removeFromParent();
-      visual.destroy({ children: true });
+      visual.container.removeFromParent();
+      visual.container.destroy({ children: true });
     }
   }
 
@@ -872,7 +898,8 @@ export class Pixi25DRenderer implements RenderBridge {
 
     const projected = projectWorldToScreen(entity);
     visual.container.position.set(projected.x, projected.y);
-    visual.container.zIndex = projected.y;
+    visual.container.zIndex = this.cameraDepth(projected);
+    visual.container.rotation = -(this.camera.rotation ?? 0);
 
     visual.container.scale.set(entity.scale ?? 1);
     visual.container.alpha = entity.alpha ?? 1;
@@ -1235,10 +1262,13 @@ export class Pixi25DRenderer implements RenderBridge {
   private applyCamera(): void {
     if (!this.mounted) return;
 
-    this.world.scale.set(this.camera.zoom);
+    this.world.pivot.set(this.camera.x, this.camera.y);
     this.world.position.set(
-      this.app.screen.width / 2 - this.camera.x * this.camera.zoom,
-      this.app.screen.height / 2 - this.camera.y * this.camera.zoom
+      this.app.screen.width / 2,
+      this.app.screen.height / 2
     );
+    this.world.scale.set(this.camera.zoom);
+    this.world.rotation = this.camera.rotation ?? 0;
+    this.refreshDepthOrder();
   }
 }
