@@ -1,0 +1,250 @@
+{
+  "schemaVersion": 1,
+  "upstreamCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+  "mapId": "main",
+  "targetScale": 8,
+  "preserveLogicalSize": true,
+  "originalFallback": true,
+  "note": "Production contract for Mainland terrain. No entry becomes active until an exact 8x candidate passes validation and live A/B review.",
+  "tilesets": [
+    {
+      "id": "castle",
+      "sourcePath": "images/tiles/map/castle.png",
+      "hdPath": "map/castle@8x.png",
+      "originalBlobSha": "09ea63ac2bcbaca511fec6c398c76540828821f2",
+      "originalPixels": {
+        "width": 544,
+        "height": 512
+      },
+      "hdPixels": {
+        "width": 4352,
+        "height": 4096
+      },
+      "frames": 1,
+      "frameWidth": null,
+      "state": "awaiting-art"
+    },
+    {
+      "id": "custom",
+      "sourcePath": "images/tiles/map/custom.png",
+      "hdPath": "map/custom@8x.png",
+      "originalBlobSha": "ccfb98893b60d335201a077ea2857cd410e84143",
+      "originalPixels": {
+        "width": 480,
+        "height": 480
+      },
+      "hdPixels": {
+        "width": 3840,
+        "height": 3840
+      },
+      "frames": 1,
+      "frameWidth": null,
+      "state": "awaiting-art"
+    },
+    {
+      "id": "custom2",
+      "sourcePath": "images/tiles/map/custom2.png",
+      "hdPath": "map/custom2@8x.png",
+      "originalBlobSha": "be1ec8793428e1a2ac20a2c393c0f69218fe0d01",
+      "originalPixels": {
+        "width": 752,
+        "height": 560
+      },
+      "hdPixels": {
+        "width": 6016,
+        "height": 4480
+      },
+      "frames": 1,
+      "frameWidth": null,
+      "state": "awaiting-art"
+    },
+    {
+      "id": "custom_a",
+      "sourcePath": "images/tiles/map/custom_a.png",
+      "hdPath": "map/custom_a@8x.png",
+      "originalBlobSha": "663c13a313b329cb1461a9b8facd190be4ceddb5",
+      "originalPixels": {
+        "width": 320,
+        "height": 320
+      },
+      "hdPixels": {
+        "width": 2560,
+        "height": 2560
+      },
+      "frames": 3,
+      "frameWidth": 16,
+      "state": "awaiting-art"
+    },
+    {
+      "id": "doors",
+      "sourcePath": "images/tiles/map/doors.png",
+      "hdPath": "map/doors@8x.png",
+      "originalBlobSha": "09921450572b33ca17dab98ff5e705dba8adea1c",
+      "originalPixels": {
+        "width": 192,
+        "height": 256
+      },
+      "hdPixels": {
+        "width": 1536,
+        "height": 2048
+      },
+      "frames": 1,
+      "frameWidth": null,
+      "state": "awaiting-art"
+    },
+    {
+      "id": "dungeon",
+      "sourcePath": "images/tiles/map/dungeon.png",
+      "hdPath": "map/dungeon@8x.png",
+      "originalBlobSha": "5f4693098614bc05dfc50d372cccf3e978d67264",
+      "originalPixels": {
+        "width": 912,
+        "height": 416
+      },
+      "hdPixels": {
+        "width": 7296,
+        "height": 3328
+      },
+      "frames": 1,
+      "frameWidth": null,
+      "state": "awaiting-art"
+    },
+    {
+      "id": "fort",
+      "sourcePath": "images/tiles/map/fort.png",
+      "hdPath": "map/fort@8x.png",
+      "originalBlobSha": "40a3a3ebf94183c7eee926899617016467444631",
+      "originalPixels": {
+        "width": 656,
+        "height": 832
+      },
+      "hdPixels": {
+        "width": 5248,
+        "height": 6656
+      },
+      "frames": 1,
+      "frameWidth": null,
+      "state": "awaiting-art"
+    },
+    {
+      "id": "house",
+      "sourcePath": "images/tiles/map/house.png",
+      "hdPath": "map/house@8x.png",
+      "originalBlobSha": "bb9f6a69615c3bf8986271b0555d49ff647c32ec",
+      "originalPixels": {
+        "width": 1104,
+        "height": 1168
+      },
+      "hdPixels": {
+        "width": 8832,
+        "height": 9344
+      },
+      "frames": 1,
+      "frameWidth": null,
+      "state": "awaiting-art"
+    },
+    {
+      "id": "inside",
+      "sourcePath": "images/tiles/map/inside.png",
+      "hdPath": "map/inside@8x.png",
+      "originalBlobSha": "835f58ba945ded952dba6bfbf4d68483ae990771",
+      "originalPixels": {
+        "width": 832,
+        "height": 816
+      },
+      "hdPixels": {
+        "width": 6656,
+        "height": 6528
+      },
+      "frames": 1,
+      "frameWidth": null,
+      "state": "awaiting-art"
+    },
+    {
+      "id": "lights",
+      "sourcePath": "images/tiles/map/lights.png",
+      "hdPath": "map/lights@8x.png",
+      "originalBlobSha": "59a5f4249bece967482b061ffd0011a8a6c45af4",
+      "originalPixels": {
+        "width": 640,
+        "height": 480
+      },
+      "hdPixels": {
+        "width": 5120,
+        "height": 3840
+      },
+      "frames": 1,
+      "frameWidth": null,
+      "light": "yes",
+      "state": "awaiting-art"
+    },
+    {
+      "id": "new",
+      "sourcePath": "images/tiles/map/new.png",
+      "hdPath": "map/new@8x.png",
+      "originalBlobSha": "03019ead6f4c56b4b6d2968b90f7c5d8db3a2dcc",
+      "originalPixels": {
+        "width": 672,
+        "height": 480
+      },
+      "hdPixels": {
+        "width": 5376,
+        "height": 3840
+      },
+      "frames": 1,
+      "frameWidth": null,
+      "state": "awaiting-art"
+    },
+    {
+      "id": "outside",
+      "sourcePath": "images/tiles/map/outside.png",
+      "hdPath": "map/outside@8x.png",
+      "originalBlobSha": "14b9dfd6f738098bd670cceb4e984610ec58af96",
+      "originalPixels": {
+        "width": 904,
+        "height": 832
+      },
+      "hdPixels": {
+        "width": 7232,
+        "height": 6656
+      },
+      "frames": 1,
+      "frameWidth": null,
+      "state": "awaiting-art"
+    },
+    {
+      "id": "puzzle",
+      "sourcePath": "images/tiles/map/puzzle.png",
+      "hdPath": "map/puzzle@8x.png",
+      "originalBlobSha": "539cfc04d6f920771b402c9d8f3c2f7c76d18426",
+      "originalPixels": {
+        "width": 336,
+        "height": 320
+      },
+      "hdPixels": {
+        "width": 2688,
+        "height": 2560
+      },
+      "frames": 3,
+      "frameWidth": 16,
+      "state": "awaiting-art"
+    },
+    {
+      "id": "water",
+      "sourcePath": "images/tiles/map/water_updated.png",
+      "hdPath": "map/water_updated@8x.png",
+      "originalBlobSha": "b37726dfcc8312b7ebbf3ea457136d0742c8bc33",
+      "originalPixels": {
+        "width": 704,
+        "height": 1264
+      },
+      "hdPixels": {
+        "width": 5632,
+        "height": 10112
+      },
+      "frames": 3,
+      "frameWidth": 48,
+      "state": "awaiting-art"
+    }
+  ]
+}

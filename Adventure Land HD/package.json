@@ -11,6 +11,7 @@
     "runtime:manifest": "node tools/build-runtime-manifest.mjs",
     "test": "node --test tests/*.test.mjs",
     "check": "npm run inventory:verify && npm test && node --check runtime/adventure-land-hd-bootstrap.js",
-    "scope:main": "node tools/verify-main-map-scope.mjs"
+    "scope:main": "node tools/verify-main-map-scope.mjs",
+    "terrain:main:verify": "node tools/verify-mainland-terrain-plan.mjs"
   }
 }

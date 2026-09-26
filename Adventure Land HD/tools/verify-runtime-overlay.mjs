@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import {fileURLToPath} from "node:url";
+import {normalizeAssetPath} from "../lib/hd-contracts.mjs";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const args=process.argv.slice(2);
@@ -38,8 +39,8 @@ if(!errors.length){
 
   const active=(hdManifest.replacements||[]).filter(x=>x.state==="active");
   if(!active.length) errors.push("runtime overlay requires at least one active HD asset");
-  const sourcePaths=active.map(item=>item.sourcePath);
-  if(new Set(sourcePaths).size!==sourcePaths.length) errors.push("active HD sourcePath values must be unique");
+  const sourcePaths=active.map(item=>normalizeAssetPath(item.sourcePath));
+  if(new Set(sourcePaths).size!==sourcePaths.length) errors.push("active HD sourcePath values must be unique after normalization");
   for(const item of active){
     const local=path.join(root,"hd-assets",...item.hdPath.split("/"));
     const materialized=path.join(upstream,"images","alhd",...item.hdPath.split("/"));

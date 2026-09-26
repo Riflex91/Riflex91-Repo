@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {normalizeAssetPath,spriteRuntimeGrid,validateUniformIntegerScale,hasResolutionSuffix,replacementPolicyFor} from "../lib/hd-contracts.mjs";
 
 test("cache-busted paths normalize",()=>assert.equal(normalizeAssetPath("/images/tiles/map/water.png?v=14"),"images/tiles/map/water.png"));
+test("asset paths normalize leading slashes, query and fragment consistently",()=>assert.equal(normalizeAssetPath("///images/tiles/map/outside.png?v=7#atlas"),"images/tiles/map/outside.png"));
 test("character runtime grid mirrors original slicing",()=>assert.deepEqual(spriteRuntimeGrid({type:"character",rows:2,columns:4}),{rows:2,columns:4,rowFrames:4,columnFrames:3,totalRows:8,totalColumns:12}));
 test("animated hat keeps animation columns",()=>assert.equal(spriteRuntimeGrid({type:"a_hat",rows:1,columns:1,frames:6}).totalColumns,6));
 test("4x uniform HD geometry passes",()=>assert.equal(validateUniformIntegerScale({width:100,height:80},{width:400,height:320},4).ok,true));
