@@ -2584,6 +2584,9 @@
       return;
     }
     if (queueBusy(c)) return;
+    if (!task && config.optimizer.enabled) {
+      return;
+    }
 
     let target = task && task.target || null;
     let desiredNames = task && Array.isArray(task.monsterNames)
