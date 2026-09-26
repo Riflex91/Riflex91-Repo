@@ -377,6 +377,29 @@
             "durableIntentCreated": false,
             "productiveCraftAuthorityOpened": false,
             "normalRuntimeAllowed": false
+          },
+          "gateSettlementRollbackBinding": {
+            "status": "PREPARED_DEFAULT_OFF",
+            "source": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json",
+            "test": "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
+            "requiredStages": [
+              "PR22",
+              "PR23"
+            ],
+            "settlementFingerprintIncludesCap022": true,
+            "settlementRequiresStageConsistentBinding": true,
+            "rollbackPlanCarriesBinding": true,
+            "rollbackRequiresSatisfiedBinding": true,
+            "settlementPerformsGateMutation": false,
+            "settlementIssuesAuthority": false,
+            "rollbackAdapterInstalled": false,
+            "rollbackExecutionEnabled": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreatedBySettlement": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
           }
         }
       }
@@ -741,6 +764,29 @@
             "currentPr20_9RatificationCredit": false,
             "candidateAcquisitionOrMutationAllowedNow": false,
             "durableIntentCreated": false,
+            "productiveCraftAuthorityOpened": false,
+            "normalRuntimeAllowed": false
+          },
+          "gateSettlementRollbackBinding": {
+            "status": "PREPARED_DEFAULT_OFF",
+            "source": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
+            "contract": "v5/grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json",
+            "test": "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
+            "requiredStages": [
+              "PR22",
+              "PR23"
+            ],
+            "settlementFingerprintIncludesCap022": true,
+            "settlementRequiresStageConsistentBinding": true,
+            "rollbackPlanCarriesBinding": true,
+            "rollbackRequiresSatisfiedBinding": true,
+            "settlementPerformsGateMutation": false,
+            "settlementIssuesAuthority": false,
+            "rollbackAdapterInstalled": false,
+            "rollbackExecutionEnabled": false,
+            "currentPr20_9RatificationCredit": false,
+            "candidateAcquisitionOrMutationAllowedNow": false,
+            "durableIntentCreatedBySettlement": false,
             "productiveCraftAuthorityOpened": false,
             "normalRuntimeAllowed": false
           }
@@ -1147,6 +1193,29 @@
         "currentPr20_9RatificationCredit": false,
         "candidateAcquisitionOrMutationAllowedNow": false,
         "durableIntentCreated": false,
+        "productiveCraftAuthorityOpened": false,
+        "normalRuntimeAllowed": false
+      },
+      "gateSettlementRollbackBinding": {
+        "status": "PREPARED_DEFAULT_OFF",
+        "source": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr21-28-gate-settlement-rollback.json",
+        "test": "v5/grundlage/tests/pr21-28-gate-settlement-rollback.test.mjs",
+        "requiredStages": [
+          "PR22",
+          "PR23"
+        ],
+        "settlementFingerprintIncludesCap022": true,
+        "settlementRequiresStageConsistentBinding": true,
+        "rollbackPlanCarriesBinding": true,
+        "rollbackRequiresSatisfiedBinding": true,
+        "settlementPerformsGateMutation": false,
+        "settlementIssuesAuthority": false,
+        "rollbackAdapterInstalled": false,
+        "rollbackExecutionEnabled": false,
+        "currentPr20_9RatificationCredit": false,
+        "candidateAcquisitionOrMutationAllowedNow": false,
+        "durableIntentCreatedBySettlement": false,
         "productiveCraftAuthorityOpened": false,
         "normalRuntimeAllowed": false
       }

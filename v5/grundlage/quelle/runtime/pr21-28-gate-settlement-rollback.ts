@@ -8,6 +8,8 @@ export interface Pr21_28GateSettlementBasis {
   readonly transactionId: string;
   readonly stage: Pr21_28GateStage;
   readonly sourceMainCommit: string;
+  readonly cap022FullChainRequired: boolean;
+  readonly cap022FullChainSatisfied: true;
   readonly settledAtMs: number;
   readonly status: "APPLIED_VERIFIED_RECORD_ONLY" | "ABORTED_NO_MUTATION";
   readonly durableIntentObserved: boolean;
@@ -26,6 +28,8 @@ export interface Pr21_28RollbackPlan {
   readonly schemaVersion: 1;
   readonly stage: Pr21_28GateStage;
   readonly settlementFingerprint: string;
+  readonly cap022FullChainRequired: boolean;
+  readonly cap022FullChainSatisfied: true;
   readonly reason: string;
   readonly status: "PREPARED_DEFAULT_OFF";
   readonly freshMainCheckRequired: true;
@@ -61,6 +65,9 @@ export function recordPr21_28GateSettlement(
   if(transaction.schemaVersion!==1
       || transaction.status!=="PREPARED_DEFAULT_OFF"
       || transaction.sameIntentRetryAllowed!==false
+      || transaction.cap022FullChainSatisfied!==true
+      || transaction.cap022FullChainRequired
+        !== (transaction.stage==="PR22"||transaction.stage==="PR23")
       || !Number.isSafeInteger(settledAtMs)
       || settledAtMs<transaction.preparedAtMs){
     throw new Error("PR21_28_GATE_SETTLEMENT_INPUT_UNGUELTIG");
@@ -87,6 +94,8 @@ export function recordPr21_28GateSettlement(
     transactionId:transaction.transactionId,
     stage:transaction.stage,
     sourceMainCommit:transaction.sourceMainCommit,
+    cap022FullChainRequired:transaction.cap022FullChainRequired,
+    cap022FullChainSatisfied:true,
     settledAtMs,
     status,
     durableIntentObserved:observed.durableIntentObserved,
@@ -109,6 +118,9 @@ export function planePr21_28GateRollback(
       || settlement.durableIntentObserved!==true
       || settlement.postconditionVerified!==true
       || settlement.terminalSettlementObserved!==true
+      || settlement.cap022FullChainSatisfied!==true
+      || settlement.cap022FullChainRequired
+        !== (settlement.stage==="PR22"||settlement.stage==="PR23")
       || settlement.gateMutationPerformedBySettlement!==false
       || settlement.authorityIssuedBySettlement!==false
       || settlement.broadRuntimeGrant!==false){
@@ -119,6 +131,8 @@ export function planePr21_28GateRollback(
     schemaVersion:1,
     stage:settlement.stage,
     settlementFingerprint:settlement.settlementFingerprint,
+    cap022FullChainRequired:settlement.cap022FullChainRequired,
+    cap022FullChainSatisfied:true,
     reason,
     status:"PREPARED_DEFAULT_OFF",
     freshMainCheckRequired:true,
