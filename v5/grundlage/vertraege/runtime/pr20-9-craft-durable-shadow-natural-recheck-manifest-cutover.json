@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "stand": "2026-09-26",
+  "gate": "PR20.9_PRODUCTION",
+  "id": "PR20_9_CRAFT_DURABLE_SHADOW_NATURAL_RECHECK_MANIFEST_CUTOVER",
+  "status": "MANIFEST_CUTOVER_PREPARED_NO_WRITE",
+  "baseMain": "ed7bb76fa7a30b74c3a1f09a4846113b865d80bf",
+  "predecessor": {
+    "testId": "pr20-9-craft-durable-shadow-no-write",
+    "controllerVersion": "1.0.0",
+    "terminalStatus": "BLOCKIERT",
+    "blocker": "PR20_9_CRAFT_SHADOW_KEIN_NORMALKANDIDAT",
+    "evidence": "v5/roadmap/pr20-9-craft-durable-shadow-no-candidate-evidence.json",
+    "historicalEvidenceRemainsImmutable": true
+  },
+  "manifest": {
+    "path": "v5/roadmap/v5-autonomous-test-manifest.json",
+    "testId": "pr20-9-craft-durable-shadow-natural-recheck-no-write",
+    "controllerVersion": "1.1.0",
+    "sourceCommit": "406feea6491edd14be2e76c842ac761b89f57a5d",
+    "packagePath": "v5/werkzeuge/pr20-9-craft-durable-shadow-natural-recheck-no-write.js",
+    "packageSha256": "f1b5fc3fd761fbca12355976543e823bff4bf53efed074b1d4820433a0567008",
+    "packageBytes": 28696,
+    "expectedGlobal": "V5PR209CraftDurableShadowNaturalRecheckNoWrite",
+    "coordinatorClass": "merchant",
+    "workerDistribution": "PACKAGE_OWNED_COMMAND_CHARACTER",
+    "normalRuntimeAllowed": false
+  },
+  "recheck": {
+    "intervalMs": 60000,
+    "waitState": "WAITING_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE",
+    "noCandidateIsTerminal": false,
+    "naturalCurrentInventoryOnly": true,
+    "candidateAcquisitionOrMutationAllowed": false,
+    "sameInventoryObservationMayBeRepeated": true,
+    "stableDoubleObservationRequiredAfterCandidate": true,
+    "stablePostIntentReobserveRequired": true
+  },
+  "deploymentBoundary": {
+    "previousTerminalTestMayBeReplacedByDifferentTestId": true,
+    "updaterModificationRequired": false,
+    "gameplayWriteAllowed": false,
+    "publicCraftCallAllowed": false,
+    "rawWriteAllowed": false,
+    "authorityIssued": false,
+    "craftAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadGraphExecutionAuthority": false,
+    "sameIntentRetry": false,
+    "normalRuntimeAllowed": false
+  },
+  "pr20_9Boundary": {
+    "manifestCutoverCountsAsCraftRatification": false,
+    "waitingObservationCountsAsCraftRatification": false,
+    "durableShadowSuccessCountsAsProductiveCraftRatification": false,
+    "separateProductiveCraftEvidenceStillRequired": true,
+    "pr21LivePreflightRemainsBlockedUntilPr20_9Ratified": true
+  },
+  "nextAction": "DEPLOY_RECHECK_AND_WAIT_FOR_NATURAL_NORMAL_CRAFT_CANDIDATE"
+}
