@@ -38,8 +38,8 @@ if(!errors.length){
 
   const active=(hdManifest.replacements||[]).filter(x=>x.state==="active");
   if(!active.length) errors.push("runtime overlay requires at least one active HD asset");
-  const sourcePaths=active.map(item=>item.sourcePath);
-  if(new Set(sourcePaths).size!==sourcePaths.length) errors.push("active HD sourcePath values must be unique");
+  const sourcePaths=active.map(item=>String(item.sourcePath||"").split("?")[0].split("#")[0].replace(/^\\/+/, ""));
+  if(new Set(sourcePaths).size!==sourcePaths.length) errors.push("active HD sourcePath values must be unique after normalization");
   for(const item of active){
     const local=path.join(root,"hd-assets",...item.hdPath.split("/"));
     const materialized=path.join(upstream,"images","alhd",...item.hdPath.split("/"));
