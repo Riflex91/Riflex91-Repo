@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_EXPLICIT_PR22_PRODUCTIVE_EVIDENCE_RATIFICATION_RECORD_ONLY",
+  "sourceMain": "9f4eab3d7c707e281f534f1f80decd67bc6f6e3d",
+  "source": "v5/grundlage/quelle/koordination/pr22-coordination-productive-evidence-ratification-boundary.ts",
+  "test": "v5/grundlage/tests/pr22-coordination-productive-evidence-ratification-boundary.test.mjs",
+  "requiredEvidenceStatus": "READY_FOR_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RECORD_ONLY",
+  "ratification": {
+    "draftStatus": "AWAITING_EXPLICIT_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RATIFICATION",
+    "recordStatus": "RATIFIED_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RECORD_ONLY",
+    "exactConfirmationRequired": true,
+    "automaticRatification": false,
+    "evidenceFingerprintRevalidationRequired": true,
+    "repositoryStateRevalidationRequired": true,
+    "cap022FullChainRevalidationRequired": true,
+    "evidenceStillImmutableRequired": true,
+    "separateGateAdvanceRequired": true
+  },
+  "requiredRepositoryState": {
+    "pr21StageStatus": "COMPLETE",
+    "pr22StageStatus": "IN_PROGRESS",
+    "currentStage": "PR22",
+    "currentGate": "PR22_MULTI_CHARACTER_COORDINATION",
+    "pr22ProductiveAuthorityIssued": false
+  },
+  "requiredCap022Status": "CAP022_FULL_CHAIN_BEREIT_NO_WRITE",
+  "safety": {
+    "gateAdvanced": false,
+    "productiveAuthorityIssued": false,
+    "sendCmAuthority": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadRuntimeGrant": false,
+    "normalRuntimeAllowed": false,
+    "repositoryMutationPerformed": false,
+    "controlPlaneMutationPerformed": false
+  },
+  "ratificationExecutedInRepository": false,
+  "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_GATE_ADVANCE_PROPOSAL_BOUNDARY"
+}
