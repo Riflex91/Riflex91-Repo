@@ -19,7 +19,7 @@
   "authorityIssued": false,
   "normalRuntimeAllowed": false,
   "test": "v5/grundlage/tests/pr21-28-readiness-snapshot.test.mjs",
-  "nextMilestone": "STOP_ACCELERATED_IMPLEMENTATION_AT_REAL_LIVE_EVIDENCE_BOUNDARY_WITH_CAP022_FULL_CHAIN_BOUND",
+  "nextMilestone": "STOP_AT_REAL_LIVE_EVIDENCE_BOUNDARY_WITH_CAP022_AND_GATE_SETTLEMENT_EVIDENCE_BOUND",
   "cap022FullChainBoundary": {
     "required": true,
     "source": "v5/grundlage/quelle/runtime/cap022-foundation-chain-readiness.ts",
@@ -35,6 +35,20 @@
     "productiveExecutionAllowed": false,
     "gameplayAuthority": false,
     "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false
+  },
+  "gateSettlementEvidenceBoundary": {
+    "source": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
+    "requiredSettlementSource": "v5/grundlage/quelle/runtime/pr21-28-gate-settlement-rollback.ts",
+    "stageMissingMarker": "VERIFIED_GATE_SETTLEMENT",
+    "gateApplyVerifiedBooleanAloneInsufficient": true,
+    "productiveEligibilityRequiresTerminalSettlementEvidence": true,
+    "readinessSnapshotMustExposeMissingSettlementEvidence": true,
+    "cap022BindingRequiredForStages": [
+      "PR22",
+      "PR23"
+    ],
+    "authorityIssued": false,
     "normalRuntimeAllowed": false
   }
 }

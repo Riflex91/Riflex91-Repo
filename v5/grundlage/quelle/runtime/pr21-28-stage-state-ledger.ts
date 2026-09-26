@@ -1,5 +1,6 @@
 import { evidenceFingerprint } from "../zertifizierung/evidence-kette.js";
 import type { Pr21_28GateStage } from "./pr21-28-feature-gates.js";
+import type { Pr21_28GateSettlement } from "./pr21-28-gate-settlement-rollback.js";
 
 export interface Pr21_28StagePreparationState {
   readonly stage: Pr21_28GateStage;
@@ -15,6 +16,7 @@ export interface Pr21_28StagePreparationState {
   readonly liveEvidenceRatified: boolean;
   readonly explicitRatificationRecorded: boolean;
   readonly gateApplyVerified: boolean;
+  readonly gateSettlement: Pr21_28GateSettlement | null;
 }
 
 export interface Pr21_28StageLedgerEntryBasis {
@@ -25,6 +27,8 @@ export interface Pr21_28StageLedgerEntryBasis {
   readonly preparationComplete: boolean;
   readonly cap022FullChainRequired: boolean;
   readonly cap022FullChainSatisfied: boolean;
+  readonly gateSettlementEvidenceRequired: boolean;
+  readonly gateSettlementEvidenceSatisfied: boolean;
   readonly productivePrerequisitesComplete: boolean;
   readonly predecessorProductiveComplete: boolean;
   readonly productiveChainEligible: boolean;
@@ -57,7 +61,35 @@ const ORDER: readonly Pr21_28GateStage[] = Object.freeze([
 ]);
 
 function freezeState(state: Pr21_28StagePreparationState): Pr21_28StagePreparationState {
-  return Object.freeze({ ...state });
+  return Object.freeze({
+    ...state,
+    gateSettlement: state.gateSettlement === null
+      ? null
+      : Object.freeze({ ...state.gateSettlement }),
+  });
+}
+
+function settlementEvidenceSatisfied(
+  stage: Pr21_28GateStage,
+  state: Pr21_28StagePreparationState,
+): boolean {
+  if (state.gateApplyVerified !== true || state.gateSettlement === null) {
+    return false;
+  }
+  const settlement = state.gateSettlement;
+  const cap022Required = stage === "PR22" || stage === "PR23";
+  return settlement.schemaVersion === 1
+    && settlement.stage === stage
+    && settlement.status === "APPLIED_VERIFIED_RECORD_ONLY"
+    && settlement.durableIntentObserved === true
+    && settlement.postconditionVerified === true
+    && settlement.terminalSettlementObserved === true
+    && settlement.cap022FullChainRequired === cap022Required
+    && settlement.cap022FullChainSatisfied === true
+    && settlement.gateMutationPerformedBySettlement === false
+    && settlement.authorityIssuedBySettlement === false
+    && settlement.broadRuntimeGrant === false
+    && /^[0-9a-f]{16}$/.test(settlement.settlementFingerprint);
 }
 
 function basisFingerprint(basis: Pr21_28StageLedgerEntryBasis): string {
@@ -114,11 +146,16 @@ export function bauePr21_28StageLedger(
       && state.gateApplyTransactionPrepared
       && state.gateSettlementPrepared;
 
+    const gateSettlementEvidenceRequired = state.gateApplyVerified === true;
+    const gateSettlementEvidenceSatisfied =
+      settlementEvidenceSatisfied(stage, state);
+
     const productivePrerequisitesComplete =
       preparationComplete
       && state.liveEvidenceRatified
       && state.explicitRatificationRecorded
-      && state.gateApplyVerified;
+      && state.gateApplyVerified
+      && gateSettlementEvidenceSatisfied;
 
     const productiveChainEligible =
       productivePrerequisitesComplete && predecessorProductiveComplete;
@@ -131,6 +168,8 @@ export function bauePr21_28StageLedger(
       preparationComplete,
       cap022FullChainRequired,
       cap022FullChainSatisfied,
+      gateSettlementEvidenceRequired,
+      gateSettlementEvidenceSatisfied,
       productivePrerequisitesComplete,
       predecessorProductiveComplete,
       productiveChainEligible,
@@ -229,6 +268,8 @@ export function replayPr21_28AdvanceChain(
       }
       if (!entry.state.gateApplyVerified) {
         blocker.push(entry.stage + "_VERIFIED_GATE_APPLY_REQUIRED");
+      } else if (!entry.gateSettlementEvidenceSatisfied) {
+        blocker.push(entry.stage + "_VERIFIED_GATE_SETTLEMENT_REQUIRED");
       }
       if (!entry.predecessorProductiveComplete) {
         blocker.push(entry.stage + "_PREDECESSOR_CHAIN_CLOSED");
@@ -256,6 +297,8 @@ export function replayPr21_28AdvanceChain(
       requiresLiveEvidence: !entry.state.liveEvidenceRatified,
       requiresExplicitRatification: !entry.state.explicitRatificationRecorded,
       requiresVerifiedGateApply: !entry.state.gateApplyVerified,
+      requiresVerifiedGateSettlement:
+        entry.state.gateApplyVerified && !entry.gateSettlementEvidenceSatisfied,
     }))),
     highestPreparationCompleteStage: ledger.highestPreparationCompleteStage,
     highestProductiveEligibleStage: ledger.highestProductiveEligibleStage,

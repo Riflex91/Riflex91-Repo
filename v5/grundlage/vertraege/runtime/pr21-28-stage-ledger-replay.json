@@ -31,5 +31,25 @@
     "durableIntentCreated": false,
     "productiveCraftAuthorityOpened": false
   },
-  "nextMilestone": "KEEP_STAGE_LEDGER_REPLAY_CAP022_BOUND_UNTIL_REAL_EVIDENCE"
+  "nextMilestone": "KEEP_STAGE_LEDGER_REPLAY_SETTLEMENT_EVIDENCE_BOUND_UNTIL_REAL_GATE_SETTLEMENT_EXISTS",
+  "gateSettlementEvidenceBoundary": {
+    "stateField": "gateSettlement",
+    "gateApplyVerifiedRequiresSettlementRecord": true,
+    "requiredSettlementStatus": "APPLIED_VERIFIED_RECORD_ONLY",
+    "settlementStageMustMatchLedgerStage": true,
+    "settlementFingerprintRequired": true,
+    "settlementDurableIntentObserved": true,
+    "settlementPostconditionVerified": true,
+    "settlementTerminalObserved": true,
+    "cap022BindingRequiredForStages": [
+      "PR22",
+      "PR23"
+    ],
+    "cap022BindingMustBeStageConsistent": true,
+    "missingEvidenceBlockerSuffix": "_VERIFIED_GATE_SETTLEMENT_REQUIRED",
+    "gateApplyBooleanAloneCannotOpenProductiveEligibility": true,
+    "terminalSettlementEvidenceRequiredForProductiveEligibility": true,
+    "replayMutatesGate": false,
+    "replayIssuesAuthority": false
+  }
 }
