@@ -245,6 +245,27 @@ Die Apply-Boundary selbst installiert keinen Stage-Completion-Adapter, fuehrt
 keine Execution aus, schliesst PR21 nicht ab und aktiviert PR22 nicht.
 Ein eigener Execution-Authorization-Schritt bleibt erforderlich.
 
+## Stage-Completion-Execution-Authorization-Boundary
+
+Die Execution-Freigabe fuer den PR21→PR22-Stage-Uebergang wird separat und
+kurzlebig vorbereitet. Aus einer `PREPARED_STAGE_COMPLETION_DEFAULT_OFF`-
+Transaktion entsteht zunaechst nur
+`AWAITING_EXPLICIT_STAGE_COMPLETION_AUTHORIZATION`.
+
+Eine Authorization darf nur durch den vollstaendigen, transaktions- und
+Main-gebundenen Confirmation-Text erzeugt werden. Der Record ist maximal
+1500 ms gueltig vorbereitet und auf genau eine Verwendung begrenzt.
+
+Auch `AUTHORIZED_STAGE_COMPLETION_ONE_SHOT_RECORD_ONLY` fuehrt selbst keine
+Stage-Mutation aus. Vor einer spaeteren Execution muessen Main,
+Transaction-Fingerprint und Transition-Fingerprint erneut exakt passen;
+Durable Intent, One-Shot-Ausfuehrung, Postcondition-Verifikation und
+Reconciliation bei UNKNOWN bleiben Pflicht.
+
+PR21 bleibt in dieser Boundary `IN_PROGRESS`, PR22 bleibt `BLOCKED_BY_PR21`.
+Es werden keine Gameplay-, Raw-Write-, Broad-Runtime- oder Normal-Runtime-
+Rechte erteilt.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
