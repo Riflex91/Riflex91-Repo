@@ -266,6 +266,29 @@ PR21 bleibt in dieser Boundary `IN_PROGRESS`, PR22 bleibt `BLOCKED_BY_PR21`.
 Es werden keine Gameplay-, Raw-Write-, Broad-Runtime- oder Normal-Runtime-
 Rechte erteilt.
 
+## Stage-Completion-One-Shot-Execution-Boundary
+
+Die eigentliche Stage-Completion-Execution ist als enge Control-Plane-
+Mutation vorbereitet. Vor dem einzigen Versuch muessen Authorization,
+Default-Off-Transaktion, aktueller Main, Transaction-Fingerprint und
+Transition-Fingerprint weiterhin exakt gebunden sein.
+
+Vor der Mutation wird ein Durable Intent persistent als neu bestaetigt.
+Existiert derselbe Intent bereits oder gab es seit Authorization einen
+Restart, erfolgt kein Resume und kein Retry; der Zustand muss reconciled
+werden. Die einzige Mutationsschnittstelle lautet
+`applyPr21StageCompletion(...)`.
+
+Nach dem Versuch wird der Stage-Zustand separat gelesen. Nur wenn PR21
+verifiziert abgeschlossen, PR22 als Development-Stufe aktiviert,
+PR22-Produktiv-Authority weiterhin false und ein terminaler Mutation-Record
+vorhanden sind, darf
+`APPLIED_VERIFIED_STAGE_TRANSITION_RECORD_ONLY` entstehen.
+
+Die Runtime-Boundary schreibt keine Repository-Roadmap und keinen Stage-
+Ledger um. UNKNOWN oder eine nicht eindeutig verifizierte Postcondition
+fuehrt fail-closed in Reconciliation ohne Same-Intent-Retry.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
