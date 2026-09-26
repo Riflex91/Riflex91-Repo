@@ -111,7 +111,8 @@ public sealed class CdpAdventureLandClient
                             contextCtype,
                             hasNativeRuntime,
                             manifest.Gate,
-                            manifest.TestId))
+                            manifest.TestId,
+                            manifest.BootstrapNativeV3))
                         continue;
 
                     var currentTestId = ReadString(probe, "currentTestId");
@@ -442,6 +443,12 @@ public sealed class CdpAdventureLandClient
 
         if (manifest.MaxPackageBytes is < 1024 or > V5AutonomousTestPackageHardMaxBytes)
             throw new InvalidOperationException("V5_TEST_MANIFEST_PACKAGE_LIMIT_INVALID");
+
+        if (manifest.BootstrapNativeV3
+            && (!string.Equals(manifest.Gate, "PR21_MERCHANT_INTEGRATION", StringComparison.Ordinal)
+                || !manifest.TestId.StartsWith("pr21-merchant-integration-live-", StringComparison.Ordinal)
+                || manifest.NormalRuntimeAllowed))
+            throw new InvalidOperationException("V5_TEST_MANIFEST_NATIVE_BOOTSTRAP_SCOPE_INVALID");
 
         var workerConfigured = HasAnyV5WorkerPackageField(manifest);
         if (workerConfigured)
@@ -996,23 +1003,28 @@ public sealed class CdpAdventureLandClient
     private sealed record OperationsContextCandidate(int ContextId, int Priority);
     private sealed record RankedTarget(CdpTarget Target, int Priority);
 
-    public static bool RequiresNativeV3CoordinatorContext(string? gate, string? testId)
+    public static bool RequiresNativeV3CoordinatorContext(
+        string? gate,
+        string? testId,
+        bool bootstrapNativeV3 = false)
     {
         var gateValue = (gate ?? string.Empty).Trim();
         var testValue = (testId ?? string.Empty).Trim();
         return string.Equals(gateValue, "PR21_MERCHANT_INTEGRATION", StringComparison.OrdinalIgnoreCase)
-            && testValue.StartsWith("pr21-merchant-integration-live-", StringComparison.Ordinal);
+            && testValue.StartsWith("pr21-merchant-integration-live-", StringComparison.Ordinal)
+            && !bootstrapNativeV3;
     }
 
     public static bool IsEligibleV5CoordinatorContext(
         string? ctype,
         bool hasNativeRuntime,
         string? gate,
-        string? testId)
+        string? testId,
+        bool bootstrapNativeV3 = false)
     {
         if (!string.Equals((ctype ?? string.Empty).Trim(), "merchant", StringComparison.OrdinalIgnoreCase))
             return false;
-        if (RequiresNativeV3CoordinatorContext(gate, testId) && !hasNativeRuntime)
+        if (RequiresNativeV3CoordinatorContext(gate, testId, bootstrapNativeV3) && !hasNativeRuntime)
             return false;
         return true;
     }
@@ -2005,6 +2017,7 @@ public sealed record V5AutonomousTestManifest(
     int MaxPackageBytes,
     string ExpectedGlobal,
     bool NormalRuntimeAllowed,
+    bool BootstrapNativeV3 = false,
     string? WorkerVersion = null,
     string? WorkerPackagePath = null,
     string? WorkerPackageSha256 = null,
