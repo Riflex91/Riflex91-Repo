@@ -28,9 +28,9 @@ for(const [id,d] of Object.entries(s.sprites||{})){
   const sourcePath=normalizeAssetPath(d.file), full=sourcePath&&path.join(upstream,...sourcePath.split("/"));
   if(!sourcePath||!fs.existsSync(full)){failures.push("missing sprite "+id+" "+sourcePath);continue;}
   const pixels=imageSize(full), grid=spriteRuntimeGrid(d);
-  if(pixels&&pixels.width%grid.totalColumns!==0) failures.push("sprite width/grid mismatch "+id+" "+sourcePath);
-  if(pixels&&pixels.height%grid.totalRows!==0) failures.push("sprite height/grid mismatch "+id+" "+sourcePath);
-  sprites.push({id,sourcePath,contractKind:classifyContractPath(sourcePath),type:d.type||"full",size:d.size||null,frames:Number.isInteger(d.frames)?d.frames:null,runtimeGrid:grid,originalPixels:pixels,logicalCell:pixels?{width:pixels.width/grid.totalColumns,height:pixels.height/grid.totalRows}:null,policy:replacementPolicyFor(sourcePath)});
+  const logicalCell=pixels?{width:pixels.width/grid.totalColumns,height:pixels.height/grid.totalRows}:null;
+  const fractionalCell=!!(logicalCell&&(!Number.isInteger(logicalCell.width)||!Number.isInteger(logicalCell.height)));
+  sprites.push({id,sourcePath,contractKind:classifyContractPath(sourcePath),type:d.type||"full",size:d.size||null,frames:Number.isInteger(d.frames)?d.frames:null,runtimeGrid:grid,originalPixels:pixels,logicalCell,fractionalCell,policy:replacementPolicyFor(sourcePath)});
   spriteFiles.add(sourcePath);
 }
 const animations=[];
