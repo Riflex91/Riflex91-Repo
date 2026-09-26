@@ -537,16 +537,17 @@ async function boot(): Promise<void> {
         return;
       }
 
-      legacyRuntime.dispatchEntityRightClick(hit!.entity.id);
+      const entityHit = hit!;
+      legacyRuntime.dispatchEntityRightClick(entityHit.entity.id);
       const local = latestSnapshot?.entities.find((entity) => entity.local);
       if (local) {
         renderer.playEntityAction(local.id, "attack");
-        combatFeedback.attack(local, hit.entity, camera, {
+        combatFeedback.attack(local, entityHit.entity, camera, {
           width: host.clientWidth,
           height: host.clientHeight
         });
       } else {
-        combatFeedback.pulse(hit.entity, camera, {
+        combatFeedback.pulse(entityHit.entity, camera, {
           width: host.clientWidth,
           height: host.clientHeight
         });
