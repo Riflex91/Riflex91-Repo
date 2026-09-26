@@ -13,7 +13,7 @@
   },
   "stages": {
     "pr21": {
-      "status": "PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RATIFICATION_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION",
+      "status": "PR22_COORDINATION_PRODUCTIVE_GATE_ADVANCE_PROPOSAL_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
       "purpose": "Merchant Gesamtintegration Readiness und Safety/Thrash/Starvation Gate",
       "productiveGate": "PR20_COMPLETE_AND_15M_MERCHANT_INTEGRATION_EVIDENCE",
@@ -1235,7 +1235,42 @@
         "normalRuntimeAllowed": false,
         "repositoryMutationPerformed": false,
         "controlPlaneMutationPerformed": false,
-        "nextMilestone": "PREPARE_PR22_COORDINATION_PRODUCTIVE_GATE_ADVANCE_PROPOSAL_BOUNDARY"
+        "nextMilestone": "PR22_COORDINATION_PRODUCTIVE_GATE_ADVANCE_PROPOSAL_BOUNDARY_PREPARED"
+      },
+      "coordinationProductiveGateAdvanceProposalBoundary": {
+        "status": "PREPARED_PR22_PRODUCTIVE_GATE_ADVANCE_PROPOSAL_ONLY",
+        "source": "v5/grundlage/quelle/koordination/pr22-coordination-productive-gate-advance-proposal-boundary.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-coordination-productive-gate-advance-proposal-boundary.json",
+        "test": "v5/grundlage/tests/pr22-coordination-productive-gate-advance-proposal-boundary.test.mjs",
+        "requiredRatificationStatus": "RATIFIED_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RECORD_ONLY",
+        "successStatus": "READY_FOR_SEPARATE_PR22_PRODUCTIVE_GATE_APPLY",
+        "requiredFeatureGateStage": "PR22",
+        "requiredFeatureGateProductiveEligible": true,
+        "requiredCap022Status": "CAP022_FULL_CHAIN_BEREIT_NO_WRITE",
+        "ratificationFingerprintRevalidationRequired": true,
+        "productiveEvidenceFingerprintMatchRequired": true,
+        "repositoryStateRevalidationRequired": true,
+        "featureGateRevalidationRequired": true,
+        "cap022FullChainRevalidationRequired": true,
+        "freshMainCheckRequiredAtApply": true,
+        "evidenceFingerprintRecheckRequiredAtApply": true,
+        "ratificationFingerprintRecheckRequiredAtApply": true,
+        "repositoryStateRecheckRequiredAtApply": true,
+        "cap022FullChainRecheckRequiredAtApply": true,
+        "separateApplyRequired": true,
+        "currentBlockedByPr21Execution": true,
+        "proposalApplied": false,
+        "gateMutationPerformed": false,
+        "productiveAuthorityIssued": false,
+        "sendCmAuthority": false,
+        "pr22ProductiveAuthorityIssued": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "broadRuntimeGrant": false,
+        "normalRuntimeAllowed": false,
+        "repositoryMutationPerformed": false,
+        "controlPlaneMutationPerformed": false,
+        "nextMilestone": "PREPARE_PR22_COORDINATION_PRODUCTIVE_DEFAULT_OFF_GATE_APPLY_BOUNDARY"
       }
     },
     "pr23": {

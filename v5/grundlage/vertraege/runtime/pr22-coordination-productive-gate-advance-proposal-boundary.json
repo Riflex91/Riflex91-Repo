@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_PR22_PRODUCTIVE_GATE_ADVANCE_PROPOSAL_ONLY",
+  "sourceMain": "dfb8e7be61fc77107ea6397eb12ab943d0ba2bbc",
+  "source": "v5/grundlage/quelle/koordination/pr22-coordination-productive-gate-advance-proposal-boundary.ts",
+  "test": "v5/grundlage/tests/pr22-coordination-productive-gate-advance-proposal-boundary.test.mjs",
+  "requiredRatificationStatus": "RATIFIED_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RECORD_ONLY",
+  "requiredFeatureGateStage": "PR22",
+  "requiredFeatureGateProductiveEligible": true,
+  "requiredCap022Status": "CAP022_FULL_CHAIN_BEREIT_NO_WRITE",
+  "proposal": {
+    "ratificationFingerprintRevalidationRequired": true,
+    "productiveEvidenceFingerprintMatchRequired": true,
+    "repositoryStateRevalidationRequired": true,
+    "featureGateRevalidationRequired": true,
+    "cap022FullChainRevalidationRequired": true,
+    "freshMainCheckRequiredAtApply": true,
+    "evidenceFingerprintRecheckRequiredAtApply": true,
+    "ratificationFingerprintRecheckRequiredAtApply": true,
+    "repositoryStateRecheckRequiredAtApply": true,
+    "cap022FullChainRecheckRequiredAtApply": true
+  },
+  "success": {
+    "status": "READY_FOR_SEPARATE_PR22_PRODUCTIVE_GATE_APPLY",
+    "separateApplyRequired": true
+  },
+  "safety": {
+    "gateMutationPerformed": false,
+    "productiveAuthorityIssued": false,
+    "sendCmAuthority": false,
+    "pr22ProductiveAuthorityIssued": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadRuntimeGrant": false,
+    "normalRuntimeAllowed": false,
+    "repositoryMutationPerformed": false,
+    "controlPlaneMutationPerformed": false
+  },
+  "proposalAppliedInRepository": false,
+  "nextAction": "PREPARE_PR22_COORDINATION_PRODUCTIVE_DEFAULT_OFF_GATE_APPLY_BOUNDARY"
+}
