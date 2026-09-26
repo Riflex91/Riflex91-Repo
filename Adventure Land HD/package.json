@@ -16,6 +16,7 @@
     "hd:materialize-generated": "node tools/materialize-generated-hd-assets.mjs",
     "terrain:main:runtime-profile": "node tools/verify-mainland-terrain-runtime-profile.mjs",
     "terrain:main:candidates": "node tools/build-mainland-terrain-candidates.mjs",
-    "terrain:main:report": "node tools/verify-mainland-terrain-candidate-report.mjs"
+    "terrain:main:report": "node tools/verify-mainland-terrain-candidate-report.mjs",
+    "terrain:main:promotion": "node tools/build-mainland-terrain-promotion.mjs"
   }
 }
