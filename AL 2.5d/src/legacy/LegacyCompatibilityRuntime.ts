@@ -38,6 +38,7 @@ export type LegacyCompatibilitySource = LegacyGlobalsLike & {
   scale?: number;
   manual_centering?: boolean;
   document?: Document;
+  code_active?: boolean;
   __AL25D_UPSTREAM_COMMIT__?: string;
 };
 
@@ -51,6 +52,57 @@ function finiteNumber(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value)
     ? value
     : fallback;
+}
+
+type LegacyCodeRunner = Readonly<{
+  equip?: (index: number, slot?: string) => unknown;
+  unequip?: (slot: string) => unknown;
+  swap?: (a: number, b: number) => unknown;
+}>;
+
+function resolveLegacyCodeRunner(
+  source: LegacyCompatibilitySource
+): LegacyCodeRunner {
+  if (source.code_active !== true) {
+    throw new Error("Original Adventure Land CODE runner is not active");
+  }
+
+  const frame = source.document?.getElementById("maincode") as
+    | HTMLIFrameElement
+    | null
+    | undefined;
+
+  let contentWindow: Window | null | undefined;
+
+  try {
+    contentWindow = frame?.contentWindow;
+  } catch {
+    throw new Error("Original Adventure Land CODE runner is not readable");
+  }
+
+  if (!contentWindow) {
+    throw new Error("Original Adventure Land CODE runner is not available");
+  }
+
+  return contentWindow as unknown as LegacyCodeRunner;
+}
+
+function dispatchLegacyRunnerAction(
+  source: LegacyCompatibilitySource,
+  action: keyof LegacyCodeRunner,
+  args: readonly unknown[]
+): unknown {
+  const runner = resolveLegacyCodeRunner(source);
+  const handler = runner[action];
+
+  if (typeof handler !== "function") {
+    throw new Error(`Original Adventure Land ${action}() is not available`);
+  }
+
+  return (handler as (...values: readonly unknown[]) => unknown).apply(
+    runner,
+    args
+  );
 }
 
 function requiredCharacter(source: LegacyCompatibilitySource) {
@@ -353,6 +405,49 @@ export class LegacyCompatibilityRuntime {
     }
 
     return source.on_skill.call(source, key);
+  }
+
+  dispatchInventoryEquip(index: number): unknown {
+    if (!Number.isInteger(index) || index < 0) {
+      throw new Error("Inventory index must be a non-negative integer");
+    }
+
+    return dispatchLegacyRunnerAction(
+      this.requireSource(),
+      "equip",
+      [index]
+    );
+  }
+
+  dispatchInventorySwap(from: number, to: number): unknown {
+    if (
+      !Number.isInteger(from) ||
+      !Number.isInteger(to) ||
+      from < 0 ||
+      to < 0
+    ) {
+      throw new Error("Inventory swap indices must be non-negative integers");
+    }
+
+    if (from === to) return undefined;
+
+    return dispatchLegacyRunnerAction(
+      this.requireSource(),
+      "swap",
+      [from, to]
+    );
+  }
+
+  dispatchEquipmentUnequip(slot: string): unknown {
+    if (!slot.trim()) {
+      throw new Error("Equipment slot is required");
+    }
+
+    return dispatchLegacyRunnerAction(
+      this.requireSource(),
+      "unequip",
+      [slot]
+    );
   }
 
   setGraphicsMode(mode: GraphicsMode): void {

@@ -27,6 +27,9 @@ export type HudActions = Readonly<{
   onToggleCombatVfx?: (visible: boolean) => void;
   onCameraZoom?: (zoom: number) => void;
   onResetView?: () => void;
+  onInventoryEquip?: (index: number) => unknown;
+  onInventorySwap?: (from: number, to: number) => unknown;
+  onEquipmentUnequip?: (slot: string) => unknown;
 }>;
 
 type BarElements = Readonly<{
@@ -123,6 +126,7 @@ export class HudOverlay {
   private readonly panel = document.createElement("section");
   private readonly panelTitle = document.createElement("strong");
   private readonly panelBody = document.createElement("div");
+  private readonly panelStatus = document.createElement("div");
   private readonly hotbar = document.createElement("div");
 
   private lastKey = "";
@@ -130,6 +134,9 @@ export class HudOverlay {
   private latestModel: HudModel = Object.freeze({ player: null, target: null });
   private presentationSettings: HudPresentationSettings =
     DEFAULT_PRESENTATION_SETTINGS;
+  private selectedInventoryIndex: number | null = null;
+  private selectedEquipmentSlot: string | null = null;
+  private panelStatusTimer: number | null = null;
   private openPanel: PanelName | null = null;
 
   constructor(
@@ -201,7 +208,9 @@ export class HudOverlay {
     close.addEventListener("click", () => this.togglePanel(null));
     panelHeader.append(this.panelTitle, close);
     this.panelBody.className = "al25d-panel-body";
-    this.panel.append(panelHeader, this.panelBody);
+    this.panelStatus.className = "al25d-panel-status";
+    this.panelStatus.hidden = true;
+    this.panel.append(panelHeader, this.panelBody, this.panelStatus);
 
     this.hotbar.id = "al25d-hotbar";
 
@@ -247,8 +256,16 @@ export class HudOverlay {
     this.lastKey = "";
     this.latestPlayerUi = undefined;
     this.latestModel = Object.freeze({ player: null, target: null });
+    this.selectedInventoryIndex = null;
+    this.selectedEquipmentSlot = null;
     this.openPanel = null;
     this.panel.hidden = true;
+    if (this.panelStatusTimer !== null) {
+      window.clearTimeout(this.panelStatusTimer);
+      this.panelStatusTimer = null;
+    }
+    this.panelStatus.hidden = true;
+    this.panelStatus.textContent = "";
     this.renderModel(this.latestModel);
     this.renderHotbar([]);
   }
@@ -409,12 +426,19 @@ export class HudOverlay {
       const cell = document.createElement("div");
       cell.className = "al25d-item-cell";
       cell.dataset.empty = String(!item.name);
-      cell.title = item.name ? itemText(item) : `Slot ${item.index + 1}`;
+      cell.dataset.selected = String(
+        item.name && item.index === this.selectedInventoryIndex
+      );
+      cell.title = item.name
+        ? `${itemText(item)} · auswählen; per Drag & Drop verschieben`
+        : `Slot ${item.index + 1}`;
 
       const index = document.createElement("small");
       index.textContent = String(item.index + 1);
       const icon = document.createElement("i");
-      icon.textContent = item.name ? (item.displayName ?? item.name).slice(0, 1).toUpperCase() : "";
+      icon.textContent = item.name
+        ? (item.displayName ?? item.name).slice(0, 1).toUpperCase()
+        : "";
       const label = document.createElement("span");
       label.textContent = item.name
         ? shortLabel(item.displayName ?? item.name, compact ? 7 : 9)
@@ -428,10 +452,98 @@ export class HudOverlay {
         : "";
 
       cell.append(index, icon, label, detail);
+
+      if (item.name) {
+        cell.dataset.interactive = "true";
+        cell.tabIndex = 0;
+        cell.setAttribute("role", "button");
+        cell.setAttribute(
+          "aria-label",
+          `${itemText(item)}, Inventarslot ${item.index + 1}`
+        );
+        cell.draggable = true;
+        cell.addEventListener("click", () => {
+          this.selectedInventoryIndex = item.index;
+          this.selectedEquipmentSlot = null;
+          this.refreshOpenPanel();
+        });
+        cell.addEventListener("keydown", (event) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          event.preventDefault();
+          this.selectedInventoryIndex = item.index;
+          this.selectedEquipmentSlot = null;
+          this.refreshOpenPanel();
+        });
+        cell.addEventListener("dragstart", (event) => {
+          event.dataTransfer?.setData(
+            "application/x-al25d-inventory-index",
+            String(item.index)
+          );
+          if (event.dataTransfer) event.dataTransfer.effectAllowed = "move";
+        });
+      }
+
+      cell.addEventListener("dragover", (event) => {
+        if (!this.actions.onInventorySwap) return;
+        event.preventDefault();
+        if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+      });
+      cell.addEventListener("drop", (event) => {
+        if (!this.actions.onInventorySwap) return;
+
+        event.preventDefault();
+        const raw = event.dataTransfer?.getData(
+          "application/x-al25d-inventory-index"
+        );
+        const from = Number(raw);
+
+        if (!Number.isInteger(from) || from < 0 || from === item.index) return;
+
+        this.runPanelAction(
+          `Move ${from + 1} → ${item.index + 1}`,
+          () => this.actions.onInventorySwap!(from, item.index)
+        );
+      });
+
       grid.appendChild(cell);
     }
 
     owner.appendChild(grid);
+
+    const selected = items.find(
+      (item) => item.name && item.index === this.selectedInventoryIndex
+    );
+    if (!selected?.name) return;
+
+    const inspector = document.createElement("div");
+    inspector.className = "al25d-item-inspector";
+
+    const copy = document.createElement("div");
+    const name = document.createElement("strong");
+    name.textContent = itemText(selected);
+    const meta = document.createElement("span");
+    meta.textContent =
+      `Inventory slot ${selected.index + 1} · ` +
+      "Drag auf einen anderen Slot zum Verschieben";
+    copy.append(name, meta);
+
+    const actions = document.createElement("div");
+    actions.className = "al25d-item-actions";
+    const equip = document.createElement("button");
+    equip.type = "button";
+    equip.textContent = "EQUIP";
+    equip.disabled = !this.actions.onInventoryEquip;
+    equip.addEventListener("click", () => {
+      if (!this.actions.onInventoryEquip) return;
+      this.runPanelAction(
+        `Equip ${selected.displayName ?? selected.name}`,
+        () => this.actions.onInventoryEquip!(selected.index)
+      );
+    });
+    actions.appendChild(equip);
+
+    inspector.append(copy, actions);
+    owner.appendChild(inspector);
   }
 
   private renderEquipment(
@@ -451,7 +563,28 @@ export class HudOverlay {
     for (const item of items) {
       const row = document.createElement("div");
       row.className = "al25d-equipment-row";
-      row.title = itemText(item);
+      row.dataset.selected = String(
+        item.slot === this.selectedEquipmentSlot
+      );
+      row.title = `${itemText(item)} · auswählen`;
+      row.tabIndex = 0;
+      row.setAttribute("role", "button");
+      row.setAttribute(
+        "aria-label",
+        `${item.slot}: ${itemText(item)}`
+      );
+      row.addEventListener("click", () => {
+        this.selectedEquipmentSlot = item.slot;
+        this.selectedInventoryIndex = null;
+        this.refreshOpenPanel();
+      });
+      row.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        this.selectedEquipmentSlot = item.slot;
+        this.selectedInventoryIndex = null;
+        this.refreshOpenPanel();
+      });
 
       const icon = document.createElement("i");
       icon.textContent = equipmentIcon(item.slot);
@@ -464,6 +597,97 @@ export class HudOverlay {
     }
 
     owner.appendChild(grid);
+
+    const selected = items.find(
+      (item) => item.slot === this.selectedEquipmentSlot
+    );
+    if (!selected) return;
+
+    const inspector = document.createElement("div");
+    inspector.className = "al25d-item-inspector";
+
+    const copy = document.createElement("div");
+    const name = document.createElement("strong");
+    name.textContent = itemText(selected);
+    const meta = document.createElement("span");
+    meta.textContent = `Equipment slot · ${selected.slot}`;
+    copy.append(name, meta);
+
+    const actions = document.createElement("div");
+    actions.className = "al25d-item-actions";
+    const unequip = document.createElement("button");
+    unequip.type = "button";
+    unequip.textContent = "UNEQUIP";
+    unequip.disabled = !this.actions.onEquipmentUnequip;
+    unequip.addEventListener("click", () => {
+      if (!this.actions.onEquipmentUnequip) return;
+      this.runPanelAction(
+        `Unequip ${selected.displayName}`,
+        () => this.actions.onEquipmentUnequip!(selected.slot)
+      );
+    });
+    actions.appendChild(unequip);
+
+    inspector.append(copy, actions);
+    owner.appendChild(inspector);
+  }
+
+  private refreshOpenPanel(): void {
+    if (this.openPanel) this.renderPanel(this.openPanel);
+  }
+
+  private runPanelAction(
+    label: string,
+    action: () => unknown
+  ): void {
+    try {
+      const result = action();
+      this.showPanelStatus(`${label} …`, "pending");
+
+      if (
+        result &&
+        (typeof result === "object" || typeof result === "function") &&
+        typeof (result as { then?: unknown }).then === "function"
+      ) {
+        void Promise.resolve(result as PromiseLike<unknown>).then(
+          () => this.showPanelStatus(`${label} ✓`, "success"),
+          (error) => this.showPanelStatus(
+            error instanceof Error
+              ? error.message
+              : `${label} fehlgeschlagen`,
+            "error"
+          )
+        );
+        return;
+      }
+
+      this.showPanelStatus(`${label} ✓`, "success");
+    } catch (error) {
+      this.showPanelStatus(
+        error instanceof Error
+          ? error.message
+          : `${label} fehlgeschlagen`,
+        "error"
+      );
+    }
+  }
+
+  private showPanelStatus(
+    text: string,
+    kind: "pending" | "success" | "error"
+  ): void {
+    if (this.panelStatusTimer !== null) {
+      window.clearTimeout(this.panelStatusTimer);
+    }
+
+    this.panelStatus.hidden = false;
+    this.panelStatus.dataset.kind = kind;
+    this.panelStatus.textContent = text.slice(0, 160);
+    this.panelStatusTimer = window.setTimeout(() => {
+      this.panelStatus.hidden = true;
+      this.panelStatus.textContent = "";
+      this.panelStatusTimer = null;
+    }, 2400);
   }
 
   private renderSettings(): void {

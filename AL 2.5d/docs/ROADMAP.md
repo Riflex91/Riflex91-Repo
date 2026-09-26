@@ -104,7 +104,8 @@ Deliverable: walkable Main with original gameplay logic.
 - [ ] chat
 - [x] inventory/equipment read-only baseline
 - [x] unified character/equipment/inventory presentation surface
-- [ ] interactive inventory/equipment actions
+- [x] interactive inventory/equipment baseline: select, equip, unequip and inventory swap through original CODE-runner public functions only
+- [ ] advanced item actions, tooltips and transactional UX
 - [ ] quests/events
 - [x] minimap baseline from immutable map bounds, collision lines and entity snapshots
 - [ ] expanded world-map / route interaction layer

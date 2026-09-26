@@ -169,6 +169,24 @@ async function boot(): Promise<void> {
         renderer.setCamera(camera);
         window.localStorage.setItem("al25d.cameraZoom", "1.5");
         window.localStorage.setItem("al25d.cameraRotation", "0");
+      },
+      onInventoryEquip: (index) => {
+        if (!legacyRuntime?.ready) {
+          throw new Error("Original Adventure Land runtime is not ready");
+        }
+        return legacyRuntime.dispatchInventoryEquip(index);
+      },
+      onInventorySwap: (from, to) => {
+        if (!legacyRuntime?.ready) {
+          throw new Error("Original Adventure Land runtime is not ready");
+        }
+        return legacyRuntime.dispatchInventorySwap(from, to);
+      },
+      onEquipmentUnequip: (slot) => {
+        if (!legacyRuntime?.ready) {
+          throw new Error("Original Adventure Land runtime is not ready");
+        }
+        return legacyRuntime.dispatchEquipmentUnequip(slot);
       }
     },
     document.body
