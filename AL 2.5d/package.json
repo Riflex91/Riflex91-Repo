@@ -1,0 +1,26 @@
+{
+  "name": "al-2-5d",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "verify:upstream": "node scripts/verify-upstream-manifest.mjs",
+    "check": "npm run verify:upstream && npm test && npm run build",
+    "local:setup": "powershell -ExecutionPolicy Bypass -File ./local-dev/windows/setup.ps1",
+    "local:start": "powershell -ExecutionPolicy Bypass -File ./local-dev/windows/start.ps1",
+    "local:stop": "powershell -ExecutionPolicy Bypass -File ./local-dev/windows/stop.ps1"
+  },
+  "dependencies": {
+    "pixi.js": "^8.13.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.7",
+    "vitest": "^3.2.4"
+  }
+}
