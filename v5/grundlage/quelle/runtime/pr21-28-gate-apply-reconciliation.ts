@@ -40,7 +40,11 @@ export function reconcilePr21_28GateApply(
       || request.transaction.schemaVersion !== 1
       || request.transaction.sameIntentRetryAllowed !== false
       || request.transaction.applyAdapterInstalled !== false
-      || request.transaction.executionEnabled !== false) {
+      || request.transaction.executionEnabled !== false
+      || request.transaction.cap022FullChainSatisfied !== true
+      || request.transaction.cap022FullChainRequired
+        !== (request.transaction.stage === "PR22"
+          || request.transaction.stage === "PR23")) {
     throw new Error("PR21_28_GATE_APPLY_RECONCILIATION_INPUT_UNGUELTIG");
   }
 

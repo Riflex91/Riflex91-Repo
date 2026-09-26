@@ -33,6 +33,9 @@ export interface Pr21_28ResultPackageBasis {
   readonly sampleGaps: number;
   readonly alleMinimaErreicht: boolean;
   readonly alleZieleErreicht: boolean;
+  readonly cap022FullChainRequired: boolean;
+  readonly cap022FullChainSatisfied: boolean;
+  readonly cap022FullChainBoundToPackage: true;
   readonly authorityLeakCount: number;
   readonly recorderDrops: number;
   readonly dashboardFehlerDiagnosticOnly: number;
@@ -80,7 +83,20 @@ export function bauePr21_28ResultPackage(
     throw new Error("PR21_28_RESULT_PACKAGE_CHECKPOINT_DRIFT");
   }
 
+  const cap022FullChainRequired =
+    input.checkpointId === "POST_PR24_25_GROUP_CHECKPOINT";
+  const cap022FullChainSatisfied =
+    !cap022FullChainRequired
+    || (input.runner.cap022FullChainRequired === true
+      && input.runner.cap022FullChainSatisfied === true);
+
   const blocker: string[] = [];
+  if (input.runner.cap022FullChainRequired !== cap022FullChainRequired) {
+    blocker.push("PR21_28_RESULT_CAP022_REQUIREMENT_DRIFT");
+  }
+  if (!cap022FullChainSatisfied) {
+    blocker.push("PR21_28_RESULT_CAP022_FULL_CHAIN_NICHT_BEREIT");
+  }
   if (input.runner.status === "BLOCKIERT") {
     blocker.push("PR21_28_RESULT_RUNNER_BLOCKIERT");
   }
@@ -180,6 +196,9 @@ export function bauePr21_28ResultPackage(
     sampleGaps: input.runner.sampleGaps,
     alleMinimaErreicht: input.runner.alleMinimaErreicht,
     alleZieleErreicht: input.runner.alleZieleErreicht,
+    cap022FullChainRequired,
+    cap022FullChainSatisfied,
+    cap022FullChainBoundToPackage: true,
     authorityLeakCount: input.observability.authorityLeakCount,
     recorderDrops: input.observability.recorderDrops,
     dashboardFehlerDiagnosticOnly: input.observability.dashboardFehlerDiagnosticOnly,

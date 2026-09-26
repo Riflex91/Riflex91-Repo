@@ -26,6 +26,9 @@ function readyPackage(overrides={}) {
     sampleGaps:0,
     alleMinimaErreicht:true,
     alleZieleErreicht:true,
+    cap022FullChainRequired:false,
+    cap022FullChainSatisfied:true,
+    cap022FullChainBoundToPackage:true,
     authorityLeakCount:0,
     recorderDrops:0,
     dashboardFehlerDiagnosticOnly:0,
@@ -45,6 +48,8 @@ function eligibleGate(overrides={}) {
     stage:"PR21",
     productiveEligible:true,
     blocker:[],
+    cap022FullChainRequired:false,
+    cap022FullChainSatisfied:true,
     authorityIssued:false,
     gameplayAuthority:false,
     rawWriteAuthority:false,
@@ -71,6 +76,78 @@ test("ratification draft requires an exact package-bound confirmation and grants
   assert.equal(draft.authorityIssued,false);
   assert.equal(draft.broadRuntimeGrant,false);
   assert.equal(draft.gesamtfreigabeRequiredSeparately,true);
+  assert.equal(draft.cap022FullChainRequired,false);
+  assert.equal(draft.cap022FullChainSatisfied,true);
+  assert.equal(draft.cap022FullChainBoundToPackage,true);
+});
+
+
+
+test("group checkpoint ratification requires CAP-022 binding in result package",()=>{
+  const group=readyPackage({
+    packageId:"pkg-group-ready",
+    checkpointId:"POST_PR24_25_GROUP_CHECKPOINT",
+    cap022FullChainRequired:true,
+    cap022FullChainSatisfied:true,
+    cap022FullChainBoundToPackage:true,
+  });
+  const draft=bereitePr21_28RatificationVor(group);
+  assert.equal(draft.cap022FullChainRequired,true);
+  assert.equal(draft.cap022FullChainSatisfied,true);
+  assert.equal(draft.cap022FullChainBoundToPackage,true);
+
+  assert.throws(
+    ()=>bereitePr21_28RatificationVor({
+      ...group,
+      cap022FullChainSatisfied:false,
+    }),
+    /PR21_28_RATIFICATION_CAP022_BINDING_UNGUELTIG/,
+  );
+  assert.throws(
+    ()=>bereitePr21_28RatificationVor({
+      ...group,
+      cap022FullChainBoundToPackage:false,
+    }),
+    /PR21_28_RATIFICATION_CAP022_BINDING_UNGUELTIG/,
+  );
+});
+
+test("PR22/PR23 gate advance cannot bypass CAP-022 via forged eligible gate view",()=>{
+  const group=readyPackage({
+    packageId:"pkg-group-pr23",
+    checkpointId:"POST_PR24_25_GROUP_CHECKPOINT",
+    cap022FullChainRequired:true,
+    cap022FullChainSatisfied:true,
+    cap022FullChainBoundToPackage:true,
+  });
+  const draft=bereitePr21_28RatificationVor(group);
+  const record=ratifizierePr21_28ResultPackage(
+    draft,
+    draft.requiredConfirmationText,
+    "operator-1",
+    2000,
+  );
+  const proposal=bereitePr21_28GateAdvanceVor({
+    schemaVersion:1,
+    stage:"PR23",
+    currentMainCommit:record.sourceMainCommit,
+    expectedPackageFingerprint:record.packageFingerprint,
+    ratification:record,
+    featureGate:eligibleGate({
+      stage:"PR23",
+      cap022FullChainRequired:true,
+      cap022FullChainSatisfied:false,
+    }),
+  });
+
+  assert.equal(proposal.status,"BLOCKIERT");
+  assert.equal(proposal.cap022FullChainRequired,true);
+  assert.equal(proposal.cap022FullChainSatisfied,false);
+  assert.ok(proposal.blocker.includes(
+    "PR21_28_GATE_ADVANCE_CAP022_FULL_CHAIN_NICHT_BEREIT",
+  ));
+  assert.equal(proposal.gateMutationPerformed,false);
+  assert.equal(proposal.authorityIssued,false);
 });
 
 test("generic acknowledgements cannot ratify a PR21-28 checkpoint package",()=>{
@@ -100,6 +177,9 @@ test("exact confirmation creates a ratification record only, not a gate or autho
   assert.equal(record.broadRuntimeGrant,false);
   assert.equal(record.gesamtfreigabeRequiredSeparately,true);
   assert.equal(record.resultPackageStillImmutable,true);
+  assert.equal(record.cap022FullChainRequired,false);
+  assert.equal(record.cap022FullChainSatisfied,true);
+  assert.equal(record.cap022FullChainBoundToPackage,true);
   assert.match(record.ratificationFingerprint,/^[0-9a-f]{16}$/);
 });
 
@@ -123,6 +203,8 @@ test("gate advance proposal becomes ready only after ratification plus fresh mai
   assert.equal(proposal.status,"READY_FOR_SEPARATE_GATE_APPLY");
   assert.deepEqual(proposal.blocker,[]);
   assert.equal(proposal.featureGateProductiveEligible,true);
+  assert.equal(proposal.cap022FullChainRequired,false);
+  assert.equal(proposal.cap022FullChainSatisfied,true);
   assert.equal(proposal.requiresFreshMainCheckAtApply,true);
   assert.equal(proposal.separateApplyRequired,true);
   assert.equal(proposal.gateMutationPerformed,false);
@@ -216,4 +298,51 @@ test("ratification and gate-proposal sources contain no gameplay or gate-apply b
       assert.equal(source.includes(marker),false,path+" -> "+marker);
     }
   }
+});
+
+
+test("Ratification-/Gate-Proposal-Vertrag und Roadmap bewahren CAP-022 Full-Chain",()=>{
+  const contract=JSON.parse(fs.readFileSync(
+    "grundlage/vertraege/runtime/pr21-28-ratification-gate-proposals.json",
+    "utf8",
+  ));
+  const boundary=contract.cap022FullChainBoundary;
+  assert.equal(boundary.groupCheckpointRequiresBoundPackage,true);
+  assert.deepEqual(boundary.packageFields,[
+    "cap022FullChainRequired",
+    "cap022FullChainSatisfied",
+    "cap022FullChainBoundToPackage",
+  ]);
+  assert.equal(boundary.ratificationRecordPreservesBinding,true);
+  assert.deepEqual(boundary.gateAdvanceRequiredStages,["PR22","PR23"]);
+  assert.equal(boundary.missingOrDriftedFullChainBlocksProposal,true);
+  assert.equal(
+    boundary.blocker,
+    "PR21_28_GATE_ADVANCE_CAP022_FULL_CHAIN_NICHT_BEREIT",
+  );
+  assert.equal(boundary.gateMutationPerformed,false);
+  assert.equal(boundary.authorityIssued,false);
+  assert.equal(boundary.currentPr20_9RatificationCredit,false);
+  assert.equal(boundary.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(boundary.durableIntentCreated,false);
+  assert.equal(boundary.productiveCraftAuthorityOpened,false);
+
+  const roadmap=JSON.parse(fs.readFileSync(
+    "roadmap/post-r19-roadmap.json",
+    "utf8",
+  ));
+  const binding=
+    roadmap.pr23.materialAcquisitionFoundation
+      .fullChainOrchestrationReadiness.resultPackageRatificationBinding;
+  assert.equal(binding.groupCheckpointPackageBindsCap022,true);
+  assert.equal(binding.ratificationRecordPreservesCap022,true);
+  assert.deepEqual(binding.gateAdvanceRequiredStages,["PR22","PR23"]);
+  assert.equal(binding.missingOrDriftedCap022BlocksProposal,true);
+  assert.equal(binding.gateMutationPerformed,false);
+  assert.equal(binding.authorityIssued,false);
+  assert.equal(binding.currentPr20_9RatificationCredit,false);
+  assert.equal(binding.candidateAcquisitionOrMutationAllowedNow,false);
+  assert.equal(binding.durableIntentCreated,false);
+  assert.equal(binding.productiveCraftAuthorityOpened,false);
+  assert.equal(binding.normalRuntimeAllowed,false);
 });

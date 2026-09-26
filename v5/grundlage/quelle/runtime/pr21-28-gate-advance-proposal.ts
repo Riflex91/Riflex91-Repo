@@ -19,6 +19,8 @@ export interface Pr21_28GateAdvanceProposal {
   readonly packageFingerprint: string;
   readonly ratificationFingerprint: string;
   readonly featureGateProductiveEligible: boolean;
+  readonly cap022FullChainRequired: boolean;
+  readonly cap022FullChainSatisfied: boolean;
   readonly requiresFreshMainCheckAtApply: true;
   readonly separateApplyRequired: true;
   readonly gateMutationPerformed: false;
@@ -79,6 +81,14 @@ export function bereitePr21_28GateAdvanceVor(
   if (request.expectedPackageFingerprint !== ratification.packageFingerprint) {
     blocker.push("PR21_28_GATE_ADVANCE_PACKAGE_FP_DRIFT");
   }
+  const cap022FullChainRequired =
+    request.stage === "PR22" || request.stage === "PR23";
+  if (gate.cap022FullChainRequired !== cap022FullChainRequired) {
+    blocker.push("PR21_28_GATE_ADVANCE_CAP022_REQUIREMENT_DRIFT");
+  }
+  if (gate.cap022FullChainSatisfied !== true) {
+    blocker.push("PR21_28_GATE_ADVANCE_CAP022_FULL_CHAIN_NICHT_BEREIT");
+  }
   if (!gate.productiveEligible) {
     blocker.push("PR21_28_GATE_ADVANCE_FEATURE_GATE_NICHT_ELIGIBLE");
   }
@@ -97,6 +107,8 @@ export function bereitePr21_28GateAdvanceVor(
     packageFingerprint: ratification.packageFingerprint,
     ratificationFingerprint: ratification.ratificationFingerprint,
     featureGateProductiveEligible: gate.productiveEligible,
+    cap022FullChainRequired,
+    cap022FullChainSatisfied: gate.cap022FullChainSatisfied,
     requiresFreshMainCheckAtApply: true,
     separateApplyRequired: true,
     gateMutationPerformed: false,

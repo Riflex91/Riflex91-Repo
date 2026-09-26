@@ -3,6 +3,7 @@ name: v5-pr21-28-ratification-gates
 on:
   push:
     paths:
+      - 'v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts'
       - 'v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts'
       - 'v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts'
       - 'v5/grundlage/quelle/index.ts'
@@ -12,6 +13,7 @@ on:
       - '.github/workflows/v5-pr21-28-ratification-gates.yml'
   pull_request:
     paths:
+      - 'v5/grundlage/quelle/zertifizierung/pr21-28-result-package.ts'
       - 'v5/grundlage/quelle/zertifizierung/pr21-28-ratification-record.ts'
       - 'v5/grundlage/quelle/runtime/pr21-28-gate-advance-proposal.ts'
       - 'v5/grundlage/quelle/index.ts'
