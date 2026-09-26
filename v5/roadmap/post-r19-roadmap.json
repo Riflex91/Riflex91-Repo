@@ -110,7 +110,8 @@
     "CAP-022 Full-Chain bleibt jetzt auch durch Result-Package, Ratification-Record, Gate-Advance-Proposal und Default-Off-Gate-Apply/Reconciliation gebunden. Group-Packages koennen ohne CAP-022 nicht ratifizierbar werden; PR22/PR23-Proposals und Gate-Apply-Transactions muessen die Full-Chain-Bindung stage-konsistent tragen.",
     "CAP-022 Full-Chain bleibt jetzt auch im terminalen Gate-Settlement und im Default-Off-Rollback-Plan erhalten: PR22/PR23-Settlement-Fingerprints tragen die stage-konsistente Full-Chain-Bindung; manipulierte oder fehlende Bindungen werden vor Settlement/Rollback fail-closed verworfen.",
     "PR22/PR23 Stage-Ledger und Advance-Replay bewahren jetzt zusaetzlich die terminale CAP-022-Gate-Settlement-Bindung: produktive Replay-Eignung verlangt einen stage-konsistenten APPLIED_VERIFIED_RECORD_ONLY-Settlement-Fingerprint; fehlende oder manipulierte Bindung blockiert fail-closed, ohne Gate- oder Gameplay-Authority zu erteilen.",
-    "Der Readiness-Snapshot macht die terminale CAP-022-Settlement-Bindung fuer PR22/PR23 jetzt explizit sichtbar: fehlende Bindungen erscheinen als CAP022_TERMINAL_SETTLEMENT, vorhandene Settlement-Fingerprints werden read-only gespiegelt; TECHNICALLY_PREPARED bleibt davon getrennt und produktive Eignung kann die Bindung nicht umgehen."
+    "Der Readiness-Snapshot macht die terminale CAP-022-Settlement-Bindung fuer PR22/PR23 jetzt explizit sichtbar: fehlende Bindungen erscheinen als CAP022_TERMINAL_SETTLEMENT, vorhandene Settlement-Fingerprints werden read-only gespiegelt; TECHNICALLY_PREPARED bleibt davon getrennt und produktive Eignung kann die Bindung nicht umgehen.",
+    "PR21 besitzt jetzt einen fail-closed Live-Preflight vor dem 15m-Merchant-Checkpoint: current main, Merchant-Readiness, Checkpoint/Runbook-Bindung und alle PR20.1-PR20.9-Ratifizierungen muessen zusammen passen. Der aktuelle Stand bleibt wegen PR20.9 BLOCKED_BY_PR20_9; der Preflight selbst startet keine Runtime und erteilt keine Authority."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -6490,7 +6491,37 @@
     "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
     "stageLedgerSource": "v5/grundlage/quelle/runtime/pr21-28-stage-state-ledger.ts",
     "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
-    "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts"
+    "readinessSnapshotSource": "v5/grundlage/quelle/runtime/pr21-28-readiness-snapshot.ts",
+    "livePreflight": {
+      "status": "BLOCKED_BY_PR20_9",
+      "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-live-preflight.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-integration-live-preflight.json",
+      "test": "v5/grundlage/tests/pr21-merchant-integration-live-preflight.test.mjs",
+      "targetCheckpoint": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+      "targetDurationSeconds": 900,
+      "requiredProductiveRatifications": [
+        "PR20.1",
+        "PR20.2",
+        "PR20.3",
+        "PR20.4",
+        "PR20.5",
+        "PR20.6",
+        "PR20.7",
+        "PR20.8",
+        "PR20.9"
+      ],
+      "missingRatifications": [
+        "PR20.9"
+      ],
+      "currentMainMustMatchPinnedMain": true,
+      "readinessSnapshotBindingRequired": true,
+      "merchantReadinessRequired": true,
+      "externalRuntimeStartAuthorized": false,
+      "separateExternalAuthorizationRequired": true,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false
+    }
   },
   "pr22": {
     "status": "BLOCKED_BY_PR21",
