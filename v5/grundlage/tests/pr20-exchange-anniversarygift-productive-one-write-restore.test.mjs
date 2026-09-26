@@ -76,7 +76,7 @@ test("historical restored productive bytes remain exact while active manifest ad
   ],{encoding:null,maxBuffer:256*1024});
   assert.deepEqual(pinned,bytes);
   assert.notEqual(manifest.testId,cutover.manifest.testId);
-  assert.equal(manifest.testId,"pr20-9-craft-durable-shadow-no-write");
+  assert.equal(manifest.testId,"pr21-merchant-integration-live-15m");
 });
 
 test("restored productive boundary is still exactly-once and fail-closed",()=>{

@@ -29,13 +29,13 @@ test("PR20.9 Craft shadow cutover is restored as the exact active no-write manif
   });
   assert.deepEqual(pinned,bytes);
 
-  assert.equal(manifest.gate,"PR20.9_PRODUCTION");
-  assert.equal(manifest.testId,cutover.manifest.testId);
-  assert.equal(manifest.controllerVersion,cutover.manifest.controllerVersion);
-  assert.equal(manifest.sourceCommit,cutover.manifest.sourceCommit);
-  assert.equal(manifest.packagePath,cutover.manifest.packagePath);
-  assert.equal(manifest.packageSha256,cutover.manifest.packageSha256);
-  assert.equal(manifest.expectedGlobal,cutover.manifest.expectedGlobal);
+  assert.equal(manifest.gate,"PR21_MERCHANT_INTEGRATION");
+  assert.equal(manifest.testId,"pr21-merchant-integration-live-15m");
+  assert.equal(manifest.controllerVersion,"1.0.0");
+  assert.equal(manifest.sourceCommit,"ac265002a8c86418e17fd1f3d7ed426007b99dd0");
+  assert.equal(manifest.packagePath,"v5/werkzeuge/pr21-merchant-integration-live-15m.js");
+  assert.equal(manifest.packageSha256,"4066d751ac0a9f67db7f3eb318b6a1ffc882b37c4b93638c6151403a8616e1f9");
+  assert.equal(manifest.expectedGlobal,"V5PR21MerchantIntegrationLive15m");
   assert.equal(manifest.normalRuntimeAllowed,false);
 });
 
