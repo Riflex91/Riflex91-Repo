@@ -23,6 +23,7 @@ describe("main render fixture", () => {
           y: 24,
           z: undefined,
           texture: "asset://player/mwarrior",
+          appearanceKey: "player:warrior",
           facing: 1,
           name: "Hero",
           local: true
@@ -34,6 +35,7 @@ describe("main render fixture", () => {
           y: 120,
           z: undefined,
           texture: "asset://monster/goo",
+          appearanceKey: "monster:goo",
           facing: undefined,
           name: "goo"
         },
@@ -44,6 +46,7 @@ describe("main render fixture", () => {
           y: 15,
           z: undefined,
           texture: "asset://npc/standmerchant",
+          appearanceKey: "npc:standmerchant",
           facing: undefined,
           name: "standmerchant"
         }
