@@ -929,7 +929,7 @@ export class HudOverlay {
   }
 
   private renderChat(channels: readonly RenderChatChannel[]): void {
-    const available = channels.length
+    const available: readonly RenderChatChannel[] = channels.length
       ? channels
       : Object.freeze([
           Object.freeze({
