@@ -7,6 +7,7 @@ import {
   bereitePr21MerchantObserverHandoffVor,
   initialisierePr21MerchantSampleCollector,
   sammlePr21MerchantSample,
+  planePr21_28MilestoneRunner,
   wertePr21_28MilestoneSamplesAus,
 } from "../../erzeugt/index.js";
 
@@ -168,7 +169,7 @@ test("clean 181-sample 15m run freezes at target and feeds existing milestone ev
   assert.equal(state.samples.at(-1).beobachtetAmMs,900000);
 
   const evaluated=wertePr21_28MilestoneSamplesAus(
-    h.runnerPlan,
+    planePr21_28MilestoneRunner("PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT"),
     state.samples,
     {schemaVersion:1,cap022FullChainReady:true},
   );
