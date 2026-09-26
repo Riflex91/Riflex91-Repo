@@ -29,7 +29,21 @@
     "currentPr20_9RatificationCredit": false,
     "candidateAcquisitionOrMutationAllowedNow": false,
     "durableIntentCreated": false,
-    "productiveCraftAuthorityOpened": false
+    "productiveCraftAuthorityOpened": false,
+    "terminalSettlementStateField": "cap022TerminalSettlementBinding",
+    "terminalSettlementRequiredStages": [
+      "PR22",
+      "PR23"
+    ],
+    "terminalSettlementRequiresAppliedVerifiedStatus": true,
+    "terminalSettlementFingerprintRequired": true,
+    "terminalSettlementMustMatchStage": true,
+    "productiveReplayRequiresTerminalSettlementBinding": true,
+    "entryFingerprintIncludesTerminalSettlementBinding": true,
+    "explicitTerminalSettlementBlockerByStage": {
+      "PR22": "PR22_CAP022_TERMINAL_SETTLEMENT_REQUIRED",
+      "PR23": "PR23_CAP022_TERMINAL_SETTLEMENT_REQUIRED"
+    }
   },
-  "nextMilestone": "KEEP_STAGE_LEDGER_REPLAY_CAP022_BOUND_UNTIL_REAL_EVIDENCE"
+  "nextMilestone": "PREPARE_READINESS_SNAPSHOT_WITH_CAP022_TERMINAL_SETTLEMENT_BINDING"
 }
