@@ -11,16 +11,31 @@ const plan=JSON.parse(fs.readFileSync(path.join(root,"manifests","mainland-terra
 test("Mainland terrain plan covers all 14 scoped tilesets",()=>{
   assert.equal(plan.mapId,"main");
   assert.equal(plan.targetScale,8);
+  assert.equal(plan.compatibilityMaxTextureEdge,8192);
   assert.equal(plan.tilesets.length,14);
   assert.equal(new Set(plan.tilesets.map(entry=>entry.id)).size,14);
 });
 
-test("every Mainland terrain target is exact 8x and remains awaiting art",()=>{
+test("Mainland terrain uses the highest compatible integer scale",()=>{
   for(const entry of plan.tilesets){
     assert.equal(entry.state,"awaiting-art");
-    assert.equal(hasResolutionSuffix(entry.hdPath,8),true);
-    assert.equal(validateUniformIntegerScale(entry.originalPixels,entry.hdPixels,8).ok,true);
+    const expected=Math.min(
+      plan.targetScale,
+      Math.floor(plan.compatibilityMaxTextureEdge/entry.originalPixels.width),
+      Math.floor(plan.compatibilityMaxTextureEdge/entry.originalPixels.height)
+    );
+    assert.equal(entry.scale,expected,entry.id);
+    assert.equal(hasResolutionSuffix(entry.hdPath,entry.scale),true,entry.id);
+    assert.equal(validateUniformIntegerScale(entry.originalPixels,entry.hdPixels,entry.scale).ok,true,entry.id);
+    assert.ok(entry.hdPixels.width<=plan.compatibilityMaxTextureEdge,entry.id);
+    assert.ok(entry.hdPixels.height<=plan.compatibilityMaxTextureEdge,entry.id);
   }
+});
+
+test("only oversized monolithic atlases use documented scale exceptions",()=>{
+  const exceptions=plan.tilesets.filter(entry=>entry.scale!==plan.targetScale);
+  assert.deepEqual(exceptions.map(entry=>[entry.id,entry.scale]),[["house",7],["water",6]]);
+  for(const entry of exceptions) assert.ok(entry.scaleExceptionReason?.includes("8192px"),entry.id);
 });
 
 test("animated Mainland atlases retain native animation metadata",()=>{
