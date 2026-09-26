@@ -196,6 +196,12 @@ const allowedPackages = Object.freeze({
     expectedGlobal: "V5PR206AccountRosterXRecovery",
     gate: "PR20.6_MLUCK"
   })
+
+  ,"pr21-merchant-integration-live-15m": Object.freeze({
+    path: "v5/werkzeuge/pr21-merchant-integration-live-15m.js",
+    expectedGlobal: "V5PR21MerchantIntegrationLive15m",
+    gate: "PR21_MERCHANT_INTEGRATION"
+  })
 });
 const selected = allowedPackages[manifest.testId];
 const packageFile = String(manifest.packagePath || "").replace(/^v5\//, "");
