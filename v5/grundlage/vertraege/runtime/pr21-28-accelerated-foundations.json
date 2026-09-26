@@ -13,7 +13,7 @@
   },
   "stages": {
     "pr21": {
-      "status": "POST_SETTLEMENT_TRANSITION_BOUNDARY_PREPARED",
+      "status": "STAGE_COMPLETION_APPLY_BOUNDARY_PREPARED_NO_EXECUTION",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
       "purpose": "Merchant Gesamtintegration Readiness und Safety/Thrash/Starvation Gate",
       "productiveGate": "PR20_COMPLETE_AND_15M_MERCHANT_INTEGRATION_EVIDENCE",
@@ -284,7 +284,39 @@
         "rawWriteAuthority": false,
         "broadRuntimeGrant": false,
         "normalRuntimeAllowed": false,
-        "nextMilestone": "PREPARE_PR21_STAGE_COMPLETION_APPLY_BOUNDARY"
+        "nextMilestone": "STAGE_COMPLETION_APPLY_BOUNDARY_PREPARED"
+      },
+      "stageCompletionApplyBoundary": {
+        "status": "PREPARED_STAGE_COMPLETION_DEFAULT_OFF_NO_EXECUTION",
+        "source": "v5/grundlage/quelle/merchant/pr21-merchant-stage-completion-apply-boundary.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-stage-completion-apply-boundary.json",
+        "test": "v5/grundlage/tests/pr21-merchant-stage-completion-apply-boundary.test.mjs",
+        "stage": "PR21",
+        "nextStage": "PR22",
+        "requiredTransitionStatus": "READY_FOR_SEPARATE_STAGE_COMPLETION_APPLY",
+        "transactionStatus": "PREPARED_STAGE_COMPLETION_DEFAULT_OFF",
+        "transitionFingerprintRevalidationRequired": true,
+        "currentMainMustMatchTransitionSource": true,
+        "freshMainCheckRequiredAtExecution": true,
+        "durableIntentRequiredBeforeMutation": true,
+        "oneShotExecutionRequired": true,
+        "sameIntentRetryAllowed": false,
+        "postconditionVerificationRequired": true,
+        "unknownOutcomeRequiresReconciliation": true,
+        "stageCompletionAdapterInstalled": false,
+        "executionEnabled": false,
+        "pr21StageCompletionApplied": false,
+        "pr22DevelopmentStageActivated": false,
+        "pr22ProductiveAuthorityIssued": false,
+        "roadmapMutationPerformed": false,
+        "ledgerMutationPerformed": false,
+        "stageMutationPerformed": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "broadRuntimeGrant": false,
+        "normalRuntimeAllowed": false,
+        "separateExecutionAuthorizationRequired": true,
+        "nextMilestone": "PREPARE_PR21_STAGE_COMPLETION_EXECUTION_AUTHORIZATION_BOUNDARY"
       }
     },
     "pr22": {
