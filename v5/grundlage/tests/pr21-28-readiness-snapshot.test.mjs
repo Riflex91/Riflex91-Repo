@@ -331,6 +331,28 @@ test("Readiness-Snapshot-Vertrag und Roadmap binden CAP-022 Full-Chain fail-clos
   assert.equal(boundary.rawWriteAuthority,false);
   assert.equal(boundary.normalRuntimeAllowed,false);
 
+  const settlementBoundary=contract.gateSettlementEvidenceBoundary;
+  assert.equal(
+    settlementBoundary.stageMissingMarker,
+    "VERIFIED_GATE_SETTLEMENT",
+  );
+  assert.equal(
+    settlementBoundary.gateApplyVerifiedBooleanAloneInsufficient,
+    true,
+  );
+  assert.equal(
+    settlementBoundary.productiveEligibilityRequiresTerminalSettlementEvidence,
+    true,
+  );
+  assert.equal(
+    settlementBoundary.readinessSnapshotMustExposeMissingSettlementEvidence,
+    true,
+  );
+  assert.deepEqual(
+    settlementBoundary.cap022BindingRequiredForStages,
+    ["PR22","PR23"],
+  );
+
   const roadmap=JSON.parse(fs.readFileSync(
     "roadmap/post-r19-roadmap.json",
     "utf8",
@@ -351,4 +373,9 @@ test("Readiness-Snapshot-Vertrag und Roadmap binden CAP-022 Full-Chain fail-clos
   assert.equal(binding.durableIntentCreated,false);
   assert.equal(binding.productiveCraftAuthorityOpened,false);
   assert.equal(binding.normalRuntimeAllowed,false);
+  assert.equal(binding.gateSettlementEvidenceRequired,true);
+  assert.equal(
+    binding.missingSettlementEvidenceMarker,
+    "VERIFIED_GATE_SETTLEMENT",
+  );
 });
