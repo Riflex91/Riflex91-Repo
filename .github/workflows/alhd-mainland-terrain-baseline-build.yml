@@ -1,0 +1,92 @@
+name: ALHD Mainland Terrain Baseline Build
+
+on:
+  push:
+    branches:
+      - chatgpt/alhd-mainland-terrain-baseline-v1
+    paths:
+      - ".github/workflows/alhd-mainland-terrain-baseline-build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Checkout pinned Adventure Land
+        shell: bash
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/kaansoral/adventureland_mongodb.git .upstream-adventureland
+          git -C .upstream-adventureland fetch --depth=1 origin 90052162eb3ebda36c893e1eb4af643913c8f984
+          git -C .upstream-adventureland checkout --detach 90052162eb3ebda36c893e1eb4af643913c8f984
+      - name: Install deterministic image dependency
+        run: python -m pip install --disable-pip-version-check "Pillow==11.3.0"
+      - name: Build 8x Mainland terrain baselines
+        shell: bash
+        run: |
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          import hashlib, json
+
+          upstream = Path(".upstream-adventureland")
+          out_root = Path("generated-mainland-terrain")
+          out_root.mkdir(parents=True, exist_ok=True)
+          sources = [
+              "castle.png",
+              "custom.png",
+              "custom2.png",
+              "custom_a.png",
+              "doors.png",
+              "dungeon.png",
+              "fort.png",
+              "house.png",
+              "inside.png",
+              "lights.png",
+              "new.png",
+              "outside.png",
+              "puzzle.png",
+              "water_updated.png",
+          ]
+          records = []
+          for name in sources:
+              src = upstream / "images" / "tiles" / "map" / name
+              dst = out_root / (src.stem + "@8x.png")
+              with Image.open(src) as image:
+                  original = image.size
+                  scaled = image.resize((original[0] * 8, original[1] * 8), Image.Resampling.NEAREST)
+                  scaled.save(dst, format="PNG", optimize=False, compress_level=9)
+                  scaled.close()
+              data = dst.read_bytes()
+              with Image.open(dst) as check:
+                  hd = check.size
+              if hd != (original[0] * 8, original[1] * 8):
+                  raise SystemExit(f"{name}: wrong output size {hd}")
+              records.append({
+                  "sourcePath": f"images/tiles/map/{name}",
+                  "outputFile": dst.name,
+                  "originalPixels": {"width": original[0], "height": original[1]},
+                  "hdPixels": {"width": hd[0], "height": hd[1]},
+                  "scale": 8,
+                  "sha256": hashlib.sha256(data).hexdigest(),
+                  "bytes": len(data),
+              })
+              print(name, original, "->", hd, records[-1]["sha256"])
+          (out_root / "baseline-build.json").write_text(json.dumps({
+              "schemaVersion": 1,
+              "upstreamCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+              "method": "Pillow 11.3.0 nearest-neighbor whole-atlas 8x",
+              "assets": records,
+          }, indent=2) + "\n", encoding="utf-8")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alhd-mainland-terrain-8x-baseline
+          path: generated-mainland-terrain/
+          if-no-files-found: error
+          compression-level: 0
