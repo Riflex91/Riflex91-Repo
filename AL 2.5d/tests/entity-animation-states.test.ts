@@ -34,6 +34,6 @@ describe("first-party entity animation states", () => {
     expect(renderer).toContain('kind === "cast"');
     expect(renderer).toContain('kind === "death"');
     expect(main).toContain('renderer.playEntityAction(local.id, "attack")');
-    expect(main).toContain('renderer.playEntityAction(local.id, "cast")');
+    expect(main).toContain("hotbarEntry?.action === \"attack\" ? \"attack\" : \"cast\"");
   });
 });
