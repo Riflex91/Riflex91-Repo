@@ -1,0 +1,55 @@
+name: Adventure Land HD CI
+on:
+  pull_request:
+    paths:
+      - "Adventure Land HD/**"
+      - ".github/workflows/adventure-land-hd-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "Adventure Land HD/**"
+      - ".github/workflows/adventure-land-hd-ci.yml"
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify inventory, bridge rules and runtime syntax
+        working-directory: Adventure Land HD
+        run: npm run check
+      - name: Checkout pinned Adventure Land
+        shell: bash
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/kaansoral/adventureland_mongodb.git .upstream-adventureland
+          git -C .upstream-adventureland fetch --depth=1 origin 90052162eb3ebda36c893e1eb4af643913c8f984
+          git -C .upstream-adventureland checkout --detach 90052162eb3ebda36c893e1eb4af643913c8f984
+      - name: Deep-audit pinned visual assets
+        working-directory: Adventure Land HD
+        run: node tools/audit-assets.mjs --upstream "../.upstream-adventureland" --check-only
+      - name: Audit renderer compatibility contracts
+        working-directory: Adventure Land HD
+        run: node tools/analyze-contracts.mjs --upstream "../.upstream-adventureland" --check-only
+      - name: Validate HD asset manifest
+        working-directory: Adventure Land HD
+        run: node tools/validate-hd-assets.mjs --upstream "../.upstream-adventureland" --hd-root "hd-assets"
+      - name: Verify Phase 3 overlay target
+        working-directory: Adventure Land HD
+        run: node tools/prepare-runtime-overlay.mjs --upstream "../.upstream-adventureland" --check-only
+      - name: Generate runtime manifest
+        working-directory: Adventure Land HD
+        run: node tools/build-runtime-manifest.mjs --output "/tmp/adventure-land-hd-manifest.js"
+      - name: Verify no gameplay transport in HD bootstrap
+        shell: bash
+        run: |
+          ! grep -E 'socket\.emit|api_call\(|smart_move\(|use_skill\(|attack\(' "Adventure Land HD/runtime/adventure-land-hd-bootstrap.js"
+      - name: Materialize HD overlay into pinned original
+        working-directory: Adventure Land HD
+        run: node tools/prepare-runtime-overlay.mjs --upstream "../.upstream-adventureland"
+      - name: Verify materialized overlay and pilot bytes
+        working-directory: Adventure Land HD
+        run: node tools/verify-runtime-overlay.mjs --upstream "../.upstream-adventureland"
