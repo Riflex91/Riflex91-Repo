@@ -108,7 +108,8 @@
     "PR22/PR23 Stage-Ledger und Advance-Replay sind jetzt explizit an CAP-022 Full-Chain gebunden: preparationComplete verlangt cap022FullChainReady=true; fehlt die Bindung, erscheinen eigene CAP-022-Replay-Blocker und weder Preparation- noch Productive-Chain kann die Materialkette umgehen.",
     "Der PR23-enthaltende Group-Milestone-Runner und sein Checkpoint-Runbook sind jetzt explizit an CAP-022 Full-Chain gebunden: ohne cap022FullChainReady wird die Milestone-Auswertung BLOCKIERT und das Runbook verlangt CAP022_FULL_CHAIN_READY bereits als Precondition vor externem Runtime-Start.",
     "CAP-022 Full-Chain bleibt jetzt auch durch Result-Package, Ratification-Record, Gate-Advance-Proposal und Default-Off-Gate-Apply/Reconciliation gebunden. Group-Packages koennen ohne CAP-022 nicht ratifizierbar werden; PR22/PR23-Proposals und Gate-Apply-Transactions muessen die Full-Chain-Bindung stage-konsistent tragen.",
-    "CAP-022 Full-Chain bleibt jetzt auch im terminalen Gate-Settlement und im Default-Off-Rollback-Plan erhalten: PR22/PR23-Settlement-Fingerprints tragen die stage-konsistente Full-Chain-Bindung; manipulierte oder fehlende Bindungen werden vor Settlement/Rollback fail-closed verworfen."
+    "CAP-022 Full-Chain bleibt jetzt auch im terminalen Gate-Settlement und im Default-Off-Rollback-Plan erhalten: PR22/PR23-Settlement-Fingerprints tragen die stage-konsistente Full-Chain-Bindung; manipulierte oder fehlende Bindungen werden vor Settlement/Rollback fail-closed verworfen.",
+    "PR22/PR23 Stage-Ledger und Advance-Replay bewahren jetzt zusaetzlich die terminale CAP-022-Gate-Settlement-Bindung: produktive Replay-Eignung verlangt einen stage-konsistenten APPLIED_VERIFIED_RECORD_ONLY-Settlement-Fingerprint; fehlende oder manipulierte Bindung blockiert fail-closed, ohne Gate- oder Gameplay-Authority zu erteilen."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -1349,7 +1350,21 @@
             "candidateAcquisitionOrMutationAllowedNow": false,
             "durableIntentCreated": false,
             "productiveCraftAuthorityOpened": false,
-            "normalRuntimeAllowed": false
+            "normalRuntimeAllowed": false,
+            "terminalSettlementStateField": "cap022TerminalSettlementBinding",
+            "terminalSettlementRequiredStages": [
+              "PR22",
+              "PR23"
+            ],
+            "terminalSettlementRequiresAppliedVerifiedStatus": true,
+            "terminalSettlementFingerprintRequired": true,
+            "terminalSettlementMustMatchStage": true,
+            "productiveReplayRequiresTerminalSettlementBinding": true,
+            "entryFingerprintIncludesTerminalSettlementBinding": true,
+            "explicitTerminalSettlementBlockerByStage": {
+              "PR22": "PR22_CAP022_TERMINAL_SETTLEMENT_REQUIRED",
+              "PR23": "PR23_CAP022_TERMINAL_SETTLEMENT_REQUIRED"
+            }
           },
           "milestoneRunnerBinding": {
             "status": "PREPARED_NO_WRITE",
@@ -1915,7 +1930,21 @@
             "candidateAcquisitionOrMutationAllowedNow": false,
             "durableIntentCreated": false,
             "productiveCraftAuthorityOpened": false,
-            "normalRuntimeAllowed": false
+            "normalRuntimeAllowed": false,
+            "terminalSettlementStateField": "cap022TerminalSettlementBinding",
+            "terminalSettlementRequiredStages": [
+              "PR22",
+              "PR23"
+            ],
+            "terminalSettlementRequiresAppliedVerifiedStatus": true,
+            "terminalSettlementFingerprintRequired": true,
+            "terminalSettlementMustMatchStage": true,
+            "productiveReplayRequiresTerminalSettlementBinding": true,
+            "entryFingerprintIncludesTerminalSettlementBinding": true,
+            "explicitTerminalSettlementBlockerByStage": {
+              "PR22": "PR22_CAP022_TERMINAL_SETTLEMENT_REQUIRED",
+              "PR23": "PR23_CAP022_TERMINAL_SETTLEMENT_REQUIRED"
+            }
           },
           "milestoneRunnerBinding": {
             "status": "PREPARED_NO_WRITE",
@@ -2422,7 +2451,21 @@
             "candidateAcquisitionOrMutationAllowedNow": false,
             "durableIntentCreated": false,
             "productiveCraftAuthorityOpened": false,
-            "normalRuntimeAllowed": false
+            "normalRuntimeAllowed": false,
+            "terminalSettlementStateField": "cap022TerminalSettlementBinding",
+            "terminalSettlementRequiredStages": [
+              "PR22",
+              "PR23"
+            ],
+            "terminalSettlementRequiresAppliedVerifiedStatus": true,
+            "terminalSettlementFingerprintRequired": true,
+            "terminalSettlementMustMatchStage": true,
+            "productiveReplayRequiresTerminalSettlementBinding": true,
+            "entryFingerprintIncludesTerminalSettlementBinding": true,
+            "explicitTerminalSettlementBlockerByStage": {
+              "PR22": "PR22_CAP022_TERMINAL_SETTLEMENT_REQUIRED",
+              "PR23": "PR23_CAP022_TERMINAL_SETTLEMENT_REQUIRED"
+            }
           },
           "milestoneRunnerBinding": {
             "status": "PREPARED_NO_WRITE",
@@ -6059,7 +6102,21 @@
           "candidateAcquisitionOrMutationAllowedNow": false,
           "durableIntentCreated": false,
           "productiveCraftAuthorityOpened": false,
-          "normalRuntimeAllowed": false
+          "normalRuntimeAllowed": false,
+          "terminalSettlementStateField": "cap022TerminalSettlementBinding",
+          "terminalSettlementRequiredStages": [
+            "PR22",
+            "PR23"
+          ],
+          "terminalSettlementRequiresAppliedVerifiedStatus": true,
+          "terminalSettlementFingerprintRequired": true,
+          "terminalSettlementMustMatchStage": true,
+          "productiveReplayRequiresTerminalSettlementBinding": true,
+          "entryFingerprintIncludesTerminalSettlementBinding": true,
+          "explicitTerminalSettlementBlockerByStage": {
+            "PR22": "PR22_CAP022_TERMINAL_SETTLEMENT_REQUIRED",
+            "PR23": "PR23_CAP022_TERMINAL_SETTLEMENT_REQUIRED"
+          }
         },
         "milestoneRunnerBinding": {
           "status": "PREPARED_NO_WRITE",
@@ -6300,7 +6357,21 @@
       "productiveEvidenceStillRequired": true,
       "replayMutatesGate": false,
       "replayIssuesAuthority": false,
-      "broadRuntimeGrant": false
+      "broadRuntimeGrant": false,
+      "terminalSettlementStateField": "cap022TerminalSettlementBinding",
+      "terminalSettlementRequiredStages": [
+        "PR22",
+        "PR23"
+      ],
+      "terminalSettlementRequiresAppliedVerifiedStatus": true,
+      "terminalSettlementFingerprintRequired": true,
+      "terminalSettlementMustMatchStage": true,
+      "productiveReplayRequiresTerminalSettlementBinding": true,
+      "entryFingerprintIncludesTerminalSettlementBinding": true,
+      "explicitTerminalSettlementBlockerByStage": {
+        "PR22": "PR22_CAP022_TERMINAL_SETTLEMENT_REQUIRED",
+        "PR23": "PR23_CAP022_TERMINAL_SETTLEMENT_REQUIRED"
+      }
     },
     "readinessSnapshotBatch10": {
       "status": "PREPARED_REPLAY_ONLY",
@@ -6718,7 +6789,21 @@
           "candidateAcquisitionOrMutationAllowedNow": false,
           "durableIntentCreated": false,
           "productiveCraftAuthorityOpened": false,
-          "normalRuntimeAllowed": false
+          "normalRuntimeAllowed": false,
+          "terminalSettlementStateField": "cap022TerminalSettlementBinding",
+          "terminalSettlementRequiredStages": [
+            "PR22",
+            "PR23"
+          ],
+          "terminalSettlementRequiresAppliedVerifiedStatus": true,
+          "terminalSettlementFingerprintRequired": true,
+          "terminalSettlementMustMatchStage": true,
+          "productiveReplayRequiresTerminalSettlementBinding": true,
+          "entryFingerprintIncludesTerminalSettlementBinding": true,
+          "explicitTerminalSettlementBlockerByStage": {
+            "PR22": "PR22_CAP022_TERMINAL_SETTLEMENT_REQUIRED",
+            "PR23": "PR23_CAP022_TERMINAL_SETTLEMENT_REQUIRED"
+          }
         },
         "milestoneRunnerBinding": {
           "status": "PREPARED_NO_WRITE",
@@ -7196,7 +7281,21 @@
           "candidateAcquisitionOrMutationAllowedNow": false,
           "durableIntentCreated": false,
           "productiveCraftAuthorityOpened": false,
-          "normalRuntimeAllowed": false
+          "normalRuntimeAllowed": false,
+          "terminalSettlementStateField": "cap022TerminalSettlementBinding",
+          "terminalSettlementRequiredStages": [
+            "PR22",
+            "PR23"
+          ],
+          "terminalSettlementRequiresAppliedVerifiedStatus": true,
+          "terminalSettlementFingerprintRequired": true,
+          "terminalSettlementMustMatchStage": true,
+          "productiveReplayRequiresTerminalSettlementBinding": true,
+          "entryFingerprintIncludesTerminalSettlementBinding": true,
+          "explicitTerminalSettlementBlockerByStage": {
+            "PR22": "PR22_CAP022_TERMINAL_SETTLEMENT_REQUIRED",
+            "PR23": "PR23_CAP022_TERMINAL_SETTLEMENT_REQUIRED"
+          }
         },
         "milestoneRunnerBinding": {
           "status": "PREPARED_NO_WRITE",
