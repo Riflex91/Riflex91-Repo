@@ -400,6 +400,24 @@ Ratifizierung bleiben geschlossen.
 
 Die Boundary selbst veraendert weder Repository noch Control-Plane.
 
+## PR22-Coordination-Development-Preflight-Boundary
+
+Vor produktiver PR22-Evidence wird zunaechst nur ein korreliertes
+NO-WRITE-Development-Szenario vorbereitet. Der Preflight revalidiert den
+PR22-Development-Handoff, dessen gepinnten Main und den Repository-Zustand
+PR21=`COMPLETE`, PR22=`IN_PROGRESS`, `currentStage=PR22`.
+
+Anschliessend werden die bereits vorhandene
+`pruefePr22CoordinationShadowAdmission(...)` und der
+`bewertePr22ShadowWorkflow(...)` wiederverwendet. Erfolg verlangt eine
+`BEREIT_NO_WRITE`-Admission und einen initialen Workflowzustand
+`ACK_AUSSTEHEND` mit identischer Message-/Workflow-Bindung.
+
+Der Preflight sendet keine CM-Nachricht, startet keine externe Runtime und
+erteilt keine produktive PR22-, Gameplay-, Raw-Write- oder NormalRuntime-
+Authority. Produktive Evidence und separate Ratifizierung bleiben spaeter
+eigenstaendige Gates.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
