@@ -65,6 +65,9 @@ jobs:
       - name: Audit renderer compatibility contracts
         working-directory: Adventure Land HD
         run: node tools/analyze-contracts.mjs --upstream "../.upstream-adventureland" --check-only
+      - name: Materialize generated HD assets for validation
+        working-directory: Adventure Land HD
+        run: node tools/materialize-generated-hd-assets.mjs --upstream "../.upstream-adventureland"
       - name: Validate HD asset manifest
         working-directory: Adventure Land HD
         run: node tools/validate-hd-assets.mjs --upstream "../.upstream-adventureland" --hd-root "hd-assets"
