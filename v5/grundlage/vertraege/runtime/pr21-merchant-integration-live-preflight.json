@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "id": "PR21_MERCHANT_LIVE_PREFLIGHT_V1",
-  "status": "PREPARED_NO_WRITE",
-  "sourceMain": "dcf9f47b2d77fe85039838d2beb15e1cc23cb392",
+  "status": "PREPARED_NO_WRITE_MANUAL_PR20_9_OVERRIDE",
+  "sourceMain": "683e1bc03da09fe83230ff50275944b09b712dc5",
   "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-live-preflight.ts",
   "test": "v5/grundlage/tests/pr21-merchant-integration-live-preflight.test.mjs",
   "targetCheckpoint": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
@@ -26,14 +26,17 @@
     "runbookMustMatchTargetCheckpoint": true,
     "runbookMustRemainObserverOnly": true,
     "allPr20ProductiveRatificationsRequired": true,
-    "pr20_9MayNotBeSkipped": true
+    "pr20_9MayNotBeSkipped": true,
+    "manualPr20_9OperatorOverrideAccepted": true,
+    "manualOverrideMustRemainExplicitlyDistinguishableFromLiveEvidence": true
   },
   "currentRepositoryState": {
-    "status": "BLOCKED_BY_PR20_9",
-    "pr20_9Status": "CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE",
-    "missingRatifications": [
-      "PR20.9"
-    ],
+    "status": "PRECHECK_BEREIT_NO_START_AUTHORITY_MANUAL_PR20_9_OVERRIDE",
+    "pr20_9Status": "MANUAL_OVERRIDE_BESTANDEN_FOR_DEVELOPMENT",
+    "missingRatifications": [],
+    "manualPr20_9OverrideAccepted": true,
+    "manualPr20_9OverrideEvidence": "v5/roadmap/pr20-9-craft-manual-development-override.json",
+    "liveCraftEvidenceSatisfied": false,
     "externalRuntimeStartAuthorized": false
   },
   "safety": {
@@ -45,7 +48,8 @@
     "rawWriteAuthority": false,
     "normalRuntimeAllowed": false,
     "currentPr20_9RatificationCredit": false,
-    "candidateAcquisitionOrMutationAllowedNow": false
+    "candidateAcquisitionOrMutationAllowedNow": false,
+    "manualDevelopmentRatificationCredit": true
   },
-  "nextMilestone": "WAIT_FOR_NATURAL_PR20_9_COMPLETION_THEN_REEVALUATE_PR21_LIVE_PREFLIGHT"
+  "nextMilestone": "PR21_MERCHANT_INTEGRATION_DEVELOPMENT_AND_15M_CHECKPOINT_PREPARATION"
 }
