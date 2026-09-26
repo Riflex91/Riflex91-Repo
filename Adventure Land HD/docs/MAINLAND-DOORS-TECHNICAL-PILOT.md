@@ -24,14 +24,11 @@ Expected output:
 - SHA-256: `66fef5c19149ac4cf8a625b0c1b19a5ca6a359f35e1c0ec9d4350bf69de2235f`
 - CI artifact: `alhd-mainland-doors-8x`
 
-The CI rebuilds this image from the pinned original checkout and verifies the
-exact SHA-256 before publishing the workflow artifact.
+The CI and local overlay preparation both rebuild this image from the pinned original checkout, verify the exact SHA-256, and then use the generated `hd-assets/map/doors@8x.png` as the active presentation-only override. CI additionally publishes the exact generated PNG as workflow artifact `alhd-mainland-doors-8x`.
 
 ## Scope boundary
 
-This is a **technical terrain pilot**, not the final artistic remaster. It
-proves that a Mainland atlas can be reproduced at exact 8× physical geometry
-without moving or resizing any logical tile coordinates.
+This is an **active technical terrain pilot**, not the final artistic remaster. It proves that a Mainland atlas can be reproduced at exact 8× physical geometry and routed through the real HD runtime without moving or resizing any logical tile coordinates.
 
 The final artistic HD atlas may replace this technical raster later, but it
 must preserve the same logical geometry, original fallback, and runtime-only
