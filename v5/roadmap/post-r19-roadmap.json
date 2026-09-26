@@ -116,7 +116,8 @@
     "PR21 Merchant-Checkpoint-Admission ist NO-WRITE vorbereitet: der aktive PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT ist fest an 900s MERCHANT_INTEGRATION_15M, 5s Sampling, Observer-only Milestone-Runner und Runbook gebunden. Der manuelle PR20.9-Override bleibt explizit von echter Craft-Live-Evidence getrennt. Die Admission startet keine Runtime und erteilt keine Gameplay-/Raw-Write-/NormalRuntime-Authority; naechster Schritt ist der Observer-Handoff.",
     "PR21 Merchant Observer-Handoff ist NO-WRITE vorbereitet: Checkpoint/Segment bleiben auf PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT bzw. pr21-merchant-integration gepinnt, 900s Ziel mit 5s Sampling und maximal 15s Sample-Gap. Health muss GESUND sein, Operations aktuell, Recorder-Drops=0 und die aktive Authority-Menge exakt runtime:merchant; jede unerwartete Authority blockiert fail-closed. Der Observer startet keine Runtime und erteilt keine Gameplay-/Raw-Write-/NormalRuntime-Authority. Naechster Schritt ist die bounded Sample-Collector-Grenze.",
     "PR21 Merchant Sample-Collector ist NO-WRITE vorbereitet: maximal 184 In-Memory-Samples, 900s Ziel, 5s Sampling, maximal 15s Gap. Jeder Health/Operations/Authority-/Safety-Fehler friert die Serie fail-closed ein; ein sauberer 181-Sample-Lauf ist direkt mit dem bestehenden PR21-28-Milestone-Runner kompatibel. Der Collector startet keine Runtime und erteilt keine Gameplay-/Raw-Write-/NormalRuntime-Authority. Naechster Schritt ist der Freeze/Evaluation-Handoff.",
-    "PR21 Merchant Freeze/Evaluation-Handoff ist NO-WRITE vorbereitet: nur eine sauber eingefrorene 181-Sample/900s-Serie mit final BEOBACHTUNG_BEREIT wird durch den bestehenden Milestone-/Live-Evidence-/Result-Package-Pfad gefuehrt. Ergebnis ist maximal READY_FOR_MANUAL_RATIFICATION plus AWAITING_EXPLICIT_RATIFICATION; keine automatische Ratifizierung, keine Gate-Mutation und keine Authority-Ausgabe."
+    "PR21 Merchant Freeze/Evaluation-Handoff ist NO-WRITE vorbereitet: nur eine sauber eingefrorene 181-Sample/900s-Serie mit final BEOBACHTUNG_BEREIT wird durch den bestehenden Milestone-/Live-Evidence-/Result-Package-Pfad gefuehrt. Ergebnis ist maximal READY_FOR_MANUAL_RATIFICATION plus AWAITING_EXPLICIT_RATIFICATION; keine automatische Ratifizierung, keine Gate-Mutation und keine Authority-Ausgabe.",
+    "PR21 Merchant Ratification-Record-Boundary ist vorbereitet: ausschließlich ein READY_FOR_EXPLICIT_MANUAL_RATIFICATION-Handoff mit exakt passendem Bestätigungstext darf einen RATIFIED_RECORD_ONLY erzeugen. Der Record mutiert kein Gate, erteilt keine Authority und hält das Result-Package unverändert; nächster Entwicklungsschritt ist die Gate-Advance-Proposal-Grenze."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -1499,7 +1500,7 @@
     },
     {
       "id": "PR21_MERCHANT_INTEGRATION",
-      "status": "FREEZE_EVALUATION_HANDOFF_PREPARED_NO_AUTO_RATIFICATION",
+      "status": "RATIFICATION_RECORD_BOUNDARY_PREPARED_EXPLICIT_CONFIRMATION_ONLY",
       "blockedBy": [],
       "gameplayAuthority": false,
       "artifact": "v5/dokumentation/PR21-MERCHANT-INTEGRATION-TESTPLAN.md",
@@ -1555,7 +1556,10 @@
         "v5/grundlage/tests/pr21-merchant-sample-collector.test.mjs",
         "v5/grundlage/quelle/merchant/pr21-merchant-freeze-evaluation-handoff.ts",
         "v5/grundlage/vertraege/runtime/pr21-merchant-freeze-evaluation-handoff.json",
-        "v5/grundlage/tests/pr21-merchant-freeze-evaluation-handoff.test.mjs"
+        "v5/grundlage/tests/pr21-merchant-freeze-evaluation-handoff.test.mjs",
+        "v5/grundlage/quelle/merchant/pr21-merchant-ratification-record-boundary.ts",
+        "v5/grundlage/vertraege/runtime/pr21-merchant-ratification-record-boundary.json",
+        "v5/grundlage/tests/pr21-merchant-ratification-record-boundary.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1571,11 +1575,12 @@
       "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
       "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
       "manualPr20_9Override": "v5/roadmap/pr20-9-craft-manual-development-override.json",
-      "nextAction": "PREPARE_PR21_EXPLICIT_RATIFICATION_RECORD_BOUNDARY",
+      "nextAction": "PREPARE_PR21_GATE_ADVANCE_PROPOSAL_BOUNDARY",
       "checkpointAdmission": "v5/grundlage/vertraege/runtime/pr21-merchant-checkpoint-admission.json",
       "observerHandoff": "v5/grundlage/vertraege/runtime/pr21-merchant-observer-handoff.json",
       "sampleCollector": "v5/grundlage/vertraege/runtime/pr21-merchant-sample-collector.json",
-      "freezeEvaluationHandoff": "v5/grundlage/vertraege/runtime/pr21-merchant-freeze-evaluation-handoff.json"
+      "freezeEvaluationHandoff": "v5/grundlage/vertraege/runtime/pr21-merchant-freeze-evaluation-handoff.json",
+      "ratificationRecordBoundary": "v5/grundlage/vertraege/runtime/pr21-merchant-ratification-record-boundary.json"
     },
     {
       "id": "PR22_MULTI_CHARACTER",
@@ -6492,7 +6497,7 @@
     }
   },
   "pr21": {
-    "status": "FREEZE_EVALUATION_HANDOFF_PREPARED_NO_AUTO_RATIFICATION",
+    "status": "RATIFICATION_RECORD_BOUNDARY_PREPARED_EXPLICIT_CONFIRMATION_ONLY",
     "foundationStatus": "PREPARED_NO_WRITE",
     "ziel": "Merchant Gesamtintegration",
     "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
@@ -6593,7 +6598,7 @@
       "normalRuntimeAllowed": false,
       "nextAction": "OBSERVER_HANDOFF_PREPARED"
     },
-    "nextAction": "PREPARE_PR21_EXPLICIT_RATIFICATION_RECORD_BOUNDARY",
+    "nextAction": "PREPARE_PR21_GATE_ADVANCE_PROPOSAL_BOUNDARY",
     "observerHandoff": {
       "status": "PREPARED_NO_WRITE_NO_START_AUTHORITY",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-observer-handoff.ts",
@@ -6679,7 +6684,24 @@
       "gameplayAuthority": false,
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
-      "nextAction": "PREPARE_PR21_EXPLICIT_RATIFICATION_RECORD_BOUNDARY"
+      "nextAction": "RATIFICATION_RECORD_BOUNDARY_PREPARED"
+    },
+    "ratificationRecordBoundary": {
+      "status": "PREPARED_EXPLICIT_CONFIRMATION_ONLY",
+      "source": "v5/grundlage/quelle/merchant/pr21-merchant-ratification-record-boundary.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-ratification-record-boundary.json",
+      "test": "v5/grundlage/tests/pr21-merchant-ratification-record-boundary.test.mjs",
+      "checkpointId": "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT",
+      "requiredHandoffStatus": "READY_FOR_EXPLICIT_MANUAL_RATIFICATION",
+      "exactConfirmationRequired": true,
+      "recordStatus": "RATIFIED_RECORD_ONLY",
+      "gateAdvanced": false,
+      "authorityIssued": false,
+      "broadRuntimeGrant": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "nextAction": "PREPARE_PR21_GATE_ADVANCE_PROPOSAL_BOUNDARY"
     }
   },
   "pr22": {
