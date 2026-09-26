@@ -106,7 +106,8 @@ Deliverable: walkable Main with original gameplay logic.
 - [x] unified character/equipment/inventory presentation surface
 - [ ] interactive inventory/equipment actions
 - [ ] quests/events
-- [ ] minimap
+- [x] minimap baseline from immutable map bounds, collision lines and entity snapshots
+- [ ] expanded world-map / route interaction layer
 - [x] first-party gameplay menu baseline
 - [ ] settings
 

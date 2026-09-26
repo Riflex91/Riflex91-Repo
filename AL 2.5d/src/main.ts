@@ -35,6 +35,7 @@ import {
 import { GraphicsModeToggle } from "./ui/GraphicsModeToggle";
 import { CombatFeedbackOverlay } from "./ui/CombatFeedbackOverlay";
 import { HudOverlay } from "./ui/HudOverlay";
+import { MinimapOverlay } from "./ui/MinimapOverlay";
 
 declare global {
   interface Window {
@@ -146,6 +147,9 @@ async function boot(): Promise<void> {
   );
   hud.setMode(graphicsMode);
 
+  const minimap = new MinimapOverlay(document.body);
+  minimap.setMode(graphicsMode);
+
   const cameraHelp = document.createElement("div");
   cameraHelp.id = "al25d-camera-help";
   cameraHelp.textContent = "MMB drehen · Mausrad zoomen";
@@ -159,6 +163,7 @@ async function boot(): Promise<void> {
     graphicsToggle.setMode(nextMode);
     hud.setMode(nextMode);
     combatFeedback.setMode(nextMode);
+    minimap.setMode(nextMode);
     cameraHelp.hidden = nextMode !== "2.5d";
   });
   graphicsToggle.setMode(graphicsMode);
@@ -185,6 +190,7 @@ async function boot(): Promise<void> {
         }
 
         hud.render(snapshot);
+        minimap.render(snapshot);
         combatFeedback.render(snapshot, camera, {
           width: host.clientWidth,
           height: host.clientHeight
@@ -215,6 +221,7 @@ async function boot(): Promise<void> {
     renderFrame: (snapshot) => {
       latestSnapshot = snapshot;
       hud.render(snapshot);
+      minimap.render(snapshot);
       combatFeedback.render(snapshot, camera, {
         width: host.clientWidth,
         height: host.clientHeight
@@ -264,6 +271,7 @@ async function boot(): Promise<void> {
       legacyRuntime?.stop();
       legacyRuntime = null;
       hud.clear();
+      minimap.clear();
       combatFeedback.clear();
       graphicsToggle.dockToLegacyUi(null);
       graphicsToggle.setReady(false);
@@ -276,6 +284,7 @@ async function boot(): Promise<void> {
       graphicsToggle.setMode(mode);
       hud.setMode(mode);
       combatFeedback.setMode(mode);
+      minimap.setMode(mode);
       cameraHelp.hidden = mode !== "2.5d";
     },
     getGraphicsMode: () => graphicsMode
@@ -474,6 +483,7 @@ async function boot(): Promise<void> {
           graphicsToggle.setMode("original");
           hud.setMode("original");
           combatFeedback.setMode("original");
+          minimap.setMode("original");
           cameraHelp.hidden = true;
         }
 
