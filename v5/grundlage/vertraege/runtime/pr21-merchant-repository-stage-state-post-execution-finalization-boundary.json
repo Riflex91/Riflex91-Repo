@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_POST_EXECUTION_FINALIZATION_RECORD_ONLY",
+  "sourceMain": "7e6b21cb022b1d4eaa26d90cd76530736946a671",
+  "source": "v5/grundlage/quelle/merchant/pr21-merchant-repository-stage-state-post-execution-finalization-boundary.ts",
+  "test": "v5/grundlage/tests/pr21-merchant-repository-stage-state-post-execution-finalization-boundary.test.mjs",
+  "requiredExecutionStatus": "APPLIED_VERIFIED_REPOSITORY_STAGE_STATE_RECORD_ONLY",
+  "executionFingerprintRevalidationRequired": true,
+  "repositoryPostconditionRevalidationRequired": true,
+  "requiredPostState": {
+    "pr21StageStatus": "COMPLETE",
+    "pr22StageStatus": "IN_PROGRESS",
+    "currentStage": "PR22",
+    "currentGate": "PR22_MULTI_CHARACTER_COORDINATION",
+    "pr22ProductiveAuthorityIssued": false
+  },
+  "success": {
+    "status": "READY_FOR_PR22_DEVELOPMENT_HANDOFF_RECORD_ONLY",
+    "completedStage": "PR21",
+    "nextDevelopmentStage": "PR22",
+    "pr21StageStatus": "COMPLETE",
+    "pr22StageStatus": "IN_PROGRESS",
+    "currentStage": "PR22",
+    "currentGate": "PR22_MULTI_CHARACTER_COORDINATION",
+    "pr22ProductiveAuthorityIssued": false,
+    "pr22DevelopmentHandoffPrepared": true,
+    "pr22ProductiveHandoffPrepared": false
+  },
+  "safety": {
+    "additionalRepositoryMutationPerformed": false,
+    "controlPlaneMutationPerformed": false,
+    "authorityIssued": false,
+    "pr22ProductiveHandoffPrepared": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadRuntimeGrant": false,
+    "normalRuntimeAllowed": false
+  },
+  "executionPerformedInRepository": false,
+  "nextAction": "PREPARE_PR22_DEVELOPMENT_HANDOFF_BOUNDARY"
+}
