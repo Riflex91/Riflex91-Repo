@@ -206,6 +206,11 @@ const allowedPackages = Object.freeze({
     path: "v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-1.js",
     expectedGlobal: "V5PR21MerchantIntegrationLive15mV101",
     gate: "PR21_MERCHANT_INTEGRATION"
+  }),
+  "pr21-merchant-integration-live-15m-v1-0-2": Object.freeze({
+    path: "v5/werkzeuge/pr21-merchant-integration-live-15m-v1-0-2.js",
+    expectedGlobal: "V5PR21MerchantIntegrationLive15mV102",
+    gate: "PR21_MERCHANT_INTEGRATION"
   })
 });
 const selected = allowedPackages[manifest.testId];
