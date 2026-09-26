@@ -28,25 +28,20 @@ jobs:
           git clone --filter=blob:none --no-checkout https://github.com/kaansoral/adventureland_mongodb.git .upstream-adventureland
           git -C .upstream-adventureland fetch --depth=1 origin 90052162eb3ebda36c893e1eb4af643913c8f984
           git -C .upstream-adventureland checkout --detach 90052162eb3ebda36c893e1eb4af643913c8f984
-      - name: Build Mainland doors 8x pilot artifact
+      - name: Materialize deterministic generated HD assets
         working-directory: Adventure Land HD
-        run: |
-          mkdir -p /tmp/alhd-artifacts
-          node tools/build-nearest-png.mjs \
-            --input "../.upstream-adventureland/images/tiles/map/doors.png" \
-            --output "/tmp/alhd-artifacts/doors@8x.png" \
-            --scale 8
+        run: node tools/materialize-generated-hd-assets.mjs --upstream "../.upstream-adventureland"
       - name: Verify deterministic Mainland doors pilot hash
         shell: bash
         run: |
-          echo "66fef5c19149ac4cf8a625b0c1b19a5ca6a359f35e1c0ec9d4350bf69de2235f  /tmp/alhd-artifacts/doors@8x.png" | sha256sum --check --strict
+          echo "66fef5c19149ac4cf8a625b0c1b19a5ca6a359f35e1c0ec9d4350bf69de2235f  Adventure Land HD/hd-assets/map/doors@8x.png" | sha256sum --check --strict
       - name: Reject invalid explicit terrain scale
         working-directory: Adventure Land HD
         shell: bash
         run: |
           if node tools/build-nearest-png.mjs \
             --input "../.upstream-adventureland/images/tiles/map/doors.png" \
-            --output "/tmp/alhd-artifacts/invalid-scale.png" \
+            --output "/tmp/invalid-scale.png" \
             --scale 0; then
             echo "explicit --scale 0 must fail" >&2
             exit 1
@@ -55,7 +50,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: alhd-mainland-doors-8x
-          path: /tmp/alhd-artifacts/doors@8x.png
+          path: Adventure Land HD/hd-assets/map/doors@8x.png
           if-no-files-found: error
           compression-level: 0
       - name: Deep-audit pinned visual assets
