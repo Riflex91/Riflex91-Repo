@@ -527,6 +527,21 @@ Gameplay-, Raw-Write- oder NormalRuntime-Authority.
 Der eigentliche Gate-Apply bleibt ein separater, default-off Schritt mit
 erneuten Freshness- und Fingerprint-Pruefungen.
 
+## PR22-Coordination-Productive-Default-Off-Gate-Apply-Boundary
+
+Aus einem revalidierten Gate-Advance-Proposal entsteht nur eine
+`PREPARED_PR22_PRODUCTIVE_GATE_APPLY_DEFAULT_OFF`-Transaktion.
+Proposal-, Productive-Evidence- und Ratification-Fingerprint sowie der
+Source-Main werden deterministisch gebunden.
+
+Vor einer spaeteren Execution sind frischer Main, Proposal-/Evidence-/
+Ratification-Fingerprint, Repository-State, Feature-Gate und CAP-022
+Full-Chain erneut zu pruefen. Durable Intent, One-Shot und Postcondition-
+Verifikation bleiben Pflicht; UNKNOWN erzwingt Reconciliation.
+
+Die Boundary installiert keinen Apply-Adapter, aktiviert keine Execution
+und mutiert weder Gate noch Repository.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
