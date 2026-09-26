@@ -69,6 +69,7 @@ Status: in progress
 - [x] click-to-move continues through the original map_click/on_map_click path
 - [ ] authored character/NPC/monster artwork and animation states
 - [x] authored player class sprite baseline (warrior/mage/ranger/rogue/priest/paladin/merchant)
+- [x] authored NPC/monster baseline sprites with first-party renderer priority
 - [x] custom-player-art priority with live legacy sprite fallback for uncovered entities
 - [x] baseline nameplates, HP/MP bars and target highlight
 - [x] priority-based HUD decluttering for dense NPC/monster clusters
@@ -97,6 +98,7 @@ Deliverable: walkable Main with original gameplay logic.
 - [x] skill/hotbar baseline driven by original live keymap
 - [ ] chat
 - [x] inventory/equipment read-only baseline
+- [x] unified character/equipment/inventory presentation surface
 - [ ] interactive inventory/equipment actions
 - [ ] quests/events
 - [ ] minimap
