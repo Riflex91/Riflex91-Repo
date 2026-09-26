@@ -482,7 +482,7 @@
     };
   }
 
-  async async function run() {
+  async function run() {
     installFacade();
     const binding = bindSource();
     if (!armPerformanceTrick(binding.owner)) {
