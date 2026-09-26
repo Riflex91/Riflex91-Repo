@@ -107,7 +107,7 @@ test("runtime reports verification-only bridge isolation while retaining direct 
   const status = root.V5LiveLab.status();
 
   assert.equal(root.V5LiveLab.version, "0.6.4");
-  assert.equal(root.V5LiveLab.buildId, "V5_LIVE_LAB_FULL_AUTONOMY_R12_1");
+  assert.equal(root.V5LiveLab.buildId, "V5_LIVE_LAB_FULL_AUTONOMY_R13_1");
   assert.equal(isolation.verificationOnly, true);
   assert.equal(isolation.windowsBridgeCommunication, false);
   assert.equal(isolation.externalHostTransport, false);

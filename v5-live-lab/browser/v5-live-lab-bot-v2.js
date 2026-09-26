@@ -3,9 +3,9 @@
 
   const PROFILE_ID = "V5_LIVE_LAB_PR28";
   const VERSION = "0.6.4";
-  const SOURCE_MAIN_SHA = "9ad5ee1404908783d0c7b13c705239012abeee97";
-  const BUILD_CHANNEL = "chatgpt/v5-live-lab-movement-postcondition-r12";
-  const BUILD_ID = "V5_LIVE_LAB_FULL_AUTONOMY_R12_1";
+  const SOURCE_MAIN_SHA = "aa779a0fe1321a68c89ad9ae0eec02108904e978";
+  const BUILD_CHANNEL = "chatgpt/v5-live-lab-movement-postcondition-r13";
+  const BUILD_ID = "V5_LIVE_LAB_FULL_AUTONOMY_R13_1";
   const AL25D_PINNED_UPSTREAM_COMMIT = "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4";
   const START_ACK = "V5_LIVE_LAB_START";
   const MAX_LOGS = 4000;

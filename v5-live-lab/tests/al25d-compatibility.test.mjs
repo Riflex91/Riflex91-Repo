@@ -223,7 +223,7 @@ test("direct Adventure Land runtime remains supported", () => {
   const status = env.root.V5LiveLab.status();
 
   assert.equal(env.root.V5LiveLab.version, "0.6.4");
-  assert.equal(env.root.V5LiveLab.buildId, "V5_LIVE_LAB_FULL_AUTONOMY_R12_1");
+  assert.equal(env.root.V5LiveLab.buildId, "V5_LIVE_LAB_FULL_AUTONOMY_R13_1");
   assert.equal(status.runtimeEnvironment.mode, "ADVENTURE_LAND_DIRECT");
   assert.equal(status.character, "DirectRanger");
   assert.equal(env.root.V5LiveLab.inspectPorts().attack, true);
