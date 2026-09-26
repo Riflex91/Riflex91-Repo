@@ -90,7 +90,7 @@ function resolveLegacyCodeRunner(
 function dispatchLegacyRunnerAction(
   source: LegacyCompatibilitySource,
   action: keyof LegacyCodeRunner,
-  args: readonly unknown[]
+  args: unknown[]
 ): unknown {
   const runner = resolveLegacyCodeRunner(source);
   const handler = runner[action];
@@ -99,7 +99,7 @@ function dispatchLegacyRunnerAction(
     throw new Error(`Original Adventure Land ${action}() is not available`);
   }
 
-  return (handler as (...values: readonly unknown[]) => unknown).apply(
+  return (handler as (...values: unknown[]) => unknown).apply(
     runner,
     args
   );
