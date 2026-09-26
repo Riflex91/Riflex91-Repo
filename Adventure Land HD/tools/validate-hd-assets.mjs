@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
-import {validateUniformIntegerScale,hasResolutionSuffix,replacementPolicyFor} from "../lib/hd-contracts.mjs";
+import {validateUniformIntegerScale,hasResolutionSuffix,replacementPolicyFor,normalizeAssetPath} from "../lib/hd-contracts.mjs";
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const args=process.argv.slice(2), val=f=>{const i=args.indexOf(f);return i>=0?args[i+1]:null;};
 const upstreamArg=val("--upstream"), hdRootArg=val("--hd-root")||"hd-assets";
@@ -22,10 +22,9 @@ function imageSize(file){
   return null;
 }
 const errors=[];
-const normalizeSourcePath=value=>String(value||"").split("?")[0].split("#")[0].replace(/^\\/+/, "");
 const normalizedSourcePaths=(manifest.replacements||[])
   .filter(item=>typeof item?.sourcePath==="string")
-  .map(item=>normalizeSourcePath(item.sourcePath));
+  .map(item=>normalizeAssetPath(item.sourcePath));
 if(new Set(normalizedSourcePaths).size!==normalizedSourcePaths.length) errors.push("replacement sourcePath values must be unique after normalization");
 if(manifest.rules?.defaultScale!==8) errors.push("manifest rules.defaultScale must be 8");
 for(const item of manifest.replacements||[]){
