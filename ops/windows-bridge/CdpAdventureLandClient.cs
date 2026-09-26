@@ -105,7 +105,13 @@ public sealed class CdpAdventureLandClient
                         continue;
                     }
 
-                    if (!string.Equals(ReadString(probe, "ctype"), "merchant", StringComparison.OrdinalIgnoreCase))
+                    var contextCtype = ReadString(probe, "ctype");
+                    var hasNativeRuntime = ReadBoolean(probe, "hasNativeRuntime", false);
+                    if (!IsEligibleV5CoordinatorContext(
+                            contextCtype,
+                            hasNativeRuntime,
+                            manifest.Gate,
+                            manifest.TestId))
                         continue;
 
                     var currentTestId = ReadString(probe, "currentTestId");
@@ -990,6 +996,27 @@ public sealed class CdpAdventureLandClient
     private sealed record OperationsContextCandidate(int ContextId, int Priority);
     private sealed record RankedTarget(CdpTarget Target, int Priority);
 
+    public static bool RequiresNativeV3CoordinatorContext(string? gate, string? testId)
+    {
+        var gateValue = (gate ?? string.Empty).Trim();
+        var testValue = (testId ?? string.Empty).Trim();
+        return string.Equals(gateValue, "PR21_MERCHANT_INTEGRATION", StringComparison.OrdinalIgnoreCase)
+            && testValue.StartsWith("pr21-merchant-integration-live-", StringComparison.Ordinal);
+    }
+
+    public static bool IsEligibleV5CoordinatorContext(
+        string? ctype,
+        bool hasNativeRuntime,
+        string? gate,
+        string? testId)
+    {
+        if (!string.Equals((ctype ?? string.Empty).Trim(), "merchant", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (RequiresNativeV3CoordinatorContext(gate, testId) && !hasNativeRuntime)
+            return false;
+        return true;
+    }
+
     public static int OperationsContextPriority(
         bool valid,
         bool hasV5AutonomousTest,
@@ -1345,12 +1372,27 @@ public sealed class CdpAdventureLandClient
       } catch {}
 
       let current = null;
+      let hasNativeRuntime = false;
       try {
-        const aio = globalThis.AIO_V3
-          || (globalThis.parent && globalThis.parent.AIO_V3)
-          || null;
+        const localAio = globalThis.AIO_V3 || null;
+        const parentAio = globalThis.parent && globalThis.parent.AIO_V3
+          ? globalThis.parent.AIO_V3
+          : null;
+        const candidates = [localAio, parentAio];
+        for (const candidate of candidates) {
+          if (!candidate) continue;
+          if (candidate.__runtime
+              && candidate.__operations
+              && typeof candidate.start === 'function'
+              && typeof candidate.stop === 'function'
+              && typeof candidate.status === 'function') {
+            hasNativeRuntime = true;
+            break;
+          }
+        }
+        const aio = localAio || parentAio || null;
         const operations = aio && aio.operations;
-        const status = typeof operations?.status === 'function' ? operations.status() : null;
+        const status = operations && typeof operations.status === 'function' ? operations.status() : null;
         current = status && status.v5AutonomousTest && typeof status.v5AutonomousTest === 'object'
           ? status.v5AutonomousTest
           : null;
@@ -1359,6 +1401,7 @@ public sealed class CdpAdventureLandClient
       return {
         name,
         ctype,
+        hasNativeRuntime,
         currentTestId: current ? String(current.testId || '') : null,
         currentVersion: current ? String(current.version || '') : null,
         currentStatus: current ? String(current.status || '') : null,
