@@ -4,23 +4,56 @@ import fs from "node:fs";
 import {bauePr21_28StageLedger,replayPr21_28AdvanceChain} from "../../erzeugt/index.js";
 
 const STAGES=["PR21","PR22","PR23","PR24","PR25","PR26","PR27","PR28"];
-function states(overrides={}){
-  return STAGES.map(stage=>({
+
+function settlement(stage,overrides={}){
+  const cap022Required=stage==="PR22"||stage==="PR23";
+  return {
+    schemaVersion:1,
+    transactionFingerprint:"0011223344556677",
+    transactionId:"tx-"+stage.toLowerCase(),
     stage,
-    foundationPrepared:true,
-    orchestrationPrepared:true,
-    featureGatePrepared:true,
-    cap022FullChainReady:true,
-    milestoneRunnerPrepared:true,
-    checkpointRunbookPrepared:true,
-    ratificationRecordPrepared:true,
-    gateApplyTransactionPrepared:true,
-    gateSettlementPrepared:true,
-    liveEvidenceRatified:false,
-    explicitRatificationRecorded:false,
-    gateApplyVerified:false,
-    ...(overrides[stage]??{}),
-  }));
+    sourceMainCommit:"7497da76cd62a53c1aca77535ec98193dab943de",
+    cap022FullChainRequired:cap022Required,
+    cap022FullChainSatisfied:true,
+    settledAtMs:2000,
+    status:"APPLIED_VERIFIED_RECORD_ONLY",
+    durableIntentObserved:true,
+    postconditionVerified:true,
+    terminalSettlementObserved:true,
+    gateMutationPerformedBySettlement:false,
+    authorityIssuedBySettlement:false,
+    broadRuntimeGrant:false,
+    settlementFingerprint:"8899aabbccddeeff",
+    ...overrides,
+  };
+}
+
+function states(overrides={}){
+  return STAGES.map(stage=>{
+    const stageOverride=overrides[stage]??{};
+    const row={
+      stage,
+      foundationPrepared:true,
+      orchestrationPrepared:true,
+      featureGatePrepared:true,
+      cap022FullChainReady:true,
+      milestoneRunnerPrepared:true,
+      checkpointRunbookPrepared:true,
+      ratificationRecordPrepared:true,
+      gateApplyTransactionPrepared:true,
+      gateSettlementPrepared:true,
+      liveEvidenceRatified:false,
+      explicitRatificationRecorded:false,
+      gateApplyVerified:false,
+      gateSettlement:null,
+      ...stageOverride,
+    };
+    if(row.gateApplyVerified===true
+        && !Object.prototype.hasOwnProperty.call(stageOverride,"gateSettlement")){
+      row.gateSettlement=settlement(stage);
+    }
+    return row;
+  });
 }
 
 test("all PR21-28 preparation can be complete while productive chain remains closed",()=>{
@@ -43,6 +76,7 @@ test("all PR21-28 preparation can be complete while productive chain remains clo
   assert.ok(replay.blocker.includes("PR21_LIVE_EVIDENCE_REQUIRED"));
   assert.ok(replay.blocker.includes("PR21_EXPLICIT_RATIFICATION_REQUIRED"));
   assert.ok(replay.blocker.includes("PR21_VERIFIED_GATE_APPLY_REQUIRED"));
+  assert.equal(replay.stages[0].requiresVerifiedGateSettlement,false);
   assert.equal(replay.replayMutatedGate,false);
   assert.equal(replay.replayIssuedAuthority,false);
 });
@@ -129,6 +163,58 @@ test("PR22/PR23 Stage-Ledger verlangt CAP-022 Full-Chain fuer Preparation",()=>{
   const directReplay=replayPr21_28AdvanceChain(directPr23);
   assert.ok(directReplay.blocker.includes("PR23_CAP022_FULL_CHAIN_REQUIRED"));
   assert.equal(directPr23.entries[2].cap022FullChainSatisfied,false);
+});
+
+
+
+test("gateApplyVerified ohne terminalen Settlement-Record bleibt produktiv blockiert",()=>{
+  const ledger=bauePr21_28StageLedger(states({
+    PR21:{
+      liveEvidenceRatified:true,
+      explicitRatificationRecorded:true,
+      gateApplyVerified:true,
+      gateSettlement:null,
+    },
+  }));
+  const entry=ledger.entries[0];
+  assert.equal(entry.gateSettlementEvidenceRequired,true);
+  assert.equal(entry.gateSettlementEvidenceSatisfied,false);
+  assert.equal(entry.productivePrerequisitesComplete,false);
+  assert.equal(entry.productiveChainEligible,false);
+
+  const replay=replayPr21_28AdvanceChain(ledger);
+  assert.ok(replay.blocker.includes("PR21_VERIFIED_GATE_SETTLEMENT_REQUIRED"));
+  assert.equal(replay.stages[0].requiresVerifiedGateSettlement,true);
+});
+
+test("PR22/PR23 Settlement-Evidence muss Stage und CAP-022 exakt binden",()=>{
+  const wrongStage=bauePr21_28StageLedger(states({
+    PR22:{
+      liveEvidenceRatified:true,
+      explicitRatificationRecorded:true,
+      gateApplyVerified:true,
+      gateSettlement:settlement("PR23"),
+    },
+  }));
+  assert.equal(wrongStage.entries[1].gateSettlementEvidenceSatisfied,false);
+
+  const wrongCap=bauePr21_28StageLedger(states({
+    PR23:{
+      liveEvidenceRatified:true,
+      explicitRatificationRecorded:true,
+      gateApplyVerified:true,
+      gateSettlement:settlement("PR23",{cap022FullChainSatisfied:false}),
+    },
+  }));
+  assert.equal(wrongCap.entries[2].gateSettlementEvidenceSatisfied,false);
+
+  const valid=bauePr21_28StageLedger(states({
+    PR21:{liveEvidenceRatified:true,explicitRatificationRecorded:true,gateApplyVerified:true},
+    PR22:{liveEvidenceRatified:true,explicitRatificationRecorded:true,gateApplyVerified:true},
+    PR23:{liveEvidenceRatified:true,explicitRatificationRecorded:true,gateApplyVerified:true},
+  }));
+  assert.equal(valid.entries[1].gateSettlementEvidenceSatisfied,true);
+  assert.equal(valid.entries[2].gateSettlementEvidenceSatisfied,true);
 });
 
 test("ledger rejects duplicate or incomplete stage sets",()=>{
