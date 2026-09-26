@@ -176,11 +176,11 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
 });
 
 test("active autonomous manifest is advanced to the Exchange 5m observer",()=>{
-  assert.equal(manifest.testId,"pr20-9-craft-durable-shadow-no-write");
-  assert.equal(manifest.controllerVersion,"1.0.0");
-  assert.equal(manifest.sourceCommit,"116d762a1e1fad230cbd64a5a44d6762465501f0");
-  assert.equal(manifest.packageSha256,"a384ce89e3d843b5a1d0fe24a1212f8c0ad9583a7598d570136601b7bb03325a");
-  assert.equal(manifest.expectedGlobal,"V5PR209CraftDurableShadowNoWrite");
+  assert.equal(manifest.testId,"pr20-9-craft-durable-shadow-natural-recheck-no-write");
+  assert.equal(manifest.controllerVersion,"1.1.0");
+  assert.equal(manifest.sourceCommit,"406feea6491edd14be2e76c842ac761b89f57a5d");
+  assert.equal(manifest.packageSha256,"f1b5fc3fd761fbca12355976543e823bff4bf53efed074b1d4820433a0567008");
+  assert.equal(manifest.expectedGlobal,"V5PR209CraftDurableShadowNaturalRecheckNoWrite");
   assert.equal(manifest.normalRuntimeAllowed,false);
   assert.equal(shadow.status,"PREPARED_NO_WRITE");
 });
