@@ -34,7 +34,7 @@ const main=maps[scope.mapId];
 if(!main) errors.push("missing map definition: "+scope.mapId);
 
 const normalize=file=>String(file||"").split("?")[0].replace(/^[/]+/, "");
-const sort=a=>[...a].sort((x,y)=>String(x).localeCompare(String(y)));
+const sort=a=>[...a].map(String).sort();
 const spriteIndex=new Map();
 function addSprite(name,file){
   if(!name||!file) return;
