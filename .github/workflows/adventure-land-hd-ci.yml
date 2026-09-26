@@ -46,6 +46,21 @@ jobs:
             echo "explicit --scale 0 must fail" >&2
             exit 1
           fi
+      - name: Build complete Mainland 8x terrain baseline candidates
+        working-directory: Adventure Land HD
+        shell: bash
+        run: |
+          node tools/build-mainland-terrain-baseline.mjs \
+            --upstream "../.upstream-adventureland" \
+            --output-root "/tmp/alhd-mainland-terrain" | tee /tmp/alhd-mainland-terrain-hashes.log
+          test "$(find /tmp/alhd-mainland-terrain -type f -name '*@8x.png' | wc -l)" -eq 14
+      - name: Upload Mainland terrain hash report
+        uses: actions/upload-artifact@v4
+        with:
+          name: alhd-mainland-terrain-hashes
+          path: /tmp/alhd-mainland-terrain-hashes.log
+          if-no-files-found: error
+          compression-level: 0
       - name: Upload Mainland doors 8x pilot artifact
         uses: actions/upload-artifact@v4
         with:
