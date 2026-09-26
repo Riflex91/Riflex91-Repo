@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_POST_EXECUTION_REPOSITORY_TRANSITION_PROPOSAL_ONLY",
+  "sourceMain": "d946a109be4580f6b4aeb42aeca09f27631b0ef7",
+  "stage": "PR21",
+  "nextStage": "PR22",
+  "source": "v5/grundlage/quelle/merchant/pr21-merchant-stage-completion-post-execution-transition-boundary.ts",
+  "test": "v5/grundlage/tests/pr21-merchant-stage-completion-post-execution-transition-boundary.test.mjs",
+  "requiredExecutionStatus": "APPLIED_VERIFIED_STAGE_TRANSITION_RECORD_ONLY",
+  "requiredCompletionRecordStatus": "APPLIED_VERIFIED_STAGE_TRANSITION_RECORD_ONLY",
+  "requiredProposalStatus": "READY_FOR_SEPARATE_REPOSITORY_STAGE_STATE_APPLY",
+  "completionFingerprintMustRevalidate": true,
+  "currentMainMustMatchCompletionSource": true,
+  "target": {
+    "completedStage": "PR21",
+    "nextDevelopmentStage": "PR22",
+    "requiredPr21StageStatusBeforeApply": "IN_PROGRESS",
+    "requiredPr22StageStatusBeforeApply": "BLOCKED_BY_PR21",
+    "pr21StageStatus": "COMPLETE",
+    "pr22StageStatus": "IN_PROGRESS",
+    "currentStage": "PR22",
+    "pr22ProductiveAuthorityIssued": false
+  },
+  "apply": {
+    "freshMainCheckRequiredAtApply": true,
+    "completionFingerprintRecheckRequiredAtApply": true,
+    "separateRepositoryStageStateApplyRequired": true,
+    "repositoryStageStateApplied": false
+  },
+  "safety": {
+    "proposalOnly": true,
+    "roadmapMutationPerformed": false,
+    "ledgerMutationPerformed": false,
+    "controlPlaneMutationPerformed": false,
+    "authorityIssued": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "broadRuntimeGrant": false,
+    "normalRuntimeAllowed": false
+  },
+  "nextAction": "PREPARE_PR21_REPOSITORY_STAGE_STATE_APPLY_BOUNDARY"
+}
