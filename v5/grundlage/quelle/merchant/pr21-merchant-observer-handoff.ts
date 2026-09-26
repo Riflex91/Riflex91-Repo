@@ -51,6 +51,11 @@ const CHECKPOINT = "PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT" as const;
 const SEGMENT = "pr21-merchant-integration" as const;
 const RUNTIME_AUTHORITY = "runtime:merchant" as const;
 const RUNTIME_AUTHORITY_IDS = Object.freeze([RUNTIME_AUTHORITY] as const);
+const RESOURCE_METRIC_IDS = Object.freeze([
+  "ssdIoLatenzMs",
+  "ioQueueTiefe",
+  "freieBytes",
+] as const);
 
 export function bereitePr21MerchantObserverHandoffVor(
   admission: Pr21MerchantCheckpointAdmission,
@@ -146,11 +151,7 @@ export function bereitePr21MerchantObserverHandoffVor(
     allowedActiveAuthorityIds: RUNTIME_AUTHORITY_IDS,
     requiredHealthState: "GESUND",
     operationsMustBeCurrent: true,
-    operationsResourceMetricsRequired: Object.freeze([
-      "ssdIoLatenzMs",
-      "ioQueueTiefe",
-      "freieBytes",
-    ]),
+    operationsResourceMetricsRequired: RESOURCE_METRIC_IDS,
     recorderDropsAllowed: 0,
     backpressureAllowed: false,
     abortSignals: Object.freeze([...runbook.abortSignals]),
