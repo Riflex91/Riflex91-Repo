@@ -15,6 +15,7 @@
     "terrain:main:verify": "node tools/verify-mainland-terrain-plan.mjs",
     "hd:materialize-generated": "node tools/materialize-generated-hd-assets.mjs",
     "entities:main:verify": "node tools/verify-mainland-entity-plan.mjs",
-    "entities:main:report": "node tools/verify-mainland-entity-candidate-report.mjs"
+    "entities:main:report": "node tools/verify-mainland-entity-candidate-report.mjs",
+    "entities:main:promotion": "node tools/build-mainland-entity-promotion.mjs"
   }
 }
