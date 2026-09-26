@@ -373,6 +373,7 @@ export class Pixi25DRenderer implements RenderBridge {
     const width = Math.max(1, surface.maxX - surface.minX);
     const depth = Math.max(1, surface.maxY - surface.minY);
     const structure = surface.layer === "structure";
+    const materialKind = this.materialKind(surface.material);
     const materialSeed = this.surfaceSeed(
       surface,
       surface.minX + width / 2,
@@ -380,6 +381,80 @@ export class Pixi25DRenderer implements RenderBridge {
     );
 
     if (!structure) {
+      if (materialKind === "stone") {
+        const spacing = Math.max(24, Math.min(48, Math.floor(Math.max(width, depth) / 10)));
+        const maxLines = 120;
+        let lines = 0;
+
+        for (
+          let x = surface.minX + spacing;
+          x < surface.maxX && lines < maxLines;
+          x += spacing
+        ) {
+          const a = projectWorldToScreen({ x, y: surface.minY });
+          const b = projectWorldToScreen({ x, y: surface.maxY });
+          graphics
+            .moveTo(a.x, a.y)
+            .lineTo(b.x, b.y)
+            .stroke({
+              color: this.shadeColor(materialColor, 0.72),
+              width: 0.8,
+              alpha: 0.2
+            });
+          lines += 1;
+        }
+
+        for (
+          let y = surface.minY + spacing;
+          y < surface.maxY && lines < maxLines;
+          y += spacing
+        ) {
+          const stagger = Math.round(y / spacing) % 2 === 0 ? spacing * 0.35 : 0;
+          const a = projectWorldToScreen({
+            x: Math.min(surface.maxX, surface.minX + stagger),
+            y
+          });
+          const b = projectWorldToScreen({ x: surface.maxX, y });
+          graphics
+            .moveTo(a.x, a.y)
+            .lineTo(b.x, b.y)
+            .stroke({
+              color: this.shadeColor(materialColor, 1.22),
+              width: 0.55,
+              alpha: 0.13
+            });
+          lines += 1;
+        }
+
+        return;
+      }
+
+      if (materialKind === "water") {
+        const spacing = Math.max(28, Math.min(54, Math.floor(Math.max(width, depth) / 9)));
+        let waves = 0;
+        for (
+          let y = surface.minY + spacing / 2;
+          y < surface.maxY && waves < 48;
+          y += spacing
+        ) {
+          const seed = this.surfaceSeed(surface, surface.minX, y);
+          const x1 = surface.minX + spacing * this.seedUnit(seed * 3);
+          const x2 = Math.min(surface.maxX, x1 + spacing * 1.7);
+          const a = projectWorldToScreen({ x: x1, y });
+          const b = projectWorldToScreen({ x: x2, y });
+          graphics
+            .moveTo(a.x, a.y)
+            .lineTo(b.x, b.y)
+            .stroke({
+              color: this.shadeColor(materialColor, 1.45),
+              width: 1.1,
+              alpha: 0.28
+            });
+          waves += 1;
+        }
+        return;
+      }
+
       const longAxis = Math.max(width, depth);
       const spacing = Math.max(32, Math.min(72, Math.floor(longAxis / 9)));
       const maxSamples = 96;
@@ -405,17 +480,29 @@ export class Pixi25DRenderer implements RenderBridge {
           const fleck = 1.5 + this.seedUnit(seed * 13) * 3.5;
           const brightness = 0.82 + this.seedUnit(seed * 17) * 0.32;
 
-          graphics
-            .rect(
-              point.x - fleck / 2,
-              point.y - fleck / 3,
-              fleck,
-              Math.max(1, fleck * 0.55)
-            )
-            .fill({
-              color: this.shadeColor(materialColor, brightness),
-              alpha: 0.16
-            });
+          if (materialKind === "grass") {
+            graphics
+              .moveTo(point.x - fleck, point.y + 1)
+              .lineTo(point.x, point.y - fleck * 1.5)
+              .lineTo(point.x + fleck, point.y + 1)
+              .stroke({
+                color: this.shadeColor(materialColor, brightness * 1.16),
+                width: 0.8,
+                alpha: 0.25
+              });
+          } else {
+            graphics
+              .rect(
+                point.x - fleck / 2,
+                point.y - fleck / 3,
+                fleck,
+                Math.max(1, fleck * 0.55)
+              )
+              .fill({
+                color: this.shadeColor(materialColor, brightness),
+                alpha: 0.16
+              });
+          }
 
           if (this.seedUnit(seed * 19) > 0.7) {
             const a = projectWorldToScreen({
@@ -491,6 +578,56 @@ export class Pixi25DRenderer implements RenderBridge {
           alpha: 0.22
         });
     }
+
+    if (materialKind === "architecture" && height >= 8) {
+      const windowCount = Math.max(1, Math.min(5, Math.floor(width / 72)));
+
+      for (let index = 1; index <= windowCount; index += 1) {
+        const t = index / (windowCount + 1);
+        const x = frontLeft.x + (frontRight.x - frontLeft.x) * t;
+        const y = frontLeft.y + (frontRight.y - frontLeft.y) * t - height * 0.53;
+        const seed = this.surfaceSeed(
+          surface,
+          surface.minX + width * t,
+          surface.maxY
+        );
+
+        if (this.seedUnit(seed * 23) < 0.22) continue;
+
+        graphics
+          .roundRect(x - 2.8, y - 3.4, 5.6, 6.8, 1.2)
+          .fill({ color: 0xffcf74, alpha: 0.42 })
+          .stroke({ color: 0xffedb0, width: 0.55, alpha: 0.3 });
+      }
+    }
+
+    if (materialKind === "wood") {
+      const beamY = frontLeft.y - Math.max(2, height * 0.42);
+      graphics
+        .moveTo(frontLeft.x, beamY)
+        .lineTo(frontRight.x, beamY + (frontRight.y - frontLeft.y))
+        .stroke({
+          color: this.shadeColor(materialColor, 0.58),
+          width: 1.35,
+          alpha: 0.36
+        });
+    }
+  }
+
+  private materialKind(
+    material: string
+  ): "stone" | "grass" | "water" | "wood" | "architecture" | "generic" {
+    const key = material.toLowerCase();
+
+    if (/(water|river|lake|pond|sea)/.test(key)) return "water";
+    if (/(grass|tree|bush|flower|plant|forest|green)/.test(key)) return "grass";
+    if (/(wood|fence|crate|barrel|bridge)/.test(key)) return "wood";
+    if (/(wall|house|roof|building|castle|fort|tower|shop|interior)/.test(key)) {
+      return "architecture";
+    }
+    if (/(town|road|path|floor|stone|brick|pave)/.test(key)) return "stone";
+
+    return "generic";
   }
 
   private surfaceSeed(
@@ -730,15 +867,19 @@ export class Pixi25DRenderer implements RenderBridge {
   }
 
   private materialColor(material: string): number {
+    const kind = this.materialKind(material);
+
+    if (kind === "water") return 0x2d6576;
+    if (kind === "grass") return 0x31583f;
+    if (kind === "stone") return 0x5a584c;
+    if (kind === "architecture") return 0x665044;
+    if (kind === "wood") return 0x5b4230;
+
     const palette = [
-      0x274239,
-      0x304a3f,
-      0x3a4d42,
-      0x465344,
-      0x3b4c4e,
-      0x4a463b,
-      0x2f4848,
-      0x4b503f
+      0x32483f,
+      0x3b4f43,
+      0x485548,
+      0x4e5350
     ];
 
     let hash = 2166136261;
