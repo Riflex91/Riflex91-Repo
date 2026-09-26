@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import {execFileSync} from "node:child_process";
 import {fileURLToPath} from "node:url";
 
@@ -55,7 +56,7 @@ for(const entry of activation.entries){
 const output={
   schemaVersion:1,
   upstreamCommit:activation.upstreamCommit,
-  sourceReportSha256:null,
+  sourceReportSha256:crypto.createHash("sha256").update(fs.readFileSync(reportPath)).digest("hex"),
   totalDecodedRgbaMiB:report.totalDecodedRgbaMiB,
   replacements
 };
