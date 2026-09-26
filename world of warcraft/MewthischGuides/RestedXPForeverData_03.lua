@@ -1,5 +1,5 @@
 local addonName, MG = ...
-MG.RestEDXPForeverRaw = MG.RestEDXPForeverRaw or { source = { repository = "RestedXP/RXPGuides", commit = "6f9cf44c09123e496366b3cb5ffe7383660e4bcb", license = "CC BY-NC-SA 4.0", transformed = true, proseCopied = false }, chunks = {} }
+MG.RestEDXPForeverRaw = MG.RestEDXPForeverRaw or { source = { repository = "RestedXP/RXPGuides", commit = "a688a75d595f5884dba8044a5ba4e7d7bd859c09", license = "CC BY-NC-SA 4.0", transformed = true, proseCopied = false }, chunks = {} }
 MG.RestEDXPForeverRaw.chunks[#MG.RestEDXPForeverRaw.chunks + 1] = [=[
 G	Guides/forever/Horde-Mage-12-21.lua
 M	classic	

@@ -52,6 +52,7 @@ function MG:ChooseStep(reason)
     local newGoalID = self.currentStep.goal and self.currentStep.goal.id or nil
 
     if oldQuestID ~= self.currentStep.questID or oldPhase ~= self.currentStep.phase then
+        if self.AudioFeedback then self.AudioFeedback:Play("step") end
         self:Log("INFO", "guide.step_changed", "Aktiver Guide-Schritt geändert.", {
             reason = reason,
             resyncReason = preferredReason,
@@ -84,7 +85,16 @@ function MG:ChooseStep(reason)
 end
 
 function MG:RefreshGuide(reason)
-    self:ChooseStep(reason or "refresh")
+    reason = reason or "refresh"
+    self:ChooseStep(reason)
+    if self.RuntimeEngine then
+        self.RuntimeEngine:Commit(
+            self.currentStep,
+            self.GetActiveGuideDefinition and self:GetActiveGuideDefinition() or nil,
+            reason)
+    end
+    if self.RestEDXPActionEngine then self.RestEDXPActionEngine:Refresh(self.currentStep) end
+    if self.TrainerAdvisor then self.TrainerAdvisor:Refresh(reason or "refresh") end
     self:RefreshNavigation(reason or "refresh")
     self:RefreshUI()
     self:RefreshNavigator()

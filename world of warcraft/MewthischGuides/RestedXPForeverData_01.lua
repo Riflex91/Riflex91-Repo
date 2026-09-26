@@ -2,7 +2,7 @@ local addonName, MG = ...
 MG.RestEDXPForeverRaw = MG.RestEDXPForeverRaw or {
     source = {
         repository = "RestedXP/RXPGuides",
-        commit = "6f9cf44c09123e496366b3cb5ffe7383660e4bcb",
+        commit = "a688a75d595f5884dba8044a5ba4e7d7bd859c09",
         license = "CC BY-NC-SA 4.0",
         transformed = true,
         proseCopied = false,
@@ -34211,7 +34211,6 @@ E
 G	Guides/forever/Horde-01-14_Undead.lua
 M	classic	
 M	tbc	
-M	xprate	<1.99
 M	selector	Horde
 M	version	11
 M	group	RestedXP Forever Guide (H)
@@ -34220,9 +34219,6 @@ M	defaultfor	Undead
 M	name	1-6 Tirisfal Glades
 M	next	6-11 Tirisfal Glades
 S	!Undead
-T	completewith	next
-S	!Undead Mage
-T	season	2
 T	completewith	next
 S	
 T	completewith	Zombies
@@ -34391,39 +34387,13 @@ A	isOnQuest	364
 A	money	>0.0050
 A	itemcount	159,<5
 S	
-T	season	2
 A	turnin	364
 A	accept	3095
 A	accept	3096
 A	accept	3097
 A	accept	3098
 A	accept	3099
-A	accept	3901
-A	target	+Shadow Priest Sarvis
-A	goto	1420/0,1616.71,1842.92,10,0
-A	goto	1420/0,1639.75,1843.220
-A	accept	376
-A	target	+Novice Elreth
-A	goto	1420/0,1638.85,1847.74
-A	turnin	3099
-A	accept	77672
-A	target	+Maximillion << Warlock
-A	goto	1420/0,1636.59,1839.01 << Warlock
-A	turnin	3098
-A	accept	77671
-A	target	+Isabella << Mage
-A	goto	1420/0,1635.23,1847.44 << Mage
-A	turnin	3097
-A	target	+Dark Cleric Duesten << Priest
-A	goto	1420/0,1627.55,1848.65 << Priest
-S	
-T	season	0
-A	turnin	364
-A	accept	3095
-A	accept	3096
-A	accept	3097
-A	accept	3098
-A	accept	3099
+A	accept	98601
 A	accept	3901
 A	target	+Shadow Priest Sarvis
 A	goto	1420/0,1616.71,1842.92,10,0
@@ -34440,11 +34410,10 @@ A	target	+Isabella << Mage
 A	turnin	3097
 A	target	+Dark Cleric Duesten << Priest
 A	goto	1420/0,1627.55,1848.65 << Priest
-S	Priest
-T	season	2
-A	goto	1420/0,1627.55,1848.65
-A	turnin	77670
-A	target	Dark Cleric Duesten
+S	Paladin
+A	goto	1420/0,1628.400,1837.400
+A	turnin	98601
+A	target	Aramis Hammerhand
 S	Mage/Warlock/Priest
 A	goto	1420/0,1576.94,1861.6,8,0
 A	goto	1420/0,1574.23,1866.12
@@ -34485,24 +34454,6 @@ A	goto	1420/0,1541.69,1939.32,30,0
 A	complete	3901,1
 A	mob	Rattlecage Skeleton
 S	
-T	som--xpgate	
-T	optional	
-T	loop	
-A	goto	1420/0,1595.47,1985.41,30,0
-A	goto	1420/0,1627.55,2008.61,30,0
-A	goto	1420/0,1584.17,2024.88,30,0
-A	goto	1420/0,1575.58,2053.8,30,0
-A	goto	1420/0,1529.49,2044.16,30,0
-A	goto	1420/0,1512.32,2007.1,30,0
-A	goto	1420/0,1499.67,1975.47,30,0
-A	goto	1420/0,1487.47,1938.12,30,0
-A	goto	1420/0,1541.69,1939.32,30,0
-A	xp	3+480
-A	xp	3+560
-A	mob	Mindless Zombie
-A	mob	Wretched Zombie
-S	
-T	era	
 T	optional	
 T	loop	
 A	goto	1420/0,1595.47,1985.41,30,0
@@ -34518,12 +34469,13 @@ A	xp	3+940
 A	xp	3+980
 A	mob	Mindless Zombie
 A	mob	Wretched Zombie
-S	Mage/Warlock/Priest
+S	Mage/Warlock/Priest/Paladin
 A	goto	1420/0,1576.04,1861.60,8,0
 A	goto	1420/0,1574.23,1866.12
 A	vendor	
 A	target	Joshua Kien
-A	money	>0.1
+A	money	>0.1 << !Paladin
+A	money	>0.2 << Paladin
 A	isOnQuest	3901
 A	itemcount	159,<20
 S	
@@ -34535,6 +34487,24 @@ A	turnin	376
 A	accept	6395
 A	target	+Novice Elreth
 A	goto	1420/0,1638.85,1847.74
+S	
+A	goto	1420/0,1628.300,1837.300
+A	accept	91208
+A	accept	91209
+A	accept	98389
+A	target	Aramis Hammerhand
+S	Paladin
+A	goto	1420/0,1628.300,1837.300
+A	train	20271
+A	train	19740
+A	target	Aramis Hammerhand
+A	money	<0.02
+S	Paladin
+T	optional	
+A	goto	1420/0,1628.300,1837.300
+A	train	20271
+A	target	Aramis Hammerhand
+A	money	<0.01
 S	Priest
 A	goto	1420/0,1627.55,1848.65
 A	train	589
@@ -34553,6 +34523,7 @@ A	train	589
 A	target	Dark Cleric Duesten
 A	money	<0.011
 S	Priest
+T	optional	
 A	goto	1420/0,1627.55,1848.65
 A	train	589
 A	target	Dark Cleric Duesten
@@ -34566,7 +34537,6 @@ A	goto	1420/0,1635.23,1847.44
 A	train	116
 A	target	Isabella
 S	
-T	xprate	<1.5
 A	goto	1420/0,1616.71,1842.92,10,0
 A	accept	3902
 A	goto	1420/0,1604.96,1860.70
@@ -34574,12 +34544,6 @@ A	target	+Deathguard Saltain
 A	accept	380
 A	goto	1420/0,1580.56,1848.95
 A	target	+Executor Arren
-S	
-T	xprate	>1.49
-A	goto	1420/0,1616.71,1842.92,10,0
-A	accept	380
-A	goto	1420/0,1580.56,1848.95
-A	target	Executor Arren
 S	Rogue/Warrior
 A	goto	1420/0,1568.35,1859.49
 A	vendor	
@@ -34588,25 +34552,6 @@ A	money	>0.1
 A	isOnQuest	3095 << Warrior
 A	isOnQuest	3096 << Rogue
 S	Warrior
-T	season	2
-A	goto	1420/0,1556.61,1862.50
-A	turnin	3095
-A	accept	77668
-A	train	100
-A	train	772
-A	target	Dannal Stern
-A	money	<0.02
-S	Warrior
-T	season	2
-T	label	Training2
-A	goto	1420/0,1556.61,1862.50
-A	turnin	3095
-A	accept	77668
-A	train	772
-A	target	Dannal Stern
-A	money	<0.01
-S	Warrior
-T	season	0
 A	goto	1420/0,1556.61,1862.50
 A	turnin	3095
 A	train	100
@@ -34614,47 +34559,25 @@ A	train	772
 A	target	Dannal Stern
 A	money	<0.02
 S	Warrior
-T	season	0
-T	label	Training2
-A	goto	1420/0,1556.61,1862.50
-A	turnin	3095
-A	train	772
-A	target	Dannal Stern
-A	money	<0.01
-S	Rogue
-T	season	2
-A	goto	1420/0,1563.38,1859.79
-A	turnin	3096
-A	accept	77669
-A	train	53
-A	money	<0.04
-A	target	David Trias
-S	Rogue
-T	season	2
-A	goto	1420/0,1563.38,1859.79
-A	turnin	3096
-A	accept	77669
-A	target	David Trias
-S	Rogue
-T	season	0
-A	goto	1420/0,1563.38,1859.79
-A	turnin	3096
-A	train	53
-A	money	<0.04
-A	target	David Trias
-S	Rogue
-T	season	0
-T	label	Training2
-A	goto	1420/0,1563.38,1859.79
-A	turnin	3096
-A	target	David Trias
-S	
-T	xprate	>1.49
 T	optional	
-T	completewith	NightWebStart
-A	abandon	3902
+T	label	Training2
+A	goto	1420/0,1556.61,1862.50
+A	turnin	3095
+A	train	772
+A	target	Dannal Stern
+A	money	<0.01
+S	Rogue
+T	optional	
+T	label	Training2
+A	goto	1420/0,1563.38,1859.79
+A	turnin	3096
+A	target	David Trias
+S	Rogue/Warrior/Paladin
+A	goto	1420/0,1577.100,1854.600
+A	train	2575
+A	collect	2901,1,792,1
+A	target	Walter Mason
 S	
-T	xprate	<1.5
 T	loop	
 A	goto	1420/0,1570.61,1898.35,0
 A	goto	1420/0,1570.61,1898.35,12,0
@@ -34669,6 +34592,10 @@ A	goto	1420/0,1598.63,1970.95,12,0
 A	goto	1420/0,1600.89,1953.78,12,0
 A	goto	1420/0,1617.16,1956.49,12,0
 A	complete	3902,1
+S	Paladin
+A	complete	91208,1
+A	skipgossip	
+A	mob	Frightened Paladin
 S	
 T	label	NightWebStart
 T	loop	
@@ -34701,16 +34628,10 @@ S
 T	completewith	next
 A	goto	1420/0,1822.31,2048.07,15,0
 A	goto	1420/0,1844.45,2042.050,30
-S	Warlock
-T	season	2
-T	completewith	RuneofHaunting
-A	complete	380,2
-A	mob	Night Web Spider
-S	Warrior
-T	season	2
-T	completewith	RuneofVictoryRush
-A	complete	380,2
-A	mob	Night Web Spider
+S	
+T	completewith	next
+A	complete	98389,1
+A	mob	Webbed Forsaken
 S	
 T	loop	
 A	goto	1420/0,1918.11,2043.86,0
@@ -34724,15 +34645,12 @@ A	goto	1420/0,1918.11,2043.86,20,0
 A	complete	380,2
 A	mob	Night Web Spider
 S	
-T	xprate	<1.5
+A	goto	1420/0,1921.500,2046.500
+A	complete	98389,1
+A	mob	Webbed Forsaken
+S	
 T	softcore	
 T	completewith	Scavenging
-A	deathskip	
-A	target	Spirit Healer
-S	
-T	xprate	>1.49
-T	softcore	
-T	completewith	NightWebH
 A	deathskip	
 A	target	Spirit Healer
 S	Warlock
@@ -34747,22 +34665,21 @@ A	goto	1420,24.508,59.360,-1
 A	goto	1420,23.572,59.239,-1
 A	goto	1420/0,1628.91,1882.99,30
 S	
-T	xprate	<1.5
 T	label	Scavenging
 A	goto	1420/0,1604.96,1860.70
 A	turnin	3902
 A	target	Deathguard Saltain
-S	Warlock
-T	season	2
-A	goto	1420/0,1636.59,1839.01
-A	turnin	77672
-A	target	Maximillion
 S	
 T	label	NightWebH
 A	goto	1420/0,1580.56,1848.95,0,0
 A	turnin	380
 A	accept	381
 A	target	Executor Arren
+S	
+A	goto	1420/0,1628.400,1837.000
+A	turnin	91208
+A	turnin	98389
+A	target	Aramis Hammerhand
 S	Rogue/Warrior
 A	goto	1420/0,1568.35,1859.49
 A	vendor	
@@ -34775,11 +34692,6 @@ A	vendor
 A	target	Joshua Kien
 A	isOnQuest	6395
 A	itemcount	159,<15
-S	Warrior
-T	season	2
-A	goto	1420/0,1556.61,1862.50
-A	turnin	77668
-A	target	Dannal Stern
 S	
 T	requires	NightWebH
 T	loop	
@@ -34828,12 +34740,6 @@ A	goto	1420/0,1638.85,1847.74
 A	accept	5651
 A	target	+Dark Cleric Duesten << Priest
 A	goto	1420/0,1627.55,1848.65 << Priest
-S	Mage
-T	season	2
-A	goto	1420/0,1635.23,1847.44
-A	turnin	77671
-A	target	Isabella
-A	isQuestComplete	77671
 S	
 T	sticky	
 T	label	ScarletC
@@ -34841,11 +34747,6 @@ A	goto	1420/0,1580.56,1848.95,0,0
 A	turnin	381
 A	accept	382
 A	target	Executor Arren
-S	Rogue
-T	season	2
-A	goto	1420/0,1563.38,1859.79
-A	turnin	77669
-A	target	David Trias
 S	
 A	goto	1420/0,1568.35,1859.49
 A	vendor	
@@ -34859,6 +34760,7 @@ S
 A	goto	1420/0,1580.56,1848.95
 A	turnin	382
 A	accept	383
+A	accept	96656
 A	target	Executor Arren
 S	
 T	loop	
@@ -34885,7 +34787,8 @@ A	goto	1420/0,1368.17,1831.48,50,0
 A	goto	1420/0,1341.06,1790.51,50,0
 A	goto	1420/0,1364.56,1784.18,50,0
 A	goto	1420/0,1400.71,1766.71,50,0
-A	xp	5+2350
+A	xp	5+1940
+A	xp	5+1850
 S	
 A	goto	1420/0,1305.36,2127.30
 A	accept	8
@@ -34894,7 +34797,6 @@ E
 G	Guides/forever/Horde-01-14_Undead.lua
 M	classic	
 M	tbc	
-M	xprate	<1.99
 M	selector	Horde
 M	name	6-11 Tirisfal Glades
 M	version	11
@@ -35020,25 +34922,10 @@ A	train	3127
 A	target	Austil de Mon
 A	money	<0.01
 S	Rogue
-T	season	0
 A	goto	1420/0,243.01,2271.00
 A	train	1757
 A	target	Marion Call
 A	money	<0.01
-S	Rogue
-T	season	2
-A	goto	1420/0,243.01,2271.00
-A	train	1757
-A	train	921
-A	target	Marion Call
-A	money	<0.02
-S	Rogue
-T	optional	
-T	season	2
-A	goto	1420/0,243.01,2271.00
-A	train	921
-A	target	Marion Call
-A	money	>0.02
 S	Warlock
 A	goto	1420/0,251.59,2252.62
 A	collect	16321,1,404,1
@@ -35108,39 +34995,6 @@ A	goto	1420/0,1025.65,2110.43,0
 A	goto	1420/0,1246.17,2311.97,50,0
 A	goto	1420/0,1025.65,2110.43,50,0
 A	complete	5481,1
-S	Warrior
-T	optional	
-T	season	2
-T	xprate	>1.49
-T	completewith	DBlood
-A	collect	207975,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	train	403475,1
-A	isOnQuest	375
-S	
-T	optional	
-T	xprate	>1.49
-T	completewith	next
-A	complete	375,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	isOnQuest	375
-S	
-T	xprate	>1.49
-T	label	DBlood
-T	loop	
-A	goto	1420/0,1046.44,2112.24,0
-A	goto	1420/0,1200.08,2414.7,0
-A	goto	1420/0,862.98,2227.92,80,0
-A	goto	1420/0,1046.44,2112.24,80,0
-A	goto	1420/0,1180.19,2152.31,60,0
-A	goto	1420/0,1200.08,2414.7,60,0
-A	goto	1420/0,1185.62,2549.05,60,0
-A	goto	1420/0,1265.6,2637.02,60,0
-A	complete	367,1
-A	mob	Decrepit Darkhound
-A	mob	Cursed Darkhound
 S	Priest
 T	ah	
 T	completewith	FinishRings
@@ -35153,13 +35007,6 @@ T	completewith	FinishRings
 A	collect	2589,60
 A	itemStat	18,QUALITY,<7
 A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<11.3
-S	Rogue
-T	season	2
-T	completewith	next
-A	collect	208036,1
-A	mob	Tirisfal Farmer
-A	mob	Tirisfal Farmhand
-A	train	400095,1
 S	
 T	label	Pumkpins
 T	loop	
@@ -35172,31 +35019,6 @@ A	goto	1420/0,1438.21,2303.84,50,0
 A	goto	1420/0,1471.20,2283.65,50,0
 A	goto	1420/0,1378.12,2328.54,50,0
 A	complete	365,1
-S	Rogue
-T	season	2
-T	loop	
-A	goto	1420/0,1378.12,2328.54,0
-A	goto	1420/0,1352.36,2265.88,50,0
-A	goto	1420/0,1377.66,2328.54,50,0
-A	goto	1420/0,1402.06,2359.27,50,0
-A	goto	1420/0,1448.16,2336.67,50,0
-A	goto	1420/0,1438.21,2303.84,50,0
-A	goto	1420/0,1471.20,2283.65,50,0
-A	goto	1420/0,1378.12,2328.54,50,0
-A	collect	208036,1
-A	mob	Tirisfal Farmer
-A	mob	Tirisfal Farmhand
-A	train	400095,1
-S	Rogue/Mage/Priest
-T	season	2
-T	completewith	next
-A	collect	208035,1 << Rogue
-A	collect	203752,1 << Mage
-A	collect	205947,1 << Priest
-A	mob	Scarlet Warrior
-A	train	400095,1 << Rogue
-A	train	401768,1 << Mage
-A	train	402852,1 << Priest
 S	
 T	loop	
 A	goto	1420/0,1597.27,2290.28,0
@@ -35213,48 +35035,6 @@ A	goto	1420/0,1492.44,2395.11,50,0
 A	goto	1420/0,1509.16,2351.13,50,0
 A	complete	427,1
 A	mob	Scarlet Warrior
-S	Rogue/Mage/Priest
-T	season	2
-T	loop	
-A	goto	1420/0,1597.27,2290.28,0
-A	goto	1420/0,1509.16,2351.13,50,0
-A	goto	1420/0,1512.77,2299.02,50,0
-A	goto	1420/0,1597.27,2290.28,50,0
-A	goto	1420/0,1676.80,2316.79,50,0
-A	goto	1420/0,1681.78,2354.14,50,0
-A	goto	1420/0,1649.69,2405.66,50,0
-A	goto	1420/0,1632.07,2436.690,50,0
-A	goto	1420/0,1580.56,2487.00,50,0
-A	goto	1420/0,1509.16,2473.14,50,0
-A	goto	1420/0,1492.44,2395.11,50,0
-A	goto	1420/0,1509.16,2351.13,50,0
-A	collect	208035,1 << Rogue
-A	collect	203752,1 << Mage
-A	collect	205947,1 << Priest
-A	mob	Scarlet Warrior
-A	train	400095,1 << Rogue
-A	train	401768,1 << Mage
-A	train	402852,1 << Priest
-S	Mage
-T	season	2
-A	collect	211779,1
-A	train	401768
-A	use	203752
-A	itemcount	203752,1
-S	Mage/Priest
-T	season	2
-A	goto	1420/0,1876.53,2385.47
-A	collect	203753,1 << Mage
-A	collect	205940,1 << Priest
-A	mob	Gillgar
-A	train	401765,1 << Mage
-A	train	425216,1 << Priest
-S	Mage
-T	season	2
-A	collect	211779,1
-A	train	401765
-A	use	203753
-A	itemcount	203753,1
 S	
 T	hardcore	
 T	completewith	BrillTurnin1
@@ -35312,26 +35092,6 @@ A	turnin	427
 A	accept	370
 A	target	+Executor Zygand
 A	goto	1420/0,295.87,2277.93
-S	
-T	xprate	>1.49
-T	optional	
-A	goto	1420/0,275.54,2260.46
-A	complete	375,2
-A	target	Abigail Shiel
-A	itemcount	2876,5
-A	isQuestAvailable	375
-S	
-T	xprate	>1.49
-A	goto	1420/0,233.06,2292.39
-A	turnin	407
-A	target	Captured Scarlet Zealot
-S	
-T	xprate	>1.49
-T	optional	
-A	goto	1420/0,236.68,2249.01
-A	turnin	375
-A	target	Gretchen Dedmar
-A	isQuestComplete	375
 S	Priest
 A	goto	1420/0,251.14,2265.28
 A	turnin	5650
@@ -35419,22 +35179,12 @@ A	goto	1420/0,355.52,2429.76,30,0
 A	turnin	5481
 A	accept	5482
 A	target	Junior Apothecary Holland
-S	Warrior
-T	season	2
-T	xprate	<1.5
-T	completewith	DuskbatTrophy1
-A	collect	207975,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	train	403475,1
 S	
-T	xprate	<1.5
 T	completewith	next
 A	complete	375,1
 A	mob	Greater Duskbat
 A	mob	Vampiric Duskbat
 S	
-T	xprate	<1.5
 T	loop	
 A	goto	1420/0,482.50,1951.07,0
 A	goto	1420/0,403.42,2085.73,50,0
@@ -35449,7 +35199,6 @@ A	goto	1420/0,1068.13,1975.47,50,0
 A	complete	367,1
 A	mob	Decrepit Darkhound
 S	Rogue/Warrior
-T	xprate	<1.5
 T	optional	
 T	loop	
 A	goto	1420/0,482.50,1951.07,0
@@ -35467,7 +35216,6 @@ A	mob	Greater Duskbat
 A	mob	Vampiric Duskbat
 A	xp	>7+3960,1
 S	Rogue/Warrior
-T	xprate	<1.5
 T	optional	
 T	label	DuskbatTrophy1
 T	loop	
@@ -35483,46 +35231,11 @@ A	goto	1420/0,950.64,2039.040,50,0
 A	goto	1420/0,1068.13,1975.47,50,0
 A	xp	7+3260
 S	
-T	xprate	>1.49
-T	optional	
-T	loop	
-A	goto	1420/0,482.50,1951.07,0
-A	goto	1420/0,403.42,2085.73,50,0
-A	goto	1420/0,413.36,1979.99,50,0
-A	goto	1420/0,482.50,1951.07,50,0
-A	goto	1420/0,560.22,1901.06,50,0
-A	goto	1420/0,645.63,1961.92,50,0
-A	goto	1420/0,750.46,1993.55,50,0
-A	goto	1420/0,869.76,2003.79,50,0
-A	goto	1420/0,950.64,2039.040,50,0
-A	goto	1420/0,1068.13,1975.47,50,0
-A	complete	375,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	xp	>7+3690,1
-S	
-T	xprate	>1.49
-T	label	DuskbatTrophy1
-T	loop	
-A	goto	1420/0,482.50,1951.07,0
-A	goto	1420/0,403.42,2085.73,50,0
-A	goto	1420/0,413.36,1979.99,50,0
-A	goto	1420/0,482.50,1951.07,50,0
-A	goto	1420/0,560.22,1901.06,50,0
-A	goto	1420/0,645.63,1961.92,50,0
-A	goto	1420/0,750.46,1993.55,50,0
-A	goto	1420/0,869.76,2003.79,50,0
-A	goto	1420/0,950.64,2039.040,50,0
-A	goto	1420/0,1068.13,1975.47,50,0
-A	xp	7+2640
-S	
-T	xprate	<1.5
 T	hardcore	
 T	completewith	NewPlague1
 A	subzone	159
 A	subzoneskip	159
 S	
-T	xprate	<1.5
 T	softcore	
 T	completewith	NewPlague1
 A	deathskip	
@@ -35542,7 +35255,6 @@ A	accept	358
 A	target	+Magistrate Sevren
 A	goto	1420/0,265.15,2305.94
 S	
-T	xprate	<1.5
 T	optional	
 A	goto	1420/0,275.54,2260.46
 A	complete	375,2
@@ -35550,57 +35262,48 @@ A	target	Abigail Shiel
 A	itemcount	2876,5
 A	isQuestAvailable	375
 S	
-T	xprate	<1.5
 T	optional	
 A	goto	1420/0,236.68,2249.01
 A	turnin	375
 A	target	Gretchen Dedmar
 A	isQuestComplete	375
 S	Priest
-T	xprate	<1.5
 A	goto	1420/0,251.14,2265.28
 A	train	139
 A	target	Dark Cleric Beryl
 A	xp	<8,1
 S	Mage
-T	xprate	<1.5
 A	goto	1420/0,233.06,2256.84
 A	train	205
 A	target	Cain Firesong
 A	xp	<8,1
 S	Warrior
-T	xprate	<1.5
 A	goto	1420/0,238.49,2255.03
 A	train	284
 A	target	Austil de Mon
 A	xp	<8,1
 S	Rogue
-T	xprate	<1.5
 A	goto	1420/0,243.01,2271.00
 A	train	6760
 A	target	Marion Call
 A	xp	<8,1
 S	Warlock
-T	xprate	<1.5
 A	goto	1420/0,250.24,2259.25
 A	train	980
 A	target	Rupe
 S	Rogue
-T	xprate	<1.5
 A	goto	1420/0,316.66,2227.32
 A	vendor	
 A	target	Oliver Dwor
 A	itemStat	16,QUALITY,<7
 A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
 S	Rogue
-T	xprate	<1.5
 A	goto	1420/0,316.66,2227.32
 A	collect	2494,1,398,1
 A	money	<0.0401
 A	itemStat	16,QUALITY,<7
 A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
 S	Rogue
-T	xprate	<1.5
 T	optional	
 T	completewith	Doomweed
 A	use	2494
@@ -35608,43 +35311,24 @@ A	itemcount	2494,1
 A	itemStat	16,QUALITY,<7
 A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
 S	Warrior
-T	xprate	<1.5
 A	goto	1420/0,316.66,2227.32
 A	vendor	
 A	target	Oliver Dwor
 A	itemStat	16,QUALITY,<7
 A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
 S	Warrior
-T	xprate	<1.5
 A	goto	1420/0,316.66,2227.32
 A	collect	2488,1,398,1
 A	money	<0.0536
 A	itemStat	16,QUALITY,<7
 A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
 S	Warrior
-T	xprate	<1.5
 T	optional	
 T	completewith	Doomweed
 A	use	2488
 A	itemcount	2488,1
 A	itemStat	16,QUALITY,<7
 A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
-S	Rogue
-T	season	2
-T	completewith	MaggotEye
-A	collect	208038,1
-A	mob	Rot Hide Mongrel
-A	mob	Rot Hide Gnoll
-A	mob	Rot Hide Graverobber
-A	train	400095,1
-S	Warrior
-T	season	2
-T	completewith	MaggotEye
-A	collect	204478,1
-A	mob	Rot Hide Mongrel
-A	mob	Rot Hide Gnoll
-A	mob	Rot Hide Graverobber
-A	train	403475,1
 S	
 T	completewith	next
 A	complete	5482,1
@@ -35686,17 +35370,6 @@ A	goto	1420/0,396.19,2676.18,30,0
 A	goto	1420/0,435.96,2754.51,30,0
 A	complete	5482,1
 A	isOnQuest	5482
-S	Mage
-T	season	2
-T	optional	
-T	completewith	MaggotEye
-A	goto	1420/0,329.31,2838.25,0
-A	goto	1420/0,395.29,2774.69,0
-A	goto	1420/0,318.02,2722.57,0
-A	collect	208183,6
-A	mob	Odd Melon
-A	train	415942,1
-A	train	118,3
 S	
 T	completewith	MaggotEye
 A	complete	358,2
@@ -35730,60 +35403,6 @@ A	complete	358,3
 A	mob	Rot Hide Mongrel
 A	mob	Rot Hide Gnoll
 A	mob	Rot Hide Graverobber
-S	Rogue
-T	season	2
-T	loop	
-A	goto	1420/0,332.48,2862.35,0
-A	goto	1420/0,380.38,2768.97,50,0
-A	goto	1420/0,332.48,2862.35,50,0
-A	goto	1420/0,401.16,2895.19,50,0
-A	goto	1420/0,318.47,2696.36,50,0
-A	collect	208038,1
-A	mob	Rot Hide Mongrel
-A	mob	Rot Hide Graverobber
-A	mob	Rot Hide Gnoll
-A	train	400095,1
-S	Warrior
-T	season	2
-T	loop	
-A	goto	1420/0,332.48,2862.35,0
-A	goto	1420/0,380.38,2768.97,50,0
-A	goto	1420/0,332.48,2862.35,50,0
-A	goto	1420/0,401.16,2895.19,50,0
-A	goto	1420/0,318.47,2696.36,50,0
-A	collect	204478,1
-A	mob	Rot Hide Mongrel
-A	mob	Rot Hide Gnoll
-A	mob	Rot Hide Graverobber
-A	train	403475,1
-S	Warrior
-T	season	2
-T	loop	
-A	goto	1420/0,342.87,2998.22,0
-A	goto	1420/0,350.10,2962.37,50,0
-A	goto	1420/0,342.87,2998.22,50,0
-A	goto	1420/0,293.16,2974.12,50,0
-A	goto	1420/0,254.75,2951.820,50,0
-A	goto	1420/0,188.33,2950.02,50,0
-A	goto	1420/0,65.42,2927.12,50,0
-A	goto	1420/0,-15.92,2964.78,50,0
-A	goto	1420/0,-49.36,3040.39,50,0
-A	complete	368,1
-A	collect	204477,1
-A	mob	Vile Fin Puddlejumper
-A	mob	Vile Fin Minor Oracle
-A	mob	Vile Fin Muckdweller
-A	train	403475,1
-S	Rogue
-T	season	2
-T	completewith	MurlocVins
-A	collect	208007,1
-A	train	400081,1
-S	Rogue
-T	season	2
-T	completewith	RuneofPrecision
-A	collect	208037,1
-A	train	400095,1
 S	
 T	label	MurlocVins
 T	loop	
@@ -35800,56 +35419,6 @@ A	complete	368,1
 A	mob	Vile Fin Puddlejumper
 A	mob	Vile Fin Minor Oracle
 A	mob	Vile Fin Muckdweller
-S	Rogue
-T	season	2
-T	loop	
-A	goto	1420/0,342.87,2998.22,0
-A	goto	1420/0,350.10,2962.37,50,0
-A	goto	1420/0,342.87,2998.22,50,0
-A	goto	1420/0,293.16,2974.12,50,0
-A	goto	1420/0,254.75,2951.820,50,0
-A	goto	1420/0,188.33,2950.02,50,0
-A	goto	1420/0,65.42,2927.12,50,0
-A	goto	1420/0,-15.92,2964.78,50,0
-A	goto	1420/0,-49.36,3040.39,50,0
-A	collect	208007,1
-A	mob	Vile Fin Puddlejumper
-A	mob	Vile Fin Minor Oracle
-A	mob	Vile Fin Muckdweller
-A	train	400081,1
-S	Rogue
-T	season	2
-A	goto	1420/0,21.13,3102.15
-A	collect	204174,1
-A	train	400081,1
-S	Rogue
-T	season	2
-T	label	RuneofPrecision
-A	train	400081
-A	use	204174
-A	itemcount	204174,1
-S	Rogue
-T	season	2
-T	loop	
-A	goto	1420/0,342.87,2998.22,0
-A	goto	1420/0,350.10,2962.37,50,0
-A	goto	1420/0,342.87,2998.22,50,0
-A	goto	1420/0,293.16,2974.12,50,0
-A	goto	1420/0,254.75,2951.820,50,0
-A	goto	1420/0,188.33,2950.02,50,0
-A	goto	1420/0,65.42,2927.12,50,0
-A	goto	1420/0,-15.92,2964.78,50,0
-A	goto	1420/0,-49.36,3040.39,50,0
-A	collect	208037,1
-A	mob	Vile Fin Puddlejumper
-A	mob	Vile Fin Minor Oracle
-A	mob	Vile Fin Muckdweller
-A	train	400095,1
-S	Rogue
-T	season	2
-A	use	208036
-A	collect	208034,1
-A	train	400095,1
 S	
 T	hardcore	
 T	completewith	Brill3
@@ -35869,33 +35438,7 @@ A	goto	1420/0,425.56,2362.58,30,0
 A	goto	1420/0,355.52,2429.76,30,0
 A	turnin	5482
 A	target	Junior Apothecary Holland
-S	Rogue
-T	season	2
-A	goto	1420/0,643.37,2209.85
-A	use	208034
-A	collect	203991,1
-A	train	400095,1
-S	Rogue
-T	season	2
-A	train	400095
-A	use	203991
-A	itemcount	203991,1
 S	
-T	xprate	<1.5
-A	turnin	368
-A	accept	369
-A	target	+Apothecary Johaan
-A	goto	1420/0,346.94,2258.950
-A	turnin	398
-A	target	+Executor Zygand
-A	goto	1420/0,295.87,2277.93
-A	turnin	358
-A	accept	405
-A	accept	359
-A	target	+Magistrate Sevren
-A	goto	1420/0,265.15,2305.94
-S	
-T	xprate	>1.49
 A	turnin	368
 A	accept	369
 A	target	+Apothecary Johaan
@@ -35920,11 +35463,6 @@ A	goto	1420/0,244.36,2262.26
 A	accept	354
 A	accept	362
 A	target	Coleman Farthing
-S	!Mage !Warlock
-T	xprate	>1.49
-T	optional	
-T	completewith	AgamandStart
-A	abandon	405
 S	
 T	optional	
 A	goto	1420/0,236.68,2249.01
@@ -36014,13 +35552,6 @@ T	softcore
 A	goto	1420/0,308.08,2246.30
 A	vendor	
 A	target	Eliza Callen
-S	Warrior
-T	season	2
-T	completewith	AgamandStart
-A	collect	207975,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	train	403475,1
 S	
 T	completewith	next
 A	complete	375,1
@@ -36083,7 +35614,6 @@ A	mob	+Cracked Skull Soldier
 A	complete	426,2
 A	mob	+Darkeye Bonecaster
 S	
-T	xprate	<1.5
 T	loop	
 A	goto	1420/0,953.35,2926.22,0
 A	goto	1420/0,857.56,2793.97,60,0
@@ -36102,7 +35632,6 @@ A	mob	Cracked Skull Soldier
 A	xp	>9+3620,1
 A	isOnQuest	375
 S	
-T	xprate	<1.5
 T	optional	
 T	loop	
 A	goto	1420/0,953.35,2926.22,0
@@ -36122,46 +35651,6 @@ A	mob	Cracked Skull Soldier
 A	xp	>9+4320,1
 A	isQuestTurnedIn	375
 S	
-T	xprate	>1.49
-T	loop	
-A	goto	1420/0,953.35,2926.22,0
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	collect	2839,1,361
-A	accept	361
-A	use	2839
-A	mob	Rattlecage Soldier
-A	mob	Darkeye Bonecaster
-A	mob	Cracked Skull Soldier
-A	xp	>9+2180,1
-A	isOnQuest	375
-S	
-T	xprate	>1.49
-T	optional	
-T	loop	
-A	goto	1420/0,953.35,2926.22,0
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	collect	2839,1,361
-A	accept	361
-A	use	2839
-A	mob	Rattlecage Soldier
-A	mob	Darkeye Bonecaster
-A	mob	Cracked Skull Soldier
-A	xp	>9+3230,1
-A	isQuestTurnedIn	375
-S	
-T	xprate	<1.5
 T	optional	
 T	loop	
 A	goto	1420/0,857.56,2793.97,60,0
@@ -36175,7 +35664,6 @@ A	xp	9+3620
 A	itemcount	2839,<1
 A	isOnQuest	375
 S	
-T	xprate	<1.5
 T	optional	
 T	loop	
 A	goto	1420/0,857.56,2793.97,60,0
@@ -36189,7 +35677,6 @@ A	xp	9+4320
 A	itemcount	2839,<1
 A	isQuestTurnedIn	375
 S	
-T	xprate	<1.5
 T	optional	
 T	loop	
 A	goto	1420/0,857.56,2793.97,60,0
@@ -36203,7 +35690,6 @@ A	xp	9+3840
 A	itemcount	2839,1
 A	isQuestTurnedIn	375
 S	
-T	xprate	<1.5
 T	optional	
 T	loop	
 A	goto	1420/0,857.56,2793.97,60,0
@@ -36216,75 +35702,6 @@ A	goto	1420/0,953.35,2926.22,60,0
 A	xp	9+3140
 A	itemcount	2839,1
 A	isOnQuest	375
-S	
-T	xprate	>1.49
-T	optional	
-T	loop	
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	xp	9+2180
-A	itemcount	2839,<1
-A	isOnQuest	375
-S	
-T	xprate	>1.49
-T	optional	
-T	loop	
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	xp	9+3230
-A	itemcount	2839,<1
-A	isQuestTurnedIn	375
-S	
-T	xprate	>1.49
-T	optional	
-T	loop	
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	xp	9+2510
-A	itemcount	2839,1
-A	isQuestTurnedIn	375
-S	
-T	xprate	>1.49
-T	optional	
-T	loop	
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	xp	9+1460
-A	itemcount	2839,1
-A	isOnQuest	375
-S	Mage/Priest
-T	season	2
-A	collect	203753,1 << Mage
-A	collect	205940,1 << Priest
-A	mob	Gillgar
-A	train	401765,1 << Mage
-A	train	425216,1 << Priest
-S	Mage
-T	season	2
-A	collect	211779,1
-A	train	401765
-A	use	203753
-A	itemcount	203753,1
 S	
 T	hardcore	
 T	completewith	FoodandWater2
@@ -36415,12 +35832,6 @@ A	goto	1458/0,663.19,1600.46,35,0
 A	goto	1420/0,724.25,1682.66,50,0
 A	zone	Tirisfal Glades
 A	zoneskip	Tirisfal Glades
-S	Rogue
-T	season	2
-T	completewith	ScarletCrusade1
-A	collect	208085,1
-A	mob	Captain Perrine
-A	train	400094,1
 S	Warlock
 T	completewith	next
 A	goto	1420/0,726.06,1801.95
@@ -36444,32 +35855,11 @@ A	complete	370,3
 A	mob	+Scarlet Missionary
 A	complete	374,1
 A	disablecheckbox	
-S	Rogue
-T	season	2
-A	goto	1420/0,721.09,1794.72
-A	collect	208085,1
-A	mob	Captain Perrine
-A	train	400094,1
 S	Warlock
 A	goto	1420/0,726.06,1801.95
 A	complete	1473,1
 S	
-T	xprate	<1.5
 T	completewith	UCHome
-A	goto	1458/0,714.8,1604.24,35,0
-A	goto	1458/0,652.73,1623.44,35,0
-A	goto	1458/0,634.02,1669.66,35,0
-A	goto	1458/0,539.52,1665.17,10,0
-A	goto	1458/0,481.48,1659.8,10,0
-A	goto	1458/0,476.49,1632.15,10,0
-A	goto	1458/0,439.08,1627.02,10,0
-A	goto	1458/0,435.05,1598.86,10,0
-A	zone	Undercity
-A	zoneskip	Undercity
-S	
-T	xprate	>1.49
-T	ah	<< Priest
-T	completewith	LogoutSkip1
 A	goto	1458/0,714.8,1604.24,35,0
 A	goto	1458/0,652.73,1623.44,35,0
 A	goto	1458/0,634.02,1669.66,35,0
@@ -36498,21 +35888,6 @@ A	goto	1458/0,295.94,1691.61
 A	train	2018
 A	target	Basil Frye
 A	train	2575,3
-S	
-T	xprate	>1.49
-T	ah	
-A	goto	1458/0,257.27,1560.450
-A	collect	11287,1,435,1 << Priest/Mage/Warlock
-A	target	Auctioneer Rhyker
-A	itemStat	18,QUALITY,<7 << Priest/Mage/Warlock
-A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<11.3 << Priest/Mage/Warlock
-S	!Priest
-T	xprate	>1.49
-T	ah	
-T	optional	
-A	goto	1458/0,257.27,1560.450
-A	collect	3164,6,429,1
-A	target	Auctioneer Rhyker
 S	Warlock
 A	goto	1458/0,57.05,1711.77
 A	turnin	1473
@@ -36612,18 +35987,11 @@ A	turnin	1881
 A	accept	1882
 A	target	Anastasia Hartwell
 S	
-T	xprate	<1.5
 A	goto	1458/0,66.74,1766.31
 A	turnin	405
 A	accept	357
 A	target	Bethor Iceshard
-S	Mage/Warlock
-T	xprate	>1.49
-A	goto	1458/0,66.74,1766.31
-A	turnin	405
-A	target	Bethor Iceshard
 S	!Warlock
-T	xprate	<1.5
 T	label	UCHome
 A	goto	1458/0,223.31,1634.96
 A	home	
@@ -36647,7 +36015,6 @@ A	goto	1458/0,221.78,1780.14,30
 A	goto	1458/0,221.78,1780.14,30
 A	zoneskip	Undercity,1
 S	
-T	xprate	<1.5 << Priest
 T	completewith	AtWarS
 A	goto	1420/0,235.32,1883.89
 A	zone	Tirisfal Glades
@@ -36658,11 +36025,6 @@ T	completewith	UnluckyRogue
 A	complete	1886,1
 A	unitscan	Astor Hadren
 A	isOnQuest	1886
-S	Mage/Warlock
-T	xprate	>1.49
-T	completewith	AtWarS
-T	optional	
-A	abandon	357
 S	
 T	optional	
 A	goto	1420/0,280.06,2270.70
@@ -36675,24 +36037,6 @@ A	goto	1420/0,295.87,2277.93
 A	turnin	370
 A	accept	371
 A	target	Executor Zygand
-S	Rogue
-T	season	2
-A	goto	1420/0,289.10,2313.170
-A	use	208085
-A	collect	208086,1
-A	train	400094,1
-S	Rogue
-T	season	2
-A	goto	1420/0,289.10,2313.170
-A	collect	203990,1
-A	target	Jamie Nore
-A	skipgossip	
-A	train	400094,1
-S	Rogue
-T	season	2
-A	train	400094
-A	use	203990
-A	itemcount	203990,1
 S	
 A	goto	1420/0,270.12,2253.23
 A	collect	4496,1,356,1
@@ -36721,13 +36065,6 @@ A	turnin	359
 A	accept	360
 A	accept	356
 A	target	Deathguard Linnea
-S	Warrior
-T	season	2
-T	completewith	ArriveBalnir
-A	collect	207975,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	train	403475,1
 S	
 T	completewith	ArriveBalnir
 A	complete	375,1
@@ -36738,13 +36075,6 @@ T	label	ArriveBalnir
 A	goto	1420/0,-423.96,1976.68
 A	subzone	165
 A	isOnQuest	356
-S	Mage
-T	season	2
-T	completewith	HorrorsandSpirits
-A	collect	208183,6
-A	mob	Odd Melon
-A	train	415942,1
-A	train	118,3
 S	Mage
 T	completewith	next
 A	complete	356,1
@@ -36771,28 +36101,6 @@ A	complete	356,1
 A	mob	+Bleeding Horror
 A	complete	356,2
 A	mob	+Wandering Spirit
-S	Mage
-T	season	2
-T	loop	
-A	goto	1420/0,-423.96,1976.68,0
-A	goto	1420/0,-361.15,1985.11,20,0
-A	goto	1420/0,-423.96,1976.68,20,0
-A	goto	1420/0,-402.72,2050.79,20,0
-A	collect	208183,6
-A	mob	Odd Melon
-A	train	415942,1
-A	train	118,3
-S	Mage
-T	season	2
-A	collect	203749,1
-A	use	208183
-A	train	415942,1
-A	itemcount	208183,6
-S	Mage
-T	season	2
-A	train	415942
-A	use	203749
-A	itemcount	203749,1
 S	
 T	sticky	
 T	label	Friars
@@ -36841,53 +36149,6 @@ A	goto	1420/0,-528.35,2146.28
 A	complete	371,1
 A	mob	Captain Vachon
 S	
-T	xprate	>1.49
-T	requires	Friars2
-T	loop	
-T	label	FinishRings
-A	goto	1420/0,-624.59,2114.05,0
-A	goto	1420/0,-452.43,2183.03,0
-A	goto	1420/0,-573.53,2138.450,0
-A	goto	1420/0,-624.59,2114.05,40,0
-A	goto	1420/0,-654.87,2185.44,40,0
-A	goto	1420/0,-652.16,2238.77,40,0
-A	goto	1420/0,-550.49,2173.09,40,0
-A	goto	1420/0,-452.43,2183.03,40,0
-A	goto	1420/0,-407.69,2171.590,40,0
-A	goto	1420/0,-406.34,2113.75,40,0
-A	goto	1420/0,-453.33,2127.91,40,0
-A	goto	1420/0,-573.53,2138.450,40,0
-A	complete	374,1
-A	mob	Scarlet Friar
-A	mob	Scarlet Zealot
-A	isOnQuest	374
-S	Priest
-T	xprate	>1.49
-T	optional	
-T	loop	
-A	goto	1420/0,-624.59,2114.05,0
-A	goto	1420/0,-452.43,2183.03,0
-A	goto	1420/0,-573.53,2138.450,0
-A	goto	1420/0,-624.59,2114.05,40,0
-A	goto	1420/0,-654.87,2185.44,40,0
-A	goto	1420/0,-652.16,2238.77,40,0
-A	goto	1420/0,-550.49,2173.09,40,0
-A	goto	1420/0,-452.43,2183.03,40,0
-A	goto	1420/0,-407.69,2171.590,40,0
-A	goto	1420/0,-406.34,2113.75,40,0
-A	goto	1420/0,-453.33,2127.91,40,0
-A	goto	1420/0,-573.53,2138.450,40,0
-A	collect	2589,60,435,1
-A	itemStat	18,QUALITY,<7
-A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<11.3
-S	Warrior
-T	season	2
-T	completewith	ViciousVenom
-A	collect	207975,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	train	403475,1
-S	
 T	completewith	ViciousVenom
 A	complete	375,1
 A	mob	Greater Duskbat
@@ -36911,93 +36172,15 @@ A	goto	1420/0,-785.91,2352.64,30,0
 A	goto	1420/0,-738.02,2268.29,30,0
 A	complete	369,1
 A	mob	Vicious Night Web Spider
-S	Warrior
-T	season	2
-T	xprate	>1.49
-T	optional	
-T	completewith	next
-A	collect	207975,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	train	403475,1
 S	
-T	xprate	>1.49
-T	loop	
-A	goto	1420/0,-743.89,2516.82,0
-A	goto	1420/0,-235.08,2843.07,0
-A	goto	1420/0,-743.89,2516.82,70,0
-A	goto	1420/0,-616.46,2439.700,70,0
-A	goto	1420/0,-394.59,2451.15,70,0
-A	goto	1420/0,-269.87,2611.11,70,0
-A	goto	1420/0,-235.08,2843.07,70,0
-A	goto	1420/0,-70.60,2803.31,70,0
-A	complete	375,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-S	Warrior
-T	season	2
-T	xprate	>1.49
-T	loop	
-A	goto	1420/0,-743.89,2516.82,0
-A	goto	1420/0,-235.08,2843.07,0
-A	goto	1420/0,-743.89,2516.82,70,0
-A	goto	1420/0,-616.46,2439.700,70,0
-A	goto	1420/0,-394.59,2451.15,70,0
-A	goto	1420/0,-269.87,2611.11,70,0
-A	goto	1420/0,-235.08,2843.07,70,0
-A	goto	1420/0,-70.60,2803.31,70,0
-A	collect	207975,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	train	403475,1
-S	
-T	xprate	>1.49
-A	xp	11+2950
-A	isOnQuest	374
-A	isOnQuest	375
-S	
-T	xprate	>1.49
-T	optional	
-A	xp	11+3890
-A	isQuestTurnedIn	374
-A	isOnQuest	375
-S	
-T	xprate	>1.49
-T	optional	
-A	xp	11+4000
-A	isOnQuest	374
-A	isQuestTurnedIn	375
-S	
-T	xprate	>1.49
-T	optional	
-A	xp	11+4940
-A	isQuestTurnedIn	374
-A	isQuestTurnedIn	375
-S	
-T	xprate	>1.49
-T	completewith	ANewPlagueFinal
-A	hs	
-A	subzoneskip	159
-A	bindlocation	2119,1
-A	cooldown	item,6948,>0,1
-S	
-T	xprate	>1.49
-T	completewith	ANewPlagueFinal
-A	subzone	159
-A	subzoneskip	159
-A	cooldown	item,6948,<0
-S	
-T	xprate	<1.5
 A	goto	1420/0,-38.06,2569.54
 A	complete	357,1
 S	
-T	xprate	<1.5
 T	hardcore	
 T	completewith	ANewPlagueFinal
 A	subzone	159
 A	subzoneskip	159
 S	
-T	xprate	<1.5
 T	softcore	
 T	completewith	ANewPlagueFinal
 A	goto	1420/0,23.85,2483.38
@@ -37008,22 +36191,10 @@ A	turnin	369
 A	accept	492
 A	accept	445
 A	target	Apothecary Johaan
-S	skip
-T	phase	3-6
-A	goto	1420/0,346.94,2259.25
-A	turnin	369
-A	accept	492
-A	target	Apothecary Johaan
 S	
-T	xprate	<1.5
 A	goto	1420/0,295.87,2277.93
 A	turnin	371
 A	accept	372
-A	target	Executor Zygand
-S	
-T	xprate	>1.49
-A	goto	1420/0,295.87,2277.93
-A	turnin	371
 A	target	Executor Zygand
 S	
 A	goto	1420/0,265.15,2305.94
@@ -37031,24 +36202,12 @@ A	turnin	360
 A	turnin	355
 A	target	Magistrate Sevren
 S	
-T	xprate	>1.49
-T	optional	
-T	completewith	ANewPlagueFinal
-A	abandon	372
-S	
-T	xprate	<1.5
 T	optional	
 A	goto	1420/0,280.06,2270.70
 A	turnin	374
 A	target	Deathguard Burgess
 A	isQuestComplete	374
 S	
-T	xprate	>1.49
-A	goto	1420/0,280.06,2270.70
-A	turnin	374
-A	target	Deathguard Burgess
-S	
-T	xprate	<1.5
 T	optional	
 A	goto	1420/0,275.54,2260.46
 A	complete	375,2
@@ -37056,39 +36215,21 @@ A	target	Abigail Shiel
 A	itemcount	2876,5
 A	isQuestAvailable	375
 S	
-T	xprate	>1.49
-A	goto	1420/0,275.54,2260.46
-A	complete	375,2
-A	target	Abigail Shiel
-A	isQuestAvailable	375
-S	
 A	goto	1420/0,270.12,2253.23
 A	collect	4496,1,356,1
 A	target	Mrs. Winters
 A	money	<0.05
 S	
-T	xprate	<1.5
 T	optional	
 A	goto	1420/0,236.68,2249.01
 A	turnin	375
 A	target	Gretchen Dedmar
 A	isQuestComplete	375
 S	
-T	xprate	>1.49
-A	goto	1420/0,236.68,2249.01
-A	turnin	375
-A	target	Gretchen Dedmar
-S	
 A	goto	1420/0,244.81,2269.19
 A	vendor	
 A	vendor	
 A	target	Innkeeper Renee
-S	Warrior
-T	season	2
-A	goto	1420/0,243.91,2273.71
-A	gossipoption	110750
-A	target	Penny Hawkins
-A	train	425447,1
 S	
 T	label	ANewPlagueFinal
 A	turnin	407
@@ -37097,52 +36238,27 @@ A	target	+Captured Scarlet Zealot
 A	turnin	492
 A	goto	1420/0,234.42,2289.070
 A	target	+Captured Mountaineer
-S	Warrior
-T	season	2
-A	goto	1420/0,244.36,2279.43
-A	gossipoption	109084
-A	target	Blueheart
-A	train	425447,1
-S	Warrior
-T	season	2
-A	goto	1420/0,244.36,2273.71
-A	gossipoption	110751
-A	collect	204716,1
-A	target	Netali
-A	mob	Blueheart
-A	train	425447,1
-A	skipgossip	
-S	Warrior
-T	season	2
-A	train	425447
-A	use	204716
-A	itemcount	204716,1
 S	
-T	xprate	<1.5
 T	completewith	UndercityLS2
 A	hs	
 A	cooldown	item,6948,>0,1
 A	bindlocation	1497,1
 A	zoneskip	Undercity
 S	
-T	xprate	<1.5
 T	completewith	UndercityLS2
 A	zone	Undercity
 A	cooldown	item,6948,<0
 S	
-T	xprate	<1.5
 T	ah	
 A	goto	1458/0,257.27,1560.450
 A	collect	3164,6,429,1
 A	target	Auctioneer Rhyker
 S	Mage
-T	xprate	<1.5
 A	goto	1458/0,56.57,1813.49
 A	turnin	1882
 A	target	Anastasia Hartwell
 S	
 T	optional	<< Rogue
-T	xprate	<1.5
 A	goto	1458/0,66.74,1766.18
 A	turnin	357
 A	accept	366
@@ -37150,7 +36266,6 @@ A	target	Bethor Iceshard
 A	isQuestComplete	1886 << Rogue
 S	Rogue
 T	ssf	
-T	xprate	<1.5
 A	goto	1458/0,133.71,1561.730
 A	collect	851,1,372,1
 A	money	<0.2023
@@ -37159,7 +36274,6 @@ A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<6.8
 A	target	Charles Seaton
 S	Rogue
 T	ah	
-T	xprate	<1.5
 A	goto	1458/0,133.71,1561.730
 A	collect	851,1,372,1
 A	money	<0.2023
@@ -37167,7 +36281,6 @@ A	itemStat	16,QUALITY,<7
 A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<6.8
 A	target	Charles Seaton
 S	Rogue
-T	xprate	<1.5
 T	optional	
 T	completewith	CaptainMelrache
 A	use	851
@@ -37176,7 +36289,6 @@ A	itemStat	16,QUALITY,<7
 A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<6.8
 S	Warrior
 T	ssf	
-T	xprate	<1.5
 A	goto	1458/0,133.71,1561.730
 A	collect	1198,1,372,1
 A	money	<0.2950
@@ -37185,7 +36297,6 @@ A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<9.0
 A	target	Charles Seaton
 S	Warrior
 T	ah	
-T	xprate	<1.5
 A	goto	1458/0,133.71,1561.730
 A	collect	1198,1,372,1
 A	money	<0.2950
@@ -37193,7 +36304,6 @@ A	itemStat	16,QUALITY,<7
 A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<9.0
 A	target	Charles Seaton
 S	Warrior
-T	xprate	<1.5
 T	optional	
 T	completewith	CaptainMelrache
 A	use	1198
@@ -37201,59 +36311,50 @@ A	itemcount	1198,1
 A	itemStat	16,QUALITY,<7
 A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<9.0
 S	Rogue
-T	xprate	<1.5
 A	goto	1458/0,71.92,1435.630
 A	turnin	1886
 A	target	Mennet Carkad
 A	isQuestComplete	1886
 S	Rogue
-T	xprate	<1.5
 A	goto	1458/0,71.92,1435.630
 A	accept	1898
 A	target	Mennet Carkad
 A	isQuestTurnedIn	1886
 S	Rogue
-T	xprate	<1.5
 A	goto	1458/0,347.07,1389.48
 A	turnin	1898
 A	accept	1899
 A	target	Andron Gant
 A	isQuestTurnedIn	1886
 S	Rogue
-T	xprate	<1.5
 A	goto	1458/0,341.41,1385.90
 A	complete	1899,1
 A	isQuestTurnedIn	1886
 S	Rogue
-T	xprate	<1.5
 A	goto	1458/0,71.83,1435.51
 A	turnin	1899
 A	accept	1978
 A	target	Mennet Carkad
 A	isQuestTurnedIn	1886
 S	Rogue
-T	xprate	<1.5
 A	goto	1420/0,373.60,1464.85,40,0
 A	goto	1420/0,333.38,1287.72
 A	turnin	1978
 A	target	Varimathras
 A	isQuestTurnedIn	1886
 S	skip --Rogue
-T	xprate	<1.5
 T	optional	
 A	goto	1458/0,343.43,1296.22
 A	goto	1458/0,221.78,1780.14,30
 A	link	https://www.youtube.com/watch?v=jj85AXyF1XE
 A	isQuestTurnedIn	1886
 S	Rogue
-T	xprate	<1.5
 A	goto	1458/0,66.74,1766.18
 A	turnin	357
 A	accept	366
 A	target	Bethor Iceshard
 A	isOnQuest	1886
 S	skip
-T	xprate	<1.5
 T	label	UndercityLS2
 A	goto	1458/0,59.07,1747.75
 A	goto	1458/0,221.78,1780.14,30
@@ -37261,18 +36362,15 @@ A	link	https://www.youtube.com/watch?v=-Bi95bCN8dM
 A	zoneskip	Undercity,1
 A	isOnQuest	1886 << Rogue
 S	
-T	xprate	<1.5
 T	completewith	next
 A	goto	1420/0,235.32,1883.89
 A	zone	Tirisfal Glades
 A	zoneskip	Tirisfal Glades
 S	
-T	xprate	<1.5
 A	goto	1420/0,74.00,2022.47
 A	turnin	356
 A	target	Deathguard Linnea
 S	
-T	xprate	<1.5
 T	label	CaptainMelrache
 A	goto	1420/0,-559.98,3080.16
 A	complete	372,1
@@ -37282,7 +36380,6 @@ A	mob	+Scarlet Bodyguard
 A	complete	374,1
 A	disablecheckbox	
 S	
-T	xprate	<1.5
 T	label	FinishRings
 T	loop	
 A	goto	1420/0,-538.29,2977.73,0
@@ -37293,7 +36390,6 @@ A	goto	1420/0,-486.32,2768.36,40,0
 A	goto	1420/0,-520.66,2750.29,40,0
 A	complete	374,1
 S	Priest
-T	xprate	<1.5
 T	optional	
 T	loop	
 A	goto	1420/0,-538.29,2977.73,0
@@ -37305,16 +36401,7 @@ A	goto	1420/0,-520.66,2750.29,40,0
 A	collect	2589,60,435,1
 A	itemStat	18,QUALITY,<7
 A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<11.3
-S	Warrior
-T	xprate	<1.5
-T	season	2
-T	completewith	next
-A	collect	207975,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	train	403475,1
 S	
-T	xprate	<1.5
 T	loop	
 A	goto	1420/0,-226.94,2838.25,0
 A	goto	1420/0,-300.6,2852.11,50,0
@@ -37326,29 +36413,12 @@ A	goto	1420/0,-300.6,2852.11,50,0
 A	complete	375,1
 A	mob	Greater Duskbat
 A	mob	Vampiric Duskbat
-S	Warrior
-T	xprate	<1.5
-T	season	2
-T	loop	
-A	goto	1420/0,-226.94,2838.25,0
-A	goto	1420/0,-300.6,2852.11,50,0
-A	goto	1420/0,-226.94,2838.25,50,0
-A	goto	1420/0,-135.67,2799.39,50,0
-A	goto	1420/0,-7.33,2785.53,50,0
-A	goto	1420/0,18.88,2696.67,50,0
-A	goto	1420/0,-300.6,2852.11,50,0
-A	collect	207975,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	train	403475,1
 S	
-T	xprate	<1.5
 A	goto	1420/0,-48.0,2574.66
 A	turnin	366
 A	accept	409
 A	target	Gunther Arcanus
 S	
-T	xprate	<1.5
 T	optional	
 T	label	CandleBeckoning
 T	completewith	Nefara
@@ -37356,78 +36426,65 @@ A	goto	1420/0,-46.65,2571.95
 A	collect	3080,1,409,1
 A	isOnQuest	409
 S	
-T	xprate	<1.5
 T	optional	
 T	requires	CandleBeckoning
 T	completewith	next
 A	goto	1420/0,22.04,2485.19
 A	isOnQuest	409
 S	
-T	xprate	<1.5
 T	label	Nefara
 A	goto	1420/0,19.33,2480.37
 A	complete	409,1
 A	target	Lillith Nefara
 S	
-T	xprate	<1.5
 A	goto	1420/0,-48.45,2574.66
 A	turnin	409
 A	accept	411
 A	target	Gunther Arcanus
 S	
-T	xprate	<1.5
 A	xp	11+4900
 A	isOnQuest	374
 A	isOnQuest	375
 S	
-T	xprate	<1.5
 T	optional	
 A	xp	11+5525
 A	isQuestTurnedIn	374
 A	isOnQuest	375
 S	
-T	xprate	<1.5
 T	optional	
 A	xp	11+5600
 A	isOnQuest	374
 A	isQuestTurnedIn	375
 S	
-T	xprate	<1.5
 T	optional	
 A	xp	11+6225
 A	isQuestTurnedIn	374
 A	isQuestTurnedIn	375
 S	
-T	xprate	<1.5
 T	hardcore	
 T	completewith	CrusadewarWon
 A	subzone	159
 A	subzoneskip	159
 S	
-T	xprate	<1.5
 T	softcore	
 T	completewith	CrusadewarWon
 A	goto	1420/0,123.26,2552.67
 A	deathskip	
 S	
-T	xprate	<1.5
 T	label	CrusadewarWon
 A	goto	1420/0,295.87,2277.93
 A	turnin	372
 A	target	Executor Zygand
 S	
-T	xprate	<1.5
 A	goto	1420/0,280.06,2270.70
 A	turnin	374
 A	target	Deathguard Burgess
 S	
-T	xprate	<1.5
 A	goto	1420/0,275.54,2260.46
 A	complete	375,2
 A	target	Abigail Shiel
 A	isQuestAvailable	375
 S	
-T	xprate	<1.5
 A	goto	1420/0,236.68,2249.01
 A	turnin	375
 A	target	Gretchen Dedmar
@@ -37460,11 +36517,6 @@ S	Rogue
 T	completewith	Entersilverpine
 A	complete	1886,1
 A	unitscan	Astor Hadren
-S	
-T	xprate	>1.49
-A	goto	1420/0,74.00,2022.47
-A	turnin	356
-A	target	Deathguard Linnea
 S	Priest/Rogue/Warrior
 T	optional	
 T	completewith	LesserMagicWand << Priest
@@ -37544,55 +36596,6 @@ A	use	1198
 A	itemcount	1198,1
 A	itemStat	16,QUALITY,<7
 A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<9.0
-S	skip --Warrior/Rogue
-T	xprate	>1.49
-T	season	0,1 << Warrior
-T	optional	
-T	label	LogoutSkip3
-A	goto	1458/0,287.01,1531.59
-A	goto	1458/0,221.78,1780.14,30
-A	zoneskip	Undercity,1
-A	itemcount	7231,<1 << Rogue
-S	Warrior
-T	season	2
-T	completewith	next
-T	optional	
-A	goto	1458,54.383,73.014,50,0
-A	goto	1458,52.837,77.725,20,0
-A	goto	1458,52.275,79.254,15,0
-A	goto	1458,51.279,79.923,15,0
-A	goto	1458,49.693,78.903,15,0
-A	goto	1458,47.951,76.171,15,0
-A	goto	1458/0,412.40,1427.950,12
-A	train	403475,1
-S	Warrior
-T	season	2
-A	goto	1458/0,412.40,1427.950
-A	collect	204688,1
-A	collect	204689,1
-A	collect	204690,1
-A	target	Dorac Graves
-A	train	403475,1
-A	zoneskip	Undercity,1
-S	Warrior
-T	season	2
-T	optional	
-A	use	204688
-A	collect	204703,1
-A	train	403475,1
-A	zoneskip	Undercity,1
-S	Warrior
-T	season	2
-A	train	403475
-A	use	204703
-A	itemcount	204703,1
-A	zoneskip	Undercity,1
-S	skip --Warrior
-T	xprate	>1.49
-T	season	2
-A	goto	1458,48.906,70.156
-A	goto	1458/0,221.78,1780.14,30
-A	zoneskip	Undercity,1
 S	Priest
 T	optional	
 A	goto	1458/0,403.29,1760.61
@@ -37602,14 +36605,12 @@ A	itemStat	18,QUALITY,<7
 A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<11.3
 A	train	2652,1
 S	Rogue/Warrior/Priest
-T	xprate	<1.5
 T	optional	
 A	goto	1458/0,66.74,1766.18
 A	turnin	411
 A	target	Bethor Iceshard
 A	zoneskip	Undercity,1
 S	skip --Rogue/Warrior
-T	xprate	<1.5
 T	optional	
 T	label	UndercityLS3
 A	goto	1458/0,59.07,1747.75
@@ -37766,7 +36767,6 @@ E
 G	Guides/forever/Horde-01-14_Undead.lua
 M	group	RestedXP Forever Guide (H)
 M	subgroup	Speedrun Guide 1-22
-M	xprate	<1.99
 M	selector	Horde
 M	version	11
 M	defaultfor	Undead/Troll Rogue/Orc Rogue/Orc Warlock/Troll Mage/Troll Priest
@@ -37775,13 +36775,6 @@ M	tbc
 M	era/som--h	
 M	name	12-14 Silverpine Forest
 M	next	12-17 The Barrens
-S	Undead Warrior
-T	season	2
-T	sticky	
-T	optional	
-T	completewith	RuneOfDevastateUndead
-A	itemcount	204477,1
-A	train	403475,1
 S	Undead Rogue
 T	sticky	
 T	completewith	Rot HideCluesTurnIn
@@ -38020,15 +37013,9 @@ T	completewith	next
 A	goto	1421/0,1538.58,511.39,100,0
 A	subzone	228
 S	
-T	xprate	<1.5
 A	goto	1421/0,1593.6,554.23
 A	turnin	422
 A	accept	423
-A	target	Dalar Dawnweaver
-S	
-T	xprate	>1.49
-A	goto	1421/0,1593.6,554.23
-A	turnin	422
 A	target	Dalar Dawnweaver
 S	
 T	optional	
@@ -38084,7 +37071,6 @@ A	goto	1421/0,997.62,692.55
 A	turnin	438
 A	accept	439
 S	
-T	xprate	<1.5
 T	loop	
 A	goto	1421/0,1095.48,385.67,0
 A	goto	1421/0,1095.48,385.67,40,0
@@ -38094,12 +37080,6 @@ A	complete	423,1
 A	mob	+Moonrage Glutton
 A	complete	423,2
 A	mob	+Moonrage Darksoul
-S	Mage
-T	season	2
-T	completewith	BorderCrossings
-A	train	401767,1
-A	collect	208754,1
-A	mob	Dalaran Apprentice
 S	
 T	hardcore	
 A	goto	1421/0,1354.62,-22.57
@@ -38113,35 +37093,6 @@ A	goto	1421/0,1354.62,-22.57
 A	turnin	477
 A	accept	478
 A	mob	Dalaran Apprentice
-S	Mage
-T	season	2
-T	loop	
-A	goto	1421/0,1354.62,-22.57,0
-A	goto	1421/0,1240.8,81.87,20,0
-A	goto	1421/0,1072.8,-91.73,20,0
-A	goto	1421/0,1114.8,-371.73,20,0
-A	goto	1421/0,1282.8,-321.33.0,20,0
-A	goto	1421/0,1316.4,-58.13,20,0
-A	train	401767,1
-A	collect	208754,1
-A	mob	Dalaran Apprentice
-S	Mage
-T	season	2
-A	collect	211779,1
-A	train	401767
-A	use	208754
-A	itemcount	211779,1
-S	Rogue
-T	season	2
-A	goto	1421/0,1549.50,-239.01,20,0
-A	goto	1421/0,1549.08,-215.21
-A	collect	208772,1
-A	train	424984,1
-S	Rogue
-T	season	2
-A	train	424984
-A	use	208772
-A	itemcount	208772,1
 S	
 T	completewith	next
 T	hardcore	
@@ -38152,22 +37103,11 @@ T	softcore
 T	completewith	next
 A	deathskip	
 S	
-T	xprate	<1.5
 A	turnin	478
 A	accept	481
 A	target	+Shadow Priest Allister
 A	goto	1421/0,1602.84,520.63
 A	turnin	423
-A	turnin	481
-A	accept	482
-A	target	+Dalar Dawnweaver
-A	goto	1421/0,1593.6,554.23
-S	
-T	xprate	>1.49
-A	turnin	478
-A	accept	481
-A	target	+Shadow Priest Allister
-A	goto	1421/0,1602.84,520.63
 A	turnin	481
 A	accept	482
 A	target	+Dalar Dawnweaver
@@ -38188,7 +37128,6 @@ A	goto	1421/0,1625.94,522.31
 A	turnin	439
 A	target	High Executor Hadrec
 S	
-T	xprate	<1.5 << Undead
 A	goto	1421/0,1533.96,474.43
 A	turnin	6321
 A	accept	6323
@@ -38197,15 +37136,6 @@ A	fly	Undercity
 A	target	Karos Razok
 A	zoneskip	Undercity
 S	Undead
-T	xprate	>1.49
-A	goto	1421/0,1533.96,474.43
-A	turnin	6321
-A	accept	6323
-A	fly	Undercity
-A	target	Karos Razok
-A	zoneskip	Undercity
-S	Undead
-T	xprate	<1.5
 A	hs	
 A	use	6948
 A	zoneskip	Undercity
@@ -38243,7 +37173,6 @@ A	goto	1458/0,266.20,1567.17
 A	turnin	6322
 A	target	Michael Garrett
 S	Undead Warrior
-T	xprate	<1.5
 T	optional	
 A	goto	1458/0,418.35,1767.02
 A	train	285
@@ -38251,7 +37180,6 @@ A	target	Baltus Fowler
 A	dungeon	RFC
 A	xp	<16,1
 S	Undead Rogue/Undead Warrior
-T	xprate	<1.5
 A	goto	1458/0,66.74,1766.18
 A	turnin	411
 A	target	Bethor Iceshard
@@ -38308,7 +37236,6 @@ A	target	Carolyn Ward
 A	xp	<16,1
 A	isOnQuest	1898 << Undead
 S	Undead Rogue
-T	xprate	<1.5
 A	goto	1458/0,68.66,1416.69
 A	train	1758
 A	target	Carolyn Ward
@@ -38317,7 +37244,6 @@ A	xp	>16,1
 A	dungeon	RFC
 S	Undead Rogue
 T	optional	
-T	xprate	<1.5
 A	goto	1458/0,68.66,1416.69
 A	train	6761
 A	target	Carolyn Ward
@@ -38351,27 +37277,7 @@ A	turnin	1359
 A	accept	1358
 A	target	+Apothecary Zinge
 A	goto	1458/0,391.97,1442.87
-S	Undead Warrior
-T	season	2
-T	label	RuneOfDevastateUndead
-A	goto	1458/0,412.40,1427.950
-A	collect	204688,1
-A	collect	204689,1
-A	collect	204690,1
-A	target	Dorac Graves
-A	train	403475,1
-S	Undead Warrior
-T	season	2
-A	use	204688
-A	collect	204703,1
-A	train	403475,1
-S	Undead Warrior
-T	season	2
-A	train	403475
-A	use	204703
-A	itemcount	204703,1
 S	skip --Undead Rogue/Undead Warrior
-T	xprate	<1.5
 T	optional	
 A	goto	1458,48.906,70.156
 A	goto	1458/0,221.78,1780.14,30
@@ -38384,7 +37290,6 @@ A	accept	1978
 A	target	Mennet Carkad
 A	isQuestTurnedIn	1886
 S	Undead Rogue
-T	xprate	<1.5
 T	optional	
 A	goto	1458/0,68.66,1416.69
 A	train	1758
@@ -38393,7 +37298,6 @@ A	xp	<14,1
 A	xp	>16,1
 A	dungeon	RFC
 S	Undead Rogue
-T	xprate	<1.5
 T	optional	
 A	goto	1458/0,68.66,1416.69
 A	train	6761
@@ -38407,7 +37311,6 @@ A	turnin	1978
 A	target	Varimathras
 A	isQuestTurnedIn	1886
 S	skip --Undead Rogue
-T	xprate	<1.5
 T	optional	
 A	goto	1458/0,343.43,1296.22
 A	goto	1458/0,221.78,1780.14,30
@@ -38442,50 +37345,29 @@ A	train	3274
 A	target	Mary Edras
 A	skill	firstaid,<50,1
 S	Undead !Rogue !Warrior
-T	xprate	<1.5
 A	goto	1458/0,66.74,1766.18
 A	turnin	411
 A	target	Bethor Iceshard
 A	isQuestComplete	411
-S	Undead Mage
-T	xprate	>1.49
-A	goto	1458/0,56.57,1813.49
-A	turnin	1882
-A	train	2137
-A	target	Anastasia Hartwell
-A	xp	<14,1
-A	xp	>16,1
-S	Undead Mage
-T	xprate	>1.49
-T	optional	
-A	goto	1458/0,56.38,1813.81
-A	turnin	1882
-A	train	2120
-A	target	Anastasia Hartwell
-A	xp	<16,1
 S	Mage
-T	xprate	<1.5 << Undead
 A	goto	1458/0,56.38,1813.81
 A	train	2137
 A	target	Anastasia Hartwell
 A	xp	<14,1
 A	xp	>16,1
 S	Mage
-T	xprate	<1.5 << Undead
 T	optional	
 A	goto	1458/0,56.38,1813.81
 A	train	2120
 A	target	Anastasia Hartwell
 A	xp	<16,1
 S	Undead Warlock
-T	xprate	<1.5
 A	goto	1458/0,20.02,1776.42
 A	train	6222
 A	target	Richard Kerwin
 A	xp	<14,1
 A	xp	>16,1
 S	Undead Warlock
-T	xprate	<1.5
 T	optional	
 A	goto	1458/0,20.02,1776.42
 A	train	1455
@@ -38532,7 +37414,6 @@ A	target	Aelthalyste
 A	train	2652,1
 A	dungeon	RFC
 S	!Undead Priest
-T	xprate	<1.5
 T	sticky	
 T	label	TouchOW
 A	goto	1458/0,403.29,1760.61
@@ -38542,7 +37423,6 @@ A	train	2652,1
 A	dungeon	RFC
 A	isOnQuest	5660
 S	Undead Priest
-T	xprate	<1.5
 A	goto	1458/0,416.91,1757.03
 A	train	6074
 A	target	Father Lazarus
@@ -38550,7 +37430,6 @@ A	xp	<14,1
 A	xp	>16,1
 A	dungeon	RFC
 S	Undead Priest
-T	xprate	<1.5
 T	optional	
 A	goto	1458/0,416.91,1757.03
 A	train	8102
@@ -38563,7 +37442,6 @@ T	completewith	Conscript
 A	abandon	1886
 A	isOnQuest	1886
 S	skip --Undead !Rogue !Warrior
-T	xprate	<1.5
 T	requires	TouchOW << Undead Priest
 A	goto	1458/0,327.4,1770.6 << Priest
 A	goto	1458/0,206.81,1712.48 << Mage/Warlock
@@ -38572,76 +37450,11 @@ A	goto	1458/0,221.78,1780.14,30
 A	zoneskip	Undercity,1
 A	dungeon	RFC
 S	skip --Undead !Rogue !Warrior
-T	xprate	<1.5
 A	goto	1458/0,206.81,1712.48 << Priest/Mage/Warlock
 A	goto	1458/0,221.78,1780.14,30
 A	link	https://www.youtube.com/watch?v=-Bi95bCN8dM
 A	zoneskip	Undercity,1
 A	dungeon	!RFC
-S	Undead
-T	xprate	>1.49
-T	completewith	ZeptoDurotar
-A	hs	
-A	zoneskip	Undercity,1
-A	bindlocation	2119,1
-S	Undead Rogue
-T	xprate	>1.49
-A	goto	1420/0,243.01,2270.70
-A	train	1758
-A	target	Marion Call
-A	xp	<14,1
-A	xp	>16,1
-S	Undead Rogue
-T	xprate	>1.49
-A	goto	1420/0,243.01,2270.70
-A	train	6761
-A	target	Marion Call
-A	xp	<16,1
-S	Undead Priest
-T	xprate	>1.49
-A	goto	1420/0,251.14,2265.28
-A	train	8122
-A	target	Dark Cleric Beryl
-A	xp	<14,1
-A	xp	>16,1
-S	Undead Priest
-T	xprate	>1.49
-A	goto	1420/0,251.14,2265.28
-A	train	8102
-A	target	Dark Cleric Beryl
-A	xp	<16,1
-S	skip --Undead Mage
-T	xprate	>1.49
-A	goto	1420/0,233.06,2256.84
-A	train	1460
-A	target	Cain Firesong
-A	xp	<14,1
-A	xp	>16,1
-S	skip --Undead Mage
-T	xprate	>1.49
-A	goto	1420/0,233.06,2256.84
-A	train	2120
-A	target	Cain Firesong
-A	xp	<16,1
-S	Undead Warrior
-T	xprate	>1.49
-A	goto	1420/0,238.49,2255.03
-A	train	285
-A	target	Austil de Mon
-A	xp	<16,1
-S	Undead Warlock
-T	xprate	>1.49
-A	goto	1420/0,250.24,2259.25
-A	train	6222
-A	target	Rupert Boch
-A	xp	<14,1
-A	xp	>16,1
-S	Undead Warlock
-T	xprate	>1.49
-A	goto	1420/0,250.24,2259.25
-A	train	1455
-A	target	Rupert Boch
-A	xp	<16,1
 S	Undead
 T	sticky	
 T	completewith	EnterRFC
@@ -38862,14 +37675,6 @@ A	goto	1411/1,-4837.31,356.030
 A	train	1455
 A	target	Dhugru Gorelust
 A	xp	<16,1
-S	!Undead
-T	xprate	>1.49
-A	turnin	806
-A	goto	1411/1,-4724.69,287.30
-A	turnin	837
-A	goto	1411/1,-4709.36,274.960
-A	target	Orgnil Soulscar
-A	target	Gar'Thok
 S	
 T	label	Conscript
 A	goto	1411/1,-4648.55,271.43
@@ -38884,7 +37689,6 @@ A	turnin	840
 A	accept	842
 A	target	Kargal Battlescar
 S	!Undead
-T	xprate	<1.5
 A	goto	1413/1,-3694.2,256.52
 A	turnin	809
 A	accept	924
@@ -38894,3893 +37698,5 @@ S	!Undead
 A	goto	1413/1,-3694.2,259.22
 A	turnin	926
 A	isOnQuest	924
-S	Mage
-E
-G	Guides/forever/Horde-01-14_Undead.lua
-M	classic	
-M	tbc	
-M	selector	Horde
-M	xprate	>1.99
-M	version	1
-M	group	RestedXP Forever Guide (H)
-M	subgroup	Speedrun Guide 1-22
-M	defaultfor	Undead
-M	name	1-7 Tirisfal Glades
-M	next	7-13 Tirisfal Glades
-S	!Undead
-T	completewith	next
-S	!Undead Mage
-T	season	2
-T	completewith	next
-S	
-T	completewith	Zombies
-A	destroy	6948
-S	
-T	completewith	next
-A	goto	1420/0,1675.90,1645.00,8,0
-A	goto	1420/0,1665.51,1645.00,8,0
-A	goto	1420/0,1667.77,1679.04,10
-S	
-A	goto	1420/0,1667.77,1679.04
-A	accept	363
-A	target	Undertaker Mordo
-S	Warrior/Warlock/Priest/Mage
-T	xprate	<2.1
-T	completewith	Vendor
-A	goto	1420/0,1646.08,1750.44,0 << Warrior/Warlock
-A	goto	1420/0,1681.32,1719.710,40,0
-A	goto	1420/0,1646.08,1750.44,40,0
-A	goto	1420/0,1714.76,1760.68,40,0 << Priest/Mage
-A	goto	1420/0,1718.38,1799.24,40,0 << Priest/Mage
-A	goto	1420/0,1669.12,1869.73,40,0 << Priest/Mage
-A	mob	Young Scavenger
-A	mob	Duskbat
-A	money	>0.01
-S	Warrior/Warlock/Priest/Mage
-T	season	0
-T	xprate	>2.09
-T	completewith	Vendor
-A	mob	Young Scavenger
-A	mob	Duskbat
-A	money	>0.01
-S	
-T	season	2
-T	xprate	>2.09
-T	completewith	Vendor
-A	mob	Young Scavenger
-A	mob	Duskbat
-A	money	>0.01
-S	
-T	xprate	>2.09
-T	loop	
-A	goto	1420/0,1714.76,1760.68,40,0,0
-A	goto	1420/0,1681.32,1719.710,40,0
-A	goto	1420/0,1646.08,1750.44,40,0
-A	goto	1420/0,1714.76,1760.68,40,0
-A	goto	1420/0,1718.38,1799.24,40,0
-A	goto	1420/0,1669.12,1869.73,40,0
-A	xp	2
-A	mob	Young Scavenger
-A	mob	Duskbat
-A	money	>0.01
-S	
-T	season	2
-A	goto	1420/0,1616.25,1836.60
-A	collect	204806,1 << Warrior
-A	collect	204716,1 << Warrior
-A	collect	208799,1 << Mage
-A	collect	203746,1 << Mage
-A	collect	203748,1 << Mage
-A	collect	225690,1 << Mage
-A	collect	203745,1 << Mage
-A	collect	209852,1 << Hunter
-A	collect	226401,1 << Hunter
-A	collect	216770,1 << Hunter
-A	collect	206168,1 << Hunter
-A	collect	210818,1 << Hunter
-A	collect	213124,1 << Hunter
-A	collect	226252,1 << Hunter
-A	collect	205215,1 << Warlock
-A	collect	210824,1 << Warlock
-A	collect	211477,1 << Warlock
-A	collect	205230,1 << Warlock
-A	collect	228797,1 << Warlock
-A	collect	210979,1 << Rogue
-A	collect	221428,1 << Rogue
-A	collect	204795,1 << Rogue
-A	collect	208772,1 << Rogue
-A	collect	227922,1 << Rogue
-A	collect	212552,1 << Priest
-A	collect	205940,1 << Priest
-A	collect	205951,1 << Priest
-A	collect	205932,1 << Priest
-A	collect	205947,1 << Priest
-A	target	Rune Broker
-A	skipgossip	
-S	
-T	season	2
-A	train	403470
-A	train	415936
-A	train	401759
-A	train	440858
-A	train	401760
-A	train	401768
-A	train	416009
-A	train	425476
-A	train	416015
-A	train	403919
-A	train	403619
-A	train	402852
-A	train	425447
-A	train	400101
-A	train	432301
-A	train	400105
-A	train	424984
-A	train	415922
-A	train	431663
-A	train	425216
-A	train	402862
-A	train	402849
-A	use	205947 << Priest
-A	use	212552 << Priest
-A	use	205940 << Priest
-A	use	205951 << Priest
-A	use	205932 << Priest
-A	use	204716 << Warrior
-A	use	203746 << Mage
-A	use	209852 << Hunter
-A	use	226401 << Hunter
-A	use	208799 << Mage
-A	use	203748 << Mage
-A	use	225690 << Mage
-A	use	203746 << Mage
-A	use	203745 << Mage
-A	use	204716 << Warrior
-A	use	204806 << Warrior
-A	use	205215 << Warlock
-A	use	210824 << Warlock
-A	use	211477 << Warlock
-A	use	205230 << Warlock
-A	use	228797 << Warlock
-A	use	210979 << Rogue
-A	use	221428 << Rogue
-A	use	204795 << Rogue
-A	use	208772 << Rogue
-A	use	227922 << Rogue
-S	Warlock
-T	optional	
-T	sticky	
-A	aura	403619
-S	Warrior
-T	season	0
-T	completewith	Training1
-A	goto	1420/0,1577.39,1860.09,8
-S	Priest/Mage
-T	season	0
-A	goto	1420/0,1574.23,1866.12
-A	vendor	
-A	collect	159,10,383,1
-A	target	Joshua Kien
-S	Priest
-A	goto	1420/0,1627.55,1848.65
-A	accept	77670
-A	turnin	77670
-A	target	Dark Cleric Duesten
-S	
-T	optional	
-T	label	Vendor
-S	Warlock/Mage
-T	sticky	
-T	label	Piercing
-A	accept	1470
-A	goto	1420/0,1633.42,1836.9 << Warlock
-A	target	+Venya Marthand << Warlock
-A	turnin	363
-A	accept	364
-A	target	+Shadow Priest Sarvis
-A	goto	1420/0,1639.75,1843.220
-S	Warlock/Mage
-T	xprate	<2.1
-A	goto	1420/0,1616.71,1842.92,10,0
-A	accept	376
-A	goto	1420/0,1638.85,1847.74
-A	target	Novice Elreth
-A	xp	<2,1
-S	Warlock/Mage
-T	xprate	>2.09
-A	goto	1420/0,1616.71,1842.92,10,0
-A	accept	376
-A	goto	1420/0,1638.85,1847.74
-A	target	Novice Elreth
-S	Warlock
-T	season	2
-A	goto	1420/0,1636.59,1839.01
-A	accept	77672
-A	turnin	77672
-A	target	Maximillion
-S	Mage
-T	requires	Percing
-A	goto	1420/0,1635.23,1847.44
-A	train	1459
-A	accept	77671
-A	turnin	77671
-A	target	Isabella
-S	Mage
-T	season	2
-T	optional	
-A	equip	10,711
-A	use	711
-A	engrave	10
-A	engrave	7
-A	engrave	5
-S	Mage
-T	season	2
-T	optional	
-T	sticky	
-A	engrave	15
-S	Warlock
-T	season	0
-T	label	Vendor
-A	goto	1420/0,1641.11,1836.90
-A	vendor	
-A	target	Kayla Smithe
-A	money	>0.1
-S	Warlock
-T	season	0
-A	goto	1420/0,1636.59,1839.01
-A	train	348
-A	target	Maximillion
-S	!Warlock !Mage
-A	goto	1420/0,1616.71,1842.92,10,0
-A	goto	1420/0,1639.75,1843.220
-A	turnin	363
-A	accept	364
-A	target	Shadow Priest Sarvis
-S	!Warlock !Mage
-T	xprate	<2.1
-A	accept	376
-A	goto	1420/0,1638.85,1847.74
-A	target	Novice Elreth
-A	xp	<2,1
-S	!Warlock !Mage
-T	xprate	>2.09
-A	accept	376
-A	goto	1420/0,1638.85,1847.74
-A	target	Novice Elreth
-S	Rogue/Priest/Warlock
-T	season	2
-A	goto	1420/0,1568.81,1859.79
-A	collect	3596,1 << Warlock
-A	collect	3595,1 << Rogue/Priest
-A	target	Archibald Kava
-S	Warlock
-T	season	2
-A	equip	10,711
-A	equip	9,3596
-A	use	711
-A	use	3596
-A	engrave	10
-A	engrave	9
-A	engrave	7
-A	engrave	5
-S	Priest
-T	season	2
-A	equip	10,711
-A	equip	6,3595
-A	use	711
-A	use	3595
-A	engrave	6
-A	engrave	10
-A	engrave	7
-S	Priest
-T	season	2
-T	optional	
-T	sticky	
-A	engrave	8
-S	Rogue
-T	season	2
-A	goto	1420/0,1563.38,1859.79
-A	accept	77669
-A	turnin	77669
-A	target	David Trias
-S	Rogue
-T	season	2
-T	optional	
-A	equip	10
-A	equip	6,3595
-A	engrave	10
-A	engrave	6
-A	use	2125
-A	use	3595
-S	Rogue
-T	season	2
-T	sticky	
-T	optional	
-A	engrave	15
-A	engrave	9
-S	Warrior
-T	season	0
-T	completewith	next
-T	label	Vendor
-A	goto	1420/0,1568.35,1859.49
-A	vendor	
-A	target	Archibald Kava
-A	money	>0.1
-S	Warrior
-T	season	0
-T	label	Training1
-A	goto	1420/0,1556.61,1862.50
-A	train	6673
-A	target	Dannal Stern
-S	Warrior
-T	season	2
-T	label	Training1
-A	goto	1420/0,1556.61,1862.50
-A	train	6673
-A	accept	77668
-A	turnin	77668
-A	target	Dannal Stern
-S	Warrior
-T	season	2
-A	equip	10
-A	engrave	10
-A	engrave	7
-A	use	2385
-S	Warlock
-T	requires	Piercing
-T	loop	
-A	goto	1420/0,1595.47,1985.41,0
-A	goto	1420/0,1595.47,1985.41,30,0
-A	goto	1420/0,1627.55,2008.61,30,0
-A	goto	1420/0,1584.17,2024.88,30,0
-A	goto	1420/0,1575.58,2053.8,30,0
-A	goto	1420/0,1529.49,2044.16,30,0
-A	goto	1420/0,1512.32,2007.1,30,0
-A	goto	1420/0,1499.67,1975.47,30,0
-A	goto	1420/0,1487.47,1938.12,30,0
-A	goto	1420/0,1541.69,1939.32,30,0
-A	complete	1470,1
-A	mob	Rattlecage Skeleton
-S	Warlock
-T	completewith	next
-A	mob	Mindless Zombie
-A	mob	Wretched Zombie
-A	money	>0.0025
-S	Warlock
-A	goto	1420/0,1576.94,1861.6,8,0
-A	goto	1420/0,1574.23,1866.12
-A	collect	159,5,383,1
-A	target	Joshua Kien
-A	isOnQuest	1470
-S	Warlock
-A	goto	1420/0,1616.71,1842.92,10,0
-A	goto	1420/0,1633.42,1836.90
-A	turnin	1470
-A	target	Venya Marthand
-S	Warlock
-T	completewith	next
-A	cast	688
-S	
-T	xprate	>2.09
-T	completewith	next
-A	complete	376,1
-A	mob	+Young Scavenger
-A	mob	+Ragged Scavenger
-A	complete	376,2
-A	mob	+Duskbat
-A	mob	+Mangy Duskbat
-S	
-T	label	Zombies
-T	requires	Piercing << Warlock/Mage
-T	loop	
-A	goto	1420/0,1599.99,1910.1,0
-A	goto	1420/0,1599.99,1910.1,40,0
-A	goto	1420/0,1646.53,1913.11,40,0
-A	goto	1420/0,1637.04,1963.72,40,0
-A	goto	1420/0,1644.72,1979.99,40,0
-A	goto	1420/0,1626.19,1987.52,40,0
-A	goto	1420/0,1596.37,1974.87,40,0
-A	goto	1420/0,1548.92,1939.02,40,0
-A	goto	1420/0,1546.66,1923.36,40,0
-A	goto	1420/0,1523.62,1937.82,40,0
-A	goto	1420/0,1508.26,1943.84,40,0
-A	goto	1420/0,1519.1,1914.92,40,0
-A	goto	1420/0,1517.29,1892.33,40,0
-A	goto	1420/0,1529.04,1880.58,40,0
-A	complete	364,1
-A	mob	+Mindless Zombie
-A	complete	364,2
-A	mob	+Wretched Zombie
-S	Mage/Warlock/Priest
-T	xprate	<2.1
-T	completewith	Vendor2
-A	mob	Mindless Zombie
-A	mob	Wretched Zombie
-A	money	>0.0033
-S	Mage/Warlock/Priest
-T	xprate	<2.1
-A	goto	1420/0,1576.94,1861.6,8,0
-A	goto	1420/0,1574.23,1866.12
-A	collect	159,10,383,1
-A	vendor	
-A	target	Joshua Kien
-A	isOnQuest	364
-A	money	<0.0050
-A	itemcount	159,<10
-S	Mage/Warlock/Priest
-T	xprate	<2.1
-T	label	Vendor2
-A	goto	1420/0,1576.94,1861.6,8,0
-A	goto	1420/0,1574.23,1866.12
-A	collect	159,5,383,1
-A	vendor	
-A	target	Joshua Kien
-A	isOnQuest	364
-A	money	>0.0050
-A	itemcount	159,<5
-S	
-T	xprate	<2.1
-T	season	2
-A	turnin	364
-A	accept	3095
-A	accept	3096
-A	accept	3097
-A	accept	3098
-A	accept	3099
-A	accept	3901
-A	target	+Shadow Priest Sarvis
-A	goto	1420/0,1616.71,1842.92,10,0
-A	goto	1420/0,1639.75,1843.220
-A	accept	376
-A	target	+Novice Elreth
-A	goto	1420/0,1638.85,1847.74
-A	turnin	3099
-A	target	+Maximillion << Warlock
-A	goto	1420/0,1636.59,1839.01 << Warlock
-A	turnin	3098
-A	target	+Isabella << Mage
-A	goto	1420/0,1635.23,1847.44 << Mage
-A	turnin	3097
-A	target	+Dark Cleric Duesten << Priest
-A	goto	1420/0,1627.55,1848.65 << Priest
-S	
-T	xprate	<2.1
-T	season	0
-A	turnin	364
-A	accept	3095
-A	accept	3096
-A	accept	3097
-A	accept	3098
-A	accept	3099
-A	accept	3901
-A	target	+Shadow Priest Sarvis
-A	goto	1420/0,1616.71,1842.92,10,0
-A	goto	1420/0,1639.75,1843.220
-A	accept	376
-A	target	+Novice Elreth
-A	goto	1420/0,1638.85,1847.74
-A	turnin	3099
-A	goto	1420/0,1636.59,1839.01 << Warlock
-A	target	+Maximillion << Warlock
-A	turnin	3098
-A	goto	1420/0,1635.23,1847.44 << Mage
-A	target	+Isabella << Mage
-A	turnin	3097
-A	target	+Dark Cleric Duesten << Priest
-A	goto	1420/0,1627.55,1848.65 << Priest
-S	Mage/Warlock/Priest
-T	xprate	<2.1
-A	goto	1420/0,1576.94,1861.6,8,0
-A	goto	1420/0,1574.23,1866.12
-A	collect	159,10,383,1
-A	target	Joshua Kien
-A	isOnQuest	364
-S	
-T	loop	
-A	goto	1420/0,1482.50,2126.70,0
-A	goto	1420/0,1713.41,1828.76,40,0
-A	goto	1420/0,1701.21,1858.290,40,0
-A	goto	1420/0,1695.78,1908.29,40,0
-A	goto	1420/0,1692.62,1927.88,40,0
-A	goto	1420/0,1673.64,1984.51,40,0
-A	goto	1420/0,1633.88,2040.24,40,0
-A	goto	1420/0,1604.96,2073.08,40,0
-A	goto	1420/0,1584.17,2098.08,40,0
-A	goto	1420/0,1548.92,2079.71,40,0
-A	goto	1420/0,1482.50,2126.70,40,0
-A	complete	376,1
-A	mob	+Young Scavenger
-A	mob	+Ragged Scavenger
-A	complete	376,2
-A	mob	+Duskbat
-A	mob	+Mangy Duskbat
-S	
-T	xprate	<2.1
-T	loop	
-A	goto	1420/0,1595.47,1985.41,0
-A	goto	1420/0,1595.47,1985.41,30,0
-A	goto	1420/0,1627.55,2008.61,30,0
-A	goto	1420/0,1584.17,2024.88,30,0
-A	goto	1420/0,1575.58,2053.8,30,0
-A	goto	1420/0,1529.49,2044.16,30,0
-A	goto	1420/0,1512.32,2007.1,30,0
-A	goto	1420/0,1499.67,1975.47,30,0
-A	goto	1420/0,1487.47,1938.12,30,0
-A	goto	1420/0,1541.69,1939.32,30,0
-A	complete	3901,1
-A	mob	Rattlecage Skeleton
-S	Mage/Warlock/Priest
-T	xprate	<2.1
-A	goto	1420/0,1576.04,1861.60,8,0
-A	goto	1420/0,1574.23,1866.12
-A	vendor	
-A	target	Joshua Kien
-A	money	>0.1
-A	isOnQuest	3901
-A	itemcount	159,<20
-S	
-T	xprate	<2.1
-A	turnin	3901
-A	target	+Shadow Priest Sarvis
-A	goto	1420/0,1616.71,1842.92,10,0
-A	goto	1420/0,1639.75,1843.220
-A	turnin	376
-A	accept	6395
-A	target	+Novice Elreth
-A	goto	1420/0,1638.85,1847.74
-S	Mage/Warlock/Priest
-T	xprate	>2.09
-A	goto	1420/0,1576.94,1861.6,8,0
-A	goto	1420/0,1574.23,1866.12
-A	collect	159,10,383,1
-A	vendor	
-A	target	Joshua Kien
-A	isOnQuest	364
-A	money	<0.0050
-A	itemcount	159,<10
-S	Mage/Warlock/Priest
-T	xprate	>2.09
-T	label	Vendor2
-A	goto	1420/0,1576.94,1861.6,8,0
-A	goto	1420/0,1574.23,1866.12
-A	collect	159,5,383,1
-A	vendor	
-A	target	Joshua Kien
-A	isOnQuest	364
-A	money	>0.0050
-A	itemcount	159,<5
-S	
-T	xprate	>2.09
-T	season	2
-A	turnin	364
-A	accept	3095
-A	accept	3096
-A	accept	3097
-A	accept	3098
-A	accept	3099
-A	target	+Shadow Priest Sarvis
-A	goto	1420/0,1616.71,1842.92,10,0
-A	goto	1420/0,1639.75,1843.220
-A	turnin	376
-A	accept	6395
-A	target	+Novice Elreth
-A	goto	1420/0,1638.85,1847.74
-A	turnin	3099
-A	goto	1420/0,1636.59,1839.01 << Warlock
-A	target	+Maximillion << Warlock
-A	turnin	3098
-A	goto	1420/0,1635.23,1847.44 << Mage
-A	target	+Isabella << Mage
-A	turnin	3097
-A	goto	1420/0,1627.55,1848.65 << Priest
-A	target	+Dark Cleric Duesten << Priest
-S	
-T	xprate	>2.09
-T	season	0
-A	turnin	364
-A	accept	3095
-A	accept	3096
-A	accept	3097
-A	accept	3098
-A	accept	3099
-A	target	+Shadow Priest Sarvis
-A	goto	1420/0,1616.71,1842.92,10,0
-A	goto	1420/0,1639.75,1843.220
-A	turnin	376
-A	accept	6395
-A	target	+Novice Elreth
-A	goto	1420/0,1638.85,1847.74
-A	turnin	3099
-A	goto	1420/0,1636.59,1839.01 << Warlock
-A	target	+Maximillion << Warlock
-A	turnin	3098
-A	goto	1420/0,1635.23,1847.44 << Mage
-A	target	+Isabella << Mage
-A	turnin	3097
-A	goto	1420/0,1627.55,1848.65 << Priest
-A	target	+Dark Cleric Duesten << Priest
-S	Priest
-A	goto	1420/0,1627.55,1848.65
-A	train	589
-A	target	Dark Cleric Duesten
-A	money	<0.021
-S	Priest
-A	goto	1420/0,1627.55,1848.65
-A	train	2052
-A	train	589
-A	target	Dark Cleric Duesten
-A	money	<0.02
-S	Priest
-A	goto	1420/0,1627.55,1848.65
-A	train	1243
-A	train	589
-A	target	Dark Cleric Duesten
-A	money	<0.011
-S	Priest
-A	goto	1420/0,1627.55,1848.65
-A	train	589
-A	target	Dark Cleric Duesten
-A	money	<0.01
-S	Warlock
-T	season	0
-A	goto	1420/0,1636.59,1839.01
-A	train	172
-A	target	Maximillion
-S	Mage
-T	season	0
-A	goto	1420/0,1635.23,1847.44
-A	train	116
-A	target	Isabella
-S	
-T	xprate	<1.5
-A	goto	1420/0,1616.71,1842.92,10,0
-A	accept	3902
-A	goto	1420/0,1604.96,1860.70
-A	target	+Deathguard Saltain
-A	accept	380
-A	goto	1420/0,1580.56,1848.95
-A	target	+Executor Arren
-S	
-T	xprate	>1.49
-A	goto	1420/0,1616.71,1842.92,10,0
-A	accept	380
-A	goto	1420/0,1580.56,1848.95
-A	target	Executor Arren
-S	Rogue/Warrior
-A	goto	1420/0,1568.35,1859.49
-A	vendor	
-A	target	Archibald Kava
-A	money	>0.1
-A	isOnQuest	3095 << Warrior
-A	isOnQuest	3096 << Rogue
-S	Warrior
-T	season	2
-A	goto	1420/0,1556.61,1862.50
-A	turnin	3095
-A	train	100
-A	train	772
-A	target	Dannal Stern
-A	money	<0.02
-S	Warrior
-T	season	2
-T	label	Training2
-A	goto	1420/0,1556.61,1862.50
-A	turnin	3095
-A	train	772
-A	target	Dannal Stern
-A	money	<0.01
-S	Warrior
-T	season	0
-A	goto	1420/0,1556.61,1862.50
-A	turnin	3095
-A	train	100
-A	train	772
-A	target	Dannal Stern
-A	money	<0.02
-S	Warrior
-T	season	0
-T	label	Training2
-A	goto	1420/0,1556.61,1862.50
-A	turnin	3095
-A	train	772
-A	target	Dannal Stern
-A	money	<0.01
-S	Rogue
-T	season	2
-A	goto	1420/0,1563.38,1859.79
-A	turnin	3096
-A	target	David Trias
-S	Rogue
-T	season	0
-A	goto	1420/0,1563.38,1859.79
-A	turnin	3096
-A	train	53
-A	money	<0.04
-A	target	David Trias
-S	Rogue
-T	season	0
-T	label	Training2
-A	goto	1420/0,1563.38,1859.79
-A	turnin	3096
-A	target	David Trias
-S	
-T	xprate	>1.49
-T	optional	
-T	completewith	NightWebStart
-A	abandon	3902
-S	
-T	xprate	<1.5
-T	loop	
-A	goto	1420/0,1570.61,1898.35,
-A	goto	1420/0,1570.61,1898.35,12,0
-A	goto	1420/0,1550.73,1897.75,12,0
-A	goto	1420/0,1547.12,1891.42,12,0
-A	goto	1420/0,1541.69,1867.93,12,0
-A	goto	1420/0,1506.45,1892.33,12,0
-A	goto	1420/0,1536.27,1937.21,12,0
-A	goto	1420/0,1551.64,1936.31,12,0
-A	goto	1420/0,1593.66,1985.11,12,0
-A	goto	1420/0,1598.63,1970.95,12,0
-A	goto	1420/0,1600.89,1953.78,12,0
-A	goto	1420/0,1617.16,1956.49,12,0
-A	complete	3902,1
-S	
-T	label	NightWebStart
-T	loop	
-A	goto	1420/0,1680.42,2110.43,0
-A	goto	1420/0,1680.42,2110.43,40,0
-A	goto	1420/0,1685.84,2149.6,40,0
-A	goto	1420/0,1711.6,2157.43,40,0
-A	goto	1420/0,1750.01,2135.14,40,0
-A	goto	1420/0,1782.54,2117.36,40,0
-A	goto	1420/0,1754.98,2080.91,40,0
-A	goto	1420/0,1756.79,2047.77,40,0
-A	goto	1420/0,1731.93,2044.16,40,0
-A	goto	1420/0,1709.79,2048.07,40,0
-A	goto	1420/0,1692.62,2074.28,40,0
-A	complete	380,1,6
-A	mob	Young Night Web Spider
-S	
-T	loop	
-A	goto	1420/0,1756.79,2082.12,0
-A	goto	1420/0,1756.79,2082.12,25,0
-A	goto	1420/0,1749.1,2058.02,25,0
-A	goto	1420/0,1774.41,2012.83,25,0
-A	goto	1420/0,1805.59,2054.7,25,0
-A	goto	1420/0,1799.71,2091.15,25,0
-A	goto	1420/0,1815.98,2137.85,25,0
-A	goto	1420/0,1790.23,2150.5,25,0
-A	complete	380,1
-A	mob	Young Night Web Spider
-S	
-T	completewith	next
-A	goto	1420/0,1822.31,2048.07,15,0
-A	goto	1420/0,1844.45,2042.050,30
-S	Warlock
-T	season	2
-T	completewith	RuneofHaunting
-A	complete	380,2
-A	mob	Night Web Spider
-S	Warrior
-T	season	2
-T	completewith	RuneofVictoryRush
-A	complete	380,2
-A	mob	Night Web Spider
-S	
-T	loop	
-A	goto	1420/0,1918.11,2043.86,0
-A	goto	1420/0,1844.45,2042.050,30,0
-A	goto	1420/0,1876.08,2043.56,20,0
-A	goto	1420/0,1898.68,2020.06,20,0
-A	goto	1420/0,1940.70,2006.80,20,0
-A	goto	1420/0,1983.63,2032.71,20,0
-A	goto	1420/0,1953.80,2079.40,20,0
-A	goto	1420/0,1918.11,2043.86,20,0
-A	complete	380,2
-A	mob	Night Web Spider
-S	
-T	xprate	<1.5
-T	softcore	
-T	completewith	Scavenging
-A	deathskip	
-A	target	Spirit Healer
-S	
-T	xprate	>1.49
-T	softcore	
-T	completewith	NightWebH
-A	deathskip	
-A	target	Spirit Healer
-S	Warlock
-T	softcore	
-T	completewith	ScarletC
-A	cast	688
-S	skip
-T	hardcore	
-T	completewith	next
-A	goto	1420,26.027,60.607,-1
-A	goto	1420,24.508,59.360,-1
-A	goto	1420,23.572,59.239,-1
-A	goto	1420/0,1628.91,1882.99,30
-S	
-T	xprate	<1.5
-T	label	Scavenging
-A	goto	1420/0,1604.96,1860.70
-A	turnin	3902
-A	target	Deathguard Saltain
-S	
-T	label	NightWebH
-A	goto	1420/0,1580.56,1848.95,0,0
-A	turnin	380
-A	accept	381
-A	target	Executor Arren
-S	Rogue/Warrior
-A	goto	1420/0,1568.35,1859.49
-A	vendor	
-A	target	Archibald Kava
-A	isOnQuest	6395
-S	Warlock/Mage/Priest
-A	goto	1420/0,1574.23,1866.12
-A	collect	159,15,383,1 << Warlock/Mage/Priest
-A	vendor	
-A	target	Joshua Kien
-A	isOnQuest	6395
-A	itemcount	159,<15
-S	
-T	requires	NightWebH
-T	loop	
-A	goto	1420/0,1400.71,1766.71,0
-A	goto	1420/0,1400.71,1766.71,40,0
-A	goto	1420/0,1385.80,1744.11,40,0
-A	goto	1420/0,1368.17,1728.15,40,0
-A	goto	1420/0,1342.42,1741.40,40,0
-A	goto	1420/0,1313.95,1735.08,40,0
-A	goto	1420/0,1320.28,1752.25,40,0
-A	goto	1420/0,1314.85,1765.80,40,0
-A	goto	1420/0,1294.07,1780.56,40,0
-A	goto	1420/0,1283.67,1817.02,40,0
-A	goto	1420/0,1289.55,1841.72,40,0
-A	goto	1420/0,1286.84,1877.27,40,0
-A	goto	1420/0,1333.38,1868.53,40,0
-A	goto	1420/0,1364.56,1867.93,40,0
-A	goto	1420/0,1383.54,1866.72,40,0
-A	goto	1420/0,1368.17,1831.48,40,0
-A	goto	1420/0,1341.06,1790.51,40,0
-A	goto	1420/0,1364.56,1784.18,40,0
-A	complete	381,1
-A	mob	Scarlet Initiate
-A	mob	Scarlet Convert
-S	
-A	goto	1420/0,1375.40,1979.69
-A	collect	16333,1,6395,1
-A	mob	Samuel Fipps
-S	
-T	softcore	
-T	completewith	next
-A	deathskip	
-A	target	Spirit Healer
-S	
-A	goto	1420/0,1624.84,1876.96
-A	complete	6395,1
-S	Warlock
-T	softcore	
-T	completewith	ScarletC
-A	cast	688
-S	
-A	turnin	6395
-A	target	+Novice Elreth
-A	goto	1420/0,1616.71,1842.92,10,0
-A	goto	1420/0,1638.85,1847.74
-A	accept	5651
-A	target	+Dark Cleric Duesten << Priest
-A	goto	1420/0,1627.55,1848.65 << Priest
-S	
-T	sticky	
-T	label	ScarletC
-A	goto	1420/0,1580.56,1848.95,0,0
-A	turnin	381
-A	accept	382
-A	target	Executor Arren
-S	
-A	goto	1420/0,1568.35,1859.49
-A	vendor	
-A	target	Archibald Kava
-S	
-T	requires	ScarletC
-A	goto	1420/0,1383.99,1764.30
-A	complete	382,1
-A	mob	Meven Korgal
-S	
-A	goto	1420/0,1580.56,1848.95
-A	turnin	382
-A	accept	383
-A	target	Executor Arren
-S	
-T	season	2
-A	goto	1420/0,1616.25,1836.60
-A	vendor	
-A	target	Rune Broker
-A	skipgossip	
-S	
-T	loop	
-A	goto	1420/0,1493.34,2044.76,50,0
-A	goto	1420/0,1436.41,2133.93,50,0
-A	goto	1420/0,1369.08,2124.89,50,0
-A	goto	1420/0,1327.05,2048.68,50,0
-A	goto	1420/0,1338.35,1939.93,50,0
-A	goto	1420/0,1400.71,1766.71,50,0
-A	goto	1420/0,1385.80,1744.11,50,0
-A	goto	1420/0,1368.17,1728.15,50,0
-A	goto	1420/0,1342.42,1741.40,50,0
-A	goto	1420/0,1313.95,1735.08,50,0
-A	goto	1420/0,1320.28,1752.25,50,0
-A	goto	1420/0,1314.85,1765.80,50,0
-A	goto	1420/0,1294.07,1780.56,50,0
-A	goto	1420/0,1283.67,1817.02,50,0
-A	goto	1420/0,1289.55,1841.72,50,0
-A	goto	1420/0,1286.84,1877.27,50,0
-A	goto	1420/0,1333.38,1868.53,50,0
-A	goto	1420/0,1364.56,1867.93,50,0
-A	goto	1420/0,1383.54,1866.72,50,0
-A	goto	1420/0,1368.17,1831.48,50,0
-A	goto	1420/0,1341.06,1790.51,50,0
-A	goto	1420/0,1364.56,1784.18,50,0
-A	goto	1420/0,1400.71,1766.71,50,0
-A	xp	5+1900
-S	
-A	goto	1420/0,1305.36,2127.30
-A	accept	8
-A	target	Calvin Montague
-E
-G	Guides/forever/Horde-01-14_Undead.lua
-M	classic	
-M	tbc	
-M	xprate	>1.99
-M	selector	Horde
-M	name	7-13 Tirisfal Glades
-M	version	1
-M	group	RestedXP Forever Guide (H)
-M	subgroup	Speedrun Guide 1-22
-M	defaultfor	Undead
-M	next	13-20 The Barrens
-S	
-A	goto	1420/0,1184.71,2205.63
-A	accept	365
-A	target	Deathguard Simmer
-S	skip
-T	loop	
-A	goto	1420/0,496.96,2256.54,0
-A	goto	1420/0,1191.04,2198.10,0
-A	goto	1420/0,1191.04,2198.10,40,0
-A	goto	1420/0,1133.65,2177.31,40,0
-A	goto	1420/0,1063.61,2201.710,40,0
-A	goto	1420/0,945.22,2127.00,40,0
-A	goto	1420/0,824.57,2092.36,40,0
-A	goto	1420/0,740.97,2112.24,40,0
-A	goto	1420/0,660.09,2196.29,40,0
-A	goto	1420/0,571.07,2251.42,40,0
-A	goto	1420/0,496.96,2256.54,40,0
-A	accept	5481
-A	unitscan	Gordo
-S	Priest
-A	goto	1420/0,656.92,2164.66
-A	train	3908
-A	target	Bowen Brisboise
-S	
-T	softcore	
-T	completewith	next
-A	deathskip	
-A	target	Spirit Healer
-S	
-A	accept	404
-A	target	+Deathguard Dillinger
-A	goto	1420/0,403.42,2287.57
-A	turnin	383
-A	accept	427
-A	target	+Executor Zygand
-A	goto	1420/0,295.42,2277.93
-S	Rogue
-A	goto	1420/0,270.12,2253.23
-A	collect	3131,200,786,1
-A	target	Mrs. Winters
-A	itemStat	18,QUALITY,<7
-A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<2.9
-S	Rogue
-A	goto	1420/0,316.66,2227.32
-A	vendor	
-A	target	Oliver Dwor
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
-S	Rogue
-A	goto	1420/0,316.66,2227.32
-A	collect	2494,1,404,1
-A	money	<0.0401
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
-S	Rogue
-T	optional	
-T	completewith	Claws
-A	use	3131
-A	itemcount	3131,1
-A	itemStat	18,QUALITY,<7
-A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<2.9
-S	Rogue
-T	optional	
-T	completewith	Claws
-A	use	2494
-A	itemcount	2494,1
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
-S	Warrior
-A	goto	1420/0,316.66,2227.32
-A	vendor	
-A	target	Oliver Dwor
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
-S	Warrior
-A	goto	1420/0,316.66,2227.32
-A	collect	2488,1,404,1
-A	money	<0.0536
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
-S	Warrior
-T	optional	
-T	completewith	Claws
-A	use	2488
-A	itemcount	2488,1
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
-S	
-A	goto	1420/0,244.81,2269.19
-A	turnin	8
-A	home	
-A	target	Innkeeper Renee
-A	bindlocation	2119
-S	
-T	xprate	>1.49
-A	goto	1420/0,236.68,2249.01
-A	accept	375
-A	target	Gretchen Dedmar
-A	xp	<7,1
-S	Priest
-A	goto	1420/0,251.14,2265.28
-A	turnin	5651
-A	accept	5650
-A	train	591
-A	train	17
-A	train	2052
-A	target	Dark Cleric Beryl
-S	Mage
-A	goto	1420/0,233.06,2256.84
-A	train	143
-A	train	2136
-A	target	Cain Firesong
-S	Warrior
-A	goto	1420/0,238.49,2255.03
-A	train	3127
-A	target	Austil de Mon
-A	money	<0.01
-S	Rogue
-T	season	0
-A	goto	1420/0,243.01,2271.00
-A	train	1757
-A	target	Marion Call
-A	money	<0.01
-S	Rogue
-T	season	2
-A	goto	1420/0,243.01,2271.00
-A	train	1757
-A	train	921
-A	target	Marion Call
-A	money	<0.02
-S	Rogue
-T	optional	
-T	season	2
-A	goto	1420/0,243.01,2271.00
-A	train	921
-A	target	Marion Call
-A	money	>0.02
-S	Warlock
-A	goto	1420/0,251.59,2252.62
-A	collect	16321,1,404,1
-A	vendor	
-A	target	Gina Lang
-A	train	6307,1
-S	Warlock
-A	goto	1420/0,250.24,2259.25
-A	train	695
-A	train	1454
-A	target	Rupert Boch
-A	money	<0.02
-S	Warlock
-A	goto	1420/0,250.24,2259.25
-A	train	695
-A	target	Rupert Boch
-S	Priest/Warlock
-A	goto	1420/0,242.55,2284.25
-A	train	7411
-A	target	Vance Undergloom
-S	
-A	goto	1420/0,244.81,2269.19
-A	vendor	
-A	collect	1179,15,367,1 << Mage/Priest
-A	collect	4605,10,367,1 << Rogue/Warrior
-A	collect	1179,10,367,1 << Warlock
-A	collect	4605,5,367,1 << Warlock
-A	money	<0.025 << Warrior/Rogue
-A	money	<0.0375 << Mage/Priest/Warlock
-A	target	Innkeeper Renee
-S	
-A	goto	1420/0,346.94,2258.950
-A	accept	367
-A	target	Apothecary Johaan
-S	Priest
-A	goto	1420/0,359.14,2436.99
-A	complete	5650,1
-A	target	Deathguard Kel
-S	skip
-T	completewith	Claws
-A	complete	5481,1
-S	
-T	completewith	next
-A	complete	367,1
-A	mob	Decrepit Darkhound
-S	
-T	label	Claws
-T	loop	
-A	goto	1420/0,655.12,2120.98,0
-A	goto	1420/0,550.28,2315.28,50,0
-A	goto	1420/0,622.58,2322.51,50,0
-A	goto	1420/0,678.16,2319.80,50,0
-A	goto	1420/0,716.12,2282.15,50,0
-A	goto	1420/0,682.23,2218.58,50,0
-A	goto	1420/0,670.48,2128.81,50,0
-A	goto	1420/0,595.47,2134.53,50,0
-A	goto	1420/0,613.54,2082.72,50,0
-A	goto	1420/0,655.12,2120.98,50,0
-A	complete	404,1
-A	mob	Rotting Dead
-A	mob	Ravaged Corpse
-S	skip
-T	label	GloomWeed
-T	loop	
-A	goto	1420/0,1246.17,2311.97,0
-A	goto	1420/0,1025.65,2110.43,0
-A	goto	1420/0,1246.17,2311.97,50,0
-A	goto	1420/0,1025.65,2110.43,50,0
-A	complete	5481,1
-S	Warrior
-T	optional	
-T	season	2
-T	xprate	>1.49
-T	completewith	DBlood
-A	collect	207975,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	train	403475,1
-A	isOnQuest	375
-S	
-T	optional	
-T	xprate	>1.49
-T	completewith	next
-A	complete	375,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	isOnQuest	375
-S	
-T	xprate	>1.49
-T	label	DBlood
-T	loop	
-A	goto	1420/0,1046.44,2112.24,0
-A	goto	1420/0,1200.08,2414.7,0
-A	goto	1420/0,862.98,2227.92,80,0
-A	goto	1420/0,1046.44,2112.24,80,0
-A	goto	1420/0,1180.19,2152.31,60,0
-A	goto	1420/0,1200.08,2414.7,60,0
-A	goto	1420/0,1185.62,2549.05,60,0
-A	goto	1420/0,1265.6,2637.02,60,0
-A	complete	367,1
-A	mob	Decrepit Darkhound
-A	mob	Cursed Darkhound
-S	Priest
-T	ah	
-T	completewith	FinishRings
-A	collect	2589,60
-A	itemStat	18,QUALITY,<7
-A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<11.3
-S	Priest
-T	ssf	
-T	completewith	FinishRings
-A	collect	2589,60
-A	itemStat	18,QUALITY,<7
-A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<11.3
-S	Rogue
-T	season	2
-T	completewith	next
-A	collect	208036,1
-A	mob	Tirisfal Farmer
-A	mob	Tirisfal Farmhand
-A	train	400095,1
-S	
-T	loop	
-A	goto	1420/0,1378.12,2328.54,0
-A	goto	1420/0,1352.36,2265.88,50,0
-A	goto	1420/0,1377.66,2328.54,50,0
-A	goto	1420/0,1402.06,2359.27,50,0
-A	goto	1420/0,1448.16,2336.67,50,0
-A	goto	1420/0,1438.21,2303.84,50,0
-A	goto	1420/0,1471.20,2283.65,50,0
-A	goto	1420/0,1378.12,2328.54,50,0
-A	complete	365,1
-S	Rogue
-T	season	2
-T	loop	
-A	goto	1420/0,1378.12,2328.54,0
-A	goto	1420/0,1352.36,2265.88,50,0
-A	goto	1420/0,1377.66,2328.54,50,0
-A	goto	1420/0,1402.06,2359.27,50,0
-A	goto	1420/0,1448.16,2336.67,50,0
-A	goto	1420/0,1438.21,2303.84,50,0
-A	goto	1420/0,1471.20,2283.65,50,0
-A	goto	1420/0,1378.12,2328.54,50,0
-A	collect	208036,1
-A	mob	Tirisfal Farmer
-A	mob	Tirisfal Farmhand
-A	train	400095,1
-S	Rogue/Mage/Priest
-T	season	2
-T	completewith	next
-A	collect	208035,1 << Rogue
-A	collect	203752,1 << Mage
-A	collect	205947,1 << Priest
-A	mob	Scarlet Warrior
-A	train	400095,1 << Rogue
-A	train	401768,1 << Mage
-A	train	402852,1 << Priest
-S	
-T	loop	
-A	goto	1420/0,1597.27,2290.28,0
-A	goto	1420/0,1509.16,2351.13,50,0
-A	goto	1420/0,1512.77,2299.02,50,0
-A	goto	1420/0,1597.27,2290.28,50,0
-A	goto	1420/0,1676.80,2316.79,50,0
-A	goto	1420/0,1681.78,2354.14,50,0
-A	goto	1420/0,1649.69,2405.66,50,0
-A	goto	1420/0,1632.07,2436.690,50,0
-A	goto	1420/0,1580.56,2487.00,50,0
-A	goto	1420/0,1509.16,2473.14,50,0
-A	goto	1420/0,1492.44,2395.11,50,0
-A	goto	1420/0,1509.16,2351.13,50,0
-A	complete	427,1
-A	mob	Scarlet Warrior
-S	Rogue/Mage/Priest
-T	season	2
-T	loop	
-A	goto	1420/0,1597.27,2290.28,0
-A	goto	1420/0,1509.16,2351.13,50,0
-A	goto	1420/0,1512.77,2299.02,50,0
-A	goto	1420/0,1597.27,2290.28,50,0
-A	goto	1420/0,1676.80,2316.79,50,0
-A	goto	1420/0,1681.78,2354.14,50,0
-A	goto	1420/0,1649.69,2405.66,50,0
-A	goto	1420/0,1632.07,2436.690,50,0
-A	goto	1420/0,1580.56,2487.00,50,0
-A	goto	1420/0,1509.16,2473.14,50,0
-A	goto	1420/0,1492.44,2395.11,50,0
-A	goto	1420/0,1509.16,2351.13,50,0
-A	collect	208035,1 << Rogue
-A	collect	203752,1 << Mage
-A	collect	205947,1 << Priest
-A	mob	Scarlet Warrior
-A	train	400095,1 << Rogue
-A	train	401768,1 << Mage
-A	train	402852,1 << Priest
-S	Mage
-T	season	2
-A	collect	211779,1
-A	train	401768
-A	use	203752
-A	itemcount	203752,1
-S	Mage/Priest
-T	season	2
-A	goto	1420/0,1876.53,2385.47
-A	collect	203753,1 << Mage
-A	collect	205940,1 << Priest
-A	mob	Gillgar
-A	train	401765,1 << Mage
-A	train	425216,1 << Priest
-S	Mage
-T	season	2
-A	collect	211779,1
-A	train	401765
-A	use	203753
-A	itemcount	203753,1
-S	
-T	hardcore	
-T	completewith	BrillTurnin1
-A	hs	
-A	subzoneskip	159
-A	cooldown	item,6948,>0,1
-A	bindlocation	2119,1
-S	
-T	hardcore	
-T	completewith	BrillTurnin1
-A	subzone	159
-A	subzoneskip	159
-A	cooldown	item,6948,<0
-S	
-T	softcore	
-T	completewith	BrillTurnin1
-A	deathskip	
-S	skip
-T	softcore	
-T	loop	
-A	goto	1420/0,425.56,2362.58,0
-A	goto	1420/0,399.35,2337.270,30,0
-A	goto	1420/0,425.56,2362.58,30,0
-A	goto	1420/0,355.52,2429.76,30,0
-A	turnin	5481
-A	accept	5482
-A	target	Junior Apothecary Holland
-S	
-A	turnin	404
-A	accept	426
-A	target	+Deathguard Dillinger
-A	goto	1420/0,403.42,2288.17
-A	turnin	367
-A	turnin	365
-A	accept	368
-A	accept	407
-A	target	+Apothecary Johaan
-A	goto	1420/0,346.94,2258.950
-A	turnin	427
-A	accept	370
-A	target	+Executor Zygand
-A	goto	1420/0,295.87,2277.93
-A	isQuestComplete	367
-S	
-T	label	BrillTurnin1
-A	turnin	404
-A	accept	426
-A	target	+Deathguard Dillinger
-A	goto	1420/0,403.42,2288.17
-A	turnin	365
-A	accept	407
-A	target	+Apothecary Johaan
-A	goto	1420/0,346.94,2258.950
-A	turnin	427
-A	accept	370
-A	target	+Executor Zygand
-A	goto	1420/0,295.87,2277.93
-S	
-T	xprate	>1.49
-A	accept	374
-A	target	+Deathguard Burgess
-A	goto	1420/0,280.06,2270.70
-A	accept	398
-A	goto	1420/0,288.64,2285.46
-A	accept	358
-A	target	+Magistrate Sevren
-A	goto	1420/0,265.15,2305.94
-S	
-T	xprate	>1.49
-T	optional	
-A	goto	1420/0,275.54,2260.46
-A	complete	375,2
-A	target	Abigail Shiel
-A	itemcount	2876,5
-A	isQuestAvailable	375
-S	
-T	xprate	>1.49
-A	goto	1420/0,233.06,2292.39
-A	turnin	407
-A	target	Captured Scarlet Zealot
-S	
-T	xprate	>1.49
-T	optional	
-A	goto	1420/0,236.68,2249.01
-A	turnin	375
-A	target	Gretchen Dedmar
-A	isQuestComplete	375
-S	Priest
-A	goto	1420/0,251.14,2265.28
-A	turnin	5650
-A	train	591
-A	train	17
-A	target	Dark Cleric Beryl
-S	
-A	goto	1420/0,236.68,2249.01
-A	accept	375
-A	target	Gretchen Dedmar
-S	Priest
-A	goto	1420/0,251.14,2265.28
-A	train	139
-A	target	Dark Cleric Beryl
-A	xp	<8,1
-S	Mage
-A	goto	1420/0,233.06,2256.84
-A	train	205
-A	target	Cain Firesong
-A	xp	<8,1
-S	Warrior
-A	goto	1420/0,238.49,2255.03
-A	train	284
-A	target	Austil de Mon
-A	xp	<8,1
-S	Rogue
-A	goto	1420/0,243.01,2271.00
-A	train	6760
-A	target	Marion Call
-A	xp	<8,1
-S	Warlock
-A	goto	1420/0,250.24,2259.25
-A	train	980
-A	target	Rupert Boch
-A	xp	<8,1
-S	Rogue/Warrior
-A	goto	1420/0,240.29,2246.30
-A	train	3273
-A	target	Nurse Neela
-S	Rogue
-A	goto	1420/0,316.66,2227.32
-A	vendor	
-A	target	Oliver Dwor
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
-S	Rogue
-A	goto	1420/0,316.66,2227.32
-A	collect	2494,1,367,1
-A	money	<0.0401
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
-S	Rogue
-T	optional	
-T	completewith	NewPlague1
-A	use	2494
-A	itemcount	2494,1
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
-S	Warrior
-A	goto	1420/0,316.66,2227.32
-A	vendor	
-A	target	Oliver Dwor
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
-S	Warrior
-A	goto	1420/0,316.66,2227.32
-A	collect	2488,1,367,1
-A	money	<0.0536
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
-S	Warrior
-T	optional	
-T	completewith	NewPlague1
-A	use	2488
-A	itemcount	2488,1
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
-S	skip
-T	hardcore	
-T	loop	
-A	goto	1420/0,425.56,2362.58,0
-A	goto	1420/0,399.35,2337.270,30,0
-A	goto	1420/0,425.56,2362.58,30,0
-A	goto	1420/0,355.52,2429.76,30,0
-A	turnin	5481
-A	accept	5482
-A	target	Junior Apothecary Holland
-S	Warrior
-T	season	2
-T	xprate	<1.5
-T	completewith	DuskbatTrophy1
-A	collect	207975,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	train	403475,1
-S	
-T	xprate	<1.5
-T	completewith	next
-A	complete	375,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-S	
-T	xprate	<1.5
-T	loop	
-A	goto	1420/0,403.42,2085.73,0
-A	goto	1420/0,403.42,2085.73,50,0
-A	goto	1420/0,413.36,1979.99,50,0
-A	goto	1420/0,482.50,1951.07,50,0
-A	goto	1420/0,560.22,1901.06,50,0
-A	goto	1420/0,645.63,1961.92,50,0
-A	goto	1420/0,750.46,1993.55,50,0
-A	goto	1420/0,869.76,2003.79,50,0
-A	goto	1420/0,950.64,2039.040,50,0
-A	goto	1420/0,1068.13,1975.47,50,0
-A	goto	1420/0,482.50,1951.07,50,0
-A	complete	367,1
-A	mob	Decrepit Darkhound
-S	Rogue/Warrior
-T	xprate	<1.5
-T	optional	
-T	loop	
-A	goto	1420/0,403.42,2085.73,50,0
-A	goto	1420/0,413.36,1979.99,50,0
-A	goto	1420/0,482.50,1951.07,50,0
-A	goto	1420/0,560.22,1901.06,50,0
-A	goto	1420/0,645.63,1961.92,50,0
-A	goto	1420/0,750.46,1993.55,50,0
-A	goto	1420/0,869.76,2003.79,50,0
-A	goto	1420/0,950.64,2039.040,50,0
-A	goto	1420/0,1068.13,1975.47,50,0
-A	goto	1420/0,482.50,1951.07,50,0
-A	complete	375,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	xp	>7+3960,1
-S	Rogue/Warrior
-T	xprate	<1.5
-T	optional	
-T	label	DuskbatTrophy1
-T	loop	
-A	goto	1420/0,403.42,2085.73,50,0
-A	goto	1420/0,413.36,1979.99,50,0
-A	goto	1420/0,482.50,1951.07,50,0
-A	goto	1420/0,560.22,1901.06,50,0
-A	goto	1420/0,645.63,1961.92,50,0
-A	goto	1420/0,750.46,1993.55,50,0
-A	goto	1420/0,869.76,2003.79,50,0
-A	goto	1420/0,950.64,2039.040,50,0
-A	goto	1420/0,1068.13,1975.47,50,0
-A	goto	1420/0,482.50,1951.07,50,0
-A	xp	7+3260
-S	
-T	xprate	>1.49
-T	optional	
-T	loop	
-A	goto	1420/0,482.50,1951.07,0
-A	goto	1420/0,403.42,2085.73,50,0
-A	goto	1420/0,413.36,1979.99,50,0
-A	goto	1420/0,482.50,1951.07,50,0
-A	goto	1420/0,560.22,1901.06,50,0
-A	goto	1420/0,645.63,1961.92,50,0
-A	goto	1420/0,750.46,1993.55,50,0
-A	goto	1420/0,869.76,2003.79,50,0
-A	goto	1420/0,950.64,2039.040,50,0
-A	goto	1420/0,1068.13,1975.47,50,0
-A	goto	1420/0,482.50,1951.07,50,0
-A	complete	375,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	xp	>7+3690,1
-S	
-T	xprate	>1.49
-T	optional	
-T	label	DuskbatTrophy1
-A	goto	1420/0,482.50,1951.07,0
-A	goto	1420/0,403.42,2085.73,50,0
-A	goto	1420/0,413.36,1979.99,50,0
-A	goto	1420/0,482.50,1951.07,50,0
-A	goto	1420/0,560.22,1901.06,50,0
-A	goto	1420/0,645.63,1961.92,50,0
-A	goto	1420/0,750.46,1993.55,50,0
-A	goto	1420/0,869.76,2003.79,50,0
-A	goto	1420/0,950.64,2039.040,50,0
-A	goto	1420/0,1068.13,1975.47,50,0
-A	goto	1420/0,482.50,1951.07,50,0
-A	xp	7+2640
-S	
-T	xprate	<1.5
-T	hardcore	
-T	completewith	NewPlague1
-A	subzone	159
-A	subzoneskip	159
-S	
-T	xprate	<1.5
-T	softcore	
-T	completewith	NewPlague1
-A	deathskip	
-S	
-T	label	NewPlague1
-T	optional	
-A	goto	1420/0,346.94,2258.950
-A	turnin	367
-A	accept	368
-A	target	Apothecary Johaan
-S	
-T	xprate	<1.5
-A	accept	374
-A	target	+Deathguard Burgess
-A	goto	1420/0,280.06,2270.70
-A	accept	398
-A	goto	1420/0,288.64,2285.46
-A	accept	358
-A	target	+Magistrate Sevren
-A	goto	1420/0,265.15,2305.94
-S	
-T	xprate	<1.5
-T	optional	
-A	goto	1420/0,275.54,2260.46
-A	complete	375,2
-A	target	Abigail Shiel
-A	itemcount	2876,5
-A	isQuestAvailable	375
-S	
-T	xprate	<1.5
-T	optional	
-A	goto	1420/0,236.68,2249.01
-A	turnin	375
-A	target	Gretchen Dedmar
-A	isQuestComplete	375
-S	Priest
-T	xprate	<1.5
-A	goto	1420/0,251.14,2265.28
-A	train	139
-A	target	Dark Cleric Beryl
-A	xp	<8,1
-S	Mage
-T	xprate	<1.5
-A	goto	1420/0,233.06,2256.84
-A	train	205
-A	target	Cain Firesong
-A	xp	<8,1
-S	Warrior
-T	xprate	<1.5
-A	goto	1420/0,238.49,2255.03
-A	train	284
-A	target	Austil de Mon
-A	xp	<8,1
-S	Rogue
-T	xprate	<1.5
-A	goto	1420/0,243.01,2271.00
-A	train	6760
-A	target	Marion Call
-A	xp	<8,1
-S	Warlock
-T	xprate	<1.5
-A	goto	1420/0,250.24,2259.25
-A	train	980
-A	target	Rupe
-S	Rogue
-T	xprate	<1.5
-A	goto	1420/0,316.66,2227.32
-A	vendor	
-A	target	Oliver Dwor
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
-S	Rogue
-T	xprate	<1.5
-A	goto	1420/0,316.66,2227.32
-A	collect	2494,1,398,1
-A	money	<0.0401
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
-S	Rogue
-T	xprate	<1.5
-T	optional	
-T	completewith	Doomweed
-A	use	2494
-A	itemcount	2494,1
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
-S	Warrior
-T	xprate	<1.5
-A	goto	1420/0,316.66,2227.32
-A	vendor	
-A	target	Oliver Dwor
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
-S	Warrior
-T	xprate	<1.5
-A	goto	1420/0,316.66,2227.32
-A	collect	2488,1,398,1
-A	money	<0.0536
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
-S	Warrior
-T	xprate	<1.5
-T	optional	
-T	completewith	Doomweed
-A	use	2488
-A	itemcount	2488,1
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
-S	Rogue
-T	season	2
-T	completewith	MaggotEye
-A	collect	208038,1
-A	mob	Rot Hide Mongrel
-A	mob	Rot Hide Gnoll
-A	mob	Rot Hide Graverobber
-A	train	400095,1
-S	Warrior
-T	season	2
-T	completewith	MaggotEye
-A	collect	204478,1
-A	mob	Rot Hide Mongrel
-A	mob	Rot Hide Gnoll
-A	mob	Rot Hide Graverobber
-A	train	403475,1
-S	skip
-T	completewith	next
-A	complete	5482,1
-A	isOnQuest	5482
-S	
-T	loop	
-A	goto	1420/0,537.18,2555.98,0
-A	goto	1420/0,488.83,2642.44,40,0
-A	goto	1420/0,561.13,2596.65,40,0
-A	goto	1420/0,597.73,2514.11,40,0
-A	goto	1420/0,537.18,2555.98,40,0
-A	goto	1420/0,483.40,2514.41,40,0
-A	complete	358,1
-A	complete	358,3
-A	disablecheckbox	
-A	mob	Rot Hide Graverobber
-S	
-T	completewith	next
-A	complete	358,2
-A	complete	358,3
-A	disablecheckbox	
-A	mob	Rot Hide Mongrel
-S	skip
-T	label	Doomweed
-T	loop	
-A	goto	1420/0,435.96,2754.51,0
-A	goto	1420/0,426.92,2802.10,30,0
-A	goto	1420/0,437.31,2754.20,30,0
-A	goto	1420/0,467.14,2699.08,30,0
-A	goto	1420/0,500.57,2669.85,30,0
-A	goto	1420/0,543.95,2670.46,30,0
-A	goto	1420/0,536.72,2627.68,30,0
-A	goto	1420/0,562.48,2568.63,30,0
-A	goto	1420/0,534.92,2587.01,30,0
-A	goto	1420/0,476.62,2572.55,30,0
-A	goto	1420/0,399.35,2544.23,30,0
-A	goto	1420/0,374.95,2612.01,30,0
-A	goto	1420/0,396.19,2676.18,30,0
-A	goto	1420/0,435.96,2754.51,30,0
-A	complete	5482,1
-A	isOnQuest	5482
-S	
-T	optional	
-T	label	Doomweed
-S	Mage
-T	season	2
-T	optional	
-T	completewith	MaggotEye
-A	goto	1420/0,329.31,2838.25,0
-A	goto	1420/0,395.29,2774.69,0
-A	goto	1420/0,318.02,2722.57,0
-A	collect	208183,6
-A	mob	Odd Melon
-A	train	415942,1
-A	train	118,3
-S	
-T	completewith	MaggotEye
-A	complete	358,2
-A	complete	358,3
-A	disablecheckbox	
-A	mob	Rot Hide Mongrel
-S	
-T	label	MaggotEye
-A	goto	1420/0,382.63,2910.55
-A	complete	398,1
-A	mob	Maggot Eye
-S	
-T	loop	
-A	goto	1420/0,332.48,2862.35,0
-A	goto	1420/0,380.38,2768.97,50,0
-A	goto	1420/0,332.48,2862.35,50,0
-A	goto	1420/0,401.16,2895.19,50,0
-A	goto	1420/0,318.47,2696.36,50,0
-A	complete	358,2
-A	complete	358,3
-A	disablecheckbox	
-A	mob	Rot Hide Mongrel
-S	
-T	loop	
-A	goto	1420/0,332.48,2862.35,0
-A	goto	1420/0,380.38,2768.97,50,0
-A	goto	1420/0,332.48,2862.35,50,0
-A	goto	1420/0,401.16,2895.19,50,0
-A	goto	1420/0,318.47,2696.36,50,0
-A	complete	358,3
-A	mob	Rot Hide Mongrel
-A	mob	Rot Hide Gnoll
-A	mob	Rot Hide Graverobber
-S	Rogue
-T	season	2
-T	loop	
-A	goto	1420/0,332.48,2862.35,0
-A	goto	1420/0,380.38,2768.97,50,0
-A	goto	1420/0,332.48,2862.35,50,0
-A	goto	1420/0,401.16,2895.19,50,0
-A	goto	1420/0,318.47,2696.36,50,0
-A	collect	208038,1
-A	mob	Rot Hide Mongrel
-A	mob	Rot Hide Graverobber
-A	mob	Rot Hide Gnoll
-A	train	400095,1
-S	Warrior
-T	season	2
-T	loop	
-A	goto	1420/0,332.48,2862.35,0
-A	goto	1420/0,380.38,2768.97,50,0
-A	goto	1420/0,332.48,2862.35,50,0
-A	goto	1420/0,401.16,2895.19,50,0
-A	goto	1420/0,318.47,2696.36,50,0
-A	collect	204478,1
-A	mob	Rot Hide Mongrel
-A	mob	Rot Hide Gnoll
-A	mob	Rot Hide Graverobber
-A	train	403475,1
-S	Mage
-T	xprate	>2.09
-T	season	2
-T	loop	
-A	goto	1420/0,329.31,2838.25,0
-A	goto	1420/0,395.29,2774.69,0
-A	goto	1420/0,318.02,2722.57,0
-A	goto	1420/0,329.31,2838.25,40,0
-A	goto	1420/0,395.29,2774.69,40,0
-A	goto	1420/0,318.02,2722.57,40,0
-A	collect	208183,6
-A	mob	Odd Melon
-A	train	415942,1
-A	train	118,3
-S	Mage
-T	xprate	>2.09
-T	season	2
-A	collect	203749,1
-A	use	208183
-A	train	415942,1
-A	itemcount	208183,6
-S	Mage
-T	xprate	>2.09
-T	season	2
-A	train	415942
-A	use	203749
-A	itemcount	203749,1
-S	Warrior
-T	season	2
-T	loop	
-A	goto	1420/0,342.87,2998.22,0
-A	goto	1420/0,350.10,2962.37,50,0
-A	goto	1420/0,342.87,2998.22,50,0
-A	goto	1420/0,293.16,2974.12,50,0
-A	goto	1420/0,254.75,2951.820,50,0
-A	goto	1420/0,188.33,2950.02,50,0
-A	goto	1420/0,65.42,2927.12,50,0
-A	goto	1420/0,-15.92,2964.78,50,0
-A	goto	1420/0,-49.36,3040.39,50,0
-A	complete	368,1
-A	collect	204477,1
-A	mob	Vile Fin Puddlejumper
-A	mob	Vile Fin Minor Oracle
-A	mob	Vile Fin Muckdweller
-A	train	403475,1
-S	Rogue
-T	season	2
-T	completewith	MurlocVins
-A	collect	208007,1
-A	train	400081,1
-S	Rogue
-T	season	2
-T	completewith	RuneofPrecision
-A	collect	208037,1
-A	train	400095,1
-S	
-T	label	MurlocVins
-T	loop	
-A	goto	1420/0,342.87,2998.22,0
-A	goto	1420/0,350.10,2962.37,50,0
-A	goto	1420/0,342.87,2998.22,50,0
-A	goto	1420/0,293.16,2974.12,50,0
-A	goto	1420/0,254.75,2951.820,50,0
-A	goto	1420/0,188.33,2950.02,50,0
-A	goto	1420/0,65.42,2927.12,50,0
-A	goto	1420/0,-15.92,2964.78,50,0
-A	goto	1420/0,-49.36,3040.39,50,0
-A	complete	368,1
-A	mob	Vile Fin Puddlejumper
-A	mob	Vile Fin Minor Oracle
-A	mob	Vile Fin Muckdweller
-S	Rogue
-T	season	2
-T	loop	
-A	goto	1420/0,342.87,2998.22,0
-A	goto	1420/0,350.10,2962.37,50,0
-A	goto	1420/0,342.87,2998.22,50,0
-A	goto	1420/0,293.16,2974.12,50,0
-A	goto	1420/0,254.75,2951.820,50,0
-A	goto	1420/0,188.33,2950.02,50,0
-A	goto	1420/0,65.42,2927.12,50,0
-A	goto	1420/0,-15.92,2964.78,50,0
-A	goto	1420/0,-49.36,3040.39,50,0
-A	collect	208007,1
-A	mob	Vile Fin Puddlejumper
-A	mob	Vile Fin Minor Oracle
-A	mob	Vile Fin Muckdweller
-A	train	400081,1
-S	Rogue
-T	season	2
-A	goto	1420/0,21.13,3102.15
-A	collect	204174,1
-A	train	400081,1
-S	Rogue
-T	season	2
-T	label	RuneofPrecision
-A	train	400081
-A	use	204174
-A	itemcount	204174,1
-S	Rogue
-T	season	2
-T	loop	
-A	goto	1420/0,342.87,2998.22,0
-A	goto	1420/0,350.10,2962.37,50,0
-A	goto	1420/0,342.87,2998.22,50,0
-A	goto	1420/0,293.16,2974.12,50,0
-A	goto	1420/0,254.75,2951.820,50,0
-A	goto	1420/0,188.33,2950.02,50,0
-A	goto	1420/0,65.42,2927.12,50,0
-A	goto	1420/0,-15.92,2964.78,50,0
-A	goto	1420/0,-49.36,3040.39,50,0
-A	collect	208037,1
-A	mob	Vile Fin Puddlejumper
-A	mob	Vile Fin Minor Oracle
-A	mob	Vile Fin Muckdweller
-A	train	400095,1
-S	Rogue
-T	season	2
-A	use	208036
-A	collect	208034,1
-A	train	400095,1
-S	
-T	hardcore	
-T	completewith	DoomedWeed
-A	subzone	159
-A	subzoneskip	159
-S	
-T	softcore	
-T	completewith	DoomedWeed
-A	goto	1420/0,118.74,2951.52
-A	deathskip	
-S	skip
-T	label	DoomedWeed
-T	loop	
-A	goto	1420/0,425.56,2362.58,0
-A	goto	1420/0,399.35,2337.270,30,0
-A	goto	1420/0,425.56,2362.58,30,0
-A	goto	1420/0,355.52,2429.76,30,0
-A	turnin	5482
-A	target	Junior Apothecary Holland
-S	Rogue
-T	season	2
-A	goto	1420/0,643.37,2209.85
-A	use	208034
-A	collect	203991,1
-A	train	400095,1
-S	Rogue
-T	season	2
-A	train	400095
-A	use	203991
-A	itemcount	203991,1
-S	
-T	xprate	<2.1
-A	turnin	368
-A	accept	369
-A	target	+Apothecary Johaan
-A	goto	1420/0,346.94,2258.950
-A	turnin	398
-A	target	+Executor Zygand
-A	goto	1420/0,295.87,2277.93
-A	turnin	358
-A	accept	405
-A	accept	359
-A	target	+Magistrate Sevren
-A	goto	1420/0,265.15,2305.94
-S	
-T	xprate	>2.09
-A	turnin	368
-A	target	+Apothecary Johaan
-A	goto	1420/0,346.94,2258.950
-A	turnin	398
-A	target	+Executor Zygand
-A	goto	1420/0,295.87,2277.93
-A	turnin	358
-A	accept	405
-A	target	+Magistrate Sevren
-A	goto	1420/0,265.15,2305.94
-S	
-T	optional	
-A	goto	1420/0,275.54,2260.46
-A	complete	375,2
-A	target	Abigail Shiel
-A	itemcount	2876,5
-A	isQuestAvailable	375
-S	
-A	goto	1420/0,244.36,2262.26
-A	accept	354
-A	accept	362
-A	target	Coleman Farthing
-S	!Warlock
-T	xprate	>1.49
-T	optional	
-T	completewith	AgamandStart
-A	abandon	405
-S	
-T	optional	
-A	goto	1420/0,236.68,2249.01
-A	turnin	375
-A	target	Gretchen Dedmar
-A	isQuestComplete	375
-S	Priest
-A	goto	1420/0,251.14,2265.28
-A	train	139
-A	target	Dark Cleric Beryl
-A	xp	<8,1
-A	xp	>10,1
-S	Priest
-T	optional	
-A	goto	1420/0,251.14,2265.28
-A	train	8092
-A	target	Dark Cleric Beryl
-A	xp	<10,1
-S	Mage
-A	goto	1420/0,233.06,2256.84
-A	train	205
-A	target	Cain Firesong
-A	xp	<8,1
-A	xp	>10,1
-S	Mage
-T	optional	
-A	goto	1420/0,233.52,2256.84
-A	train	122
-A	target	Cain Firesong
-A	xp	<10,1
-S	Warrior
-A	goto	1420/0,238.49,2255.03
-A	train	284
-A	target	Austil de Mon
-A	xp	<8,1
-A	xp	>10,1
-S	Warrior
-T	optional	
-A	abandon	1505
-A	isOnQuest	1505
-S	Warrior
-T	optional	
-A	abandon	1498
-A	isOnQuest	1498
-S	Warrior
-T	optional	
-A	goto	1420/0,238.49,2254.43
-A	trainer	
-A	accept	1818
-A	target	Austil de Mon
-A	xp	<10,1
-A	isQuestAvailable	1498
-S	Rogue
-A	goto	1420/0,243.01,2271.00
-A	train	6760
-A	target	Marion Call
-A	xp	<8,1
-A	xp	>10,1
-S	Rogue
-T	optional	
-A	goto	1420/0,243.01,2270.70
-A	train	674
-A	target	Marion Call
-A	xp	<10,1
-S	Warlock
-A	goto	1420/0,250.24,2259.25
-A	train	980
-A	target	Rupert Boch
-A	xp	<8,1
-A	xp	>10,1
-S	Warlock
-T	optional	
-A	goto	1420/0,250.24,2259.25
-A	train	707
-A	target	Rupert Boch
-A	xp	<10,1
-S	Warlock
-T	optional	
-A	goto	1420/0,248.88,2251.12
-A	accept	1478
-A	target	Ageron Kargal
-A	xp	<10,1
-S	Warlock
-T	xprate	>2.09
-A	goto	1420/0,248.88,2251.12
-A	accept	1478
-A	target	Ageron Kargal
-S	Rogue/Warrior
-A	goto	1420/0,240.29,2246.30
-A	train	3273
-A	target	Nurse Neela
-S	Rogue
-A	goto	1420/0,316.66,2227.32
-A	vendor	
-A	target	Oliver Dwor
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
-S	Rogue
-A	goto	1420/0,316.66,2227.32
-A	collect	2494,1,354,1
-A	money	<0.0401
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
-S	Rogue
-T	optional	
-T	completewith	MillsOverun
-A	use	2494
-A	itemcount	2494,1
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.3
-S	Warrior
-A	goto	1420/0,316.66,2227.32
-A	vendor	
-A	target	Oliver Dwor
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
-S	Warrior
-A	goto	1420/0,316.66,2227.32
-A	collect	2488,1,354,1
-A	money	<0.0536
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
-S	Warrior
-T	optional	
-T	completewith	MillsOverun
-A	use	2488
-A	itemcount	2488,1
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<3.7
-S	
-A	goto	1420/0,244.81,2269.19
-A	vendor	
-A	collect	1179,20,426,1 << Mage/Priest
-A	collect	4605,20,426,1 << Rogue/Warrior
-A	collect	1179,10,426,1 << Warlock
-A	collect	4605,10,426,1 << Warlock
-A	money	<0.025 << Warrior/Rogue
-A	money	<0.0375 << Mage/Priest/Warlock
-A	target	Innkeeper Renee
-S	Rogue/Warrior
-T	softcore	
-A	goto	1420/0,308.08,2246.30
-A	vendor	
-A	target	Eliza Callen
-S	Warrior
-A	goto	1420/0,403.87,2287.87
-A	turnin	1818
-A	accept	1819
-A	target	Deathguard Dillinger
-A	isOnQuest	1818
-S	Warrior
-T	optional	
-A	goto	1420/0,403.87,2287.87
-A	accept	1819
-A	target	Deathguard Dillinger
-A	isQuestTurnedIn	1818
-S	Warrior
-A	goto	1420/0,360.04,2376.14
-A	complete	1819,1
-A	mob	Ulag the Cleaver
-A	isQuestTurnedIn	1818
-S	Warrior
-A	goto	1420/0,403.87,2287.87
-A	turnin	1819
-A	accept	1820
-A	target	Deathguard Dillinger
-A	isQuestTurnedIn	1818
-S	
-T	optional	
-T	label	Brill3
-S	Warrior
-T	xprate	<2.1
-T	season	2
-T	completewith	AgamandStart
-A	collect	207975,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	train	403475,1
-S	
-T	xprate	<2.1
-T	completewith	next
-A	complete	375,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-S	
-T	xprate	<2.1
-T	label	AgamandStart
-A	goto	1420/0,882.41,2511.1,100,0
-A	goto	1420/0,892.80,2520.74
-A	subzone	157
-A	isOnQuest	362
-S	
-T	xprate	<2.1
-T	completewith	ThurmanGregor
-A	collect	2839,1,361
-A	accept	361
-A	use	2839
-S	
-T	xprate	<2.1
-T	completewith	ThurmanGregor
-T	label	MillsOverun
-A	complete	426,1
-A	mob	+Rattlecage Soldier
-A	mob	+Cracked Skull Soldier
-A	complete	426,2
-A	mob	+Darkeye Bonecaster
-S	
-T	xprate	<2.1
-T	label	KillDevlin
-A	goto	1420/0,894.16,2609.00
-A	complete	362,1
-A	mob	Devlin Agamand
-S	
-T	xprate	<2.1
-A	goto	1420/0,803.78,2752.40
-A	complete	354,2
-A	mob	Nissa Agamand
-S	
-T	xprate	<2.1
-T	label	ThurmanGregor
-T	loop	
-A	goto	1420/0,996.28,2899.11,0
-A	goto	1420/0,1058.19,2775.59,60,0
-A	goto	1420/0,998.54,2903.93,60,0
-A	goto	1420/0,919.01,2939.770,60,0
-A	goto	1420/0,1098.40,2875.61,60,0
-A	goto	1420/0,1098.40,2875.61,60,0
-A	goto	1420/0,996.28,2899.11,60,0
-A	complete	354,3
-A	unitscan	+Thurman Agamand
-A	complete	354,1
-A	unitscan	+Gregor Agamand
-S	
-T	xprate	<2.1
-T	loop	
-A	goto	1420/0,996.28,2899.11,0
-A	goto	1420/0,1058.19,2775.59,60,0
-A	goto	1420/0,998.54,2903.93,60,0
-A	goto	1420/0,919.01,2939.770,60,0
-A	goto	1420/0,1098.40,2875.61,60,0
-A	goto	1420/0,1098.40,2875.61,60,0
-A	goto	1420/0,996.28,2899.11,60,0
-A	complete	426,1
-A	mob	+Rattlecage Soldier
-A	mob	+Cracked Skull Soldier
-A	complete	426,2
-A	mob	+Darkeye Bonecaster
-S	skip
-T	xprate	<1.5
-T	optional	
-T	loop	
-A	goto	1420/0,953.35,2926.22,0
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	collect	2839,1,361
-A	accept	361
-A	use	2839
-A	mob	Rattlecage Soldier
-A	mob	Darkeye Bonecaster
-A	mob	Cracked Skull Soldier
-A	xp	>9+4320,1
-A	isQuestTurnedIn	375
-S	skip
-T	xprate	>1.49
-T	loop	
-A	goto	1420/0,953.35,2926.22,0
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	collect	2839,1,361
-A	accept	361
-A	use	2839
-A	mob	Rattlecage Soldier
-A	mob	Darkeye Bonecaster
-A	mob	Cracked Skull Soldier
-A	xp	>9+2180,1
-A	isOnQuest	375
-S	skip
-T	xprate	>1.49
-T	optional	
-T	loop	
-A	goto	1420/0,953.35,2926.22,0
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	collect	2839,1,361
-A	accept	361
-A	use	2839
-A	mob	Rattlecage Soldier
-A	mob	Darkeye Bonecaster
-A	mob	Cracked Skull Soldier
-A	xp	>9+3230,1
-A	isQuestTurnedIn	375
-S	skip
-T	xprate	<1.5
-T	optional	
-T	loop	
-A	goto	1420/0,953.35,2926.22,0
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	xp	9+3620
-A	itemcount	2839,<1
-A	isOnQuest	375
-S	skip
-T	xprate	<1.5
-T	optional	
-T	loop	
-A	goto	1420/0,953.35,2926.22,0
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	xp	9+4320
-A	itemcount	2839,<1
-A	isQuestTurnedIn	375
-S	skip
-T	xprate	<1.5
-T	optional	
-T	loop	
-A	goto	1420/0,953.35,2926.22,0
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	xp	9+3840
-A	itemcount	2839,1
-A	isQuestTurnedIn	375
-S	skip
-T	xprate	<1.5
-T	optional	
-T	loop	
-A	goto	1420/0,953.35,2926.22,0
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	xp	9+3140
-A	itemcount	2839,1
-A	isOnQuest	375
-S	skip
-T	xprate	>1.49
-T	optional	
-T	loop	
-A	goto	1420/0,953.35,2926.22,0
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	xp	9+2180
-A	itemcount	2839,<1
-A	isOnQuest	375
-S	skip
-T	xprate	>1.49
-T	optional	
-T	loop	
-A	goto	1420/0,953.35,2926.22,0
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	xp	9+3230
-A	itemcount	2839,<1
-A	isQuestTurnedIn	375
-S	skip
-T	xprate	>1.49
-T	optional	
-T	loop	
-A	goto	1420/0,953.35,2926.22,0
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	xp	9+2510
-A	itemcount	2839,1
-A	isQuestTurnedIn	375
-S	skip
-T	xprate	>1.49
-T	optional	
-T	loop	
-A	goto	1420/0,953.35,2926.22,0
-A	goto	1420/0,857.56,2793.97,60,0
-A	goto	1420/0,880.15,2884.04,60,0
-A	goto	1420/0,953.35,2926.22,60,0
-A	goto	1420/0,1025.2,2908.44,60,0
-A	goto	1420/0,1040.56,2793.07,60,0
-A	goto	1420/0,918.56,2780.11,60,0
-A	xp	9+1460
-A	itemcount	2839,1
-A	isOnQuest	375
-S	Mage/Priest
-T	xprate	<2.1
-T	season	2
-A	collect	203753,1 << Mage
-A	collect	205940,1 << Priest
-A	mob	Gillgar
-A	train	401765,1 << Mage
-A	train	425216,1 << Priest
-S	Mage
-T	xprate	<2.1
-T	season	2
-A	collect	211779,1
-A	train	401765
-A	use	203753
-A	itemcount	203753,1
-S	skip
-T	xprate	<1.5
-T	hardcore	
-T	completewith	FoodandWater2
-A	hs	
-A	subzoneskip	159
-A	cooldown	item,6948,>0,1
-A	bindlocation	2119,1
-S	skip
-T	xprate	<1.5
-T	hardcore	
-T	completewith	FoodandWater2
-A	subzone	159
-A	subzoneskip	159
-A	cooldown	item,6948,<0
-S	
-T	xprate	<2.1
-T	hardcore	
-T	completewith	FoodandWater2
-A	subzone	159
-A	subzoneskip	159
-S	
-T	xprate	<2.1
-T	softcore	
-T	completewith	FoodandWater2
-A	deathskip	
-S	
-T	xprate	<2.1
-A	goto	1420/0,403.42,2287.87
-A	turnin	426
-A	target	Deathguard Dillinger
-S	
-T	xprate	<2.1
-T	optional	
-A	goto	1420/0,275.54,2260.46
-A	complete	375,2
-A	target	Abigail Shiel
-A	itemcount	2876,5
-A	isQuestAvailable	375
-S	
-T	xprate	<2.1
-A	turnin	361
-A	target	+Yvette Farthing
-A	goto	1420/0,250.69,2252.920
-A	turnin	354
-A	turnin	362
-A	accept	355
-A	target	+Coleman Farthing
-A	goto	1420/0,244.36,2262.26
-A	isOnQuest	361
-S	
-T	xprate	<2.1
-A	goto	1420/0,244.36,2262.26
-A	turnin	354
-A	turnin	362
-A	turnin	1820
-A	accept	355
-A	target	Coleman Farthing
-A	isQuestTurnedIn	1819 << Warrior
-S	Warrior
-T	xprate	<2.1
-T	optional	
-A	goto	1420/0,244.36,2262.26
-A	turnin	354
-A	turnin	362
-A	accept	355
-A	target	Coleman Farthing
-S	
-T	xprate	<2.1
-T	optional	
-A	goto	1420/0,236.68,2249.01
-A	turnin	375
-A	target	Gretchen Dedmar
-A	isQuestComplete	375
-S	Priest
-T	xprate	<2.1
-A	goto	1420/0,251.14,2265.28
-A	trainer	
-A	target	Dark Cleric Beryl
-S	Warrior
-T	xprate	<2.1
-T	optional	
-A	abandon	1505
-A	isOnQuest	1505
-S	Warrior
-T	xprate	<2.1
-T	optional	
-A	abandon	1498
-A	isOnQuest	1498
-S	Warrior
-T	xprate	<2.1
-A	goto	1420/0,238.49,2254.43
-A	train	2687
-A	accept	1818
-A	target	Austil de Mon << Warrior
-A	xp	>12,1
-S	Warrior
-T	xprate	<2.1
-A	goto	1420/0,238.49,2255.03
-A	train	7384
-A	accept	1818
-A	target	Austil de Mon
-A	xp	<12,1
-S	Warlock
-T	xprate	<2.1
-A	goto	1420/0,250.24,2259.25
-A	train	707
-A	target	Rupert Boch
-A	xp	<10,1
-A	xp	>12,1
-S	Warlock
-T	xprate	<2.1
-A	goto	1420/0,250.24,2259.25
-A	train	755
-A	target	Rupert Boch
-A	xp	<12,1
-S	Warlock
-T	xprate	<2.1
-A	goto	1420/0,248.88,2251.12
-A	accept	1478
-A	target	Ageron Kargal
-S	Rogue
-T	xprate	<2.1
-A	goto	1420/0,243.01,2270.70
-A	train	674
-A	target	Marion Call
-A	xp	<10,1
-A	xp	>12,1
-S	Rogue
-T	xprate	<2.1
-T	optional	
-A	goto	1420/0,243.01,2270.70
-A	train	1766
-A	target	Marion Call
-A	xp	<12,1
-S	Mage
-T	xprate	<2.1
-A	goto	1420/0,233.52,2256.84
-A	accept	1881
-A	target	Cain Firesong
-S	
-T	xprate	<2.1
-T	label	FoodandWater2
-A	goto	1420/0,244.81,2269.19
-A	vendor	
-A	collect	1179,20,370,1 << Mage/Priest/Shaman
-A	collect	4605,20,370,1 << Rogue/Warrior
-A	collect	1179,15,370,1 << Warlock
-A	collect	4605,15,370,1 << Warlock
-A	money	<0.075 << Warlock
-A	money	<0.05 << !Warlock
-A	target	Innkeeper Renee
-S	Warrior
-T	xprate	<2.1
-A	goto	1420/0,403.87,2287.87
-A	turnin	1818
-A	accept	1819
-A	target	Deathguard Dillinger
-S	Warrior
-T	xprate	<2.1
-A	goto	1420/0,360.04,2376.14
-A	complete	1819,1
-A	mob	Ulag the Cleaver
-S	Warrior
-T	xprate	<2.1
-A	goto	1420/0,403.87,2287.87
-A	turnin	1819
-A	accept	1820
-A	target	Deathguard Dillinger
-S	Warlock
-T	completewith	next
-A	goto	1420/0,240.75,1877.57,20
-A	zoneskip	Undercity
-A	zoneskip	Undercity
-S	Warlock
-T	completewith	next
-A	goto	1458/0,239.14,1749.54,35,0
-A	goto	1458/0,255.64,1724.70,35,0
-A	goto	1458/0,240.68,1706.97,10,0
-A	goto	1458/0,241.06,1660.12,10,0
-A	goto	1458/0,257.08,1623.38,10,0
-A	goto	1458/0,244.51,1598.73,15
-S	Warlock
-A	goto	1458/0,57.05,1711.77
-A	turnin	1478
-A	accept	1473
-S	Warlock
-A	goto	1458/0,419.89,1627.54,50,0
-A	goto	1458/0,428.52,1597.20,10,0
-A	goto	1458/0,439.17,1626.06,10,0
-A	goto	1458/0,476.78,1632.150,10,0
-A	goto	1458/0,482.34,1660.63,10,0
-A	goto	1458/0,539.33,1665.49,15,0
-A	goto	1458/0,610.42,1684.44,35,0
-A	goto	1458/0,663.19,1600.46,35,0
-A	goto	1420/0,724.25,1682.66,50,0
-A	zone	Tirisfal Glades
-A	zoneskip	Tirisfal Glades
-S	Warrior
-T	season	2
-T	loop	
-A	goto	1420/0,541.69,1969.45,0
-A	goto	1420/0,462.16,2082.72,60,0
-A	goto	1420/0,541.69,1969.45,60,0
-A	goto	1420/0,667.32,1941.73,60,0
-A	goto	1420/0,821.86,1917.93,60,0
-A	goto	1420/0,992.21,1966.44,60,0
-A	collect	207975,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-A	train	403475,1
-S	Rogue
-T	season	2
-T	completewith	ScarletCrusade1
-A	collect	208085,1
-A	mob	Captain Perrine
-A	train	400094,1
-S	Warlock
-T	completewith	next
-A	goto	1420/0,726.06,1801.95
-A	complete	1473,1
-S	
-T	label	ScarletCrusade1
-T	loop	
-A	goto	1420/0,770.80,1762.79,40,0
-A	goto	1420/0,763.57,1820.93,40,0
-A	goto	1420/0,721.54,1857.38,40,0
-A	goto	1420/0,694.88,1848.04,40,0
-A	goto	1420/0,641.56,1800.45,40,0
-A	goto	1420/0,651.05,1748.93,40,0
-A	goto	1420/0,685.39,1741.70,40,0
-A	goto	1420/0,727.42,1742.31,40,0
-A	complete	370,1
-A	mob	+Captain Perrine
-A	complete	370,2
-A	mob	+Scarlet Zealot
-A	complete	370,3
-A	mob	+Scarlet Missionary
-A	complete	374,1
-A	disablecheckbox	
-S	Rogue
-T	season	2
-A	goto	1420/0,721.09,1794.72
-A	collect	208085,1
-A	mob	Captain Perrine
-A	train	400094,1
-S	Warlock
-A	goto	1420/0,726.06,1801.95
-A	complete	1473,1
-S	
-T	xprate	<1.5
-T	completewith	UCHome
-A	goto	1458/0,714.8,1604.24,35,0
-A	goto	1458/0,652.73,1623.44,35,0
-A	goto	1458/0,634.02,1669.66,35,0
-A	goto	1458/0,539.52,1665.17,10,0
-A	goto	1458/0,481.48,1659.8,10,0
-A	goto	1458/0,476.49,1632.15,10,0
-A	goto	1458/0,439.08,1627.02,10,0
-A	goto	1458/0,435.05,1598.86,10,0
-A	zone	Undercity
-A	zoneskip	Undercity
-S	!Mage
-T	xprate	>1.49
-T	completewith	LogoutSkip1
-A	goto	1458/0,714.8,1604.24,35,0
-A	goto	1458/0,652.73,1623.44,35,0
-A	goto	1458/0,634.02,1669.66,35,0
-A	goto	1458/0,539.52,1665.17,10,0
-A	goto	1458/0,481.48,1659.8,10,0
-A	goto	1458/0,476.49,1632.15,10,0
-A	goto	1458/0,439.08,1627.02,10,0
-A	goto	1458/0,435.05,1598.86,10,0
-A	zone	Undercity
-A	zoneskip	Undercity
-S	Priest
-A	goto	1458/0,403.29,1760.61
-A	turnin	5658
-A	target	Aelthalyste
-A	train	2652,1
-S	Rogue
-A	goto	1458/0,323.57,1668.50
-A	train	201
-A	target	Archibald
-S	Warrior/Rogue
-A	goto	1458/0,335.37,1638.29
-A	train	2575
-A	target	Brom Killian
-S	Warrior/Rogue
-A	goto	1458/0,329.04,1641.62
-A	collect	2901,1,371,1
-A	target	Sarah Killian
-A	train	2575,3
-S	Warrior/Rogue
-A	goto	1458/0,295.94,1691.61
-A	train	2018
-A	target	Basil Frye
-A	train	2575,3
-S	Warrior
-T	season	2
-A	goto	1458/0,412.40,1427.950
-A	collect	204688,1
-A	collect	204689,1
-A	collect	204690,1
-A	target	Dorac Graves
-A	train	403475,1
-S	Warrior
-T	season	2
-T	optional	
-A	use	204688
-A	collect	204703,1
-A	train	403475,1
-S	Warrior
-T	season	2
-A	train	403475
-A	use	204703
-A	itemcount	204703,1
-S	!Mage
-T	xprate	>1.49
-T	ah	
-A	goto	1458/0,257.27,1560.450
-A	collect	11287,1,435,1 << Priest/Mage/Warlock
-A	target	Auctioneer Rhyker
-A	itemStat	18,QUALITY,<7 << Priest/Mage/Warlock
-A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<11.3 << Priest/Mage/Warlock
-S	skip
-T	xprate	>1.49
-T	ah	
-T	optional	
-A	goto	1458/0,257.27,1560.450
-A	collect	3164,6,429,1
-A	target	Auctioneer Rhyker
-S	!Warlock
-T	xprate	<1.5
-A	goto	1458/0,223.31,1634.96
-A	home	
-A	target	Innkeeper Norman
-A	bindlocation	1497
-S	
-T	optional	
-T	label	UCHome
-S	Warlock
-A	goto	1458/0,57.05,1711.77
-A	turnin	1473
-A	accept	1471
-A	target	Carendin Halgar
-S	Warlock
-T	completewith	next
-A	cast	9221
-A	use	6284
-S	Warlock
-A	goto	1458/0,41.99,1704.480
-A	complete	1471,1
-A	mob	Summoned Voidwalker
-A	use	6284
-S	Warlock
-A	goto	1458/0,57.34,1711.71
-A	turnin	1471
-A	target	Carendin Halgar
-S	Warrior
-T	ssf	
-A	goto	1458/0,133.71,1561.730
-A	collect	1198,1,371,1
-A	money	<0.2676
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<9.0
-A	target	Charles Seaton
-S	Warrior
-T	ah	
-A	goto	1458/0,133.71,1561.730
-A	collect	1198,1,371,1
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<9.0
-A	target	Charles Seaton
-S	Warrior
-T	optional	
-T	completewith	LogoutSkip1
-A	use	1198
-A	itemcount	1198,1
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<9.0
-S	Rogue
-T	season	0
-T	ssf	
-A	goto	1458/0,133.71,1561.730
-A	collect	851,1,371,1
-A	money	<0.2023
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<6.8
-A	target	Charles Seaton
-S	Rogue
-T	season	0
-T	ah	
-A	goto	1458/0,133.71,1561.730
-A	collect	851,1,371,1
-A	money	<0.2023
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<6.8
-A	target	Charles Seaton
-S	Rogue
-T	season	2
-T	ssf	
-A	goto	1458/0,133.71,1561.730
-A	vendor	
-A	money	<0.2023
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<6.8
-A	target	Charles Seaton
-S	Rogue
-T	season	2
-T	ah	
-A	goto	1458/0,133.71,1561.730
-A	vendor	
-A	money	<0.2023
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<6.8
-A	target	Charles Seaton
-S	Rogue
-T	optional	
-T	completewith	LogoutSkip1
-A	use	851
-A	itemcount	851,1
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<6.8
-S	Rogue
-T	season	2
-T	optional	
-T	completewith	LogoutSkip1
-A	use	2207
-A	itemcount	2207,1
-A	itemStat	16,QUALITY,<7
-A	itemStat	16,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<7.1
-S	Rogue
-A	goto	1458/0,129.68,1560.26
-A	collect	3107,200,371,1
-A	target	Nathaniel Steenwick
-A	itemStat	18,QUALITY,<7
-A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<6.3
-S	Rogue
-A	goto	1458/0,129.68,1560.26
-A	collect	3107,200,371,1
-A	target	Nathaniel Steenwick
-A	itemStat	18,QUALITY,<7
-A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<6.3
-S	Rogue
-T	optional	
-T	completewith	LogoutSkip1
-A	use	3107
-A	itemcount	3107,1
-A	itemStat	18,QUALITY,<7
-A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<6.3
-A	xp	>11,1
-S	Rogue
-T	optional	
-T	completewith	LogoutSkip1
-A	use	3107
-A	itemcount	3107,1
-A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<6.3
-A	xp	<11,1
-S	skip
-A	goto	1458/0,71.92,1435.70
-A	turnin	1885
-A	accept	1886
-A	target	Mennet Carkad
-S	skip
-T	optional	
-A	abandon	1883
-A	isOnQuest	1883
-S	skip
-A	goto	1458/0,56.57,1813.49
-A	turnin	1881
-A	accept	1882
-A	target	Anastasia Hartwell
-S	
-T	xprate	<1.5
-A	goto	1458/0,66.74,1766.31
-A	turnin	405
-A	accept	357
-A	target	Bethor Iceshard
-S	Warlock
-T	xprate	>1.49
-A	goto	1458/0,66.74,1766.31
-A	turnin	405
-A	target	Bethor Iceshard
-S	skip --Warlock
-T	xprate	<2.1
-A	goto	1458/0,59.07,1747.75
-A	goto	1458/0,221.78,1780.14,30
-A	link	https://www.youtube.com/watch?v=-Bi95bCN8dM
-S	skip --!Mage !Warlock
-T	xprate	<2.1
-A	goto	1458/0,287.01,1531.59 << Priest
-A	goto	1458/0,124.59,1555.59 << Warrior
-A	goto	1458/0,79.31,1460.41 << Rogue
-A	goto	1458/0,221.78,1780.14,30
-A	goto	1458/0,221.78,1780.14,30
-A	zoneskip	Undercity,1
-S	
-T	optional	
-T	label	LogoutSkip1
-S	
-T	xprate	<2.1
-T	completewith	AtWarS
-A	goto	1420/0,235.32,1883.89
-A	zone	Tirisfal Glades
-A	zoneskip	Tirisfal Glades
-S	skip
-T	sticky	
-T	completewith	UnluckyRogue
-A	complete	1886,1
-A	unitscan	Astor Hadren
-A	isOnQuest	1886
-S	Mage/Warlock
-T	xprate	>1.49
-T	completewith	AtWarS
-T	optional	
-A	abandon	357
-S	Mage
-T	xprate	<2.1
-T	label	AtWarS
-T	softcore	
-T	completewith	AtWarS
-A	deathskip	
-S	
-T	completewith	AgamandStart
-T	xprate	>2.09
-A	hs	
-A	bindlocation	2119,1
-S	
-T	optional	
-A	goto	1420/0,280.06,2270.70
-A	turnin	374
-A	target	Deathguard Burgess
-A	isQuestComplete	374
-S	
-T	xprate	<2.1
-T	label	AtWarS
-A	goto	1420/0,295.87,2277.93
-A	turnin	370
-A	accept	371
-A	target	Executor Zygand
-S	
-T	xprate	>2.09
-T	label	AtWarS
-A	goto	1420/0,295.87,2277.93
-A	turnin	370
-A	target	Executor Zygand
-S	Rogue
-T	season	2
-A	goto	1420/0,289.10,2313.170
-A	use	208085
-A	collect	208086,1
-A	train	400094,1
-S	Rogue
-T	season	2
-A	goto	1420/0,289.10,2313.170
-A	collect	203990,1
-A	target	Jamie Nore
-A	skipgossip	
-A	train	400094,1
-S	Rogue
-T	season	2
-A	train	400094
-A	use	203990
-A	itemcount	203990,1
-S	
-A	goto	1420/0,270.12,2253.23
-A	collect	4496,1,356,1
-A	target	Mrs. Winters
-A	money	<0.05
-S	Warrior
-A	goto	1420/0,244.36,2262.26
-A	turnin	1820
-A	target	Coleman Farthing
-S	
-T	xprate	>2.09
-T	label	AgamandStart
-A	goto	1420/0,882.41,2511.1,100,0
-A	goto	1420/0,892.80,2520.74
-A	subzone	157
-A	isOnQuest	362
-S	
-T	xprate	>2.09
-T	completewith	ThurmanGregor
-A	collect	2839,1,361
-A	accept	361
-A	use	2839
-S	
-T	xprate	>2.09
-T	completewith	ThurmanGregor
-T	label	MillsOverun
-A	complete	426,1
-A	mob	+Rattlecage Soldier
-A	mob	+Cracked Skull Soldier
-A	complete	426,2
-A	mob	+Darkeye Bonecaster
-S	
-T	xprate	>2.09
-T	label	KillDevlin
-A	goto	1420/0,894.16,2609.00
-A	complete	362,1
-A	mob	Devlin Agamand
-S	
-T	xprate	>2.09
-A	goto	1420/0,803.78,2752.40
-A	complete	354,2
-A	mob	Nissa Agamand
-S	
-T	xprate	>2.09
-T	label	ThurmanGregor
-T	loop	
-A	goto	1420/0,996.28,2899.11,0
-A	goto	1420/0,1058.19,2775.59,60,0
-A	goto	1420/0,998.54,2903.93,60,0
-A	goto	1420/0,919.01,2939.770,60,0
-A	goto	1420/0,1098.40,2875.61,60,0
-A	goto	1420/0,1098.40,2875.61,60,0
-A	goto	1420/0,996.28,2899.11,60,0
-A	complete	354,3
-A	unitscan	+Thurman Agamand
-A	complete	354,1
-A	unitscan	+Gregor Agamand
-S	
-T	xprate	>2.09
-T	loop	
-A	goto	1420/0,996.28,2899.11,0
-A	goto	1420/0,1058.19,2775.59,60,0
-A	goto	1420/0,998.54,2903.93,60,0
-A	goto	1420/0,919.01,2939.770,60,0
-A	goto	1420/0,1098.40,2875.61,60,0
-A	goto	1420/0,1098.40,2875.61,60,0
-A	goto	1420/0,996.28,2899.11,60,0
-A	complete	426,1
-A	mob	+Rattlecage Soldier
-A	mob	+Cracked Skull Soldier
-A	complete	426,2
-A	mob	+Darkeye Bonecaster
-S	Mage/Priest
-T	xprate	>2.09
-T	season	2
-A	collect	203753,1 << Mage
-A	collect	205940,1 << Priest
-A	mob	Gillgar
-A	train	401765,1 << Mage
-A	train	425216,1 << Priest
-S	Mage
-T	xprate	>2.09
-T	season	2
-A	collect	211779,1
-A	train	401765
-A	use	203753
-A	itemcount	211779,1
-S	
-T	xprate	>2.09
-T	hardcore	
-T	completewith	FoodandWater2
-A	subzone	159
-A	subzoneskip	159
-S	
-T	xprate	>2.09
-T	softcore	
-T	completewith	FoodandWater2
-A	deathskip	
-S	
-T	xprate	>2.09
-A	goto	1420/0,403.42,2287.87
-A	turnin	426
-A	target	Deathguard Dillinger
-S	
-T	xprate	>2.09
-T	optional	
-A	goto	1420/0,275.54,2260.46
-A	complete	375,2
-A	target	Abigail Shiel
-A	itemcount	2876,5
-A	isQuestAvailable	375
-S	
-T	xprate	>2.09
-A	turnin	361
-A	target	+Yvette Farthing
-A	goto	1420/0,250.69,2252.920
-A	turnin	354
-A	turnin	362
-A	target	+Coleman Farthing
-A	goto	1420/0,244.36,2262.26
-A	isOnQuest	361
-S	
-T	xprate	>2.09
-A	goto	1420/0,244.36,2262.26
-A	turnin	354
-A	turnin	362
-A	turnin	1820
-A	target	Coleman Farthing
-A	isQuestTurnedIn	1819 << Warrior
-S	Warrior
-T	xprate	>2.09
-T	optional	
-A	goto	1420/0,244.36,2262.26
-A	turnin	354
-A	turnin	362
-A	target	Coleman Farthing
-S	
-T	xprate	>2.09
-T	optional	
-A	goto	1420/0,236.68,2249.01
-A	turnin	375
-A	target	Gretchen Dedmar
-A	isQuestComplete	375
-S	Priest
-T	xprate	>2.09
-A	goto	1420/0,251.14,2265.28
-A	trainer	
-A	target	Dark Cleric Beryl
-S	Warrior
-T	xprate	>2.09
-A	goto	1420/0,238.49,2254.43
-A	train	2687
-A	target	Austil de Mon
-A	xp	>12,1
-S	Warrior
-T	xprate	>2.09
-A	goto	1420/0,238.49,2255.03
-A	train	7384
-A	target	Austil de Mon
-A	xp	<12,1
-S	Warlock
-T	xprate	>2.09
-A	goto	1420/0,250.24,2259.25
-A	train	707
-A	target	Rupert Boch
-A	xp	<10,1
-A	xp	>12,1
-S	Warlock
-T	xprate	>2.09
-A	goto	1420/0,250.24,2259.25
-A	train	755
-A	target	Rupert Boch
-A	xp	<12,1
-S	Rogue
-T	xprate	>2.09
-A	goto	1420/0,243.01,2270.70
-A	train	674
-A	target	Marion Call
-A	xp	<10,1
-A	xp	>12,1
-S	Rogue
-T	xprate	>2.09
-T	optional	
-A	goto	1420/0,243.01,2270.70
-A	train	1766
-A	target	Marion Call
-A	xp	<12,1
-S	
-T	xprate	>2.09
-T	label	FoodandWater2
-A	goto	1420/0,244.81,2269.19
-A	vendor	
-A	collect	1179,20,370,1 << Mage/Priest/Shaman
-A	collect	4605,20,370,1 << Rogue/Warrior
-A	collect	1179,15,370,1 << Warlock
-A	collect	4605,15,370,1 << Warlock
-A	money	<0.075 << Warlock
-A	money	<0.05 << !Warlock
-A	target	Innkeeper Renee
-S	
-T	xprate	<2.1
-T	completewith	next
-A	complete	375,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-S	
-T	xprate	<2.1
-T	label	UnluckyRogue
-A	goto	1420/0,74.00,2022.47
-A	turnin	359
-A	accept	360
-A	accept	356
-A	target	Deathguard Linnea
-S	
-T	xprate	<2.1
-T	completewith	ArriveBalnir
-A	complete	375,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-S	
-T	xprate	<2.1
-T	label	ArriveBalnir
-A	goto	1420/0,-423.96,1976.68
-A	subzone	165
-A	isOnQuest	356
-S	Mage
-T	xprate	<2.1
-T	season	2
-T	completewith	HorrorsandSpirits
-A	collect	208183,6
-A	mob	Odd Melon
-A	train	415942,1
-A	train	118,3
-S	skip
-T	completewith	next
-A	complete	356,1
-A	mob	+Bleeding Horror
-A	complete	356,2
-A	mob	+Wandering Spirit
-S	skip
-A	goto	1420/0,-467.79,1969.75
-A	complete	1882,1
-S	
-T	xprate	<2.1
-T	optional	
-T	label	HorrorsandSpirits
-T	loop	
-A	goto	1420/0,-324.55,2000.48,0
-A	goto	1420/0,-324.55,2000.48,50,0
-A	goto	1420/0,-330.88,2040.84,50,0
-A	goto	1420/0,-359.34,2073.38,50,0
-A	goto	1420/0,-421.25,2070.07,50,0
-A	goto	1420/0,-464.63,2070.37,50,0
-A	goto	1420/0,-516.14,2017.05,50,0
-A	goto	1420/0,-466.44,1986.02,50,0
-A	goto	1420/0,-436.61,1951.670,50,0
-A	goto	1420/0,-355.28,1970.35,50,0
-A	complete	356,1
-A	mob	+Bleeding Horror
-A	complete	356,2
-A	mob	+Wandering Spirit
-S	Mage
-T	xprate	<2.1
-T	season	2
-T	loop	
-A	goto	1420/0,-423.96,1976.68,0
-A	goto	1420/0,-361.15,1985.11,20,0
-A	goto	1420/0,-423.96,1976.68,20,0
-A	goto	1420/0,-402.72,2050.79,20,0
-A	collect	208183,6
-A	mob	Odd Melon
-A	train	415942,1
-A	train	118,3
-S	Mage
-T	xprate	<2.1
-T	season	2
-A	collect	203749,1
-A	use	208183
-A	train	415942,1
-A	itemcount	208183,6
-S	Mage
-T	xprate	<2.1
-T	season	2
-A	train	415942
-A	use	203749
-A	itemcount	203749,1
-S	
-T	xprate	<2.1
-T	sticky	
-T	label	Friars
-T	loop	
-T	optional	
-A	goto	1420/0,-624.59,2114.05,0
-A	goto	1420/0,-452.43,2183.03,0
-A	goto	1420/0,-573.53,2138.450,0
-A	goto	1420/0,-624.59,2114.05,40,0
-A	goto	1420/0,-654.87,2185.44,40,0
-A	goto	1420/0,-652.16,2238.77,40,0
-A	goto	1420/0,-550.49,2173.09,40,0
-A	goto	1420/0,-452.43,2183.03,40,0
-A	goto	1420/0,-407.69,2171.590,40,0
-A	goto	1420/0,-406.34,2113.75,40,0
-A	goto	1420/0,-453.33,2127.91,40,0
-A	goto	1420/0,-573.53,2138.450,40,0
-A	complete	371,2
-A	complete	374,1
-A	disablecheckbox	
-A	mob	Scarlet Friar
-A	mob	Scarlet Zealot
-A	isOnQuest	374
-S	
-T	xprate	<2.1
-T	loop	
-T	sticky	
-T	requires	Friars
-T	label	Friars2
-A	goto	1420/0,-624.59,2114.05,0
-A	goto	1420/0,-452.43,2183.03,0
-A	goto	1420/0,-573.53,2138.450,0
-A	goto	1420/0,-624.59,2114.05,40,0
-A	goto	1420/0,-654.87,2185.44,40,0
-A	goto	1420/0,-652.16,2238.77,40,0
-A	goto	1420/0,-550.49,2173.09,40,0
-A	goto	1420/0,-452.43,2183.03,40,0
-A	goto	1420/0,-407.69,2171.590,40,0
-A	goto	1420/0,-406.34,2113.75,40,0
-A	goto	1420/0,-453.33,2127.91,40,0
-A	goto	1420/0,-573.53,2138.450,40,0
-A	complete	371,2
-A	mob	Scarlet Friar
-A	isQuestTurnedIn	374
-S	
-T	xprate	<2.1
-A	goto	1420/0,-528.35,2146.28
-A	complete	371,1
-A	mob	Captain Vachon
-S	
-T	xprate	<2.1
-T	requires	Friars2
-T	loop	
-T	label	FinishRings
-A	goto	1420/0,-624.59,2114.05,0
-A	goto	1420/0,-452.43,2183.03,0
-A	goto	1420/0,-573.53,2138.450,0
-A	goto	1420/0,-624.59,2114.05,40,0
-A	goto	1420/0,-654.87,2185.44,40,0
-A	goto	1420/0,-652.16,2238.77,40,0
-A	goto	1420/0,-550.49,2173.09,40,0
-A	goto	1420/0,-452.43,2183.03,40,0
-A	goto	1420/0,-407.69,2171.590,40,0
-A	goto	1420/0,-406.34,2113.75,40,0
-A	goto	1420/0,-453.33,2127.91,40,0
-A	goto	1420/0,-573.53,2138.450,40,0
-A	complete	374,1
-A	mob	Scarlet Friar
-A	mob	Scarlet Zealot
-A	isOnQuest	374
-S	skip
-T	xprate	<2.1
-T	optional	
-T	loop	
-A	goto	1420/0,-624.59,2114.05,0
-A	goto	1420/0,-452.43,2183.03,0
-A	goto	1420/0,-573.53,2138.450,0
-A	goto	1420/0,-624.59,2114.05,40,0
-A	goto	1420/0,-654.87,2185.44,40,0
-A	goto	1420/0,-652.16,2238.77,40,0
-A	goto	1420/0,-550.49,2173.09,40,0
-A	goto	1420/0,-452.43,2183.03,40,0
-A	goto	1420/0,-407.69,2171.590,40,0
-A	goto	1420/0,-406.34,2113.75,40,0
-A	goto	1420/0,-453.33,2127.91,40,0
-A	goto	1420/0,-573.53,2138.450,40,0
-A	collect	2589,60,435,1
-A	itemStat	18,QUALITY,<7
-A	itemStat	18,ITEM_MOD_DAMAGE_PER_SECOND_SHORT,<11.3
-S	
-T	xprate	<2.1
-T	completewith	ViciousVenom
-A	complete	375,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-S	
-T	xprate	<2.1
-T	label	ViciousVenom
-T	loop	
-T	requires	Friars2
-A	goto	1420/0,-808.96,2189.06,0
-A	goto	1420/0,-739.82,2163.75,30,0
-A	goto	1420/0,-808.96,2189.06,30,0
-A	goto	1420/0,-878.10,2195.39,30,0
-A	goto	1420/0,-945.88,2180.93,30,0
-A	goto	1420/0,-985.64,2224.00,30,0
-A	goto	1420/0,-1019.99,2274.61,30,0
-A	goto	1420/0,-1075.11,2314.38,30,0
-A	goto	1420/0,-1072.85,2381.56,30,0
-A	goto	1420/0,-1027.67,2432.17,30,0
-A	goto	1420/0,-809.41,2431.26,30,0
-A	goto	1420/0,-785.91,2352.64,30,0
-A	goto	1420/0,-738.02,2268.29,30,0
-A	complete	369,1
-A	mob	Vicious Night Web Spider
-S	
-T	xprate	<2.1
-T	loop	
-A	goto	1420/0,-743.89,2516.82,0
-A	goto	1420/0,-235.08,2843.07,0
-A	goto	1420/0,-743.89,2516.82,70,0
-A	goto	1420/0,-616.46,2439.700,70,0
-A	goto	1420/0,-394.59,2451.15,70,0
-A	goto	1420/0,-269.87,2611.11,70,0
-A	goto	1420/0,-235.08,2843.07,70,0
-A	goto	1420/0,-70.60,2803.31,70,0
-A	complete	375,1
-A	mob	Greater Duskbat
-A	mob	Vampiric Duskbat
-S	skip
-T	xprate	>1.49
-A	xp	11+2950
-A	isOnQuest	374
-A	isOnQuest	375
-S	skip
-T	xprate	>1.49
-T	optional	
-A	xp	11+3890
-A	isQuestTurnedIn	374
-A	isOnQuest	375
-S	skip
-T	xprate	>1.49
-T	optional	
-A	xp	11+4000
-A	isOnQuest	374
-A	isQuestTurnedIn	375
-S	skip
-T	xprate	>1.49
-T	optional	
-A	xp	11+4940
-A	isQuestTurnedIn	374
-A	isQuestTurnedIn	375
-S	
-T	xprate	<2.1
-T	completewith	ANewPlagueFinal
-A	hs	
-A	subzoneskip	159
-A	bindlocation	2119,1
-A	cooldown	item,6948,>0,1
-S	
-T	xprate	<2.1
-T	completewith	ANewPlagueFinal
-A	subzone	159
-A	subzoneskip	159
-A	cooldown	item,6948,<0
-S	
-T	xprate	<1.5
-A	goto	1420/0,-38.06,2569.54
-A	complete	357,1
-S	
-T	xprate	<1.5
-T	hardcore	
-T	completewith	ANewPlagueFinal
-A	subzone	159
-A	subzoneskip	159
-S	
-T	xprate	<1.5
-T	softcore	
-T	completewith	ANewPlagueFinal
-A	goto	1420/0,23.85,2483.38
-A	deathskip	
-S	
-T	xprate	<2.1
-A	goto	1420/0,346.94,2259.25
-A	turnin	369
-A	accept	492
-A	target	Apothecary Johaan
-S	skip
-T	phase	3-6
-A	goto	1420/0,346.94,2259.25
-A	turnin	369
-A	accept	492
-A	target	Apothecary Johaan
-S	
-T	xprate	<1.5
-A	goto	1420/0,295.87,2277.93
-A	turnin	371
-A	accept	372
-A	target	Executor Zygand
-S	
-T	optional	
-T	xprate	<2.1
-A	goto	1420/0,295.87,2277.93
-A	turnin	371
-A	target	Executor Zygand
-S	
-T	xprate	<2.1
-A	goto	1420/0,265.15,2305.94
-A	turnin	360
-A	turnin	355
-A	target	Magistrate Sevren
-S	
-T	xprate	>1.49
-T	optional	
-T	completewith	ANewPlagueFinal
-A	abandon	372
-S	
-T	xprate	<2.1
-T	optional	
-A	goto	1420/0,280.06,2270.70
-A	turnin	374
-A	target	Deathguard Burgess
-A	isQuestComplete	374
-S	
-T	xprate	<2.1
-A	goto	1420/0,275.54,2260.46
-A	complete	375,2
-A	target	Abigail Shiel
-A	itemcount	2876,5
-A	isQuestAvailable	375
-S	
-T	xprate	<2.1
-A	goto	1420/0,270.12,2253.23
-A	collect	4496,1,356,1
-A	target	Mrs. Winters
-A	money	<0.05
-S	
-T	xprate	<1.5
-T	optional	
-A	goto	1420/0,236.68,2249.01
-A	turnin	375
-A	target	Gretchen Dedmar
-A	isQuestComplete	375
-S	
-T	xprate	<2.1
-A	goto	1420/0,236.68,2249.01
-A	turnin	375
-A	target	Gretchen Dedmar
-S	
-T	xprate	<2.1
-A	goto	1420/0,244.81,2269.19
-A	vendor	
-A	vendor	
-A	target	Innkeeper Renee
-S	Warrior
-T	season	2
-A	goto	1420/0,243.91,2273.71
-A	gossipoption	110750
-A	target	Penny Hawkins
-A	train	425447,1
-S	
-T	xprate	<1.5
-T	label	ANewPlagueFinal
-A	turnin	407
-A	goto	1420/0,233.06,2292.39
-A	target	+Captured Scarlet Zealot
-A	turnin	492
-A	goto	1420/0,234.42,2289.070
-A	target	+Captured Mountaineer
-S	
-T	xprate	<2.1
-A	goto	1420/0,234.42,2289.070
-T	label	ANewPlagueFinal
-A	turnin	492
-A	target	+Captured Mountaineer
-S	Warrior
-T	season	2
-A	goto	1420/0,244.36,2279.43
-A	gossipoption	109084
-A	target	Blueheart
-A	train	425447,1
-S	Warrior
-T	season	2
-A	goto	1420/0,244.36,2273.71
-A	gossipoption	110751
-A	collect	204716,1
-A	target	Netali
-A	mob	Blueheart
-A	train	425447,1
-A	skipgossip	
-S	Warrior
-T	season	2
-A	train	425447
-A	use	204716
-A	itemcount	204716,1
-S	Priest
-A	goto	1420/0,251.14,2265.28
-A	train	588
-A	target	Dark Cleric Beryl
-A	xp	<12,1
-A	xp	>14,1
-S	Priest
-T	optional	
-A	goto	1420/0,251.14,2265.28
-A	train	6074
-A	target	Dark Cleric Beryl
-A	xp	<14,1
-S	Mage
-A	goto	1420/0,233.06,2256.84
-A	train	145
-A	target	Cain Firesong
-A	xp	<12,1
-A	xp	>14,1
-S	Mage
-T	optional	
-A	goto	1420/0,233.06,2256.84
-A	train	1449
-A	target	Cain Firesong
-A	xp	<12,1
-A	xp	>14,1
-S	Warrior
-A	goto	1420/0,238.49,2255.03
-A	train	7384
-A	target	Austil de Mon
-A	xp	<12,1
-S	Rogue
-A	goto	1420/0,243.01,2271.00
-A	train	1766
-A	target	Marion Call
-A	xp	<12,1
-A	xp	>14,1
-S	Rogue
-T	optional	
-A	goto	1420/0,243.01,2271.00
-A	train	1758
-A	target	Marion Call
-A	xp	<14,1
-S	Warlock
-A	goto	1420/0,250.24,2259.25
-A	train	755
-A	target	Rupert Boch
-A	xp	<12,1
-A	xp	>14,1
-S	Warlock
-A	goto	1420/0,250.24,2259.25
-A	train	6222
-A	target	Rupert Boch
-A	xp	<14,1
-S	skip
-T	completewith	Entersilverpine
-A	complete	1886,1
-A	unitscan	Astor Hadren
-S	
-T	xprate	<2.1
-A	goto	1420/0,74.00,2022.47
-A	turnin	356
-A	target	Deathguard Linnea
-S	Undead
-T	sticky	
-T	completewith	EnterRFC
-A	subzone	2437
-A	dungeon	RFC
-S	
-T	optional	
-T	completewith	ZeptoDurotar
-A	abandon	374
-S	
-T	optional	
-T	completewith	ZeptoDurotar
-A	abandon	375
-S	Undead
-T	label	ZeptoDurotar
-A	goto	1420/0,278.70,2071.27,12,0
-A	goto	1420/0,253.85,2059.82,10,0
-A	goto	1420/0,264.70,2053.50,8,0
-A	goto	1420/0,271.02,2064.94,8,0
-A	goto	1420/0,259.72,2068.86,8,0
-A	goto	1420/0,261.53,2055.00,8,0
-A	goto	1420/0,299.04,2069.46,-1
-A	goto	1420/0,279.61,2441.21,-1
-A	zone	Durotar
-A	zoneskip	Durotar
-S	Undead
-T	completewith	HiddenEnemiesPickup
-A	goto	1454/1,-4367.46,1405.44,50,0
-A	zone	Orgrimmar
-A	dungeon	RFC
-S	Undead
-A	goto	1454/1,-4313.60,1676.24
-A	fp	Orgrimmar
-A	target	Doras
-A	dungeon	RFC
-S	Undead
-A	goto	1454/1,-4125.79,1920.10
-A	accept	5726
-A	target	Thrall
-A	dungeon	RFC
-S	Undead
-A	goto	1411/1,-4769.10,1484.39,0
-A	complete	5726,1
-A	dungeon	RFC
-S	Undead
-A	goto	1454/1,-4125.79,1920.10
-A	turnin	5726
-A	accept	5727
-A	target	Thrall
-A	dungeon	RFC
-S	Undead
-A	goto	1454/1,-4376.29,1802.43
-A	accept	5761
-A	target	Neeru Fireblade
-A	dungeon	RFC
-S	Undead
-A	goto	1454/1,-4376.29,1802.43
-A	complete	5727,1
-A	skipgossip	
-A	target	Neeru Fireblade
-A	dungeon	RFC
-S	Undead
-T	label	HiddenEnemiesPickup
-A	goto	1454/1,-4125.79,1920.10
-A	turnin	5727
-A	accept	5728
-A	target	Thrall
-A	dungeon	RFC
-S	Undead
-T	completewith	EnterRFC
-A	destroy	14544
-S	Undead
-T	label	EnterRFC
-A	goto	1454/1,-4420.76,1815.80
-A	subzone	2437
-A	dungeon	RFC
-S	Undead
-A	accept	5722
-A	accept	5723
-A	disablecheckbox	
-A	dungeon	RFC
-S	Undead
-T	completewith	next
-A	complete	5723,1
-A	mob	+Ragefire Trogg
-A	complete	5723,2
-A	mob	+Ragefire Shaman
-A	isOnQuest	5723
-A	dungeon	RFC
-S	Undead
-A	turnin	5722
-A	accept	5724
-A	target	Maur Grimtotem
-A	isOnQuest	5722
-A	dungeon	RFC
-S	Undead
-T	optional	
-A	accept	5724
-A	target	Maur Grimtotem
-A	isQuestTurnedIn	5722
-A	dungeon	RFC
-S	Undead
-T	label	TroggsShamans
-A	complete	5723,1
-A	mob	+Ragefire Trogg
-A	complete	5723,2
-A	mob	+Ragefire Shaman
-A	isOnQuest	5723
-A	dungeon	RFC
-S	Undead
-T	requires	TroggsShamans
-T	completewith	BazzalanandJergosh
-A	complete	5725,1
-A	complete	5725,2
-A	mob	Searing Blade Cultist
-A	mob	Searing Blade Warlock
-A	isOnQuest	5725
-A	dungeon	RFC
-S	Undead
-A	complete	5761,1
-A	mob	Taragaman the Hungerer
-A	isOnQuest	5761
-A	dungeon	RFC
-S	Undead
-T	label	BazzalanandJergosh
-A	complete	5728,1
-A	mob	+Bazzalan
-A	complete	5728,2
-A	mob	+Jergosh the Invoker
-A	isOnQuest	5728
-A	dungeon	RFC
-S	Undead
-A	complete	5725,1
-A	complete	5725,2
-A	mob	Searing Blade Cultist
-A	mob	Searing Blade Warlock
-A	isOnQuest	5725
-A	dungeon	RFC
-S	Undead
-A	goto	1454/1,-4376.29,1802.43
-A	turnin	5761
-A	target	Neeru Fireblade
-A	isQuestComplete	5761
-A	dungeon	RFC
-S	Undead
-A	goto	1454/1,-4125.79,1920.10
-A	turnin	5728
-A	accept	5729
-A	target	Thrall
-A	isQuestComplete	5728
-A	dungeon	RFC
-S	Undead
-A	goto	1454/1,-4125.79,1920.10
-A	accept	5729
-A	target	Thrall
-A	isQuestTurnedIn	5728
-A	dungeon	RFC
-S	Undead
-A	goto	1454/1,-4376.29,1802.43
-A	turnin	5729
-A	accept	5730
-A	target	Neeru Fireblade
-A	dungeon	RFC
-A	isQuestTurnedIn	5728
-S	Undead
-A	goto	1454/1,-4125.79,1920.10
-A	turnin	5730
-A	target	Thrall
-A	isQuestTurnedIn	5728
-A	dungeon	RFC
-S	Undead
-T	completewith	Conscript
-A	subzone	362
-S	!Undead
-A	hs	
-A	use	6948
-A	subzoneskip	362
-A	bindlocation	362,1
-S	Rogue
-T	optional	<< Undead
-A	goto	1411/1,-4710.94,268.26
-A	train	1758
-A	target	Kaplak
-A	xp	<14,1
-A	xp	>16,1
-S	Rogue
-T	optional	<< Undead
-A	goto	1411/1,-4710.94,268.26
-A	train	6761
-A	target	Kaplak
-A	xp	<16,1
-S	Priest
-T	optional	<< Undead
-A	goto	1411/1,-4831.5,295.05
-A	train	8122
-A	target	Tai'jin
-A	xp	<14,1
-A	xp	>16,1
-S	Priest
-T	optional	<< Undead
-A	goto	1411/1,-4831.5,295.05
-A	train	8102
-A	target	Tai'jin
-A	xp	<16,1
-S	Warrior
-T	optional	<< Undead
-A	goto	1411/1,-4827.27,311.62
-A	train	285
-A	target	Tarshaw Jaggedscar
-A	xp	<16,1
-S	Warlock
-T	optional	<< Undead
-A	goto	1411/1,-4837.31,356.030
-A	train	6222
-A	target	Dhugru Gorelust
-A	xp	<14,1
-A	xp	>16,1
-S	Warlock
-T	optional	<< Undead
-A	goto	1411/1,-4837.31,356.030
-A	train	1455
-A	target	Dhugru Gorelust
-A	xp	<16,1
-S	
-T	label	Conscript
-A	goto	1411/1,-4648.55,271.43
-A	accept	840
-A	target	Takrin Pathseeker
-S	
-T	completewith	next
-A	subzone	379
-S	
-A	goto	1413/1,-3687.11,303.14
-A	turnin	840
-A	accept	842
-A	target	Kargal Battlescar
 E
 ]=]

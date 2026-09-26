@@ -93,7 +93,12 @@ function API:BuildCapabilityMatrix()
             mapInfo = exists(m.GetMapInfo),
             worldFromMap = exists(m.GetWorldPosFromMapPos),
             mapFromWorld = exists(m.GetMapPosFromWorldPos),
+            mapWorldSize = exists(m.GetMapWorldSize),
             userWaypoint = exists(m.SetUserWaypoint),
+            clearUserWaypoint = exists(m.ClearUserWaypoint),
+            getUserWaypoint = exists(m.GetUserWaypoint),
+            uiMapPoint = type(UiMapPoint) == "table" and
+                exists(UiMapPoint.CreateFromCoordinates),
         },
         gossip = {
             availableQuests = exists(g.GetAvailableQuests),
@@ -104,6 +109,8 @@ function API:BuildCapabilityMatrix()
         navigation = {
             distance = exists(nav.GetDistance),
             waypointForMap = exists(nav.GetNextWaypointForMap),
+            superTrackUserWaypoint = C_SuperTrack and
+                exists(C_SuperTrack.SetSuperTrackedUserWaypoint) or false,
         },
         item = {
             statDelta = exists(item.GetItemStatDelta),
@@ -163,7 +170,7 @@ function API:Survey()
     end
 
     if MG and MG.Log then
-        MG:Log("INFO", "api.capabilities", "Forever API-Faehigkeiten erfasst.", {
+        MG:Log("INFO", "api.capabilities", "Forever API-Fähigkeiten erfasst.", {
             mode = self.MODE,
             questsOnMap = self.capabilities.quest.getQuestsOnMap,
             questLine = self.capabilities.questLine.info,
@@ -529,6 +536,191 @@ function API:MapToWorld(mapID, x, y)
     end
 
     return nil
+end
+
+function API:MapToRestedXPWorld(mapID, x, y)
+    local world = self:MapToWorld(mapID, x, y)
+    if not world then return nil end
+
+    -- RestedXP/HereBeDragons uses world X for west/east and world Y for
+    -- north/south. Blizzard's Vector2D returned by GetWorldPosFromMapPos is
+    -- the opposite axis order. Keep the conversion explicit so route data is
+    -- never mixed with Blizzard vector axes again.
+    return {
+        continentID = world.continentID,
+        x = world.y,
+        y = world.x,
+    }
+end
+
+function API:RestedXPWorldToMap(mapID, worldX, worldY)
+    mapID = tonumber(mapID)
+    worldX = tonumber(worldX)
+    worldY = tonumber(worldY)
+
+    if not mapID or not worldX or not worldY or not C_Map or
+       not exists(C_Map.GetWorldPosFromMapPos) then
+        return nil
+    end
+
+    -- Match HereBeDragons' map geometry exactly. This is the coordinate
+    -- convention used by RestedXP's "mapID/floor, worldX, worldY" directives.
+    local centerPoint = CreateVector2D and CreateVector2D(0.5, 0.5) or
+        { x = 0.5, y = 0.5 }
+    local okCenter, _, center = self:SafeCall(
+        "C_Map.GetWorldPosFromMapPos.rxp_center",
+        C_Map.GetWorldPosFromMapPos,
+        mapID,
+        centerPoint)
+
+    if okCenter and center then
+        local centerTop, centerLeft = vectorXY(center)
+        local width, height = nil, nil
+
+        if exists(C_Map.GetMapWorldSize) then
+            local okSize, w, h = self:SafeCall(
+                "C_Map.GetMapWorldSize",
+                C_Map.GetMapWorldSize,
+                mapID)
+            if okSize then
+                width, height = tonumber(w), tonumber(h)
+            end
+        end
+
+        if (not width or not height) then
+            local topLeftPoint = CreateVector2D and CreateVector2D(0, 0) or
+                { x = 0, y = 0 }
+            local okTopLeft, _, topLeft = self:SafeCall(
+                "C_Map.GetWorldPosFromMapPos.rxp_topleft",
+                C_Map.GetWorldPosFromMapPos,
+                mapID,
+                topLeftPoint)
+
+            if okTopLeft and topLeft then
+                local top, left = vectorXY(topLeft)
+                if top and left and centerTop and centerLeft then
+                    width = (left - centerLeft) * 2
+                    height = (top - centerTop) * 2
+                end
+            end
+        end
+
+        if centerTop and centerLeft and width and height and
+           width ~= 0 and height ~= 0 then
+            local top = centerTop + (height / 2)
+            local left = centerLeft + (width / 2)
+            local x = (left - worldX) / width
+            local y = (top - worldY) / height
+
+            if x >= 0 and x <= 1 and y >= 0 and y <= 1 then
+                return {
+                    mapID = mapID,
+                    x = x,
+                    y = y,
+                    source = "RestedXPMapGeometry",
+                }
+            end
+        end
+    end
+
+    -- Compatibility fallback for clients that expose GetMapPosFromWorldPos.
+    -- The vector must still be axis-swapped from RestedXP to Blizzard order.
+    if exists(C_Map.GetMapPosFromWorldPos) then
+        local worldPoint = CreateVector2D and
+            CreateVector2D(worldY, worldX) or { x = worldY, y = worldX }
+
+        local player = self:GetPlayerPosition()
+        local playerWorld = player and
+            self:MapToWorld(player.mapID, player.x, player.y) or nil
+        local continentID = playerWorld and playerWorld.continentID or nil
+
+        if continentID then
+            local ok, resultMapID, mapPoint = self:SafeCall(
+                "C_Map.GetMapPosFromWorldPos.rxp",
+                C_Map.GetMapPosFromWorldPos,
+                continentID,
+                worldPoint,
+                mapID)
+
+            if ok and mapPoint then
+                local x, y = vectorXY(mapPoint)
+                if x and y then
+                    return {
+                        mapID = tonumber(resultMapID) or mapID,
+                        x = x,
+                        y = y,
+                        source = "RestedXPMapPosFromWorld",
+                    }
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+function API:WorldToMap(mapID, worldX, worldY)
+    return self:RestedXPWorldToMap(mapID, worldX, worldY)
+end
+
+function API:SetWorldMapWaypoint(target)
+    if not target or not C_Map or not exists(C_Map.SetUserWaypoint) then
+        return false, "waypoint_api_missing"
+    end
+
+    local mapID = tonumber(target.mapID)
+    local x = tonumber(target.x)
+    local y = tonumber(target.y)
+
+    if mapID and (not x or not y) and
+       tonumber(target.worldX) and tonumber(target.worldY) then
+        local converted = self:RestedXPWorldToMap(
+            mapID,
+            tonumber(target.worldX),
+            tonumber(target.worldY))
+        if converted then
+            mapID, x, y = converted.mapID, converted.x, converted.y
+        end
+    end
+
+    if not mapID or not x or not y then
+        return false, "map_coordinate_unavailable"
+    end
+
+    local point = nil
+    if type(UiMapPoint) == "table" and exists(UiMapPoint.CreateFromCoordinates) then
+        local ok, value = pcall(UiMapPoint.CreateFromCoordinates, mapID, x, y)
+        if ok then point = value end
+    end
+
+    if not point then
+        point = { uiMapID = mapID, position = CreateVector2D and
+            CreateVector2D(x, y) or { x = x, y = y } }
+    end
+
+    local ok, err = pcall(C_Map.SetUserWaypoint, point)
+    if not ok then return false, tostring(err) end
+
+    if C_SuperTrack and exists(C_SuperTrack.SetSuperTrackedUserWaypoint) then
+        pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
+    end
+
+    return true, {
+        mapID = mapID,
+        x = x,
+        y = y,
+    }
+end
+
+function API:ClearWorldMapWaypoint()
+    if C_SuperTrack and exists(C_SuperTrack.SetSuperTrackedUserWaypoint) then
+        pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, false)
+    end
+    if C_Map and exists(C_Map.ClearUserWaypoint) then
+        pcall(C_Map.ClearUserWaypoint)
+        return true
+    end
+    return false
 end
 
 return API

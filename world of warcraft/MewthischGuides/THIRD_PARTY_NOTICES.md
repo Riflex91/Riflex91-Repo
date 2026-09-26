@@ -7,12 +7,12 @@ public RestedXP/RXPGuides repository.
 
 - Source: https://github.com/RestedXP/RXPGuides
 - Source commit used for this extract:
-  `6f9cf44c09123e496366b3cb5ffe7383660e4bcb`
+  `a688a75d595f5884dba8044a5ba4e7d7bd859c09`
 - Upstream license: Creative Commons Attribution-NonCommercial-ShareAlike 4.0
   International (CC BY-NC-SA 4.0)
 - License: https://creativecommons.org/licenses/by-nc-sa/4.0/
 - Upstream license file:
-  https://github.com/RestedXP/RXPGuides/blob/6f9cf44c09123e496366b3cb5ffe7383660e4bcb/LICENSE
+  https://github.com/RestedXP/RXPGuides/blob/a688a75d595f5884dba8044a5ba4e7d7bd859c09/LICENSE
 
 ### What was transformed
 
@@ -32,3 +32,20 @@ non-commercial and share-alike requirements. This notice identifies the
 upstream source and records that the data has been transformed.
 
 RestedXP is not affiliated with, sponsoring or endorsing Mewthisch Guides.
+
+
+### RestedXP navigation textures
+
+The following navigation textures are redistributed for the selectable navigator
+skins under the same RestedXP public-source attribution and license noted above,
+from source commit `a688a75d595f5884dba8044a5ba4e7d7bd859c09`:
+
+- `Textures/rxp_navigation_arrow-1.blp`
+- `Textures/Hardcore/rxp_navigation_arrow-1.blp`
+- `Textures/GoldAssistant/rxp_navigation_arrow-1.blp`
+
+Local packaged names:
+
+- `Assets/ArrowBlue.blp`
+- `Assets/ArrowRed.blp`
+- `Assets/ArrowOrange.blp`
