@@ -241,7 +241,8 @@ describe("LegacyCompatibilityRuntime", () => {
         yLines: 2,
         bounds: undefined,
         collisionXLines: [],
-        collisionYLines: []
+        collisionYLines: [],
+        surfaces: []
       }
     });
   });
