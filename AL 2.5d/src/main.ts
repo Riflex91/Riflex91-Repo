@@ -112,12 +112,26 @@ async function boot(): Promise<void> {
 
   await renderer.mount(host);
 
+  const combatFeedback = new CombatFeedbackOverlay(document.body);
+  combatFeedback.setMode(graphicsMode);
+
+  const showLocalActionFeedback = (key: string): void => {
+    const local = latestSnapshot?.entities.find((entity) => entity.local);
+    if (!local) return;
+
+    combatFeedback.action(local, key, camera, {
+      width: host.clientWidth,
+      height: host.clientHeight
+    });
+  };
+
   const hud = new HudOverlay(
     {
       onHotbar: (key) => {
         if (!legacyRuntime?.ready) return;
         try {
           const result = legacyRuntime.dispatchHotbarKey(key);
+          showLocalActionFeedback(key);
           if (result instanceof Promise) {
             void result.catch((error) =>
               console.warn("AL 2.5D hotbar action failed", error)
@@ -131,9 +145,6 @@ async function boot(): Promise<void> {
     document.body
   );
   hud.setMode(graphicsMode);
-
-  const combatFeedback = new CombatFeedbackOverlay(document.body);
-  combatFeedback.setMode(graphicsMode);
 
   const cameraHelp = document.createElement("div");
   cameraHelp.id = "al25d-camera-help";
@@ -410,10 +421,18 @@ async function boot(): Promise<void> {
 
     try {
       legacyRuntime.dispatchEntityRightClick(hit.entity.id);
-      combatFeedback.pulse(hit.entity, camera, {
-        width: host.clientWidth,
-        height: host.clientHeight
-      });
+      const local = latestSnapshot?.entities.find((entity) => entity.local);
+      if (local) {
+        combatFeedback.attack(local, hit.entity, camera, {
+          width: host.clientWidth,
+          height: host.clientHeight
+        });
+      } else {
+        combatFeedback.pulse(hit.entity, camera, {
+          width: host.clientWidth,
+          height: host.clientHeight
+        });
+      }
     } catch (error) {
       console.warn(
         "AL 2.5D legacy right-click action was not dispatched",
