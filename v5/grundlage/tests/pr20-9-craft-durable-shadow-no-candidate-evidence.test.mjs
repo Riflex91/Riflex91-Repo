@@ -77,7 +77,7 @@ test("roadmap and Merchant mirror remain blocked without Craft ratification",()=
   assert.equal(p.productiveCraftAuthority,false);
   assert.equal(p.broadGraphExecutionAuthority,false);
   assert.equal(p.normalRuntimeAllowed,false);
-  assert.equal(p.craftDurableShadowRunner.active,true);
+  assert.equal(p.craftDurableShadowRunner.active,false);
   assert.equal(p.craftDurableShadowRunner.liveEvidenceObserved,true);
   assert.equal(p.craftDurableShadowRunner.craftRatified,false);
   assert.equal(p.craftDurableShadowRunner.latestObservedStatus,"BLOCKIERT");
