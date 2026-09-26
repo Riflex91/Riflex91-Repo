@@ -2,16 +2,16 @@
   "use strict";
 
   const PROFILE_ID = "V5_LIVE_LAB_PR28";
-  const VERSION = "0.6.1";
-  const SOURCE_MAIN_SHA = "ed7bb76fa7a30b74c3a1f09a4846113b865d80bf";
-  const BUILD_CHANNEL = "chatgpt/v5-live-lab-full-autonomy-r9";
-  const BUILD_ID = "V5_LIVE_LAB_FULL_AUTONOMY_R9_2";
+  const VERSION = "0.6.2";
+  const SOURCE_MAIN_SHA = "683e1bc03da09fe83230ff50275944b09b712dc5";
+  const BUILD_CHANNEL = "chatgpt/v5-live-lab-character-situation-files-r10";
+  const BUILD_ID = "V5_LIVE_LAB_FULL_AUTONOMY_R10_1";
   const AL25D_PINNED_UPSTREAM_COMMIT = "ddcf7222c3264f1404382e1ff5dea8e73f6cb4b4";
   const START_ACK = "V5_LIVE_LAB_START";
   const MAX_LOGS = 4000;
   const MAX_PERSISTED_INTENTS = 512;
   const PERSISTENCE_PREFIX = "v5-live-lab:v2:";
-  const SITUATION_FILE_NAME = "V5-Live-Situation.md";
+  const SITUATION_FILE_PREFIX = "V5-Live-Situation";
   const SITUATION_WRITE_INTERVAL_MS = 30000;
   const SITUATION_DB_NAME = "v5-live-lab";
   const SITUATION_DB_STORE = "handles";
@@ -3393,6 +3393,26 @@
     return "unsupported";
   }
 
+  function safeSituationCharacterName(value) {
+    let name = String(value == null ? "" : value).trim();
+    if (!name) name = "unknown";
+    name = name
+      .replace(/[<>:"/\\|?*\x00-\x1F]/g, "-")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^[. -]+|[. -]+$/g, "");
+    if (!name) name = "unknown";
+    if (/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i.test(name)) {
+      name = "_" + name;
+    }
+    return name.slice(0, 80);
+  }
+
+  function situationFileName() {
+    const c = character();
+    return SITUATION_FILE_PREFIX + "-" + safeSituationCharacterName(c && c.name) + ".md";
+  }
+
   function buildSituationFileText() {
     const status = api.status();
     const ledger = capabilityLedgerSnapshot();
@@ -3553,9 +3573,10 @@
       return Object.freeze({ ok: false, reason: "PERMISSION_" + situationPermission });
     }
 
+    const fileName = situationFileName();
     try {
       const fileHandle = await situationDirectoryHandle.getFileHandle(
-        SITUATION_FILE_NAME,
+        fileName,
         { create: true }
       );
       const writable = await fileHandle.createWritable();
@@ -3565,20 +3586,20 @@
       situationLastWriteAtMs = now();
       situationLastWriteError = null;
       log("SITUATION_FILE_UPDATED", {
-        fileName: SITUATION_FILE_NAME,
+        fileName: fileName,
         chars: content.length,
         intervalMs: SITUATION_WRITE_INTERVAL_MS,
       });
       return Object.freeze({
         ok: true,
-        fileName: SITUATION_FILE_NAME,
+        fileName: fileName,
         chars: content.length,
         atMs: situationLastWriteAtMs,
       });
     } catch (error) {
       situationLastWriteError = String(error && error.message || error);
       log("SITUATION_FILE_WRITE_FAILED", {
-        fileName: SITUATION_FILE_NAME,
+        fileName: fileName,
         error: situationLastWriteError,
       });
       return Object.freeze({
@@ -3633,7 +3654,7 @@
     const firstWrite = await writeSituationFileNow();
     log("SITUATION_DIRECTORY_CONNECTED", {
       directoryName: handle.name || null,
-      fileName: SITUATION_FILE_NAME,
+      fileName: situationFileName(),
       firstWriteOk: firstWrite.ok === true,
     });
     return situationWriterStatus();
@@ -3661,12 +3682,12 @@
       configured: !!situationDirectoryHandle,
       directoryName: situationDirectoryHandle && situationDirectoryHandle.name || null,
       permission: situationPermission,
-      fileName: SITUATION_FILE_NAME,
+      fileName: situationFileName(),
       intervalMs: SITUATION_WRITE_INTERVAL_MS,
       active: !!situationWriterTimer && situationPermission === "granted",
       lastWriteAtMs: situationLastWriteAtMs,
       lastWriteError: situationLastWriteError,
-      requestedWindowsPath: "D:\\v5-Test\\" + SITUATION_FILE_NAME,
+      requestedWindowsPath: "D:\\v5-Test\\" + situationFileName(),
     });
   }
 

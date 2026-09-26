@@ -1,9 +1,9 @@
 {
   "name": "adventure-land-v5-live-lab",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "private": true,
   "type": "module",
-  "description": "V5 Live Lab verification-only full-autonomy runtime for local Adventure Land 2.5D. No Windows Bridge, CDP, HTTP/WebSocket, Supabase or external-host transport; gameplay validation stays inside Adventure Land public functions with local evidence only.",
+  "description": "V5 Live Lab verification-only full-autonomy runtime for local Adventure Land 2.5D with per-character situation evidence files and no Windows Bridge/external-host transport.",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
     "check": "node --check src/authority-profile.mjs && node --check src/stage-authority.mjs && node --check src/adventure-land-ports.mjs && node --check src/live-runtime-controller.mjs && node --check src/group-runtime.mjs && node --check src/autonomy-runtime.mjs && node --check browser/v5-live-lab-bot-v1.js && node --check browser/v5-live-lab-bot-v2.js && node --test tests/*.test.mjs"
