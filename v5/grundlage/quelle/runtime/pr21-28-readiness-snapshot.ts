@@ -29,6 +29,9 @@ export interface Pr21_28StageReadinessRow {
   readonly stage: Pr21_28GateStage;
   readonly preparationComplete: boolean;
   readonly productiveEligible: boolean;
+  readonly cap022TerminalSettlementRequired: boolean;
+  readonly cap022TerminalSettlementSatisfied: boolean;
+  readonly cap022TerminalSettlementFingerprint: string | null;
   readonly missing: readonly string[];
 }
 
@@ -49,6 +52,11 @@ export interface Pr21_28ReadinessSnapshot {
   readonly cap022FullChainReady: boolean;
   readonly cap022FullChainStatus: "CAP022_FULL_CHAIN_BEREIT_NO_WRITE" | "BLOCKIERT";
   readonly cap022FullChainBlocker: readonly string[];
+  readonly cap022TerminalSettlementBindingsReady: boolean;
+  readonly cap022TerminalSettlementFingerprints: readonly Readonly<{
+    stage: Pr21_28GateStage;
+    settlementFingerprint: string;
+  }>[];
   readonly gateMutationPerformed: false;
   readonly authorityIssued: false;
   readonly normalRuntimeAllowed: false;
@@ -101,15 +109,41 @@ export function bauePr21_28ReadinessSnapshot(
     if (!entry.state.liveEvidenceRatified) missing.push("LIVE_EVIDENCE");
     if (!entry.state.explicitRatificationRecorded) missing.push("EXPLICIT_RATIFICATION");
     if (!entry.state.gateApplyVerified) missing.push("VERIFIED_GATE_APPLY");
+    if (entry.cap022TerminalSettlementRequired
+        && !entry.cap022TerminalSettlementSatisfied) {
+      missing.push("CAP022_TERMINAL_SETTLEMENT");
+    }
     if (!entry.predecessorProductiveComplete) missing.push("PREDECESSOR_CHAIN");
 
     return Object.freeze({
       stage: entry.stage,
       preparationComplete: entry.preparationComplete,
       productiveEligible: entry.productiveChainEligible,
+      cap022TerminalSettlementRequired: entry.cap022TerminalSettlementRequired,
+      cap022TerminalSettlementSatisfied: entry.cap022TerminalSettlementSatisfied,
+      cap022TerminalSettlementFingerprint:
+        entry.cap022TerminalSettlementFingerprint,
       missing: Object.freeze(missing),
     });
   });
+
+  const cap022TerminalSettlementRows = stages.filter(
+    row => row.cap022TerminalSettlementRequired,
+  );
+  const cap022TerminalSettlementBindingsReady =
+    cap022TerminalSettlementRows.length === 2
+    && cap022TerminalSettlementRows.every(
+      row => row.cap022TerminalSettlementSatisfied
+        && row.cap022TerminalSettlementFingerprint !== null,
+    );
+  const cap022TerminalSettlementFingerprints = Object.freeze(
+    cap022TerminalSettlementRows
+      .filter(row => row.cap022TerminalSettlementFingerprint !== null)
+      .map(row => Object.freeze({
+        stage: row.stage,
+        settlementFingerprint: row.cap022TerminalSettlementFingerprint!,
+      })),
+  );
 
   const nextRequiredCheckpoint = CHECKPOINT_ORDER
     .map(id => byCheckpoint.get(id))
@@ -146,6 +180,8 @@ export function bauePr21_28ReadinessSnapshot(
     cap022FullChainReady,
     cap022FullChainStatus: cap022.status,
     cap022FullChainBlocker: Object.freeze([...cap022.blocker]),
+    cap022TerminalSettlementBindingsReady,
+    cap022TerminalSettlementFingerprints,
     gateMutationPerformed: false,
     authorityIssued: false,
     normalRuntimeAllowed: false,
