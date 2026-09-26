@@ -1,0 +1,450 @@
+{
+  "schemaVersion": 1,
+  "upstreamCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+  "mapId": "main",
+  "purpose": "Promotion contract for Mainland NPC, cosmetic and monster candidate sheets. Awaiting entries require deterministic CI evidence before activation.",
+  "entries": [
+    {
+      "group": "npc-cosmetic",
+      "sourcePath": "images/cosmetics/armors/mbody4.png",
+      "originalBlobSha": "87a2103ed70ef366bf68a65a8fdf52c21414391e",
+      "scale": 4,
+      "hdPath": "entities/cosmetics/armors/mbody4@4x.png",
+      "expectedPixels": {
+        "width": 1296,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-cosmetic",
+      "sourcePath": "images/cosmetics/beardo/beard1.png",
+      "originalBlobSha": "76308b24533eb0786853439d2163f3f5abce31a6",
+      "scale": 4,
+      "hdPath": "entities/cosmetics/beardo/beard1@4x.png",
+      "expectedPixels": {
+        "width": 4428,
+        "height": 480
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-cosmetic",
+      "sourcePath": "images/cosmetics/hairdo/hairdo4.png",
+      "originalBlobSha": "3dd9e1b732c7936d5a4c9048d66d2aaaca8d1cd0",
+      "scale": 4,
+      "hdPath": "entities/cosmetics/hairdo/hairdo4@4x.png",
+      "expectedPixels": {
+        "width": 2700,
+        "height": 480
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-cosmetic",
+      "sourcePath": "images/cosmetics/hats/aniv2_anim.png",
+      "originalBlobSha": "9e7d4d951398a99770e289a1ba376e27bc50e2b9",
+      "scale": 4,
+      "hdPath": "entities/cosmetics/hats/aniv2_anim@4x.png",
+      "expectedPixels": {
+        "width": 648,
+        "height": 608
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-cosmetic",
+      "sourcePath": "images/cosmetics/hats/hats2.png",
+      "originalBlobSha": "50481f058ee6c3bc64cad945efcc76965922cc5d",
+      "scale": 4,
+      "hdPath": "entities/cosmetics/hats/hats2@4x.png",
+      "expectedPixels": {
+        "width": 2700,
+        "height": 480
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-cosmetic",
+      "sourcePath": "images/cosmetics/makeup/malemakeup.png",
+      "originalBlobSha": "bb2fe28430995e22d080b3f7e679dcfd8dc0a320",
+      "scale": 4,
+      "hdPath": "entities/cosmetics/makeup/malemakeup@4x.png",
+      "expectedPixels": {
+        "width": 1512,
+        "height": 480
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-cosmetic",
+      "sourcePath": "images/cosmetics/wings/backpacks.png",
+      "originalBlobSha": "9be8365e692c6f220a6fd6a99b123e44c5138f89",
+      "scale": 4,
+      "hdPath": "entities/cosmetics/wings/backpacks@4x.png",
+      "expectedPixels": {
+        "width": 740,
+        "height": 576
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/all_characters/xxschar2.png",
+      "originalBlobSha": "b029807a1026038a6736444f1dcac2b60ee659a0",
+      "scale": 4,
+      "hdPath": "entities/all_characters/xxschar2@4x.png",
+      "expectedPixels": {
+        "width": 1296,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/animation1i.png",
+      "originalBlobSha": "4bedcc5ed686fce5a911a59b54b31e3ef62019ca",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/animation1i@4x.png",
+      "expectedPixels": {
+        "width": 2256,
+        "height": 1600
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/animation2.png",
+      "originalBlobSha": "e36f9e985781564edfee6d9b818c070ed3c25be5",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/animation2@4x.png",
+      "expectedPixels": {
+        "width": 2256,
+        "height": 1600
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/animation3.png",
+      "originalBlobSha": "3733a7c807d8fd9f8ec4c2777c0b61fb86537e8e",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/animation3@4x.png",
+      "expectedPixels": {
+        "width": 2256,
+        "height": 1600
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/animationc.png",
+      "originalBlobSha": "667cc05aefadb9b6b23fe30112fa92c0d4d3e987",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/animationc@4x.png",
+      "expectedPixels": {
+        "width": 2256,
+        "height": 1600
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/automatron2.png",
+      "originalBlobSha": "854d721a27887c13ffc7b075981a5070120fc6c5",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/automatron2@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/chara4.png",
+      "originalBlobSha": "9cc6c69e1c3b1a02f073f3b21343bd08ea728f2e",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/chara4@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/chara5.png",
+      "originalBlobSha": "b68edd7db742e08ef554a948ba2ff18d1a93e912",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/chara5@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/chara7.png",
+      "originalBlobSha": "965c0b66f6e8d6091a004167fb9cd3b60085be07",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/chara7@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/chara8.png",
+      "originalBlobSha": "186279e6a91b848123e93779868f9fe8dde68abd",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/chara8@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/collection1.png",
+      "originalBlobSha": "57bb1354d298d0f4fc3c9929c5ea2a4eb17fec02",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/collection1@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/dwarf2.png",
+      "originalBlobSha": "258a9b2c61b0985cd006411fc8943c40c9313158",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/dwarf2@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/jubchan_1.png",
+      "originalBlobSha": "fc464d13e76b2cc61838afdfb483043b3e31f406",
+      "scale": 8,
+      "hdPath": "characters/jubchan_1@8x.png",
+      "expectedPixels": {
+        "width": 624,
+        "height": 1152
+      },
+      "state": "active",
+      "expectedSha256": "e7efd4565618b569b769629dee14144f2c892aeeade5a1fcdde8fb65af338e8f"
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/npc1.png",
+      "originalBlobSha": "0ab6acd3f6176c6c3652cbe7ba583f1ab3e7af96",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/npc1@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/npc5.png",
+      "originalBlobSha": "c59e010b03d4524fd18d075c0994495edb99c795",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/npc5@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/npc6.png",
+      "originalBlobSha": "4098717a1d54fa4b2553847259c4918437dadcd8",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/npc6@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/sheet_winnersa.png",
+      "originalBlobSha": "c9769ccb57a3f98003772d36263404903bffff99",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/sheet_winnersa@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/winners_jpa.png",
+      "originalBlobSha": "fa147dc7a59ffe803087c75b4c733431f180f74c",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/winners_jpa@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/animals1.png",
+      "originalBlobSha": "b10e83cd4105ba3fb2dc69adad1f91e9d5636755",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/animals1@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/birds1_modded.png",
+      "originalBlobSha": "437bf6773302da86daff548dc681e2e04943cc77",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/birds1_modded@4x.png",
+      "expectedPixels": {
+        "width": 2016,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/custom1.png",
+      "originalBlobSha": "2f3b007ca5470cd371a43c5095dfdc938c94652c",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/custom1@4x.png",
+      "expectedPixels": {
+        "width": 2880,
+        "height": 2048
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/custom2.png",
+      "originalBlobSha": "e4e02faa97b8a80efe0f6c1a0c29a6079e1b8e3f",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/custom2@4x.png",
+      "expectedPixels": {
+        "width": 2880,
+        "height": 2048
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/fairies.png",
+      "originalBlobSha": "f1f9db0d32b1a2b7abab0c99ac5e0aa2c0b58bb3",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/fairies@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/monster1.png",
+      "originalBlobSha": "163110fe59cc2b9e8b2e9bf12d5eeb5afe360afa",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/monster1@4x.png",
+      "expectedPixels": {
+        "width": 2880,
+        "height": 2048
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/monster2.png",
+      "originalBlobSha": "62a98ad5ae59203a942d9464a34e8abb2c3ea1fd",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/monster2@4x.png",
+      "expectedPixels": {
+        "width": 2880,
+        "height": 2048
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/monster_bird1.png",
+      "originalBlobSha": "54ed8b716109a055e6979a048470b8f5864d2446",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/monster_bird1@4x.png",
+      "expectedPixels": {
+        "width": 732,
+        "height": 912
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/monster_phoenix.png",
+      "originalBlobSha": "68ea2d775d665c61e1f89426f04a241b22dd980a",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/monster_phoenix@4x.png",
+      "expectedPixels": {
+        "width": 732,
+        "height": 912
+      },
+      "state": "awaiting-ci-hash",
+      "expectedSha256": null
+    }
+  ]
+}
