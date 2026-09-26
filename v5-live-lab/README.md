@@ -2,7 +2,7 @@
 
 Experimental live-runtime workspace derived from official V5 at:
 
-`dcf9f47b2d77fe85039838d2beb15e1cc23cb392`
+`ed7bb76fa7a30b74c3a1f09a4846113b865d80bf`
 
 Current integrated browser runtime:
 
@@ -11,8 +11,8 @@ Current integrated browser runtime:
 Current runtime version/build:
 
 - `0.6.0`
-- `V5_LIVE_LAB_FULL_AUTONOMY_R8_1`
-- branch `chatgpt/v5-live-lab-full-autonomy-r8`
+- `V5_LIVE_LAB_FULL_AUTONOMY_R9_1`
+- branch `chatgpt/v5-live-lab-full-autonomy-r9`
 
 Live Lab is intentionally isolated from the official V5 verification track. The official `main:v5/` roadmap, historical evidence, dependency gates and step-by-step automated tests remain authoritative and are not modified by Live Lab operation.
 
