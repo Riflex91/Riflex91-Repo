@@ -148,6 +148,27 @@ Dabei bleiben `applyAdapterInstalled=false`, `executionEnabled=false`,
 `authorityIssued=false`. Ein echter Apply bleibt ein separater,
 explizit autorisierter Schritt.
 
+## Apply-Execution-Autorisierungsgrenze
+
+Die PR21-Apply-Autorisierung bleibt strikt von der eigentlichen Gate-Mutation
+getrennt. Nur ein `READY_DEFAULT_OFF`-Stand darf einen Draft erzeugen.
+
+Der Draft bindet den exakten Transaction-Fingerprint und den gepinnten
+Main-Commit in einen eindeutigen Bestätigungstext. Erst dieser exakte Text
+kann einen `AUTHORIZED_ONE_SHOT_APPLY_RECORD_ONLY` erzeugen.
+
+Auch nach erfolgreicher Autorisierung gelten weiterhin:
+
+- `authorizationConsumed=false`;
+- erneuter Main-Check bei der spaeteren Ausfuehrung;
+- Durable Intent vor Ausfuehrung;
+- One-Shot ohne Same-Intent-Retry;
+- Postcondition-Verifikation;
+- UNKNOWN -> Reconciliation;
+- `executionEnabled=false`;
+- `gateMutationPerformed=false`;
+- keine Gameplay-/Raw-Write-/Normal-Runtime-Authority.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne

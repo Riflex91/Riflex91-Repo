@@ -120,7 +120,8 @@
     "PR21 Merchant Ratification-Record-Boundary ist vorbereitet: ausschließlich ein READY_FOR_EXPLICIT_MANUAL_RATIFICATION-Handoff mit exakt passendem Bestätigungstext darf einen RATIFIED_RECORD_ONLY erzeugen. Der Record mutiert kein Gate, erteilt keine Authority und hält das Result-Package unverändert; nächster Entwicklungsschritt ist die Gate-Advance-Proposal-Grenze.",
     "PR21 Merchant Gate-Proposal-Boundary ist proposal-only vorbereitet: nur PR21 RATIFIED_RECORD_ONLY + frischer Main + identischer Package-Fingerprint + produktiv berechtigte PR21-Feature-Gate-Sicht ergeben READY_FOR_SEPARATE_GATE_APPLY. Die Grenze mutiert kein Gate und erteilt keine Authority; naechster Schritt ist die Default-Off Gate-Apply-Boundary.",
     "PR21 Merchant Gate-Advance-Proposal-Boundary ist proposal-only vorbereitet: nur ein RATIFIED_RECORD_ONLY des Merchant-Checkpoints mit frischem main, passendem Package-Fingerprint und produktiv eligible PR21-Feature-Gate kann READY_FOR_SEPARATE_GATE_APPLY werden. Die Proposal-Grenze mutiert kein Gate, erteilt keine Authority und verlangt vor einem spaeteren Apply erneut einen frischen Main-Check.",
-    "PR21 Merchant Default-Off-Apply-Boundary ist NO-EXECUTION vorbereitet: ein READY_FOR_SEPARATE_GATE_APPLY-Proposal wird nur in eine PREPARED_DEFAULT_OFF-Transaktion überführt und gegen Main/Stage/Package-/Ratification-Fingerprints revalidiert. Apply-Adapter und Execution bleiben aus, kein Durable Intent wird erzeugt, kein Gate mutiert und keine Authority erteilt."
+    "PR21 Merchant Default-Off-Apply-Boundary ist NO-EXECUTION vorbereitet: ein READY_FOR_SEPARATE_GATE_APPLY-Proposal wird nur in eine PREPARED_DEFAULT_OFF-Transaktion überführt und gegen Main/Stage/Package-/Ratification-Fingerprints revalidiert. Apply-Adapter und Execution bleiben aus, kein Durable Intent wird erzeugt, kein Gate mutiert und keine Authority erteilt.",
+    "PR21 Merchant Apply-Execution-Authorization ist record-only vorbereitet: nur ein READY_DEFAULT_OFF-Stand erzeugt einen transaktions- und Main-gebundenen Draft. Exakter Bestätigungstext kann einen AUTHORIZED_ONE_SHOT_APPLY_RECORD_ONLY erzeugen; die Autorisierung bleibt unverbraucht, Execution/Gate-Mutation/Authority bleiben aus. Naechster Schritt ist die One-Shot Gate-Apply-Executor-Boundary."
   ],
   "invariants": {
     "durableIntentVorIrreversiblerWirkung": true,
@@ -1503,7 +1504,7 @@
     },
     {
       "id": "PR21_MERCHANT_INTEGRATION",
-      "status": "DEFAULT_OFF_APPLY_BOUNDARY_PREPARED_NO_EXECUTION",
+      "status": "APPLY_EXECUTION_AUTHORIZATION_PREPARED_RECORD_ONLY",
       "blockedBy": [],
       "gameplayAuthority": false,
       "artifact": "v5/dokumentation/PR21-MERCHANT-INTEGRATION-TESTPLAN.md",
@@ -1568,7 +1569,10 @@
         "v5/grundlage/tests/pr21-merchant-gate-proposal-boundary.test.mjs",
         "v5/grundlage/quelle/merchant/pr21-merchant-default-off-apply-boundary.ts",
         "v5/grundlage/vertraege/runtime/pr21-merchant-default-off-apply-boundary.json",
-        "v5/grundlage/tests/pr21-merchant-default-off-apply-boundary.test.mjs"
+        "v5/grundlage/tests/pr21-merchant-default-off-apply-boundary.test.mjs",
+        "v5/grundlage/quelle/merchant/pr21-merchant-apply-execution-authorization-boundary.ts",
+        "v5/grundlage/vertraege/runtime/pr21-merchant-apply-execution-authorization-boundary.json",
+        "v5/grundlage/tests/pr21-merchant-apply-execution-authorization-boundary.test.mjs"
       ],
       "orchestrationStatus": "PREPARED_NO_WRITE",
       "featureGateStatus": "PREPARED_NOT_RATIFIED",
@@ -1584,14 +1588,15 @@
       "stageLedgerReplayStatus": "PREPARED_REPLAY_ONLY",
       "readinessSnapshotStatus": "PREPARED_REPLAY_ONLY",
       "manualPr20_9Override": "v5/roadmap/pr20-9-craft-manual-development-override.json",
-      "nextAction": "PREPARE_PR21_APPLY_EXECUTION_AUTHORIZATION_BOUNDARY",
+      "nextAction": "PREPARE_PR21_ONE_SHOT_GATE_APPLY_EXECUTOR_BOUNDARY",
       "checkpointAdmission": "v5/grundlage/vertraege/runtime/pr21-merchant-checkpoint-admission.json",
       "observerHandoff": "v5/grundlage/vertraege/runtime/pr21-merchant-observer-handoff.json",
       "sampleCollector": "v5/grundlage/vertraege/runtime/pr21-merchant-sample-collector.json",
       "freezeEvaluationHandoff": "v5/grundlage/vertraege/runtime/pr21-merchant-freeze-evaluation-handoff.json",
       "ratificationRecordBoundary": "v5/grundlage/vertraege/runtime/pr21-merchant-ratification-record-boundary.json",
       "gateProposalBoundary": "v5/grundlage/vertraege/runtime/pr21-merchant-gate-proposal-boundary.json",
-      "defaultOffApplyBoundary": "v5/grundlage/vertraege/runtime/pr21-merchant-default-off-apply-boundary.json"
+      "defaultOffApplyBoundary": "v5/grundlage/vertraege/runtime/pr21-merchant-default-off-apply-boundary.json",
+      "applyExecutionAuthorizationBoundary": "v5/grundlage/vertraege/runtime/pr21-merchant-apply-execution-authorization-boundary.json"
     },
     {
       "id": "PR22_MULTI_CHARACTER",
@@ -6508,7 +6513,7 @@
     }
   },
   "pr21": {
-    "status": "DEFAULT_OFF_APPLY_BOUNDARY_PREPARED_NO_EXECUTION",
+    "status": "APPLY_EXECUTION_AUTHORIZATION_PREPARED_RECORD_ONLY",
     "foundationStatus": "PREPARED_NO_WRITE",
     "ziel": "Merchant Gesamtintegration",
     "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
@@ -6609,7 +6614,7 @@
       "normalRuntimeAllowed": false,
       "nextAction": "OBSERVER_HANDOFF_PREPARED"
     },
-    "nextAction": "PREPARE_PR21_APPLY_EXECUTION_AUTHORIZATION_BOUNDARY",
+    "nextAction": "PREPARE_PR21_ONE_SHOT_GATE_APPLY_EXECUTOR_BOUNDARY",
     "observerHandoff": {
       "status": "PREPARED_NO_WRITE_NO_START_AUTHORITY",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-observer-handoff.ts",
@@ -6760,7 +6765,32 @@
       "rawWriteAuthority": false,
       "normalRuntimeAllowed": false,
       "durableIntentCreated": false,
-      "nextAction": "PREPARE_PR21_APPLY_EXECUTION_AUTHORIZATION_BOUNDARY"
+      "nextAction": "APPLY_EXECUTION_AUTHORIZATION_PREPARED"
+    },
+    "applyExecutionAuthorizationBoundary": {
+      "status": "PREPARED_EXPLICIT_ONE_SHOT_AUTHORIZATION_RECORD_ONLY",
+      "source": "v5/grundlage/quelle/merchant/pr21-merchant-apply-execution-authorization-boundary.ts",
+      "contract": "v5/grundlage/vertraege/runtime/pr21-merchant-apply-execution-authorization-boundary.json",
+      "test": "v5/grundlage/tests/pr21-merchant-apply-execution-authorization-boundary.test.mjs",
+      "stage": "PR21",
+      "defaultOffStatus": "READY_DEFAULT_OFF",
+      "draftStatus": "AWAITING_EXPLICIT_APPLY_AUTHORIZATION",
+      "recordStatus": "AUTHORIZED_ONE_SHOT_APPLY_RECORD_ONLY",
+      "exactTransactionAndMainBoundConfirmationRequired": true,
+      "authorizationConsumed": false,
+      "freshMainCheckRequiredAtExecution": true,
+      "durableIntentRequiredBeforeExecution": true,
+      "postconditionVerificationRequired": true,
+      "unknownOutcomeRequiresReconciliation": true,
+      "sameIntentRetryAllowed": false,
+      "executionEnabled": false,
+      "gateMutationPerformed": false,
+      "authorityIssued": false,
+      "broadRuntimeGrant": false,
+      "gameplayAuthority": false,
+      "rawWriteAuthority": false,
+      "normalRuntimeAllowed": false,
+      "nextAction": "PREPARE_PR21_ONE_SHOT_GATE_APPLY_EXECUTOR_BOUNDARY"
     }
   },
   "pr22": {

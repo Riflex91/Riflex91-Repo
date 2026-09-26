@@ -44,7 +44,7 @@ test("PR20.9 manual development override advances roadmap without inventing Craf
   const pr21=roadmap.stages.find(x=>x.id==="PR21");
   assert.equal(pr20?.status,"COMPLETE_MANUAL_OVERRIDE");
   assert.equal(pr21?.status,"IN_PROGRESS");
-  assert.equal(roadmap.pr21.status,"DEFAULT_OFF_APPLY_BOUNDARY_PREPARED_NO_EXECUTION");
+  assert.equal(roadmap.pr21.status,"APPLY_EXECUTION_AUTHORIZATION_PREPARED_RECORD_ONLY");
   assert.deepEqual(roadmap.pr21.blockedBy,[]);
   assert.equal(roadmap.pr21.liveExecutionAllowed,false);
   assert.equal(roadmap.pr21.livePreflight.manualPr20_9OverrideAccepted,true);
@@ -62,6 +62,8 @@ test("PR20.9 manual development override advances roadmap without inventing Craf
   assert.equal(roadmap.pr21.gateProposalBoundary.gateMutationPerformed,false);
   assert.equal(roadmap.pr21.defaultOffApplyBoundary.status,"PREPARED_DEFAULT_OFF_NO_EXECUTION");
   assert.equal(roadmap.pr21.defaultOffApplyBoundary.executionEnabled,false);
+  assert.equal(roadmap.pr21.applyExecutionAuthorizationBoundary.status,"PREPARED_EXPLICIT_ONE_SHOT_AUTHORIZATION_RECORD_ONLY");
+  assert.equal(roadmap.pr21.applyExecutionAuthorizationBoundary.executionEnabled,false);
 });
 
 test("historical PR20.9 no-candidate evidence remains unchanged in meaning",()=>{
@@ -97,7 +99,7 @@ test("Merchant and PR21 contracts accept only the development override, never ru
 
   assert.equal(
     foundations.stages.pr21.status,
-    "DEFAULT_OFF_APPLY_BOUNDARY_PREPARED_NO_EXECUTION",
+    "APPLY_EXECUTION_AUTHORIZATION_PREPARED_RECORD_ONLY",
   );
   assert.equal(foundations.stages.pr21.livePreflight.manualPr20_9OverrideAccepted,true);
   assert.deepEqual(foundations.stages.pr21.livePreflight.currentMissingRatifications,[]);
@@ -114,4 +116,6 @@ test("Merchant and PR21 contracts accept only the development override, never ru
   assert.equal(foundations.stages.pr21.gateProposalBoundary.gateMutationPerformed,false);
   assert.equal(foundations.stages.pr21.defaultOffApplyBoundary.status,"PREPARED_DEFAULT_OFF_NO_EXECUTION");
   assert.equal(foundations.stages.pr21.defaultOffApplyBoundary.executionEnabled,false);
+  assert.equal(foundations.stages.pr21.applyExecutionAuthorizationBoundary.status,"PREPARED_EXPLICIT_ONE_SHOT_AUTHORIZATION_RECORD_ONLY");
+  assert.equal(foundations.stages.pr21.applyExecutionAuthorizationBoundary.executionEnabled,false);
 });

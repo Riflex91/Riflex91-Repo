@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_MERCHANT_APPLY_EXECUTION_AUTHORIZATION_BOUNDARY_V1",
+  "status": "PREPARED_EXPLICIT_ONE_SHOT_AUTHORIZATION_RECORD_ONLY",
+  "sourceMain": "ddbd3bc4af96302b75dff2e554bcbecdeca3a828",
+  "source": "v5/grundlage/quelle/merchant/pr21-merchant-apply-execution-authorization-boundary.ts",
+  "test": "v5/grundlage/tests/pr21-merchant-apply-execution-authorization-boundary.test.mjs",
+  "defaultOffApplyBoundary": "v5/grundlage/vertraege/runtime/pr21-merchant-default-off-apply-boundary.json",
+  "stage": "PR21",
+  "input": {
+    "defaultOffStatus": "READY_DEFAULT_OFF",
+    "transactionStatus": "PREPARED_DEFAULT_OFF",
+    "validationStatus": "READY_DEFAULT_OFF",
+    "exactTransactionAndMainBoundConfirmationRequired": true
+  },
+  "draft": {
+    "status": "AWAITING_EXPLICIT_APPLY_AUTHORIZATION",
+    "oneShotApplyAuthorized": false,
+    "authorizationConsumed": false,
+    "executionEnabled": false
+  },
+  "record": {
+    "status": "AUTHORIZED_ONE_SHOT_APPLY_RECORD_ONLY",
+    "oneShotApplyAuthorized": true,
+    "authorizationConsumed": false,
+    "freshMainCheckRequiredAtExecution": true,
+    "durableIntentRequiredBeforeExecution": true,
+    "postconditionVerificationRequired": true,
+    "unknownOutcomeRequiresReconciliation": true,
+    "sameIntentRetryAllowed": false
+  },
+  "safety": {
+    "recordOnly": true,
+    "executionEnabled": false,
+    "gateMutationPerformed": false,
+    "authorityIssued": false,
+    "broadRuntimeGrant": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "authorizationDoesNotExecuteApply": true
+  },
+  "nextMilestone": "PREPARE_PR21_ONE_SHOT_GATE_APPLY_EXECUTOR_BOUNDARY"
+}

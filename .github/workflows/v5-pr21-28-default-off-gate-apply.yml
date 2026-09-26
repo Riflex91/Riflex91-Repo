@@ -10,6 +10,9 @@ on:
       - 'v5/grundlage/quelle/index.ts'
       - 'v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json'
+      - 'v5/grundlage/quelle/merchant/pr21-merchant-apply-execution-authorization-boundary.ts'
+      - 'v5/grundlage/tests/pr21-merchant-apply-execution-authorization-boundary.test.mjs'
+      - 'v5/grundlage/vertraege/runtime/pr21-merchant-apply-execution-authorization-boundary.json'
       - 'v5/roadmap/post-r19-roadmap.json'
       - '.github/workflows/v5-pr21-28-default-off-gate-apply.yml'
   pull_request:
@@ -21,6 +24,9 @@ on:
       - 'v5/grundlage/quelle/index.ts'
       - 'v5/grundlage/tests/pr21-28-default-off-gate-apply.test.mjs'
       - 'v5/grundlage/vertraege/runtime/pr21-28-default-off-gate-apply.json'
+      - 'v5/grundlage/quelle/merchant/pr21-merchant-apply-execution-authorization-boundary.ts'
+      - 'v5/grundlage/tests/pr21-merchant-apply-execution-authorization-boundary.test.mjs'
+      - 'v5/grundlage/vertraege/runtime/pr21-merchant-apply-execution-authorization-boundary.json'
       - 'v5/roadmap/post-r19-roadmap.json'
       - '.github/workflows/v5-pr21-28-default-off-gate-apply.yml'
 
