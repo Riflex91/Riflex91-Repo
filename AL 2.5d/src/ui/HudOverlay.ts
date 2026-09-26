@@ -14,8 +14,19 @@ import {
   type PlayerHudModel
 } from "./HudModel";
 
+export type HudPresentationSettings = Readonly<{
+  minimapVisible: boolean;
+  combatVfxVisible: boolean;
+  cameraZoom: number;
+  cameraRotation: number;
+}>;
+
 export type HudActions = Readonly<{
   onHotbar?: (key: string) => void;
+  onToggleMinimap?: (visible: boolean) => void;
+  onToggleCombatVfx?: (visible: boolean) => void;
+  onCameraZoom?: (zoom: number) => void;
+  onResetView?: () => void;
 }>;
 
 type BarElements = Readonly<{
@@ -24,7 +35,14 @@ type BarElements = Readonly<{
   label: HTMLSpanElement;
 }>;
 
-type PanelName = "character" | "inventory" | "skills";
+type PanelName = "character" | "inventory" | "skills" | "settings";
+
+const DEFAULT_PRESENTATION_SETTINGS: HudPresentationSettings = Object.freeze({
+  minimapVisible: true,
+  combatVfxVisible: true,
+  cameraZoom: 1.5,
+  cameraRotation: 0
+});
 
 function createBar(kind: "hp" | "mp" | "xp"): BarElements {
   const root = document.createElement("div");
@@ -110,6 +128,8 @@ export class HudOverlay {
   private lastKey = "";
   private latestPlayerUi: RenderPlayerUi | undefined;
   private latestModel: HudModel = Object.freeze({ player: null, target: null });
+  private presentationSettings: HudPresentationSettings =
+    DEFAULT_PRESENTATION_SETTINGS;
   private openPanel: PanelName | null = null;
 
   constructor(
@@ -156,7 +176,8 @@ export class HudOverlay {
     for (const [panel, label, title] of [
       ["character", "CHAR", "Character & Equipment"],
       ["inventory", "BAG", "Inventory"],
-      ["skills", "SKILLS", "Skills"]
+      ["skills", "SKILLS", "Skills"],
+      ["settings", "SET", "Presentation settings"]
     ] as const) {
       const button = document.createElement("button");
       button.type = "button";
@@ -215,6 +236,13 @@ export class HudOverlay {
     }
   }
 
+  setPresentationSettings(settings: HudPresentationSettings): void {
+    this.presentationSettings = Object.freeze({ ...settings });
+    if (this.openPanel === "settings") {
+      this.renderPanel("settings");
+    }
+  }
+
   clear(): void {
     this.lastKey = "";
     this.latestPlayerUi = undefined;
@@ -265,6 +293,12 @@ export class HudOverlay {
   private renderPanel(panel: PanelName): void {
     const playerUi = this.latestPlayerUi;
     this.panelBody.replaceChildren();
+
+    if (panel === "settings") {
+      this.panelTitle.textContent = "Settings";
+      this.renderSettings();
+      return;
+    }
 
     if (!playerUi) {
       this.panelTitle.textContent = "Loading";
@@ -430,6 +464,119 @@ export class HudOverlay {
     }
 
     owner.appendChild(grid);
+  }
+
+  private renderSettings(): void {
+    const list = document.createElement("div");
+    list.className = "al25d-settings-list";
+
+    const toggleRow = (
+      labelText: string,
+      detailText: string,
+      enabled: boolean,
+      onChange: (next: boolean) => void
+    ): HTMLDivElement => {
+      const row = document.createElement("div");
+      row.className = "al25d-settings-row";
+
+      const copy = document.createElement("div");
+      const label = document.createElement("strong");
+      label.textContent = labelText;
+      const detail = document.createElement("span");
+      detail.textContent = detailText;
+      copy.append(label, detail);
+
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.active = String(enabled);
+      button.textContent = enabled ? "ON" : "OFF";
+      button.addEventListener("click", () => onChange(!enabled));
+
+      row.append(copy, button);
+      return row;
+    };
+
+    list.appendChild(toggleRow(
+      "Minimap",
+      "Read-only world radar",
+      this.presentationSettings.minimapVisible,
+      (next) => {
+        this.presentationSettings = Object.freeze({
+          ...this.presentationSettings,
+          minimapVisible: next
+        });
+        this.actions.onToggleMinimap?.(next);
+        this.renderPanel("settings");
+      }
+    ));
+
+    list.appendChild(toggleRow(
+      "Combat VFX",
+      "Slash, impacts and floating feedback",
+      this.presentationSettings.combatVfxVisible,
+      (next) => {
+        this.presentationSettings = Object.freeze({
+          ...this.presentationSettings,
+          combatVfxVisible: next
+        });
+        this.actions.onToggleCombatVfx?.(next);
+        this.renderPanel("settings");
+      }
+    ));
+
+    const camera = document.createElement("div");
+    camera.className = "al25d-settings-row al25d-settings-camera";
+
+    const cameraCopy = document.createElement("div");
+    const cameraLabel = document.createElement("strong");
+    cameraLabel.textContent = "Camera";
+    const cameraDetail = document.createElement("span");
+    cameraDetail.textContent =
+      `Zoom ${this.presentationSettings.cameraZoom.toFixed(2)} · ` +
+      `Rotation ${Math.round(this.presentationSettings.cameraRotation * 180 / Math.PI)}°`;
+    cameraCopy.append(cameraLabel, cameraDetail);
+
+    const presets = document.createElement("div");
+    presets.className = "al25d-settings-presets";
+    for (const [labelText, zoom] of [
+      ["WIDE", 1.05],
+      ["DEFAULT", 1.5],
+      ["CLOSE", 1.9]
+    ] as const) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = labelText;
+      button.dataset.active = String(
+        Math.abs(this.presentationSettings.cameraZoom - zoom) < 0.05
+      );
+      button.addEventListener("click", () => {
+        this.presentationSettings = Object.freeze({
+          ...this.presentationSettings,
+          cameraZoom: zoom
+        });
+        this.actions.onCameraZoom?.(zoom);
+        this.renderPanel("settings");
+      });
+      presets.appendChild(button);
+    }
+
+    const reset = document.createElement("button");
+    reset.type = "button";
+    reset.className = "al25d-settings-reset";
+    reset.textContent = "RESET VIEW";
+    reset.addEventListener("click", () => {
+      this.presentationSettings = Object.freeze({
+        ...this.presentationSettings,
+        cameraZoom: 1.5,
+        cameraRotation: 0
+      });
+      this.actions.onResetView?.();
+      this.renderPanel("settings");
+    });
+
+    camera.append(cameraCopy, presets, reset);
+    list.appendChild(camera);
+    this.panelBody.appendChild(list);
   }
 
   private renderSkills(skills: readonly RenderSkillEntry[]): void {

@@ -1286,3 +1286,83 @@ canvas {
     transform-origin: top right;
   }
 }
+
+
+/* v34 presentation settings inside the first-party HUD. */
+.al25d-settings-list {
+  display: grid;
+  gap: 8px;
+  padding: 4px;
+}
+
+.al25d-settings-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 9px 10px;
+  border: 1px solid rgba(145, 171, 168, .15);
+  border-radius: 10px;
+  background: rgba(8, 15, 19, .34);
+}
+
+.al25d-settings-row > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.al25d-settings-row strong {
+  color: #e8e3d4;
+  font-size: 11px;
+}
+
+.al25d-settings-row span {
+  color: #7f9398;
+  font-size: 9px;
+}
+
+.al25d-settings-row > button,
+.al25d-settings-presets button,
+.al25d-settings-reset {
+  min-width: 54px;
+  min-height: 30px;
+  border: 1px solid rgba(145, 177, 178, .24);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(52, 70, 76, .9), rgba(20, 30, 34, .95));
+  color: #b9c8c9;
+  font: 800 8px/1 Inter, "Segoe UI", Arial, sans-serif;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+
+.al25d-settings-row > button[data-active="true"],
+.al25d-settings-presets button[data-active="true"] {
+  border-color: rgba(224, 190, 101, .62);
+  color: #ffe0a1;
+  box-shadow: inset 0 -2px 0 rgba(222, 177, 73, .36);
+}
+
+.al25d-settings-camera {
+  grid-template-columns: minmax(130px, 1fr) auto auto;
+}
+
+.al25d-settings-presets {
+  display: flex;
+  gap: 5px;
+}
+
+.al25d-settings-reset {
+  min-width: 78px;
+}
+
+@media (max-width: 760px) {
+  .al25d-settings-camera {
+    grid-template-columns: 1fr;
+  }
+
+  .al25d-settings-presets {
+    flex-wrap: wrap;
+  }
+}

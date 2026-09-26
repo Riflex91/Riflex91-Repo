@@ -109,12 +109,19 @@ async function boot(): Promise<void> {
     window.localStorage.getItem("al25d.graphicsMode") === "original"
       ? "original"
       : "2.5d";
+  let minimapVisible = window.localStorage.getItem("al25d.minimapVisible") !== "0";
+  let combatVfxVisible = window.localStorage.getItem("al25d.combatVfxVisible") !== "0";
   let graphicsToggle: GraphicsModeToggle;
 
   await renderer.mount(host);
 
   const combatFeedback = new CombatFeedbackOverlay(document.body);
   combatFeedback.setMode(graphicsMode);
+  combatFeedback.setEnabled(combatVfxVisible);
+
+  const minimap = new MinimapOverlay(document.body);
+  minimap.setMode(graphicsMode);
+  minimap.setEnabled(minimapVisible);
 
   const showLocalActionFeedback = (key: string): void => {
     const local = latestSnapshot?.entities.find((entity) => entity.local);
@@ -141,14 +148,38 @@ async function boot(): Promise<void> {
         } catch (error) {
           console.warn("AL 2.5D hotbar action was not dispatched", error);
         }
+      },
+      onToggleMinimap: (visible) => {
+        minimapVisible = visible;
+        window.localStorage.setItem("al25d.minimapVisible", visible ? "1" : "0");
+        minimap.setEnabled(visible);
+      },
+      onToggleCombatVfx: (visible) => {
+        combatVfxVisible = visible;
+        window.localStorage.setItem("al25d.combatVfxVisible", visible ? "1" : "0");
+        combatFeedback.setEnabled(visible);
+      },
+      onCameraZoom: (zoom) => {
+        camera = { ...camera, zoom };
+        renderer.setCamera(camera);
+        window.localStorage.setItem("al25d.cameraZoom", String(zoom));
+      },
+      onResetView: () => {
+        camera = { ...camera, zoom: 1.5, rotation: 0 };
+        renderer.setCamera(camera);
+        window.localStorage.setItem("al25d.cameraZoom", "1.5");
+        window.localStorage.setItem("al25d.cameraRotation", "0");
       }
     },
     document.body
   );
   hud.setMode(graphicsMode);
-
-  const minimap = new MinimapOverlay(document.body);
-  minimap.setMode(graphicsMode);
+  hud.setPresentationSettings({
+    minimapVisible,
+    combatVfxVisible,
+    cameraZoom: camera.zoom,
+    cameraRotation: camera.rotation ?? 0
+  });
 
   const cameraHelp = document.createElement("div");
   cameraHelp.id = "al25d-camera-help";
@@ -303,6 +334,12 @@ async function boot(): Promise<void> {
       "al25d.cameraRotation",
       String(camera.rotation ?? 0)
     );
+    hud.setPresentationSettings({
+      minimapVisible,
+      combatVfxVisible,
+      cameraZoom: camera.zoom,
+      cameraRotation: camera.rotation ?? 0
+    });
   };
 
   const findEntityHit = (clientX: number, clientY: number) => {

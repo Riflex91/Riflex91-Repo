@@ -81,6 +81,8 @@ function entityById(
 export class CombatFeedbackOverlay {
   private readonly root = document.createElement("div");
   private previousHp: ReadonlyMap<string, number> = new Map();
+  private mode: GraphicsMode = "original";
+  private enabled = true;
 
   constructor(owner: HTMLElement = document.body) {
     this.root.id = "al25d-combat-feedback";
@@ -89,7 +91,13 @@ export class CombatFeedbackOverlay {
   }
 
   setMode(mode: GraphicsMode): void {
-    this.root.hidden = mode !== "2.5d";
+    this.mode = mode;
+    this.syncVisibility();
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    this.syncVisibility();
   }
 
   render(
@@ -187,6 +195,10 @@ export class CombatFeedbackOverlay {
     viewport: ViewportSize
   ): void {
     this.impact(entity, camera, viewport, "attack");
+  }
+
+  private syncVisibility(): void {
+    this.root.hidden = this.mode !== "2.5d" || !this.enabled;
   }
 
   clear(): void {

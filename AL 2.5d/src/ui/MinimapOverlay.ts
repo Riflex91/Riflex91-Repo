@@ -83,6 +83,8 @@ export class MinimapOverlay {
   private readonly canvas = document.createElement("canvas");
   private readonly context: CanvasRenderingContext2D | null;
   private lastKey = "";
+  private mode: GraphicsMode = "original";
+  private enabled = true;
 
   constructor(owner: HTMLElement = document.body) {
     this.root.id = "al25d-minimap";
@@ -116,7 +118,13 @@ export class MinimapOverlay {
   }
 
   setMode(mode: GraphicsMode): void {
-    this.root.hidden = mode !== "2.5d";
+    this.mode = mode;
+    this.syncVisibility();
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    this.syncVisibility();
   }
 
   render(snapshot: GameFrameSnapshot): void {
@@ -246,6 +254,10 @@ export class MinimapOverlay {
     ctx.strokeStyle = "rgba(226, 198, 125, .36)";
     ctx.lineWidth = 1;
     ctx.strokeRect(pad + .5, pad + .5, innerWidth - 1, innerHeight - 1);
+  }
+
+  private syncVisibility(): void {
+    this.root.hidden = this.mode !== "2.5d" || !this.enabled;
   }
 
   clear(): void {
