@@ -61,7 +61,7 @@ if(!geometry) errors.push("missing bundled geometry for "+main.key);
 const runtimeSource=fs.readFileSync(path.join(upstream,"js","old_common_functions.js"),"utf8");
 const runtimeMonsterPlacements=[];
 const marker="G.maps.main.monsters.push(";
-for(const line of runtimeSource.split("\\n")){
+for(const line of runtimeSource.split("\n")){
   const at=line.indexOf(marker);
   if(at<0) continue;
   const close=line.indexOf(");",at+marker.length);
