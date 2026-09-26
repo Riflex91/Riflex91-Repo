@@ -13,7 +13,7 @@
   },
   "stages": {
     "pr21": {
-      "status": "PR22_COORDINATION_PRODUCTIVE_EVIDENCE_ONE_SHOT_EXECUTION_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION",
+      "status": "PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RATIFICATION_BOUNDARY_PREPARED_WAITING_FOR_PR21_EXECUTION",
       "source": "v5/grundlage/quelle/merchant/pr21-merchant-integration-readiness.ts",
       "purpose": "Merchant Gesamtintegration Readiness und Safety/Thrash/Starvation Gate",
       "productiveGate": "PR20_COMPLETE_AND_15M_MERCHANT_INTEGRATION_EVIDENCE",
@@ -1206,7 +1206,36 @@
         "normalRuntimeAllowed": false,
         "repositoryMutationPerformed": false,
         "controlPlaneMutationPerformed": false,
-        "nextMilestone": "PREPARE_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RATIFICATION_BOUNDARY"
+        "nextMilestone": "PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RATIFICATION_BOUNDARY_PREPARED"
+      },
+      "coordinationProductiveEvidenceRatificationBoundary": {
+        "status": "PREPARED_EXPLICIT_PR22_PRODUCTIVE_EVIDENCE_RATIFICATION_RECORD_ONLY",
+        "source": "v5/grundlage/quelle/koordination/pr22-coordination-productive-evidence-ratification-boundary.ts",
+        "contract": "v5/grundlage/vertraege/runtime/pr22-coordination-productive-evidence-ratification-boundary.json",
+        "test": "v5/grundlage/tests/pr22-coordination-productive-evidence-ratification-boundary.test.mjs",
+        "requiredEvidenceStatus": "READY_FOR_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RECORD_ONLY",
+        "draftStatus": "AWAITING_EXPLICIT_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RATIFICATION",
+        "recordStatus": "RATIFIED_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RECORD_ONLY",
+        "exactConfirmationRequired": true,
+        "automaticRatification": false,
+        "evidenceFingerprintRevalidationRequired": true,
+        "repositoryStateRevalidationRequired": true,
+        "cap022FullChainRevalidationRequired": true,
+        "evidenceStillImmutableRequired": true,
+        "separateGateAdvanceRequired": true,
+        "currentBlockedByPr21Execution": true,
+        "ratificationExecuted": false,
+        "gateAdvanced": false,
+        "productiveAuthorityIssued": false,
+        "sendCmAuthority": false,
+        "pr22ProductiveAuthorityIssued": false,
+        "gameplayAuthority": false,
+        "rawWriteAuthority": false,
+        "broadRuntimeGrant": false,
+        "normalRuntimeAllowed": false,
+        "repositoryMutationPerformed": false,
+        "controlPlaneMutationPerformed": false,
+        "nextMilestone": "PREPARE_PR22_COORDINATION_PRODUCTIVE_GATE_ADVANCE_PROPOSAL_BOUNDARY"
       }
     },
     "pr23": {

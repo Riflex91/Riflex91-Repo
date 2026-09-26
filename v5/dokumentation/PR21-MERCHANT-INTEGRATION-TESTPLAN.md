@@ -495,6 +495,23 @@ erteilt keine dauerhafte `send_cm`-, Gameplay- oder NormalRuntime-Authority.
 UNKNOWN oder unvollstaendige Evidence erzwingt Reconciliation ohne Retry.
 In der Entwicklungsstufe selbst wird kein echter Transport ausgefuehrt.
 
+## PR22-Coordination-Productive-Evidence-Ratification-Boundary
+
+Ein spaeter tatsaechlich verifizierter Productive-Evidence-Record wird vor
+der Ratifikation erneut kryptografisch geprueft. Main, Repository-State und
+CAP-022-Full-Chain muessen weiterhin exakt passen.
+
+Die Ratifikation bleibt explizit und manuell. Allgemeine Antworten wie
+`ok`, `weiter` oder `mach weiter` duerfen nicht ratifizieren. Nur der
+vollstaendige, an Productive-Evidence-Fingerprint und Main gebundene
+Confirmation-Text darf
+`RATIFIED_PR22_COORDINATION_PRODUCTIVE_EVIDENCE_RECORD_ONLY` erzeugen.
+
+Der Ratification-Record bleibt immutable und mutiert weder Gate noch
+Repository. Er erteilt keine `send_cm`-, Gameplay-, Raw-Write- oder
+NormalRuntime-Authority. Ein separater Gate-Advance-Proposal-Schritt bleibt
+Pflicht.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
