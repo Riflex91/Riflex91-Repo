@@ -24,11 +24,12 @@
 
 ## Phase 4 – Vertikales Super-HD-MVP — IN PROGRESS
 - [x] **8× als Standard**
-- [x] erstes aktives 8× Character-Asset: `jubchan_1@8x.svg`
+- [x] erstes aktives 8× Character-Asset: `jubchan_1@8x.png`
 - [x] 624×1152 physisch / 78×144 logisch
 - [x] 3×4 Raster / 26×36 Logical-Frame
+- [x] Row 0 Front/Down, Row 3 Back/Up live mit Mira bestätigt
+- [x] Browser-/Spiel-Live-Test des PNG-Piloten mit originalem `aniv2`-Hat
 - [x] Nicht-8× nur mit dokumentierter Ausnahme
-- [ ] Browser-/Spiel-Live-A/B-Test
 - [ ] vollständige Charakterfamilie
 - [ ] 5 Monster/NPCs
 - [ ] 1 Map-/Tileset-Bereich
