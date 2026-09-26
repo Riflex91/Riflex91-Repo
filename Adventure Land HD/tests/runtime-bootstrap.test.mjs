@@ -45,6 +45,25 @@ test("HD mode applies matching active visual override only",()=>{
   assert.equal(window.ALHD.mode,"HD");
 });
 
+test("HD mode applies multiple active families in one pass",()=>{
+  const multi={schemaVersion:1,replacements:[
+    active.replacements[0],
+    {
+      sourcePath:"images/tiles/map/main.png",
+      runtimeUrl:"/images/alhd/map/main@8x.png?alhdv=111122223333",
+      scale:8,
+      state:"active",
+      preserveLogicalSize:true,
+      originalFallback:true
+    }
+  ]};
+  const {window,original}=run(multi,"?alhd=on");
+  assert.equal(original.file,"/images/alhd/characters/mchar16@4x.png?alhdv=abc123def456");
+  assert.equal(window.G.tilesets.main.file,"/images/alhd/map/main@8x.png?alhdv=111122223333");
+  assert.equal(window.ALHD.applied,2);
+  assert.deepEqual(Array.from(window.ALHD.paths),["images/all_characters/mchar16.png","images/tiles/map/main.png"]);
+});
+
 test("default mode is HD when no override flag is present",()=>{
   const {window,original}=run(active,"?server=EU");
   assert.equal(window.ALHD.mode,"HD");
