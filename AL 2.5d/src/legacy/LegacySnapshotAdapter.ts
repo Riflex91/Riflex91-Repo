@@ -17,6 +17,7 @@ export type LegacyEntityLike = Readonly<{
   ctype?: string;
   mtype?: string;
   npc?: string | boolean;
+  projectile?: boolean;
   skin?: string;
   texture?: unknown;
   going_x?: number;
@@ -190,6 +191,10 @@ export class LegacySnapshotAdapter {
   }
 
   private detectKind(entity: LegacyEntityLike): EntityKind {
+    if (entity.projectile || entity.type === "projectile") {
+      return "projectile";
+    }
+
     // Dynamic NPCs are created through add_character upstream and may carry
     // character-like fields. NPC identity must therefore win over ctype.
     if (entity.npc || entity.type === "npc") {
