@@ -106,7 +106,8 @@ Deliverable: walkable Main with original gameplay logic.
 
 - [x] character frame baseline
 - [x] party frame baseline from immutable original party_list / party snapshots
-- [ ] interactive party controls and party-status edge cases
+- [x] interactive party controls baseline: invite/request/leave through original CODE-runner public functions
+- [ ] accept/kick/leadership controls and party-status edge cases
 - [x] target frame baseline
 - [x] skill/hotbar baseline driven by original live keymap
 - [x] chat baseline: read-only main game log mirrored from original game_chats

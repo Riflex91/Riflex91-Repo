@@ -62,6 +62,9 @@ type LegacyCodeRunner = Readonly<{
   equip?: (index: number, slot?: string) => unknown;
   unequip?: (slot: string) => unknown;
   swap?: (a: number, b: number) => unknown;
+  send_party_invite?: (name: string) => unknown;
+  send_party_request?: (name: string) => unknown;
+  leave_party?: () => unknown;
 }>;
 
 function resolveLegacyCodeRunner(
@@ -446,6 +449,40 @@ export class LegacyCompatibilityRuntime {
     }
 
     return source.private_say.call(source, peer, message);
+  }
+
+  dispatchPartyInvite(name: string): unknown {
+    const target = name.trim();
+    if (!target) {
+      throw new Error("Party invite target is required");
+    }
+
+    return dispatchLegacyRunnerAction(
+      this.requireSource(),
+      "send_party_invite",
+      [target]
+    );
+  }
+
+  dispatchPartyRequest(name: string): unknown {
+    const target = name.trim();
+    if (!target) {
+      throw new Error("Party request target is required");
+    }
+
+    return dispatchLegacyRunnerAction(
+      this.requireSource(),
+      "send_party_request",
+      [target]
+    );
+  }
+
+  dispatchPartyLeave(): unknown {
+    return dispatchLegacyRunnerAction(
+      this.requireSource(),
+      "leave_party",
+      []
+    );
   }
 
   dispatchChestOpen(id: string): unknown {

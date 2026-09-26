@@ -40,6 +40,9 @@ export type HudActions = Readonly<{
     message: string;
     peer?: string;
   }>) => unknown;
+  onPartyInvite?: (name: string) => unknown;
+  onPartyRequest?: (name: string) => unknown;
+  onPartyLeave?: () => unknown;
 }>;
 
 type BarElements = Readonly<{
@@ -53,6 +56,7 @@ type PanelName =
   | "inventory"
   | "skills"
   | "quests"
+  | "party"
   | "chat"
   | "settings";
 
@@ -227,6 +231,7 @@ export class HudOverlay {
   private latestChat: readonly RenderChatMessage[] = Object.freeze([]);
   private latestChatChannels: readonly RenderChatChannel[] = Object.freeze([]);
   private latestQuestEvents: readonly RenderQuestEvent[] = Object.freeze([]);
+  private latestParty: readonly RenderPartyMember[] = Object.freeze([]);
   private selectedChatChannelId = "main";
   private latestModel: HudModel = Object.freeze({ player: null, target: null });
   private presentationSettings: HudPresentationSettings =
@@ -286,6 +291,7 @@ export class HudOverlay {
       ["inventory", "BAG", "Inventory"],
       ["skills", "SKILLS", "Skills"],
       ["quests", "QUEST", "Quests & Events"],
+      ["party", "PARTY", "Party management"],
       ["chat", "CHAT", "Chat"],
       ["settings", "SET", "Presentation settings"]
     ] as const) {
@@ -362,6 +368,7 @@ export class HudOverlay {
         })
       ]);
     this.latestQuestEvents = snapshot.questEvents ?? Object.freeze([]);
+    this.latestParty = snapshot.party ?? Object.freeze([]);
     this.latestModel = model;
     this.renderModel(model);
     this.renderParty(snapshot.party ?? []);
@@ -385,6 +392,7 @@ export class HudOverlay {
     this.latestChat = Object.freeze([]);
     this.latestChatChannels = Object.freeze([]);
     this.latestQuestEvents = Object.freeze([]);
+    this.latestParty = Object.freeze([]);
     this.selectedChatChannelId = "main";
     this.latestModel = Object.freeze({ player: null, target: null });
     this.selectedInventoryIndex = null;
@@ -496,6 +504,115 @@ export class HudOverlay {
     }
   }
 
+  private renderPartyManager(
+    members: readonly RenderPartyMember[]
+  ): void {
+    const shell = document.createElement("div");
+    shell.className = "al25d-party-manager";
+
+    const list = document.createElement("div");
+    list.className = "al25d-party-manager-list";
+
+    if (!members.length) {
+      const empty = document.createElement("p");
+      empty.className = "al25d-panel-empty";
+      empty.textContent = "Keine aktive Party gespiegelt.";
+      list.appendChild(empty);
+    } else {
+      for (const member of members) {
+        const row = document.createElement("div");
+        row.className = "al25d-party-manager-row";
+        row.dataset.local = String(Boolean(member.local));
+        row.dataset.remote = String(member.sameMap === false);
+
+        const identity = document.createElement("div");
+        const name = document.createElement("strong");
+        name.textContent = member.name;
+        const meta = document.createElement("span");
+        meta.textContent = [
+          member.local ? "YOU" : null,
+          member.role,
+          member.level !== undefined ? `Lv. ${member.level}` : null,
+          member.map
+        ].filter(Boolean).join(" · ");
+        identity.append(name, meta);
+
+        const state = document.createElement("small");
+        state.textContent =
+          member.hp !== undefined &&
+          member.maxHp !== undefined &&
+          member.maxHp > 0
+            ? `${Math.max(0, Math.round(member.hp))}/${Math.round(member.maxHp)} HP`
+            : member.sameMap === false
+              ? "REMOTE"
+              : "ONLINE";
+
+        row.append(identity, state);
+        list.appendChild(row);
+      }
+    }
+
+    const controls = document.createElement("form");
+    controls.className = "al25d-party-controls";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "Character name";
+    input.maxLength = 64;
+    input.autocomplete = "off";
+
+    const invite = document.createElement("button");
+    invite.type = "button";
+    invite.textContent = "INVITE";
+    invite.disabled = !this.actions.onPartyInvite;
+
+    const request = document.createElement("button");
+    request.type = "button";
+    request.textContent = "REQUEST";
+    request.disabled = !this.actions.onPartyRequest;
+
+    const leave = document.createElement("button");
+    leave.type = "button";
+    leave.textContent = "LEAVE";
+    leave.dataset.danger = "true";
+    leave.disabled = !members.length || !this.actions.onPartyLeave;
+
+    invite.addEventListener("click", () => {
+      const name = input.value.trim();
+      if (!name || !this.actions.onPartyInvite) return;
+      this.runPanelAction(
+        `Party invite → ${name}`,
+        () => this.actions.onPartyInvite!(name)
+      );
+    });
+
+    request.addEventListener("click", () => {
+      const name = input.value.trim();
+      if (!name || !this.actions.onPartyRequest) return;
+      this.runPanelAction(
+        `Party request → ${name}`,
+        () => this.actions.onPartyRequest!(name)
+      );
+    });
+
+    leave.addEventListener("click", () => {
+      if (!this.actions.onPartyLeave) return;
+      this.runPanelAction(
+        "Leave party",
+        () => this.actions.onPartyLeave!()
+      );
+    });
+
+    controls.addEventListener("submit", (event) => {
+      event.preventDefault();
+      invite.click();
+    });
+
+    controls.append(input, invite, request, leave);
+    shell.append(list, controls);
+    this.panelBody.appendChild(shell);
+  }
+
   private renderHotbar(entries: readonly RenderHotbarEntry[]): void {
     this.hotbar.replaceChildren();
 
@@ -523,6 +640,12 @@ export class HudOverlay {
     if (panel === "quests") {
       this.panelTitle.textContent = "Quests & Events";
       this.renderQuestEvents(this.latestQuestEvents);
+      return;
+    }
+
+    if (panel === "party") {
+      this.panelTitle.textContent = "Party";
+      this.renderPartyManager(this.latestParty);
       return;
     }
 

@@ -2010,3 +2010,106 @@ canvas {
   box-shadow:
     inset 0 -2px 0 var(--al25d-skill-accent, rgba(143, 173, 170, .2));
 }
+
+
+/* v44 party management delegated to original CODE-runner public functions. */
+.al25d-party-manager {
+  display: grid;
+  gap: 10px;
+}
+
+.al25d-party-manager-list {
+  display: grid;
+  gap: 5px;
+}
+
+.al25d-party-manager-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 7px 9px;
+  border: 1px solid rgba(140, 168, 165, .12);
+  border-radius: 8px;
+  background: rgba(8, 15, 18, .44);
+}
+
+.al25d-party-manager-row > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.al25d-party-manager-row strong {
+  color: #e6ece8;
+  font-size: 10px;
+}
+
+.al25d-party-manager-row span,
+.al25d-party-manager-row small {
+  color: #7f9295;
+  font-size: 8px;
+}
+
+.al25d-party-manager-row[data-local="true"] {
+  border-color: rgba(216, 186, 108, .26);
+  background: rgba(82, 63, 32, .14);
+}
+
+.al25d-party-manager-row[data-remote="true"] {
+  opacity: .68;
+}
+
+.al25d-party-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(140, 168, 165, .12);
+}
+
+.al25d-party-controls input {
+  min-width: 0;
+  height: 31px;
+  box-sizing: border-box;
+  border: 1px solid rgba(135, 164, 164, .2);
+  border-radius: 8px;
+  outline: none;
+  background: rgba(3, 8, 11, .68);
+  color: #d9e5e3;
+  padding: 0 9px;
+  font: 500 9px/1 Inter, "Segoe UI", Arial, sans-serif;
+}
+
+.al25d-party-controls button {
+  min-width: 62px;
+  height: 31px;
+  border: 1px solid rgba(141, 172, 168, .22);
+  border-radius: 8px;
+  background: rgba(25, 38, 42, .9);
+  color: #cbd9d6;
+  font: 900 7px/1 Inter, "Segoe UI", Arial, sans-serif;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+
+.al25d-party-controls button[data-danger="true"] {
+  border-color: rgba(211, 111, 92, .32);
+  color: #e2a195;
+}
+
+.al25d-party-controls button:disabled {
+  cursor: default;
+  opacity: .4;
+}
+
+@media (max-width: 760px) {
+  .al25d-party-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .al25d-party-controls input {
+    grid-column: 1 / -1;
+  }
+}
