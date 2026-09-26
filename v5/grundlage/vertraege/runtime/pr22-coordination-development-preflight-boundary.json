@@ -40,7 +40,8 @@
     "broadRuntimeGrant": false,
     "normalRuntimeAllowed": false,
     "repositoryMutationPerformed": false,
-    "controlPlaneMutationPerformed": false
+    "controlPlaneMutationPerformed": false,
+    "pr22ProductiveAuthorityIssued": false
   },
   "preflightExecutedInRepository": false,
   "nextAction": "PREPARE_PR22_COORDINATION_SHADOW_EVIDENCE_BOUNDARY"
