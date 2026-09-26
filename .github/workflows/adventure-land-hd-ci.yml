@@ -1,0 +1,33 @@
+name: Adventure Land HD CI
+on:
+  pull_request:
+    paths:
+      - "Adventure Land HD/**"
+      - ".github/workflows/adventure-land-hd-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "Adventure Land HD/**"
+      - ".github/workflows/adventure-land-hd-ci.yml"
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify inventory
+        working-directory: Adventure Land HD
+        run: npm run check
+      - name: Checkout pinned Adventure Land
+        shell: bash
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/kaansoral/adventureland_mongodb.git .upstream-adventureland
+          git -C .upstream-adventureland fetch --depth=1 origin 90052162eb3ebda36c893e1eb4af643913c8f984
+          git -C .upstream-adventureland checkout --detach 90052162eb3ebda36c893e1eb4af643913c8f984
+      - name: Deep audit
+        working-directory: Adventure Land HD
+        run: node tools/audit-assets.mjs --upstream "../.upstream-adventureland" --check-only
