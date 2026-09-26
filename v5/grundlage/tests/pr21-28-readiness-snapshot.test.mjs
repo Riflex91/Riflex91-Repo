@@ -4,6 +4,15 @@ import fs from "node:fs";
 import {bauePr21_28StageLedger,bauePr21_28ReadinessSnapshot,bewerteCap022FoundationChain} from "../../erzeugt/index.js";
 
 const STAGES=["PR21","PR22","PR23","PR24","PR25","PR26","PR27","PR28"];
+function terminalBinding(stage){
+  return {
+    stage,
+    settlementFingerprint:stage==="PR22"?"1111111111111111":"2222222222222222",
+    status:"APPLIED_VERIFIED_RECORD_ONLY",
+    cap022FullChainRequired:true,
+    cap022FullChainSatisfied:true,
+  };
+}
 
 function states(overrides={}){
   return STAGES.map(stage=>({
@@ -12,6 +21,8 @@ function states(overrides={}){
     orchestrationPrepared:true,
     featureGatePrepared:true,
     cap022FullChainReady:true,
+    cap022TerminalSettlementBinding:
+      stage==="PR22"||stage==="PR23" ? terminalBinding(stage) : null,
     milestoneRunnerPrepared:true,
     checkpointRunbookPrepared:true,
     ratificationRecordPrepared:true,

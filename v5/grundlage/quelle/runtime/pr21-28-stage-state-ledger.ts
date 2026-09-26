@@ -1,12 +1,23 @@
 import { evidenceFingerprint } from "../zertifizierung/evidence-kette.js";
 import type { Pr21_28GateStage } from "./pr21-28-feature-gates.js";
 
+export interface Pr21_28Cap022TerminalSettlementBinding {
+  readonly stage: Pr21_28GateStage;
+  readonly settlementFingerprint: string;
+  readonly status: "APPLIED_VERIFIED_RECORD_ONLY";
+  readonly cap022FullChainRequired: true;
+  readonly cap022FullChainSatisfied: true;
+}
+
 export interface Pr21_28StagePreparationState {
   readonly stage: Pr21_28GateStage;
   readonly foundationPrepared: boolean;
   readonly orchestrationPrepared: boolean;
   readonly featureGatePrepared: boolean;
   readonly cap022FullChainReady: boolean;
+  readonly cap022TerminalSettlementBinding:
+    | Pr21_28Cap022TerminalSettlementBinding
+    | null;
   readonly milestoneRunnerPrepared: boolean;
   readonly checkpointRunbookPrepared: boolean;
   readonly ratificationRecordPrepared: boolean;
@@ -25,6 +36,9 @@ export interface Pr21_28StageLedgerEntryBasis {
   readonly preparationComplete: boolean;
   readonly cap022FullChainRequired: boolean;
   readonly cap022FullChainSatisfied: boolean;
+  readonly cap022TerminalSettlementRequired: boolean;
+  readonly cap022TerminalSettlementSatisfied: boolean;
+  readonly cap022TerminalSettlementFingerprint: string | null;
   readonly productivePrerequisitesComplete: boolean;
   readonly predecessorProductiveComplete: boolean;
   readonly productiveChainEligible: boolean;
@@ -102,6 +116,30 @@ export function bauePr21_28StageLedger(
     const cap022FullChainRequired = stage === "PR22" || stage === "PR23";
     const cap022FullChainSatisfied =
       !cap022FullChainRequired || state.cap022FullChainReady === true;
+    const cap022TerminalSettlementRequired = cap022FullChainRequired;
+    const settlementBinding = state.cap022TerminalSettlementBinding;
+
+    if (settlementBinding !== null) {
+      if (!cap022TerminalSettlementRequired) {
+        throw new Error(
+          "PR21_28_STAGE_LEDGER_CAP022_SETTLEMENT_UNERWARTET:" + stage,
+        );
+      }
+      if (settlementBinding.stage !== stage
+          || settlementBinding.status !== "APPLIED_VERIFIED_RECORD_ONLY"
+          || settlementBinding.cap022FullChainRequired !== true
+          || settlementBinding.cap022FullChainSatisfied !== true
+          || !/^[0-9a-f]{16}$/.test(settlementBinding.settlementFingerprint)) {
+        throw new Error(
+          "PR21_28_STAGE_LEDGER_CAP022_SETTLEMENT_BINDING_UNGUELTIG:" + stage,
+        );
+      }
+    }
+
+    const cap022TerminalSettlementSatisfied =
+      !cap022TerminalSettlementRequired || settlementBinding !== null;
+    const cap022TerminalSettlementFingerprint =
+      settlementBinding?.settlementFingerprint ?? null;
 
     const preparationComplete =
       state.foundationPrepared
@@ -118,7 +156,8 @@ export function bauePr21_28StageLedger(
       preparationComplete
       && state.liveEvidenceRatified
       && state.explicitRatificationRecorded
-      && state.gateApplyVerified;
+      && state.gateApplyVerified
+      && cap022TerminalSettlementSatisfied;
 
     const productiveChainEligible =
       productivePrerequisitesComplete && predecessorProductiveComplete;
@@ -131,6 +170,9 @@ export function bauePr21_28StageLedger(
       preparationComplete,
       cap022FullChainRequired,
       cap022FullChainSatisfied,
+      cap022TerminalSettlementRequired,
+      cap022TerminalSettlementSatisfied,
+      cap022TerminalSettlementFingerprint,
       productivePrerequisitesComplete,
       predecessorProductiveComplete,
       productiveChainEligible,
@@ -191,6 +233,7 @@ export interface Pr21_28AdvanceChainReplay {
     preparationComplete: boolean;
     productiveChainEligible: boolean;
     requiresCap022FullChain: boolean;
+    requiresCap022TerminalSettlement: boolean;
     requiresLiveEvidence: boolean;
     requiresExplicitRatification: boolean;
     requiresVerifiedGateApply: boolean;
@@ -217,6 +260,10 @@ export function replayPr21_28AdvanceChain(
   for (const entry of ledger.entries) {
     if (entry.cap022FullChainRequired && !entry.cap022FullChainSatisfied) {
       blocker.push(entry.stage + "_CAP022_FULL_CHAIN_REQUIRED");
+    }
+    if (entry.cap022TerminalSettlementRequired
+        && !entry.cap022TerminalSettlementSatisfied) {
+      blocker.push(entry.stage + "_CAP022_TERMINAL_SETTLEMENT_REQUIRED");
     }
     if (!entry.preparationComplete) {
       blocker.push(entry.stage + "_PREPARATION_INCOMPLETE");
@@ -253,6 +300,9 @@ export function replayPr21_28AdvanceChain(
       productiveChainEligible: entry.productiveChainEligible,
       requiresCap022FullChain:
         entry.cap022FullChainRequired && !entry.cap022FullChainSatisfied,
+      requiresCap022TerminalSettlement:
+        entry.cap022TerminalSettlementRequired
+        && !entry.cap022TerminalSettlementSatisfied,
       requiresLiveEvidence: !entry.state.liveEvidenceRatified,
       requiresExplicitRatification: !entry.state.explicitRatificationRecorded,
       requiresVerifiedGateApply: !entry.state.gateApplyVerified,
