@@ -3,6 +3,32 @@
 **Status:** VORBEREITET / NO-WRITE  
 **Voraussetzung fuer reale Ausfuehrung:** PR20.1–PR20.9 einzeln produktiv ratifiziert.
 
+## Maschinenlesbarer Live-Preflight
+
+Vor einem spaeter separat autorisierten 15-Minuten-Lauf wird die Voraussetzung
+zusaetzlich read-only ueber
+`grundlage/quelle/merchant/pr21-merchant-integration-live-preflight.ts`
+geprueft.
+
+Der Preflight bindet:
+
+- den frisch verifizierten `main` an den gepinnten Main-Commit;
+- die bestehende Merchant-Readiness
+  `BEREIT_FUER_INTEGRATIONSTEST_NO_WRITE`;
+- den Checkpoint
+  `PR20_COMPLETE_MERCHANT_INTEGRATION_CHECKPOINT` und dessen Runbook;
+- den aktuellen PR21-28-Readiness-Snapshot;
+- alle neun produktiven Einzelratifizierungen PR20.1 bis PR20.9.
+
+Der aktuelle Repository-Stand bleibt deshalb **BLOCKED_BY_PR20_9**, solange
+PR20.9 weiterhin
+`CRAFT_DURABLE_SHADOW_BLOCKED_NO_NORMAL_CANDIDATE` ist.
+
+Auch ein spaeter erfolgreiches Preflight-Ergebnis
+`PRECHECK_BEREIT_NO_START_AUTHORITY` startet keine Runtime. Die externe
+Runtime-Autorisierung bleibt ein separater Schritt; der Preflight besitzt
+keine Gameplay-, Raw-Write- oder Normal-Runtime-Authority.
+
 ## Ziel
 
 Der Merchant gilt erst dann als "rund laufend", wenn nicht nur einzelne
