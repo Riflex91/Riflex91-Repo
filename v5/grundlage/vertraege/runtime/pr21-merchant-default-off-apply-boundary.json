@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "PR21_MERCHANT_DEFAULT_OFF_APPLY_BOUNDARY_V1",
+  "status": "PREPARED_DEFAULT_OFF_NO_EXECUTION",
+  "sourceMain": "ab4d0febb3896323fcd6ca3bd0e31a1d7c8cf058",
+  "source": "v5/grundlage/quelle/merchant/pr21-merchant-default-off-apply-boundary.ts",
+  "test": "v5/grundlage/tests/pr21-merchant-default-off-apply-boundary.test.mjs",
+  "proposalBoundary": "v5/grundlage/vertraege/runtime/pr21-merchant-gate-proposal-boundary.json",
+  "stage": "PR21",
+  "input": {
+    "proposalStatus": "READY_FOR_SEPARATE_GATE_APPLY",
+    "currentMainRecheckRequired": true,
+    "packageFingerprintMatchRequired": true,
+    "ratificationFingerprintMatchRequired": true
+  },
+  "transaction": {
+    "status": "PREPARED_DEFAULT_OFF",
+    "validationStatus": "READY_DEFAULT_OFF",
+    "durableIntentRequiredBeforeApply": true,
+    "oneShotApplyRequired": true,
+    "sameIntentRetryAllowed": false,
+    "postconditionVerificationRequired": true,
+    "unknownOutcomeRequiresReconciliation": true
+  },
+  "safety": {
+    "applyAdapterInstalled": false,
+    "executionEnabled": false,
+    "gateMutationPerformed": false,
+    "authorityIssued": false,
+    "broadRuntimeGrant": false,
+    "gameplayAuthority": false,
+    "rawWriteAuthority": false,
+    "normalRuntimeAllowed": false,
+    "durableIntentCreated": false,
+    "separateApplyExecutionRequired": true
+  },
+  "nextMilestone": "PREPARE_PR21_APPLY_EXECUTION_AUTHORIZATION_BOUNDARY"
+}
