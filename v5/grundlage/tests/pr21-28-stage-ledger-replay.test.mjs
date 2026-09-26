@@ -257,6 +257,29 @@ test("Stage-Ledger-Vertrag und Roadmap binden PR22/PR23 an CAP-022 Full-Chain",(
   assert.equal(boundary.durableIntentCreated,false);
   assert.equal(boundary.productiveCraftAuthorityOpened,false);
 
+  const settlementBoundary=contract.gateSettlementEvidenceBoundary;
+  assert.equal(settlementBoundary.stateField,"gateSettlement");
+  assert.equal(settlementBoundary.gateApplyVerifiedRequiresSettlementRecord,true);
+  assert.equal(
+    settlementBoundary.requiredSettlementStatus,
+    "APPLIED_VERIFIED_RECORD_ONLY",
+  );
+  assert.equal(settlementBoundary.settlementStageMustMatchLedgerStage,true);
+  assert.equal(settlementBoundary.settlementFingerprintRequired,true);
+  assert.deepEqual(
+    settlementBoundary.cap022BindingRequiredForStages,
+    ["PR22","PR23"],
+  );
+  assert.equal(settlementBoundary.cap022BindingMustBeStageConsistent,true);
+  assert.equal(
+    settlementBoundary.gateApplyBooleanAloneCannotOpenProductiveEligibility,
+    true,
+  );
+  assert.equal(
+    settlementBoundary.terminalSettlementEvidenceRequiredForProductiveEligibility,
+    true,
+  );
+
   const roadmap=JSON.parse(fs.readFileSync(
     "roadmap/post-r19-roadmap.json",
     "utf8",
@@ -279,4 +302,16 @@ test("Stage-Ledger-Vertrag und Roadmap binden PR22/PR23 an CAP-022 Full-Chain",(
   assert.equal(binding.durableIntentCreated,false);
   assert.equal(binding.productiveCraftAuthorityOpened,false);
   assert.equal(binding.normalRuntimeAllowed,false);
+  const evidenceBinding=binding.gateSettlementEvidenceBinding;
+  assert.equal(evidenceBinding.stateField,"gateSettlement");
+  assert.equal(evidenceBinding.gateApplyVerifiedRequiresSettlementRecord,true);
+  assert.equal(evidenceBinding.settlementStageMustMatchLedgerStage,true);
+  assert.equal(evidenceBinding.settlementFingerprintRequired,true);
+  assert.deepEqual(evidenceBinding.cap022BindingRequiredForStages,["PR22","PR23"]);
+  assert.equal(evidenceBinding.cap022BindingMustBeStageConsistent,true);
+  assert.equal(evidenceBinding.gateApplyBooleanAloneInsufficient,true);
+  assert.equal(
+    evidenceBinding.missingEvidenceBlockerSuffix,
+    "_VERIFIED_GATE_SETTLEMENT_REQUIRED",
+  );
 });
