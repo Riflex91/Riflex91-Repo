@@ -178,8 +178,8 @@ test("roadmap advances only to manifest-cutover preparation",()=>{
 test("active autonomous manifest is advanced to the Exchange 5m observer",()=>{
   assert.equal(manifest.testId,"pr21-merchant-integration-live-15m-v1-0-1");
   assert.equal(manifest.controllerVersion,"1.0.1");
-  assert.equal(manifest.sourceCommit,"2fd7ed8fa1036460fc0188fa053ac48e50d35a54");
-  assert.equal(manifest.packageSha256,"1809a8b198b4682eafd8377f3f4b8423a5f9b6bffb52e42d6cd111489b7c3f07");
+  assert.equal(manifest.sourceCommit,"4e61c90f3575f1b96afb7deedc23b7e7f383773d");
+  assert.equal(manifest.packageSha256,"6ad5ec5513fe4f8ca557370147f9b6910198d36ac8d078c8807cd2403d3720e6");
   assert.equal(manifest.expectedGlobal,"V5PR21MerchantIntegrationLive15mV101");
   assert.equal(manifest.normalRuntimeAllowed,false);
   assert.equal(shadow.status,"PREPARED_NO_WRITE");
