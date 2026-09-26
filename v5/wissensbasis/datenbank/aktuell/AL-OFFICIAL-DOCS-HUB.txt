@@ -103,7 +103,7 @@
 	var inside="login";
 	var user_id="",user_auth="";
 	var base_url="https://adventure.land";
-	var server_address="de.adventure.land",server_path="/ws2/";
+	var server_address="de.adventure.land",server_path="/ws6/";
 	var selection_server_explicit=false;
 	var server_names={"US":"Americas","EU":"Europas","ASIA":"Eastlands"};
 	var sound_music='',sound_sfx='',xmas_tunes=false,music_level=0.3,music_volume=100,sfx_volume=100;
@@ -271,7 +271,7 @@
   };
 })(jQuery);
 
-X.servers=[{"name":"I","region":"EU","players":74,"key":"SR_EUI","address":"de.adventure.land","path":"/ws1/","msgpack_path":"/ws1-msgpack/"},{"name":"II","region":"EU","players":42,"key":"SR_EUII","address":"de.adventure.land","path":"/ws2/","msgpack_path":"/ws2-msgpack/"},{"name":"III","region":"EU","players":72,"key":"SR_EUIII","address":"de.adventure.land","path":"/ws5/","msgpack_path":"/ws5-msgpack/"},{"name":"IV","region":"EU","players":51,"key":"SR_EUIV","address":"de.adventure.land","path":"/ws6/","msgpack_path":"/ws6-msgpack/"},{"name":"PVP","region":"EU","players":0,"key":"SR_EUPVP","address":"de.adventure.land","path":"/ws3/","msgpack_path":"/ws3-msgpack/"},{"name":"I","region":"US","players":60,"key":"SR_USI","address":"na2.adventure.land","path":"/ws1/","msgpack_path":"/ws1-msgpack/"},{"name":"II","region":"US","players":71,"key":"SR_USII","address":"na2.adventure.land","path":"/ws2/","msgpack_path":"/ws2-msgpack/"},{"name":"III","region":"US","players":69,"key":"SR_USIII","address":"na2.adventure.land","path":"/ws3/","msgpack_path":"/ws3-msgpack/"},{"name":"IV","region":"US","players":62,"key":"SR_USIV","address":"na2.adventure.land","path":"/ws5/","msgpack_path":"/ws5-msgpack/"},{"name":"PVP","region":"US","players":0,"key":"SR_USPVP","address":"na2.adventure.land","path":"/ws4/","msgpack_path":"/ws4-msgpack/"},{"name":"V","region":"US","players":62,"key":"SR_USV","address":"na2.adventure.land","path":"/ws6/","msgpack_path":"/ws6-msgpack/"},{"name":"I","region":"ASIA","players":60,"key":"SR_ASIAI","address":"sg.adventure.land","path":"/ws1/","msgpack_path":"/ws1-msgpack/"},{"name":"II","region":"ASIA","players":20,"key":"SR_ASIAII","address":"sg.adventure.land","path":"/ws2/","msgpack_path":"/ws2-msgpack/"}];
+X.servers=[{"name":"I","region":"EU","players":78,"key":"SR_EUI","address":"de.adventure.land","path":"/ws1/","msgpack_path":"/ws1-msgpack/"},{"name":"II","region":"EU","players":42,"key":"SR_EUII","address":"de.adventure.land","path":"/ws2/","msgpack_path":"/ws2-msgpack/"},{"name":"III","region":"EU","players":64,"key":"SR_EUIII","address":"de.adventure.land","path":"/ws5/","msgpack_path":"/ws5-msgpack/"},{"name":"IV","region":"EU","players":47,"key":"SR_EUIV","address":"de.adventure.land","path":"/ws6/","msgpack_path":"/ws6-msgpack/"},{"name":"PVP","region":"EU","players":1,"key":"SR_EUPVP","address":"de.adventure.land","path":"/ws3/","msgpack_path":"/ws3-msgpack/"},{"name":"I","region":"US","players":55,"key":"SR_USI","address":"na2.adventure.land","path":"/ws1/","msgpack_path":"/ws1-msgpack/"},{"name":"II","region":"US","players":74,"key":"SR_USII","address":"na2.adventure.land","path":"/ws2/","msgpack_path":"/ws2-msgpack/"},{"name":"III","region":"US","players":74,"key":"SR_USIII","address":"na2.adventure.land","path":"/ws3/","msgpack_path":"/ws3-msgpack/"},{"name":"IV","region":"US","players":62,"key":"SR_USIV","address":"na2.adventure.land","path":"/ws5/","msgpack_path":"/ws5-msgpack/"},{"name":"PVP","region":"US","players":0,"key":"SR_USPVP","address":"na2.adventure.land","path":"/ws4/","msgpack_path":"/ws4-msgpack/"},{"name":"V","region":"US","players":63,"key":"SR_USV","address":"na2.adventure.land","path":"/ws6/","msgpack_path":"/ws6-msgpack/"},{"name":"I","region":"ASIA","players":42,"key":"SR_ASIAI","address":"sg.adventure.land","path":"/ws1/","msgpack_path":"/ws1-msgpack/"},{"name":"II","region":"ASIA","players":19,"key":"SR_ASIAII","address":"sg.adventure.land","path":"/ws2/","msgpack_path":"/ws2-msgpack/"}];
 X.characters=[];
 X.tutorial={"step":0,"completed":[],"pending":[]};
 X.merchant_tutorial={"step":0,"completed":[],"pending":[]};
@@ -400,7 +400,7 @@ X.codes={}
 
 	</div>
 	<div class="menu login-status">
-		<div class="gamebutton" style="text-align: center; border-color: green">643 Online!</div>
+		<div class="gamebutton" style="text-align: center; border-color: green">621 Online!</div>
 		<div class="language-controls">
 			 <!-- <a class="gamebutton" href="/logs" target="_blank">Development Diary</a> -->
     
