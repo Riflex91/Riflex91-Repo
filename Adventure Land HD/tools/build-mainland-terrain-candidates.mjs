@@ -54,7 +54,8 @@ for(const entry of plan.tilesets||[]){
   if(!Number.isInteger(scale)||scale<2||scale>8) throw new Error(entry.id+": invalid runtime profile scale");
   const base=path.basename(sourcePath,path.extname(sourcePath));
   const hdPath="map/"+base+"@"+scale+"x.png";
-  const output=path.join(outputDir,path.basename(hdPath));
+  const output=path.join(outputDir,...hdPath.split("/"));
+  fs.mkdirSync(path.dirname(output),{recursive:true});
   execFileSync(process.execPath,[
     path.join(root,"tools","build-nearest-png.mjs"),
     "--input",source,
