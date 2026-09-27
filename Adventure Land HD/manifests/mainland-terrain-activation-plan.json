@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "upstreamCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
   "mapId": "main",
-  "purpose": "Promotion contract from deterministic terrain candidates into hd-assets.json. No awaiting-ci-hash entry may become active without a CI report SHA256 match.",
+  "purpose": "Promotion contract from deterministic terrain candidates into hd-assets.json. Candidate-verified entries are evidence-pinned but remain inactive until an explicit promotion step.",
   "entries": [
     {
       "id": "castle",
@@ -14,8 +14,8 @@
         "width": 2176,
         "height": 2048
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "6444de7daaa7d463d220793923101ea7ea00eb61e00389def59f5dc2acd27eae",
       "scaleExceptionReason": "Global G.tilesets preload budget: initial Mainland world-atlas baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -28,8 +28,8 @@
         "width": 1920,
         "height": 1920
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "e30283f61b2f57030e3a6029b8c27318a4fa795b8df5114159afc8a0f56fcc46",
       "scaleExceptionReason": "Global G.tilesets preload budget: initial Mainland world-atlas baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -42,8 +42,8 @@
         "width": 3008,
         "height": 2240
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "53bbf366b42119c62fa2d87fc0aa87baea6994c0873137d97b027dff27cbe31d",
       "scaleExceptionReason": "Global G.tilesets preload budget: initial Mainland world-atlas baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -56,8 +56,8 @@
         "width": 1280,
         "height": 1280
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "5dc1c13f9b19df9568309c6b297ae94bd1ce0123945e75e033bdd2783adcb9c2",
       "scaleExceptionReason": "Global G.tilesets preload budget: initial Mainland world-atlas baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -83,8 +83,8 @@
         "width": 3648,
         "height": 1664
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "d70f741adbae7d6f49ce0e0611b4656e3dee7591e90493e936a2a7d4ac168b3a",
       "scaleExceptionReason": "Global G.tilesets preload budget: initial Mainland world-atlas baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -97,8 +97,8 @@
         "width": 2624,
         "height": 3328
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "c33a55252673ed1df5a7f459e9b1781cd715a1c36213357c4cc27bf3bd94ba7d",
       "scaleExceptionReason": "Global G.tilesets preload budget: initial Mainland world-atlas baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -111,8 +111,8 @@
         "width": 4416,
         "height": 4672
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "41cb24a6c0f4fdcf8d28b36edbd9b0f4f1b7e2ba4261fb11395acc3b894712b5",
       "scaleExceptionReason": "Global G.tilesets preload budget: initial Mainland world-atlas baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -125,8 +125,8 @@
         "width": 3328,
         "height": 3264
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "657fb0c74baf56012b354b9de2af009b81bcf643f06d9b99cc20345671e6490f",
       "scaleExceptionReason": "Global G.tilesets preload budget: initial Mainland world-atlas baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -139,8 +139,8 @@
         "width": 2560,
         "height": 1920
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "69ae91a71ffa0e1541ea46d0e48528e5bdac06943d64504000bfe66cde8f317e",
       "scaleExceptionReason": "Global G.tilesets preload budget: initial Mainland world-atlas baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -153,8 +153,8 @@
         "width": 2688,
         "height": 1920
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "636338788b76888df622926aca3a05fa771ec76c478a1ba8d59a7888e6bbb712",
       "scaleExceptionReason": "Global G.tilesets preload budget: initial Mainland world-atlas baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -167,8 +167,8 @@
         "width": 3616,
         "height": 3328
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "42487b3da28f08a59cf63d8b7a0c232f2834bbf323a1a1b231e17660aa78b5ed",
       "scaleExceptionReason": "Global G.tilesets preload budget: initial Mainland world-atlas baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -181,8 +181,8 @@
         "width": 1344,
         "height": 1280
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "9df4dadae458f724b521a0ac6640ce6664409fc33d1a5908e63d94a88730374c",
       "scaleExceptionReason": "Global G.tilesets preload budget: initial Mainland world-atlas baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -195,9 +195,16 @@
         "width": 2816,
         "height": 5056
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "1c4b89a07b6e93798759b22828bb4cc2abb44485ad98f24a737691dab5a725b0",
       "scaleExceptionReason": "Global G.tilesets preload budget: initial Mainland world-atlas baseline uses 4x until live memory/performance evidence supports a higher scale."
     }
-  ]
+  ],
+  "candidateEvidence": {
+    "workflowRunId": 36308809900,
+    "jobId": 108590610508,
+    "headSha": "61e3d4f69deceb4bcb1772f670968f27416243db",
+    "conclusion": "success",
+    "source": "ALHD_TERRAIN_CANDIDATE"
+  }
 }

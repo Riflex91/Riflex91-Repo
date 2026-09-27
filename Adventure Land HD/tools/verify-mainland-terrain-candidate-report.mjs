@@ -51,9 +51,10 @@ if(errors.length){
   process.exit(1);
 }
 
-const awaiting=(activation.entries||[]).filter(entry=>entry.state==="awaiting-ci-hash");
+const verified=(activation.entries||[]).filter(entry=>entry.state==="candidate-verified");
+if(verified.length!==13) errors.push("terrain activation plan must retain exactly 13 candidate-verified inactive entries");
 console.log("Mainland terrain candidate report verified:",
   candidates.length+" candidates;",
   "decodedRGBA="+totalDecodedRgbaMiB+" MiB;",
-  awaiting.length+" entries awaiting CI SHA promotion."
+  verified.length+" evidence-pinned entries remain inactive."
 );

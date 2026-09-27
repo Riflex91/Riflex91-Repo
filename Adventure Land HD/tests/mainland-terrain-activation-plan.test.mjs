@@ -23,13 +23,14 @@ test("activation plan uses the budgeted runtime scale and resolution suffix",()=
   }
 });
 
-test("only doors is already active; remaining 13 require CI hashes",()=>{
+test("only doors is active; remaining 13 are CI-verified but inactive",()=>{
   const active=activation.entries.filter(entry=>entry.state==="active");
-  const awaiting=activation.entries.filter(entry=>entry.state==="awaiting-ci-hash");
+  const verified=activation.entries.filter(entry=>entry.state==="candidate-verified");
   assert.deepEqual(active.map(entry=>entry.id),["doors"]);
-  assert.equal(awaiting.length,13);
-  assert.match(active[0].expectedSha256,/^[a-f0-9]{64}$/);
-  for(const entry of awaiting) assert.equal(entry.expectedSha256,null,entry.id);
+  assert.equal(verified.length,13);
+  for(const entry of activation.entries) assert.match(entry.expectedSha256,/^[a-f0-9]{64}$/,entry.id);
+  assert.equal(activation.candidateEvidence?.conclusion,"success");
+  assert.equal(activation.candidateEvidence?.workflowRunId,36308809900);
 });
 
 test("activation plan decoded footprint equals the safe runtime profile",()=>{
