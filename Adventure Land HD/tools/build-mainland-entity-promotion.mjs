@@ -22,14 +22,22 @@ execFileSync(process.execPath,[
 ],{stdio:"inherit"});
 
 const report=JSON.parse(fs.readFileSync(reportPath,"utf8"));
+const baseManifest=JSON.parse(fs.readFileSync(path.join(root,"manifests","hd-assets.json"),"utf8"));
+const existingBySource=new Map((baseManifest.replacements||[]).map(item=>[item.sourcePath,item]));
 const activation=JSON.parse(fs.readFileSync(path.join(root,"manifests","mainland-entity-activation-plan.json"),"utf8"));
 const bySource=new Map(report.candidates.map(row=>[row.sourcePath,row]));
 
 const replacements=[];
 for(const entry of activation.entries){
   const row=bySource.get(entry.sourcePath);
+  if(entry.sourcePath==="images/tiles/characters/jubchan_1.png"){
+    const existing=existingBySource.get(entry.sourcePath);
+    if(!existing||existing.state!=="active") throw new Error(entry.sourcePath+": active pilot missing from base hd-assets.json");
+    if(existing.scale!==entry.scale||existing.hdPath!==entry.hdPath) throw new Error(entry.sourcePath+": active pilot contract drifted");
+    replacements.push(existing);
+    continue;
+  }
   if(!row) throw new Error(entry.sourcePath+": candidate missing after report verification");
-  const isJub=entry.sourcePath==="images/tiles/characters/jubchan_1.png";
   replacements.push({
     sourcePath:entry.sourcePath,
     hdPath:entry.hdPath,
@@ -38,19 +46,15 @@ for(const entry of activation.entries){
     preserveLogicalSize:true,
     originalFallback:true,
     ...(entry.scale!==8?{scaleExceptionReason:entry.scaleExceptionReason}:{}),
-    role:isJub?"phase4-artistic-8x-pilot":"mainland-entity-technical-safe-baseline",
+    role:"mainland-entity-technical-safe-baseline",
     originalBlobSha:entry.originalBlobSha,
     originalPixels:{
       width:entry.expectedPixels.width/entry.scale,
       height:entry.expectedPixels.height/entry.scale
     },
     hdPixels:entry.expectedPixels,
-    ...(isJub
-      ? {expectedHdSha256:row.sha256}
-      : {generator:{method:"nearest-neighbor-png",expectedSha256:row.sha256}}),
-    note:isJub
-      ?"Existing live-validated artistic Jubchan pilot retained byte-for-byte."
-      :"Presentation-only deterministic Mainland entity baseline generated from the pinned original. Runtime scale follows the verified global-sprite memory profile; no gameplay semantics are changed."
+    generator:{method:"nearest-neighbor-png",expectedSha256:row.sha256},
+    note:"Presentation-only deterministic Mainland entity baseline generated from the pinned original. Runtime scale follows the verified global-sprite memory profile; no gameplay semantics are changed."
   });
 }
 

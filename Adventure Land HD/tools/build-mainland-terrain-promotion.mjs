@@ -22,12 +22,21 @@ execFileSync(process.execPath,[
 ],{stdio:"inherit"});
 
 const report=JSON.parse(fs.readFileSync(reportPath,"utf8"));
+const baseManifest=JSON.parse(fs.readFileSync(path.join(root,"manifests","hd-assets.json"),"utf8"));
+const existingBySource=new Map((baseManifest.replacements||[]).map(item=>[item.sourcePath,item]));
 const activation=JSON.parse(fs.readFileSync(path.join(root,"manifests","mainland-terrain-activation-plan.json"),"utf8"));
 const byId=new Map(report.candidates.map(row=>[row.id,row]));
 
 const replacements=[];
 for(const entry of activation.entries){
   const row=byId.get(entry.id);
+  if(entry.id==="doors"){
+    const existing=existingBySource.get(entry.sourcePath);
+    if(!existing||existing.state!=="active") throw new Error(entry.sourcePath+": active pilot missing from base hd-assets.json");
+    if(existing.scale!==entry.scale||existing.hdPath!==entry.hdPath) throw new Error(entry.sourcePath+": active pilot contract drifted");
+    replacements.push(existing);
+    continue;
+  }
   if(!row) throw new Error(entry.id+": candidate missing after report verification");
   replacements.push({
     sourcePath:entry.sourcePath,
@@ -37,7 +46,7 @@ for(const entry of activation.entries){
     preserveLogicalSize:true,
     originalFallback:true,
     ...(entry.scale!==8?{scaleExceptionReason:entry.scaleExceptionReason}:{}),
-    role:entry.id==="doors"?"mainland-terrain-technical-8x-pilot":"mainland-terrain-technical-safe-baseline",
+    role:"mainland-terrain-technical-safe-baseline",
     originalBlobSha:entry.originalBlobSha,
     originalPixels:{
       width:entry.expectedPixels.width/entry.scale,
@@ -48,9 +57,7 @@ for(const entry of activation.entries){
       method:"nearest-neighbor-png",
       expectedSha256:row.sha256
     },
-    note:entry.id==="doors"
-      ?"Existing deterministic Mainland doors pilot retained."
-      :"Presentation-only deterministic Mainland terrain baseline generated from the pinned original. Runtime scale follows the verified global-tileset memory profile; no gameplay or map geometry changes."
+    note:"Presentation-only deterministic Mainland terrain baseline generated from the pinned original. Runtime scale follows the verified global-tileset memory profile; no gameplay or map geometry changes."
   });
 }
 
