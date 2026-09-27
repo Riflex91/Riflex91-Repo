@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "upstreamCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+  "mapId": "main",
+  "decodedBytesPerPixel": 4,
+  "decodedTerrainBudgetMiB": 512,
+  "rationale": "Pinned Adventure Land game.js preloads every G.tilesets entry through the global Pixi loader. A full 8x Mainland world-atlas override would decode to roughly 1.55 GiB before unrelated textures. The safe baseline keeps the validated doors pilot at 8x and starts the remaining Mainland world atlases at 4x; higher scales require later live memory/performance evidence.",
+  "scales": {
+    "castle": 4,
+    "custom": 4,
+    "custom2": 4,
+    "custom_a": 4,
+    "doors": 8,
+    "dungeon": 4,
+    "fort": 4,
+    "house": 4,
+    "inside": 4,
+    "lights": 4,
+    "new": 4,
+    "outside": 4,
+    "puzzle": 4,
+    "water": 4
+  },
+  "exceptionPolicy": {
+    "projectDefaultScale": 8,
+    "worldAtlasBaselineScale": 4,
+    "reason": "Global tileset preload makes simultaneous 8x world atlases exceed the initial Mainland decoded-texture budget.",
+    "higherScaleRequiresLiveEvidence": true
+  }
+}

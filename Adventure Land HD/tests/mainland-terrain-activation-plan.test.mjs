@@ -1,0 +1,40 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+import {hasResolutionSuffix} from "../lib/hd-contracts.mjs";
+
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
+const activation=JSON.parse(fs.readFileSync(path.join(root,"manifests","mainland-terrain-activation-plan.json"),"utf8"));
+const profile=JSON.parse(fs.readFileSync(path.join(root,"manifests","mainland-terrain-runtime-profile.json"),"utf8"));
+
+test("Mainland terrain activation plan covers all 14 atlases exactly once",()=>{
+  assert.equal(activation.entries.length,14);
+  assert.equal(new Set(activation.entries.map(entry=>entry.id)).size,14);
+  assert.equal(new Set(activation.entries.map(entry=>entry.sourcePath)).size,14);
+  assert.equal(new Set(activation.entries.map(entry=>entry.hdPath)).size,14);
+});
+
+test("activation plan uses the budgeted runtime scale and resolution suffix",()=>{
+  for(const entry of activation.entries){
+    assert.equal(entry.scale,profile.scales[entry.id],entry.id);
+    assert.equal(hasResolutionSuffix(entry.hdPath,entry.scale),true,entry.id);
+  }
+});
+
+test("only doors is already active; remaining 13 require CI hashes",()=>{
+  const active=activation.entries.filter(entry=>entry.state==="active");
+  const awaiting=activation.entries.filter(entry=>entry.state==="awaiting-ci-hash");
+  assert.deepEqual(active.map(entry=>entry.id),["doors"]);
+  assert.equal(awaiting.length,13);
+  assert.match(active[0].expectedSha256,/^[a-f0-9]{64}$/);
+  for(const entry of awaiting) assert.equal(entry.expectedSha256,null,entry.id);
+});
+
+test("activation plan decoded footprint equals the safe runtime profile",()=>{
+  const bytes=activation.entries.reduce((sum,entry)=>
+    sum+entry.expectedPixels.width*entry.expectedPixels.height*profile.decodedBytesPerPixel,0);
+  assert.equal(bytes/1024/1024,396.84375);
+  assert.ok(bytes<profile.decodedTerrainBudgetMiB*1024*1024);
+});
