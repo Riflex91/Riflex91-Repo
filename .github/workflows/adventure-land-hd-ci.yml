@@ -62,6 +62,25 @@ jobs:
       - name: Verify complete Mainland NPC and monster entity plan
         working-directory: Adventure Land HD
         run: node tools/verify-mainland-entity-plan.mjs --upstream "../.upstream-adventureland"
+      - name: Build safe Mainland entity candidate set
+        working-directory: Adventure Land HD
+        run: |
+          rm -rf /tmp/alhd-mainland-entities
+          mkdir -p /tmp/alhd-mainland-entities
+          node tools/build-mainland-entity-candidates.mjs \
+            --upstream "../.upstream-adventureland" \
+            --output-dir "/tmp/alhd-mainland-entities" \
+            --report "/tmp/alhd-mainland-entity-report.json"
+      - name: Verify Mainland entity candidate report
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-entity-candidate-report.mjs --report "/tmp/alhd-mainland-entity-report.json"
+      - name: Upload Mainland entity candidate report
+        uses: actions/upload-artifact@v4
+        with:
+          name: alhd-mainland-entity-report
+          path: /tmp/alhd-mainland-entity-report.json
+          if-no-files-found: error
+          compression-level: 0
       - name: Verify Mainland terrain production contract
         working-directory: Adventure Land HD
         run: node tools/verify-mainland-terrain-plan.mjs --upstream "../.upstream-adventureland"
