@@ -14,13 +14,14 @@ test("Mainland entity activation plan covers 34 unique source sheets",()=>{
   assert.equal(new Set(activation.entries.map(entry=>entry.hdPath)).size,34);
 });
 
-test("only live-validated Jubchan is already active",()=>{
+test("only live-validated Jubchan is active; remaining 33 are CI-verified but inactive",()=>{
   const active=activation.entries.filter(entry=>entry.state==="active");
-  const awaiting=activation.entries.filter(entry=>entry.state==="awaiting-ci-hash");
+  const verified=activation.entries.filter(entry=>entry.state==="candidate-verified");
   assert.deepEqual(active.map(entry=>entry.sourcePath),["images/tiles/characters/jubchan_1.png"]);
-  assert.equal(awaiting.length,33);
-  assert.match(active[0].expectedSha256,/^[a-f0-9]{64}$/);
-  for(const entry of awaiting) assert.equal(entry.expectedSha256,null,entry.sourcePath);
+  assert.equal(verified.length,33);
+  for(const entry of activation.entries) assert.match(entry.expectedSha256,/^[a-f0-9]{64}$/,entry.sourcePath);
+  assert.equal(activation.candidateEvidence?.conclusion,"success");
+  assert.equal(activation.candidateEvidence?.workflowRunId,36308809900);
 });
 
 test("every entity activation target uses a matching resolution suffix",()=>{

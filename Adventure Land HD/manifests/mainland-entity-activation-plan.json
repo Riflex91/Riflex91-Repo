@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "upstreamCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
   "mapId": "main",
-  "purpose": "Promotion contract for Mainland NPC, cosmetic and monster candidate sheets. Awaiting entries require deterministic CI evidence before activation.",
+  "purpose": "Promotion contract for Mainland NPC, cosmetic and monster candidate sheets. Candidate-verified entries are evidence-pinned but remain inactive until an explicit promotion step.",
   "entries": [
     {
       "group": "npc-cosmetic",
@@ -14,8 +14,8 @@
         "width": 1296,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "ae163a691328ccb9fa490ad7b4f53841e231e47e4ee011708aad5b71938fcb32",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -28,8 +28,8 @@
         "width": 4428,
         "height": 480
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "2ca515f68428b5ff211c9d725bdd2158742b62bc2920ae519ce1ad644f55d974",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -42,8 +42,8 @@
         "width": 2700,
         "height": 480
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "96029a815b34eea839c9605ed667fce5bcc5a1c83300053f984d18a2c3246803",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -56,8 +56,8 @@
         "width": 648,
         "height": 608
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "18cacb05f0c12633c6c79fd2811e30ccb516c9cc95920f9a9850f124ec3e9b3c",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -70,8 +70,8 @@
         "width": 2700,
         "height": 480
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "014f17948a4f6dc58277efe2ff4c445d1b7babbb78ab018af10f02ae28588203",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -84,8 +84,8 @@
         "width": 1512,
         "height": 480
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "b39e0cf910691de5b6fe8d01f4d3b048dda06fe61d271fb4d52b7c56e67e81f4",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -98,8 +98,8 @@
         "width": 740,
         "height": 576
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "c6bd9b6605dd17f31f5fef624434dfd3ff978834b2f61c09237aff430995b3ef",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -112,8 +112,8 @@
         "width": 1296,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "7a616ed85189be952a7869181999ef79db3bb4071ddc521ae7d0ca20c907f8b6",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -126,8 +126,8 @@
         "width": 2256,
         "height": 1600
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "484793052f5d7d589f89adfea110cc3f70145034163702e6f2af1ec4f18ec7ed",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -140,8 +140,8 @@
         "width": 2256,
         "height": 1600
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "07fe35ae8deb3a816fe5764c489b7518e8cf713115dd1979eaf3ea268e8599d4",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -154,8 +154,8 @@
         "width": 2256,
         "height": 1600
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "529e4056b8d6c58e2879558596fa80dffca12867dae0b682b6c6f2f6dbee4ed1",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -168,8 +168,8 @@
         "width": 2256,
         "height": 1600
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "94d02618666bb2a114e04e9e3d4dab2aeb8f267ac6286e297f454218750dcb4d",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -182,8 +182,8 @@
         "width": 1248,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "83d2962b14c5681454164cf38de2dffcb0aaabbb28c2f8ce98811d1190b82708",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -196,8 +196,8 @@
         "width": 1248,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "b22f219f2451fb8ecb67ee04fac4f031c2f1a870e705f517756da7f65acb405b",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -210,8 +210,8 @@
         "width": 1248,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "220c773a3162d533e6a003b47c13d1f10a82fcde3b18a89189dc489e6302c629",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -224,8 +224,8 @@
         "width": 1248,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "cd7699d3912420ca29a0076bc0448774ac7b338fc33f3e5b0ab4ca29636013a2",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -238,8 +238,8 @@
         "width": 1248,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "d0213ddf54d26e02454d5721fe0c1a69577f456e09925d4807db09f6e51ef930",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -252,8 +252,8 @@
         "width": 1248,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "499edbad953c274066f4c470bfa690e3c70eaf46bdf371d0deb44736a38aa3cc",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -266,8 +266,8 @@
         "width": 1248,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "b4ac7be1248d53a6cf7998137d91bddd513cfe618ea2f151aae81bcb0ac5ea74",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -293,8 +293,8 @@
         "width": 1248,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "86fc4fe56769fbaab2ccd0c470924f7273bc0b627ffde89724a67005224a0a14",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -307,8 +307,8 @@
         "width": 1248,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "e3bc3f18eaab3be373b3ed7df2588b234f67cea22f7584012f24d683b4076596",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -321,8 +321,8 @@
         "width": 1248,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "815c89b8f10bb722421e9f14220bc9fb42a725dae1d46e88674775575d9bd403",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -335,8 +335,8 @@
         "width": 1248,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "6a564b56e41020ef830c30d7fbc0a95cc49c19953f68ad2d2fa30e714f18757a",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -349,8 +349,8 @@
         "width": 1248,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "c68d9c6ae10257f8a80d5d7bbc9bb4be69dcb499c897c27e767d2b80ae5a7c1e",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -363,8 +363,8 @@
         "width": 1248,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "9b6a9da64878b28ec2cf26cc588b98317aeac2b3b2c85a45aac06c43f2ffef82",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -377,8 +377,8 @@
         "width": 2016,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "45876adc4c444fae64f83e03d446d802679b42c81a0f10e502a698a616f08ba9",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -391,8 +391,8 @@
         "width": 2880,
         "height": 2048
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "f297079935be7e3daa7b8103dda861afbd61aebf23e281ea097de9d0c6520e51",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -405,8 +405,8 @@
         "width": 2880,
         "height": 2048
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "ff98f6aeda65dfc3fb65cb4c8f8be872c1420312ea438a3ccd467ce6c9ac46a4",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -419,8 +419,8 @@
         "width": 1248,
         "height": 1152
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "7e1a9e275fe6a0b142efc03964768f30c0415b732257025ec24bddb5d9f061af",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -433,8 +433,8 @@
         "width": 2880,
         "height": 2048
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "0f66290636208420f09dba7d2fed174e8664200474988e76d624c6a2683dcbb6",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -447,8 +447,8 @@
         "width": 2880,
         "height": 2048
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "130b5c3533f4bc74c7f22279d8e7bf85d61a03f0616da2fc1da07eb0c9a33259",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -461,8 +461,8 @@
         "width": 732,
         "height": 912
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "36b9fba64e2b074d0e93b1a72ecb314743ded32a92768186951baa112e6e64b2",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     },
     {
@@ -475,9 +475,16 @@
         "width": 732,
         "height": 912
       },
-      "state": "awaiting-ci-hash",
-      "expectedSha256": null,
+      "state": "candidate-verified",
+      "expectedSha256": "bad16fb9061466a46632dbfbdd45f51ea1a11f8ae3fde19947afc5f67e891bd4",
       "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
     }
-  ]
+  ],
+  "candidateEvidence": {
+    "workflowRunId": 36308809900,
+    "jobId": 108590610508,
+    "headSha": "61e3d4f69deceb4bcb1772f670968f27416243db",
+    "conclusion": "success",
+    "source": "ALHD_ENTITY_CANDIDATE"
+  }
 }

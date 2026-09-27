@@ -51,9 +51,11 @@ if(errors.length){
   process.exit(1);
 }
 
-const awaiting=activation.entries.filter(entry=>entry.state==="awaiting-ci-hash");
+const verified=activation.entries.filter(entry=>entry.state==="candidate-verified");
+if(verified.length!==33) errors.push("entity activation plan must retain exactly 33 candidate-verified inactive entries");
+if(errors.length){console.error(errors.join("\n"));process.exit(1);}
 console.log("Mainland entity candidate report verified:",
   candidates.length+" candidates;",
   "decodedRGBA="+totalDecodedRgbaMiB+" MiB;",
-  awaiting.length+" entries awaiting CI SHA promotion."
+  verified.length+" evidence-pinned entries remain inactive."
 );
