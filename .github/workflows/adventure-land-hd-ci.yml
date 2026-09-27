@@ -5,7 +5,7 @@ on:
       - "Adventure Land HD/**"
       - ".github/workflows/adventure-land-hd-ci.yml"
   push:
-    branches: [main]
+    branches: [main, "chatgpt/alhd-dev-v1"]
     paths:
       - "Adventure Land HD/**"
       - ".github/workflows/adventure-land-hd-ci.yml"
