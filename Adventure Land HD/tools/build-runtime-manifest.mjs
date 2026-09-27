@@ -10,9 +10,11 @@ const val=flag=>{const i=args.indexOf(flag);return i>=0?args[i+1]:null;};
 const output=path.resolve(process.cwd(),val("--output")||path.join(root,"runtime","adventure-land-hd-manifest.js"));
 const manifestArg=val("--manifest");
 const hdRootArg=val("--hd-root");
+if((manifestArg&&!hdRootArg)||(!manifestArg&&hdRootArg)) throw new Error("--manifest and --hd-root must be supplied together for a custom runtime manifest.");
 const manifestPath=manifestArg?path.resolve(process.cwd(),manifestArg):path.join(root,"manifests","hd-assets.json");
 const hdRoot=hdRootArg?path.resolve(process.cwd(),hdRootArg):path.join(root,"hd-assets");
 const manifest=JSON.parse(fs.readFileSync(manifestPath,"utf8"));
+if(manifest.upstreamCommit&&manifest.upstreamCommit!=="90052162eb3ebda36c893e1eb4af643913c8f984") throw new Error("manifest upstreamCommit mismatch");
 const active=[];
 const seenSourcePaths=new Set();
 
