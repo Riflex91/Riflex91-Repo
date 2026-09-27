@@ -28,3 +28,11 @@ test("every entity activation target uses a matching resolution suffix",()=>{
     assert.equal(hasResolutionSuffix(entry.hdPath,entry.scale),true,entry.sourcePath);
   }
 });
+
+test("non-default entity activation entries explain their scale exception",()=>{
+  for(const entry of activation.entries){
+    if(entry.scale===8) continue;
+    assert.equal(typeof entry.scaleExceptionReason,"string",entry.sourcePath);
+    assert.ok(entry.scaleExceptionReason.trim().length>0,entry.sourcePath);
+  }
+});

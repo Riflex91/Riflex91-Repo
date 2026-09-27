@@ -38,3 +38,11 @@ test("activation plan decoded footprint equals the safe runtime profile",()=>{
   assert.equal(bytes/1024/1024,396.84375);
   assert.ok(bytes<profile.decodedTerrainBudgetMiB*1024*1024);
 });
+
+test("non-default terrain activation entries explain their scale exception",()=>{
+  for(const entry of activation.entries){
+    if(entry.scale===8) continue;
+    assert.equal(typeof entry.scaleExceptionReason,"string",entry.id);
+    assert.ok(entry.scaleExceptionReason.trim().length>0,entry.id);
+  }
+});

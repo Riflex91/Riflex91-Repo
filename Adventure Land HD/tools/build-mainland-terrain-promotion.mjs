@@ -36,6 +36,7 @@ for(const entry of activation.entries){
     state:"active",
     preserveLogicalSize:true,
     originalFallback:true,
+    ...(entry.scale!==8?{scaleExceptionReason:entry.scaleExceptionReason}:{}),
     role:entry.id==="doors"?"mainland-terrain-technical-8x-pilot":"mainland-terrain-technical-safe-baseline",
     originalBlobSha:entry.originalBlobSha,
     originalPixels:{

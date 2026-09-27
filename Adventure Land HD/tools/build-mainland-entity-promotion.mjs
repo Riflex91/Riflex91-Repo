@@ -37,6 +37,7 @@ for(const entry of activation.entries){
     state:"active",
     preserveLogicalSize:true,
     originalFallback:true,
+    ...(entry.scale!==8?{scaleExceptionReason:entry.scaleExceptionReason}:{}),
     role:isJub?"phase4-artistic-8x-pilot":"mainland-entity-technical-safe-baseline",
     originalBlobSha:entry.originalBlobSha,
     originalPixels:{
