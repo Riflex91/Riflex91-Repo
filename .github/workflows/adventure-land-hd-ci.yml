@@ -59,9 +59,34 @@ jobs:
       - name: Verify complete Mainland visual scope
         working-directory: Adventure Land HD
         run: node tools/verify-main-map-scope.mjs --upstream "../.upstream-adventureland"
+      - name: Verify complete Mainland NPC and monster entity plan
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-entity-plan.mjs --upstream "../.upstream-adventureland"
       - name: Verify Mainland terrain production contract
         working-directory: Adventure Land HD
         run: node tools/verify-mainland-terrain-plan.mjs --upstream "../.upstream-adventureland"
+      - name: Verify Mainland terrain runtime memory profile
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-terrain-runtime-profile.mjs --upstream "../.upstream-adventureland"
+      - name: Build safe Mainland terrain candidate set
+        working-directory: Adventure Land HD
+        run: |
+          rm -rf /tmp/alhd-mainland-terrain
+          mkdir -p /tmp/alhd-mainland-terrain
+          node tools/build-mainland-terrain-candidates.mjs \
+            --upstream "../.upstream-adventureland" \
+            --output-dir "/tmp/alhd-mainland-terrain" \
+            --report "/tmp/alhd-mainland-terrain-report.json"
+      - name: Verify Mainland terrain candidate report
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-terrain-candidate-report.mjs --report "/tmp/alhd-mainland-terrain-report.json"
+      - name: Upload Mainland terrain candidate report
+        uses: actions/upload-artifact@v4
+        with:
+          name: alhd-mainland-terrain-report
+          path: /tmp/alhd-mainland-terrain-report.json
+          if-no-files-found: error
+          compression-level: 0
       - name: Audit renderer compatibility contracts
         working-directory: Adventure Land HD
         run: node tools/analyze-contracts.mjs --upstream "../.upstream-adventureland" --check-only
