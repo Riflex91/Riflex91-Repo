@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {execFileSync} from "node:child_process";
 import {fileURLToPath} from "node:url";
+import {normalizeAssetPath} from "../lib/hd-contracts.mjs";
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const args=process.argv.slice(2);
@@ -56,11 +57,11 @@ for(const entry of entries){
   maxEdge=Math.max(maxEdge,w*scale,h*scale);
 }
 
-const terrainBySource=new Map(entries.map(entry=>[String(entry.sourcePath||"").replace(/^\\/+/, ""),entry]));
-const activeTerrain=(hdManifest.replacements||[]).filter(item=>item?.state==="active"&&terrainBySource.has(String(item.sourcePath||"").replace(/^\\/+/, "")));
+const terrainBySource=new Map(entries.map(entry=>[normalizeAssetPath(entry.sourcePath),entry]));
+const activeTerrain=(hdManifest.replacements||[]).filter(item=>item?.state==="active"&&terrainBySource.has(normalizeAssetPath(item.sourcePath)));
 let activeTerrainBytes=0;
 for(const item of activeTerrain){
-  const sourcePath=String(item.sourcePath||"").replace(/^\\/+/, "");
+  const sourcePath=normalizeAssetPath(item.sourcePath);
   const entry=terrainBySource.get(sourcePath);
   const expectedScale=profile.scales?.[entry.id];
   if(item.scale!==expectedScale) errors.push(entry.id+": active HD manifest scale "+item.scale+" does not match runtime profile scale "+expectedScale);

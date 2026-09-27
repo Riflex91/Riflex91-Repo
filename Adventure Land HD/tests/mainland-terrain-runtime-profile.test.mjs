@@ -40,11 +40,11 @@ test("safe baseline stays within budget while full 8x does not",()=>{
 });
 
 test("active Mainland terrain overrides use the exact budgeted runtime scales",()=>{
-  const bySource=new Map(plan.tilesets.map(entry=>[entry.sourcePath.replace(/^\\/+/, ""),entry]));
-  const active=(hdManifest.replacements||[]).filter(item=>item.state==="active"&&bySource.has(item.sourcePath.replace(/^\\/+/, "")));
+  const bySource=new Map(plan.tilesets.map(entry=>[normalizeAssetPath(entry.sourcePath),entry]));
+  const active=(hdManifest.replacements||[]).filter(item=>item.state==="active"&&bySource.has(normalizeAssetPath(item.sourcePath)));
   assert.ok(active.length>=1);
   for(const item of active){
-    const entry=bySource.get(item.sourcePath.replace(/^\\/+/, ""));
+    const entry=bySource.get(normalizeAssetPath(item.sourcePath));
     assert.equal(item.scale,profile.scales[entry.id],entry.id);
   }
 });
