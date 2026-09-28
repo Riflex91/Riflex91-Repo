@@ -26,12 +26,14 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     private readonly BrowserLauncher _launcher;
     private readonly CdpAlBotV6Client _browser;
     private readonly CdpWebDashboardConfigurator _dashboard;
-    private readonly SupabaseTelemetrySink _sink;\n    private readonly CloudflareV6DashboardSink? _dashboardSink;
+    private readonly SupabaseTelemetrySink _sink;
+    private readonly CloudflareV6DashboardSink? _dashboardSink;
     private readonly LocalProblemDiagnosticsArchive _diagnostics;
     private readonly ProblemDiagnosticsMirrorOutbox _problemMirror;
     private readonly string? _dashboardWriteKey;
     private CancellationTokenSource? _loopCts;
-    private Task? _loopTask;\n    private bool _legacyDashboardProfileCleared;
+    private Task? _loopTask;
+    private bool _legacyDashboardProfileCleared;
 
     public TelemetryBridgeService(
         HttpClient httpClient,
