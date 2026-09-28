@@ -5,6 +5,7 @@ import freeTierWorker from '../src/worker-free-tier.js';
 import {
   GENERATION,
   PROTOCOL,
+  ensureV6Schema,
   handleV6Request,
   legacyTransportBlocked
 } from '../src/worker-v6-transport.js';
@@ -100,6 +101,20 @@ test('free-tier entrypoint blocks legacy runtime writes before the old worker', 
   assert.equal(payload.requiredGeneration, 6);
   assert.equal(payload.requiredProtocol, PROTOCOL);
   assert.equal(payload.historicalReadOnly, true);
+});
+
+test('V6 transport bootstraps its D1 tables through the Worker binding', async () => {
+  const DB = fakeDb();
+  await ensureV6Schema({ DB });
+
+  const createRuns = DB.calls.filter(row => row.kind === 'run' && /^CREATE (TABLE|INDEX) IF NOT EXISTS/i.test(String(row.sql || '').trim()));
+  assert.equal(createRuns.length, 5);
+  assert.ok(createRuns.some(row => /CREATE TABLE IF NOT EXISTS v6_runtime_status/.test(row.sql)));
+  assert.ok(createRuns.some(row => /CREATE TABLE IF NOT EXISTS v6_runtime_events/.test(row.sql)));
+
+  const countAfterFirst = DB.calls.length;
+  await ensureV6Schema({ DB });
+  assert.equal(DB.calls.length, countAfterFirst);
 });
 
 test('V6 runtime endpoint requires the generation-locked bridge identity and dedicated secret', async () => {
