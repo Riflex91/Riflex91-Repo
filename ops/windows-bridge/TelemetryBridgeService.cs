@@ -27,16 +27,16 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
 
     private readonly BridgeConfig _config;
     private readonly BrowserLauncher _launcher;
-    private readonly CdpAdventureLandClient _browser;
+    private readonly CdpAlBotV6Client _browser;
     private readonly CdpWebDashboardConfigurator _dashboard;
     private readonly CdpBackblazeConfigurator _backblaze;
-    private readonly SupabaseTelemetrySink _sink;
+    private readonly SupabaseTelemetrySink _sink;\n    private readonly CloudflareV6DashboardSink? _dashboardSink;
     private readonly LocalProblemDiagnosticsArchive _diagnostics;
     private readonly ProblemDiagnosticsMirrorOutbox _problemMirror;
     private readonly string? _dashboardWriteKey;
     private readonly BackblazeCredentials? _backblazeCredentials;
     private CancellationTokenSource? _loopCts;
-    private Task? _loopTask;
+    private Task? _loopTask;\n    private bool _legacyDashboardProfileCleared;
 
     public TelemetryBridgeService(
         HttpClient httpClient,
@@ -47,7 +47,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     {
         _config = config;
         _launcher = new BrowserLauncher(httpClient, config);
-        _browser = new CdpAdventureLandClient(httpClient, config);
+        _browser = new CdpAlBotV6Client(httpClient, config);
         _dashboard = new CdpWebDashboardConfigurator(httpClient, config);
         _backblaze = new CdpBackblazeConfigurator(httpClient, config);
         _sink = new SupabaseTelemetrySink(httpClient, config, token);
@@ -56,6 +56,9 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
             new SupabaseProblemDiagnosticsSink(httpClient, config, token));
         _dashboardWriteKey = SecureDashboardWriteKeyStore.IsValidWriteKey(dashboardWriteKey)
             ? dashboardWriteKey
+            : null;
+        _dashboardSink = config.WebDashboardEnabled && _dashboardWriteKey is not null
+            ? new CloudflareV6DashboardSink(httpClient, config, _dashboardWriteKey)
             : null;
         _backblazeCredentials = backblazeCredentials is { IsValid: true }
             ? backblazeCredentials
@@ -93,9 +96,6 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         var state = await BridgeState.LoadAsync(cancellationToken);
         DateTimeOffset? lastSuccess = null;
         DateTimeOffset? lastDeepDiagnosticsAt = null;
-        DateTimeOffset? lastV5UploadAt = null;
-        string? lastV5TerminalFingerprint = null;
-        DateTimeOffset? lastV5DeploymentAttemptAt = null;
         var failures = 0;
 
         while (!cancellationToken.IsCancellationRequested)
@@ -116,14 +116,6 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 browserReady = browserConnection.Ready;
                 if (!browserReady) throw new InvalidOperationException(browserConnection.State);
 
-                var deployNow = DateTimeOffset.UtcNow;
-                if (ShouldEnsureV5AutonomousTestDeployment(lastV5DeploymentAttemptAt, deployNow))
-                {
-                    await EnsureV5AutonomousTestDeploymentSafeAsync(cancellationToken);
-                    await EnsureLegacyPr206RosterRecoverySafeAsync(cancellationToken);
-                    lastV5DeploymentAttemptAt = deployNow;
-                }
-
                 (dashboardState, dashboardError) = await SyncDashboardProfileAsync(cancellationToken);
                 (backblazeState, backblazeError) = await SyncBackblazeProfileAsync(cancellationToken);
 
@@ -141,34 +133,6 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
 
                     await CaptureDiagnosticsSafeAsync(read, cancellationToken);
 
-                    var v5Transport = ReadV5TransportState(read.Snapshot);
-                    if (v5Transport.IsV5
-                        && !ShouldUploadV5(
-                            lastV5UploadAt,
-                            _config.SupabaseStatusIntervalSeconds,
-                            now,
-                            v5Transport.TerminalFingerprint,
-                            lastV5TerminalFingerprint))
-                    {
-                        latestStatus = new RuntimeBridgeStatus(
-                            "V5_LOCAL_OBSERVE",
-                            true,
-                            lastSuccess.HasValue,
-                            attempt,
-                            lastSuccess,
-                            state.LastEventSeq,
-                            read.EventCount,
-                            null,
-                            read.TargetUrl,
-                            dashboardState,
-                            dashboardError,
-                            backblazeState,
-                            backblazeError);
-                        Publish(latestStatus);
-                        await SaveStatusAsync(latestStatus, cancellationToken);
-                        break;
-                    }
-
                     // During catch-up an empty second read is only a probe that the backlog is gone.
                     // Avoid creating an extra empty Supabase row unless this is the normal poll or a deep diagnostic sample is due.
                     if (batchIndex > 0 && read.EventCount == 0 && !includeDeepDiagnostics)
@@ -176,6 +140,12 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
 
                     // Supabase acceptance is the commit point. We never acknowledge browser telemetry before this succeeds.
                     await _sink.SendAsync(read, read.EffectiveAfterSeq, cancellationToken);
+                    if (_dashboardSink is not null)
+                    {
+                        await _dashboardSink.SendAsync(read, cancellationToken);
+                        dashboardState = "READY";
+                        dashboardError = null;
+                    }
 
                     state = new BridgeState(read.MaxSeq);
                     await state.SaveAsync(cancellationToken);
@@ -189,13 +159,6 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                     failures = 0;
                     lastSuccess = DateTimeOffset.UtcNow;
                     if (includeDeepDiagnostics) lastDeepDiagnosticsAt = lastSuccess;
-                    if (v5Transport.IsV5)
-                    {
-                        lastV5UploadAt = lastSuccess;
-                        if (!string.IsNullOrWhiteSpace(v5Transport.TerminalFingerprint))
-                            lastV5TerminalFingerprint = v5Transport.TerminalFingerprint;
-                    }
-
                     latestStatus = new RuntimeBridgeStatus(
                         read.HasMoreEvents ? "CATCHING_UP" : "HEALTHY",
                         true,
@@ -213,8 +176,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                     Publish(latestStatus);
                     await SaveStatusAsync(latestStatus, cancellationToken);
 
-                    if (v5Transport.IsV5
-                        || !ShouldCatchUp(read.EventCount, readLimit, read.HasMoreEvents, batchIndex + 1))
+                    if (!ShouldCatchUp(read.EventCount, readLimit, read.HasMoreEvents, batchIndex + 1))
                         break;
 
                     await Task.Delay(TimeSpan.FromMilliseconds(CatchUpDelayMilliseconds), cancellationToken);
@@ -251,51 +213,6 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 await Task.Delay(TimeSpan.FromSeconds(backoff), cancellationToken);
             }
         }
-    }
-
-    private async Task EnsureV5AutonomousTestDeploymentSafeAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            var result = await _browser.EnsureV5AutonomousTestAsync(cancellationToken);
-            _browser.RecordV5AutonomousTestDeploymentResult(result);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception error)
-        {
-            _browser.RecordV5AutonomousTestDeploymentFailure(error);
-            // Test deployment is fail-closed and independent from observational telemetry.
-            // A download/hash/session failure must never become a gameplay retry or stop telemetry.
-        }
-    }
-
-    private async Task EnsureLegacyPr206RosterRecoverySafeAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
-            await _browser.EnsureLegacyPr206RosterRecoveryAsync(cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch
-        {
-            // This is a one-purpose host lifecycle recovery for the legacy PR20.6
-            // roster wait. It never authorizes gameplay and must never block telemetry.
-        }
-    }
-
-    public static bool ShouldEnsureV5AutonomousTestDeployment(
-        DateTimeOffset? lastAttemptAt,
-        DateTimeOffset now)
-    {
-        if (!lastAttemptAt.HasValue) return true;
-        return now - lastAttemptAt.Value
-            >= TimeSpan.FromSeconds(V5AutonomousTestDeploymentIntervalSeconds);
     }
 
     private async Task CaptureDiagnosticsSafeAsync(DebugReadResult read, CancellationToken cancellationToken)
@@ -348,22 +265,32 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         {
             if (!_config.WebDashboardEnabled)
             {
-                await _dashboard.ClearAsync(cancellationToken);
+                if (!_legacyDashboardProfileCleared)
+                {
+                    await _dashboard.ClearAsync(cancellationToken);
+                    _legacyDashboardProfileCleared = true;
+                }
                 return ("DISABLED", null);
             }
 
-            if (!SecureDashboardWriteKeyStore.IsValidWriteKey(_dashboardWriteKey))
+            if (_dashboardSink is null)
             {
-                await _dashboard.ClearAsync(cancellationToken);
+                if (!_legacyDashboardProfileCleared)
+                {
+                    await _dashboard.ClearAsync(cancellationToken);
+                    _legacyDashboardProfileCleared = true;
+                }
                 return ("WRITE_KEY_MISSING", null);
             }
 
-            var result = await _dashboard.ApplyAsync(
-                _config.WebDashboardBaseUrl,
-                _config.WebDashboardAccount,
-                _dashboardWriteKey!,
-                cancellationToken);
-            return result.Applied ? ("READY", null) : ("ERROR", "WEB_DASHBOARD_PROFILE_NOT_APPLIED");
+            // V6 never injects the Cloudflare write key into Adventure Land.
+            // Remove any historical V3 browser profile once, then use the host-side sink.
+            if (!_legacyDashboardProfileCleared)
+            {
+                await _dashboard.ClearAsync(cancellationToken);
+                _legacyDashboardProfileCleared = true;
+            }
+            return ("READY", null);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
