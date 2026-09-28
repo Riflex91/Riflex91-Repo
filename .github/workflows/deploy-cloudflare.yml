@@ -77,6 +77,29 @@ jobs:
           fs.writeFileSync('wrangler.deploy.jsonc',src.replace('REPLACE_WITH_D1_DATABASE_ID',db.uuid));
           NODE
           rm -f d1-list.json
+      - name: Apply idempotent D1 schema
+        if: steps.credentials.outputs.ready == 'true'
+        working-directory: cloudflare-dashboard
+        run: npx wrangler d1 execute aio-bot-dashboard --remote --file=schema.sql --config wrangler.deploy.jsonc
+      - name: Check V6 Worker secret presence
+        id: v6-secret
+        if: steps.credentials.outputs.ready == 'true'
+        working-directory: cloudflare-dashboard
+        shell: bash
+        run: |
+          npx wrangler secret list --config wrangler.deploy.jsonc --format json > worker-secrets.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const rows = JSON.parse(fs.readFileSync('worker-secrets.json', 'utf8'));
+          const ready = Array.isArray(rows) && rows.some(row => row && row.name === 'ALBOT_V6_WRITE_KEY');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `ready=${ready}\n`);
+          if (!ready) {
+            console.log('::warning::ALBOT_V6_WRITE_KEY is not configured on the Cloudflare Worker. V6 runtime writes will remain unavailable until the secret is set.');
+          } else {
+            console.log('ALBOT_V6_WRITE_KEY is configured.');
+          }
+          NODE
+          rm -f worker-secrets.json
       - name: Check R2 log bucket
         id: r2
         if: steps.credentials.outputs.ready == 'true'
@@ -212,4 +235,4 @@ jobs:
       - name: Remove temporary deploy config
         if: always()
         working-directory: cloudflare-dashboard
-        run: rm -f wrangler.deploy.jsonc d1-list.json
+        run: rm -f wrangler.deploy.jsonc d1-list.json worker-secrets.json
