@@ -183,7 +183,7 @@ async function handleRuntime(request, env) {
   }
 
   const cleanStatus = redactDeep(body.status);
-  const cleanEvents = Array.isArray(body.events) ? body.events.slice(-EVENT_BATCH_MAX).map(redactDeep) : [];
+  const cleanEvents = Array.isArray(body.events) ? body.events.slice(-EVENT_BATCH_MAX).map(row => redactDeep(row)) : [];
 
   const statements = [
     env.DB.prepare(
