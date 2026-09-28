@@ -115,6 +115,10 @@ test('V6 runtime endpoint requires the generation-locked bridge identity and ded
   assert.equal(payload.character, 'FarmerA');
   assert.ok(DB.calls.some(row => row.kind === 'batch'));
   assert.ok(DB.calls.some(row => String(row.sql || '').includes('v6_runtime_status')));
+  const retention = DB.calls.find(row => row.kind === 'run' && String(row.sql || '').includes('DELETE FROM v6_runtime_events'));
+  assert.ok(retention);
+  assert.match(retention.sql, /WHERE event_at<\?/);
+  assert.equal(retention.args.length, 1);
 
   const wrongGeneration = await handleV6Request(v6Request({
     headers: { 'x-albot-generation': '5' }
@@ -140,4 +144,31 @@ test('V6 runtime endpoint rejects a payload whose snapshot claims legacy compati
   assert.equal(rejected.status, 400);
   const payload = await rejected.json();
   assert.match(payload.error, /V6 transport snapshot/);
+});
+
+test('throttled V6 runtime writes still persist event batches before returning 202', async () => {
+  const DB = fakeDb();
+  const env = { DB, ALBOT_V6_WRITE_KEY: 'v6-secret' };
+  const body = {
+    account: 'throttle-test',
+    character: 'ThrottleFarmer',
+    events: [{ seq: 901, severity: 'warn', component: 'runtime', event: 'tick', reason: 'persist-me' }]
+  };
+
+  const first = await handleV6Request(v6Request({ body }), env);
+  assert.equal(first.status, 200);
+
+  DB.calls.length = 0;
+  const second = await handleV6Request(v6Request({ body }), env);
+  assert.equal(second.status, 202);
+  const payload = await second.json();
+  assert.equal(payload.throttled, true);
+  assert.equal(payload.eventCount, 1);
+  assert.equal(payload.eventsPersisted, 1);
+
+  const batch = DB.calls.find(row => row.kind === 'batch');
+  assert.ok(batch);
+  assert.equal(batch.statements.length, 1);
+  assert.match(batch.statements[0].sql, /INSERT OR IGNORE INTO v6_runtime_events/);
+  assert.doesNotMatch(batch.statements[0].sql, /v6_runtime_status/);
 });
