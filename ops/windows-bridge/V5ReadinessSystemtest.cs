@@ -56,7 +56,7 @@ public sealed class V5ReadinessSystemtest
         Pruefe(
             "CONFIG_VERSION",
             config.ConfigVersion == BridgeConfig.CurrentConfigVersion
-                && BridgeConfig.CurrentConfigVersion == 9,
+                && BridgeConfig.CurrentConfigVersion == 10,
             $"installiert={config.ConfigVersion}; erwartet={BridgeConfig.CurrentConfigVersion}");
 
         Pruefe(
