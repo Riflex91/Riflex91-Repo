@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.116.0";
 
 const MAX_BODY_BYTES = 768 * 1024;
 const MAX_PROBLEM_BUNDLE_BYTES = 640 * 1024;
