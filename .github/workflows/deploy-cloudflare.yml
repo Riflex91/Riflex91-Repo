@@ -77,10 +77,6 @@ jobs:
           fs.writeFileSync('wrangler.deploy.jsonc',src.replace('REPLACE_WITH_D1_DATABASE_ID',db.uuid));
           NODE
           rm -f d1-list.json
-      - name: Apply idempotent D1 schema
-        if: steps.credentials.outputs.ready == 'true'
-        working-directory: cloudflare-dashboard
-        run: npx wrangler d1 execute aio-bot-dashboard --remote --file=schema.sql --config wrangler.deploy.jsonc
       - name: Check V6 Worker secret presence
         id: v6-secret
         if: steps.credentials.outputs.ready == 'true'
