@@ -63,9 +63,9 @@ public sealed record BridgeConfig
     public static string ConfigPath => Path.Combine(AppDirectory, "settings.json");
     public static string StatePath => Path.Combine(AppDirectory, "bridge-state.json");
     public static string StatusPath => Path.Combine(AppDirectory, "bridge-status.json");
-    public static string TokenPath => Path.Combine(AppDirectory, "telemetry-token.dpapi");
-    public static string WebDashboardWriteKeyPath => Path.Combine(AppDirectory, "web-dashboard-write-key.dpapi");
-    public static string BackblazeCredentialsPath => Path.Combine(AppDirectory, "backblaze-credentials.dpapi");
+    public static string TokenPath => Path.Combine(AppDirectory, "telemetry-token-v6.dpapi");
+    public static string WebDashboardWriteKeyPath => Path.Combine(AppDirectory, "web-dashboard-write-key-v6.dpapi");
+    public static string BackblazeCredentialsPath => Path.Combine(AppDirectory, "backblaze-credentials-v6.dpapi");
 
     public static async Task<BridgeConfig> LoadAsync(CancellationToken cancellationToken = default)
     {
@@ -96,6 +96,21 @@ public sealed record BridgeConfig
                 PollIntervalSeconds = storedVersion < 9 && loaded.PollIntervalSeconds == 60
                     ? 5
                     : loaded.PollIntervalSeconds,
+                TelemetryIngestUrl = storedVersion < 10
+                    ? "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-debug-ingest"
+                    : loaded.TelemetryIngestUrl,
+                SignalControlUrl = storedVersion < 10
+                    ? "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-signal-control"
+                    : loaded.SignalControlUrl,
+                TelemetryTokenEnvironmentVariable = storedVersion < 10
+                    ? "ALBOT_V6_TELEMETRY_TOKEN"
+                    : loaded.TelemetryTokenEnvironmentVariable,
+                BotId = storedVersion < 10
+                    ? "albot-v6-main"
+                    : loaded.BotId,
+                WebDashboardWriteKeyEnvironmentVariable = storedVersion < 10
+                    ? "ALBOT_V6_WEB_DASHBOARD_WRITE_KEY"
+                    : loaded.WebDashboardWriteKeyEnvironmentVariable,
                 BackblazeEnabled = storedVersion < 10 ? false : loaded.BackblazeEnabled,
                 BackblazePrefix = storedVersion < 10 && string.Equals(loaded.BackblazePrefix, "v4", StringComparison.OrdinalIgnoreCase)
                     ? "v6"
