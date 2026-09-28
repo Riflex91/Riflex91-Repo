@@ -28,6 +28,14 @@ test('Windows UI never applies legacy transport credentials to Adventure Land', 
   assert.match(ui, /BEREIT · V6 HOST-DIREKT/);
 });
 
+test('Supabase telemetry budget fallback preserves V6 identity fields', () => {
+  const source = read('../../ops/windows-bridge/SupabaseTelemetrySink.cs');
+  for (const field of ['identity','observedAt','character','heartbeat','status','telemetry']) {
+    assert.match(source, new RegExp('CopyIfPresent\\(snapshot, fallback, "' + field + '"\\)'));
+  }
+  assert.doesNotMatch(source, /CopyIfPresent\(snapshot, fallback, "reconciliation"\)/);
+});
+
 test('Bridge defaults use dedicated V6 cloud identities', () => {
   const config = read('../../ops/windows-bridge/BridgeConfig.cs');
   assert.match(config, /albot-v6-debug-ingest/);
