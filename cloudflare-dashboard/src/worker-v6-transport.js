@@ -88,6 +88,26 @@ function eventKey(event, index, fallback) {
     || `${fallback}-${index}-${event && event.component || 'x'}-${event && event.event || 'event'}`, 160);
 }
 
+function buildEventStatements(env, account, character, cleanEvents, now) {
+  return cleanEvents.map((event, i) => {
+    const row = event || {};
+    return env.DB.prepare(
+      'INSERT OR IGNORE INTO v6_runtime_events(account,character,event_key,severity,component,event,reason,payload,event_at,received_at) VALUES(?,?,?,?,?,?,?,?,?,?)'
+    ).bind(
+      account,
+      character,
+      eventKey(row, i, now),
+      text(row.severity || 'info', 20),
+      text(row.component, 80),
+      text(row.event, 120),
+      text(row.reason, 300),
+      JSON.stringify(redactDeep(row.data || {})).slice(0, 12000),
+      eventTime(row, now),
+      now
+    );
+  });
+}
+
 function requestIdentity(request) {
   return {
     botId: text(request.headers.get('x-albot-bot-id'), 128),
@@ -169,48 +189,35 @@ async function handleRuntime(request, env) {
   }
 
   const now = Date.now();
+  const cleanStatus = redactDeep(body.status);
+  const cleanEvents = Array.isArray(body.events) ? body.events.slice(-EVENT_BATCH_MAX).map(row => redactDeep(row)) : [];
+  const eventStatements = buildEventStatements(env, account, character, cleanEvents, now);
+
   const throttleKey = `${account}:${character}`;
   const last = number(runtimeWriteAt.get(throttleKey), 0);
   if (last && now - last < RUNTIME_MIN_WRITE_MS) {
+    // Status writes are throttled, but event batches must still be durably stored:
+    // the Windows Bridge treats every 2xx response as safe to acknowledge.
+    if (eventStatements.length > 0) await env.DB.batch(eventStatements);
     return json({
       ok: true,
       throttled: true,
       account,
       character,
+      eventCount: cleanEvents.length,
+      eventsPersisted: cleanEvents.length,
       retryAfterMs: RUNTIME_MIN_WRITE_MS - (now - last),
       policy: 'albot-v6-d1-write-budget'
     }, 202);
   }
 
-  const cleanStatus = redactDeep(body.status);
-  const cleanEvents = Array.isArray(body.events) ? body.events.slice(-EVENT_BATCH_MAX).map(row => redactDeep(row)) : [];
-
   const statements = [
     env.DB.prepare(
       'INSERT INTO v6_runtime_status(account,character,bot_id,protocol,payload,received_at) VALUES(?,?,?,?,?,?) '
       + 'ON CONFLICT(account,character) DO UPDATE SET bot_id=excluded.bot_id,protocol=excluded.protocol,payload=excluded.payload,received_at=excluded.received_at'
-    ).bind(account, character, identity.botId, PROTOCOL, JSON.stringify(cleanStatus), now)
+    ).bind(account, character, identity.botId, PROTOCOL, JSON.stringify(cleanStatus), now),
+    ...eventStatements
   ];
-
-  for (let i = 0; i < cleanEvents.length; i += 1) {
-    const event = cleanEvents[i] || {};
-    statements.push(
-      env.DB.prepare(
-        'INSERT OR IGNORE INTO v6_runtime_events(account,character,event_key,severity,component,event,reason,payload,event_at,received_at) VALUES(?,?,?,?,?,?,?,?,?,?)'
-      ).bind(
-        account,
-        character,
-        eventKey(event, i, now),
-        text(event.severity || 'info', 20),
-        text(event.component, 80),
-        text(event.event, 120),
-        text(event.reason, 300),
-        JSON.stringify(redactDeep(event.data || {})).slice(0, 12000),
-        eventTime(event, now),
-        now
-      )
-    );
-  }
 
   await env.DB.batch(statements);
   runtimeWriteAt.set(throttleKey, now);
@@ -218,8 +225,10 @@ async function handleRuntime(request, env) {
   if (now - lastRetentionSweepAt >= 60 * 60 * 1000) {
     lastRetentionSweepAt = now;
     try {
-      await env.DB.prepare('DELETE FROM v6_runtime_events WHERE account=? AND event_at<?')
-        .bind(account, now - EVENT_RETENTION_MS)
+      // One hourly sweep removes expired rows for every account, so cleanup is
+      // not coupled to whichever account happens to write first.
+      await env.DB.prepare('DELETE FROM v6_runtime_events WHERE event_at<?')
+        .bind(now - EVENT_RETENTION_MS)
         .run();
     } catch (_) {}
   }
