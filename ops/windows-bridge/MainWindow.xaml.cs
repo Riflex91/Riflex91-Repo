@@ -357,7 +357,7 @@ public partial class MainWindow : Window
             _config = candidate;
             BackblazeDetailEndpointText.Text = _config.BackblazeEndpoint;
             await RestartBridgeIfRunningAsync();
-            UpdateBackblazeCredentialStatus("Backblaze-Einstellungen gespeichert. Der alte V3-Browser-Handoff ist gesperrt; V6-Storage-Vertrag steht aus.");
+            UpdateBackblazeCredentialStatus("Backblaze-Einstellungen gespeichert. V6 verwendet den bestehenden Bucket ausschließlich hostseitig unter v6/.");
             BackblazeErrorText.Text = "Keine Zugangsdaten werden an Adventure Land übergeben.";
         }
         catch (Exception error)
@@ -367,13 +367,36 @@ public partial class MainWindow : Window
         }
     }
 
-    private void SendBackblazeToBot_Click(object sender, RoutedEventArgs e)
+    private async void SendBackblazeToBot_Click(object sender, RoutedEventArgs e)
     {
-        // Fail closed: do not inject legacy AIO_V3 object-storage credentials into Adventure Land.
-        BackblazeStateText.Text = "V6-VERTRAG AUSSTEHEND";
-        BackblazeErrorText.Text =
-            "Der V3-Backblaze-Handoff ist deaktiviert. Gespeicherte Zugangsdaten bleiben lokal per DPAPI geschützt, "
-            + "werden aber erst mit einem eigenen AL Bot V6 Object-Storage-Vertrag wieder verwendet.";
+        try
+        {
+            if (_backblazeCredentials is not { IsValid: true })
+                throw new InvalidOperationException("BACKBLAZE_CREDENTIALS_REQUIRED");
+
+            var candidate = BuildBackblazeConfigFromUi(forceEnabled: true);
+            await candidate.SaveAsync();
+            _config = candidate;
+            BackblazeToggle.IsChecked = true;
+            UpdateToggleLabels();
+
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+            var sink = new BackblazeV6ArchiveSink(_httpClient, _config, _backblazeCredentials);
+            var result = await sink.SelfTestAsync(cts.Token);
+            if (!result.Stored || !result.Verified)
+                throw new InvalidOperationException("BACKBLAZE_V6_SELF_TEST_NOT_VERIFIED");
+
+            BackblazeStateText.Text = "BEREIT · V6 HOST-ARCHIV VERIFIZIERT";
+            BackblazeErrorText.Text =
+                $"Bucket {result.Bucket}, Objekt {result.Key}, {result.Bytes} Bytes · Zugangsdaten blieben in der Windows Bridge.";
+            UpdateBackblazeCredentialStatus("V6 Backblaze hostseitig verifiziert; der V3-Browser-Handoff bleibt deaktiviert.");
+            await RestartBridgeIfRunningAsync();
+        }
+        catch (Exception error)
+        {
+            BackblazeStateText.Text = "FEHLER";
+            BackblazeErrorText.Text = Bounded(error.Message);
+        }
     }
 
     private async void DeleteBackblazeCredentials_Click(object sender, RoutedEventArgs e)
@@ -388,7 +411,7 @@ public partial class MainWindow : Window
         _config = _config with { BackblazeEnabled = false };
         await _config.SaveAsync();
         BackblazeToggle.IsChecked = false;
-        UpdateBackblazeCredentialStatus("Backblaze-Zugangsdaten lokal gelöscht. Es wurde kein Browser-Runtime-Handoff ausgeführt.");
+        UpdateBackblazeCredentialStatus("Backblaze-Zugangsdaten lokal gelöscht. Das V6 Host-Archiv ist deaktiviert.");
 
         if (restartTelemetry || _config.TelemetryEnabled) await StartBridgeAsync();
     }
@@ -419,14 +442,16 @@ public partial class MainWindow : Window
     private void UpdateBackblazeCredentialStatus(string? overrideText = null)
     {
         var credentialsPresent = _backblazeCredentials is { IsValid: true };
-        BackblazeToggle.Content = "V6 STORAGE AUSSTEHEND";
         BackblazeCredentialStateText.Text = overrideText ?? (credentialsPresent
-            ? "Backblaze keyID und applicationKey sind lokal per DPAPI geschützt gespeichert; kein Browser-Handoff ist aktiv."
+            ? "Backblaze keyID und applicationKey sind lokal per DPAPI geschützt gespeichert; V6 nutzt sie nur hostseitig."
             : $"Keine Backblaze-Zugangsdaten gespeichert. Optional lokal über {_config.BackblazeKeyIdEnvironmentVariable} und {_config.BackblazeApplicationKeyEnvironmentVariable} importierbar.");
 
-        BackblazeStateText.Text = _config.BackblazeEnabled
-            ? "V6-VERTRAG AUSSTEHEND"
-            : "DEAKTIVIERT";
+        BackblazeStateText.Text = !_config.BackblazeEnabled
+            ? "DEAKTIVIERT"
+            : credentialsPresent
+                ? "BEREIT · WARTET AUF V6 ARCHIV"
+                : "ZUGANGSDATEN FEHLEN";
+        UpdateToggleLabels();
     }
 
     private async Task RestartBridgeIfRunningAsync()
@@ -510,9 +535,11 @@ public partial class MainWindow : Window
                 DashboardStateText.Text = SecureDashboardWriteKeyStore.IsValidWriteKey(_dashboardWriteKey)
                     ? "WARTET AUF BROWSER"
                     : _config.WebDashboardEnabled ? "WRITE-KEY FEHLT" : "DEAKTIVIERT";
-                BackblazeStateText.Text = _config.BackblazeEnabled
-                    ? "V6-VERTRAG AUSSTEHEND"
-                    : "DEAKTIVIERT";
+                BackblazeStateText.Text = !_config.BackblazeEnabled
+                    ? "DEAKTIVIERT"
+                    : _backblazeCredentials is { IsValid: true }
+                        ? "BEREIT · V6 HOST-ARCHIV"
+                        : "ZUGANGSDATEN FEHLEN";
             }
         }
         catch (Exception error)
@@ -578,12 +605,13 @@ public partial class MainWindow : Window
 
     private void SyncBackblazeProfileState()
     {
-        BackblazeStateText.Text = _config.BackblazeEnabled
-            ? "V6-VERTRAG AUSSTEHEND"
-            : "DEAKTIVIERT";
-        BackblazeErrorText.Text = _config.BackblazeEnabled
-            ? "LEGACY_BACKBLAZE_HANDOFF_DISABLED"
-            : string.Empty;
+        var credentialsPresent = _backblazeCredentials is { IsValid: true };
+        BackblazeStateText.Text = !_config.BackblazeEnabled
+            ? "DEAKTIVIERT"
+            : credentialsPresent
+                ? "BEREIT · V6 HOST-ARCHIV"
+                : "ZUGANGSDATEN FEHLEN";
+        BackblazeErrorText.Text = string.Empty;
     }
 
     private void UpdateDashboardCredentialStatus(string? overrideText = null)
@@ -914,7 +942,7 @@ public partial class MainWindow : Window
         TelemetryToggle.Content = TelemetryToggle.IsChecked == true ? "TELEMETRIE AN" : "TELEMETRIE AUS";
         SignalToggle.Content = SignalToggle.IsChecked == true ? "SIGNALE AN" : "SIGNALE AUS";
         if (BackblazeToggle is not null)
-            BackblazeToggle.Content = BackblazeToggle.IsChecked == true ? "AN BOT SENDEN" : "NICHT AN BOT SENDEN";
+            BackblazeToggle.Content = BackblazeToggle.IsChecked == true ? "V6 ARCHIV AN" : "V6 ARCHIV AUS";
         if (WissenswaechterToggle is not null)
             WissenswaechterToggle.Content = WissenswaechterToggle.IsChecked == true ? "WISSENSWÄCHTER AN" : "WISSENSWÄCHTER AUS";
     }
@@ -931,8 +959,8 @@ public partial class MainWindow : Window
 
     private static string BackblazeStateLabel(string state) => state switch
     {
-        "READY" => "BEREIT · BOT-KONTEXT VERIFIZIERT",
-        "PENDING" => "BEREIT · WARTET AUF BROWSER",
+        "READY" => "BEREIT · V6 HOST-ARCHIV",
+        "PENDING" => "BEREIT · WARTET AUF ARCHIV",
         "CREDENTIALS_MISSING" => "ZUGANGSDATEN FEHLEN",
         "DISABLED" => "DEAKTIVIERT",
         "ERROR" => "FEHLER",
