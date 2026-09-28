@@ -29,12 +29,10 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     private readonly BrowserLauncher _launcher;
     private readonly CdpAlBotV6Client _browser;
     private readonly CdpWebDashboardConfigurator _dashboard;
-    private readonly CdpBackblazeConfigurator _backblaze;
     private readonly SupabaseTelemetrySink _sink;\n    private readonly CloudflareV6DashboardSink? _dashboardSink;
     private readonly LocalProblemDiagnosticsArchive _diagnostics;
     private readonly ProblemDiagnosticsMirrorOutbox _problemMirror;
     private readonly string? _dashboardWriteKey;
-    private readonly BackblazeCredentials? _backblazeCredentials;
     private CancellationTokenSource? _loopCts;
     private Task? _loopTask;\n    private bool _legacyDashboardProfileCleared;
 
@@ -49,7 +47,6 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         _launcher = new BrowserLauncher(httpClient, config);
         _browser = new CdpAlBotV6Client(httpClient, config);
         _dashboard = new CdpWebDashboardConfigurator(httpClient, config);
-        _backblaze = new CdpBackblazeConfigurator(httpClient, config);
         _sink = new SupabaseTelemetrySink(httpClient, config, token);
         _diagnostics = new LocalProblemDiagnosticsArchive(config);
         _problemMirror = new ProblemDiagnosticsMirrorOutbox(
@@ -60,9 +57,9 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         _dashboardSink = config.WebDashboardEnabled && _dashboardWriteKey is not null
             ? new CloudflareV6DashboardSink(httpClient, config, _dashboardWriteKey)
             : null;
-        _backblazeCredentials = backblazeCredentials is { IsValid: true }
-            ? backblazeCredentials
-            : null;
+        // Stored Backblaze credentials are deliberately not handed to any browser runtime.
+        // A future AL Bot V6 object-storage contract must explicitly opt in.
+        _ = backblazeCredentials;
     }
 
     public event Action<RuntimeBridgeStatus>? StatusChanged;
@@ -302,39 +299,15 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         }
     }
 
-    private async Task<(string State, string? Error)> SyncBackblazeProfileAsync(CancellationToken cancellationToken)
+    private Task<(string State, string? Error)> SyncBackblazeProfileAsync(CancellationToken cancellationToken)
     {
-        try
-        {
-            if (!_config.BackblazeEnabled)
-            {
-                await _backblaze.ClearAsync(cancellationToken);
-                return ("DISABLED", null);
-            }
-
-            if (_backblazeCredentials is not { IsValid: true })
-            {
-                await _backblaze.ClearAsync(cancellationToken);
-                return ("CREDENTIALS_MISSING", null);
-            }
-
-            var result = await _backblaze.ApplyAsync(
-                _config.BackblazeEndpoint,
-                _config.BackblazeRegion,
-                _config.BackblazeBucket,
-                _config.BackblazePrefix,
-                _backblazeCredentials,
-                cancellationToken);
-            return result.Applied ? ("READY", null) : ("ERROR", "BACKBLAZE_PROFILE_NOT_APPLIED");
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception error)
-        {
-            return ("ERROR", Bounded(error.Message));
-        }
+        cancellationToken.ThrowIfCancellationRequested();
+        // Fail closed: the legacy AIO_V3 Backblaze CDP handoff is retired.
+        // Credentials may remain DPAPI-protected on disk, but V6 gets no object-storage
+        // credentials until a dedicated ALBot.bridge V6 storage contract exists.
+        return Task.FromResult<(string, string?)>((
+            _config.BackblazeEnabled ? "V6_CONTRACT_PENDING" : "DISABLED",
+            _config.BackblazeEnabled ? "LEGACY_BACKBLAZE_HANDOFF_DISABLED" : null));
     }
 
     private string DashboardInitialState()
@@ -347,10 +320,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
 
     private string BackblazeInitialState()
     {
-        if (!_config.BackblazeEnabled) return "DISABLED";
-        return _backblazeCredentials is { IsValid: true }
-            ? "PENDING"
-            : "CREDENTIALS_MISSING";
+        return _config.BackblazeEnabled ? "V6_CONTRACT_PENDING" : "DISABLED";
     }
 
     private async Task SaveStatusAsync(RuntimeBridgeStatus status, CancellationToken cancellationToken)
