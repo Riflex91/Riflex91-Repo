@@ -9,6 +9,7 @@ Windows Bridge
         ├─ authenticated HTTPS → Supabase V6 ingest
         ├─ direct host-side HTTPS → Cloudflare /api/v6/runtime
         ├─ local bounded problem diagnostics → Supabase V6 mirror
+        ├─ host-side archive → existing Backblaze B2 bucket / v6/
         └─ local DPAPI credential stores (never exposed to Adventure Land)
 ```
 
@@ -93,18 +94,43 @@ The diagnostics channel uses V6 payload types and the same generation/protocol h
 
 ## Backblaze / object storage
 
-The historical AIO_V3 Backblaze browser handoff is **disabled**. Existing DPAPI-protected credentials may remain stored locally, but neither the automatic bridge loop nor the manual UI injects them into Adventure Land.
+V6 reuses the existing Backblaze B2 bucket `al-aio-bot` as a host-side long-term archive. The historical `AIO_V3_BACKBLAZE_CONFIG` browser handoff remains disabled and is not part of the active V6 transport.
 
-Defaults are fail-closed:
+The Windows Bridge owns the complete storage operation:
 
 ```text
-backblazeEnabled = false
+ALBot.bridge bounded telemetry
+  → Windows Bridge
+  → Supabase V6 commit
+  → BackblazeV6ArchiveSink
+  → S3 Signature V4 PUT
+  → HEAD verification (size + x-amz-meta-aio-sha256)
+  → al-aio-bot/v6/...
+```
+
+Credentials stay in the Windows host and are never injected into Adventure Land. Defaults:
+
+```text
+backblazeEnabled = true
+endpoint         = https://s3.eu-central-003.backblazeb2.com
+region           = eu-central-003
+bucket           = al-aio-bot
 prefix           = v6
 ALBOT_V6_BACKBLAZE_KEY_ID
 ALBOT_V6_BACKBLAZE_APPLICATION_KEY
 ```
 
-Backblaze may only be re-enabled after AL Bot V6 has an explicit object-storage contract with the same generation/protocol isolation. Until then the UI reports `V6-VERTRAG AUSSTEHEND`.
+The `v6` prefix is mandatory, so V6 cannot accidentally write into the historical `v4/` namespace. Event-bearing telemetry batches are archived after successful Supabase ingest; empty runtime snapshots are sampled at most once every five minutes. Archive failures are observational only: Supabase remains the telemetry commit/ACK authority and Backblaze outages never block gameplay or browser ACKs.
+
+Archive payloads are GZIP-compressed JSON and written under:
+
+```text
+v6/telemetry/YYYY/MM/DD/<bot-id>/...
+```
+
+The UI also provides a host-side V6 connection test. It writes and verifies a small object under `v6/_health/...`; it does not expose credentials to the browser and does not delete existing objects.
+
+When `backblaze-credentials-v6.dpapi` does not yet exist, the Bridge may import the historical per-user `backblaze-credentials.dpapi` once into the V6 DPAPI store. The legacy encrypted file is retained as rollback evidence until V6 end-to-end acceptance. If the historical Backblaze Application Key was restricted specifically to `v4/`, Backblaze will reject V6 writes; in that case create or update a bucket-scoped key that permits `v6/`.
 
 ## Legacy source code
 
@@ -129,7 +155,7 @@ The dedicated browser profile is under:
 
 ## Config migration
 
-Config version 10 migrates the cloud transport to V6 endpoints and credential names, disables the old Backblaze handoff, changes the dormant object-storage prefix to `v6`, and keeps the legacy browser profile only for one-way cleanup. Older V3/V4/V5 cloud credentials are not adopted as V6 credentials automatically.
+Config version 11 keeps the V6 Supabase/Cloudflare isolation from version 10 and activates the host-side Backblaze archive against the existing `al-aio-bot` bucket with the mandatory `v6` prefix. The old browser handoff stays disabled. A historical DPAPI Backblaze credential file may be copied once into the V6 credential store; other V3/V4/V5 cloud credentials are not adopted as V6 credentials.
 
 ## Build
 
