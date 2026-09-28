@@ -5,7 +5,7 @@ namespace AioBotWindowsBridge;
 
 public sealed record BridgeConfig
 {
-    public const int CurrentConfigVersion = 10;
+    public const int CurrentConfigVersion = 11;
     public const string V6TelemetryIngestUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-debug-ingest";
     public const string V6SignalControlUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-signal-control";
     public const string V6TelemetryTokenEnvironmentVariable = "ALBOT_V6_TELEMETRY_TOKEN";
@@ -46,7 +46,7 @@ public sealed record BridgeConfig
 
     // Backblaze credentials are never stored in settings.json. Only the non-secret
     // endpoint/bucket settings live here; keyID + applicationKey are DPAPI-protected.
-    public bool BackblazeEnabled { get; init; } = false;
+    public bool BackblazeEnabled { get; init; } = true;
     public string BackblazeEndpoint { get; init; } = "https://s3.eu-central-003.backblazeb2.com";
     public string BackblazeRegion { get; init; } = "eu-central-003";
     public string BackblazeBucket { get; init; } = "al-aio-bot";
@@ -71,6 +71,7 @@ public sealed record BridgeConfig
     public static string TokenPath => Path.Combine(AppDirectory, "telemetry-token-v6.dpapi");
     public static string WebDashboardWriteKeyPath => Path.Combine(AppDirectory, "web-dashboard-write-key-v6.dpapi");
     public static string BackblazeCredentialsPath => Path.Combine(AppDirectory, "backblaze-credentials-v6.dpapi");
+    public static string LegacyBackblazeCredentialsPath => Path.Combine(AppDirectory, "backblaze-credentials.dpapi");
 
     public static async Task<BridgeConfig> LoadAsync(CancellationToken cancellationToken = default)
     {
@@ -116,14 +117,14 @@ public sealed record BridgeConfig
                 WebDashboardWriteKeyEnvironmentVariable = storedVersion < 10
                     ? V6DashboardWriteKeyEnvironmentVariable
                     : loaded.WebDashboardWriteKeyEnvironmentVariable,
-                BackblazeEnabled = storedVersion < 10 ? false : loaded.BackblazeEnabled,
-                BackblazePrefix = storedVersion < 10 && string.Equals(loaded.BackblazePrefix, "v4", StringComparison.OrdinalIgnoreCase)
+                BackblazeEnabled = storedVersion < 11 ? true : loaded.BackblazeEnabled,
+                BackblazePrefix = storedVersion < 11
                     ? "v6"
                     : loaded.BackblazePrefix,
-                BackblazeKeyIdEnvironmentVariable = storedVersion < 10
+                BackblazeKeyIdEnvironmentVariable = storedVersion < 11
                     ? "ALBOT_V6_BACKBLAZE_KEY_ID"
                     : loaded.BackblazeKeyIdEnvironmentVariable,
-                BackblazeApplicationKeyEnvironmentVariable = storedVersion < 10
+                BackblazeApplicationKeyEnvironmentVariable = storedVersion < 11
                     ? "ALBOT_V6_BACKBLAZE_APPLICATION_KEY"
                     : loaded.BackblazeApplicationKeyEnvironmentVariable
             };
@@ -248,6 +249,8 @@ public sealed record BridgeConfig
             || BackblazePrefix.Any(char.IsControl)
             || BackblazePrefix.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries).Any(part => part == ".."))
             throw new InvalidOperationException("BACKBLAZE_PREFIX_INVALID");
+        if (!string.Equals(BackblazePrefix.Trim('/'), "v6", StringComparison.Ordinal))
+            throw new InvalidOperationException("V6_BACKBLAZE_PREFIX_REQUIRED");
     }
 
     public static string NormalisiereLiveWissenspfad(string wert)
