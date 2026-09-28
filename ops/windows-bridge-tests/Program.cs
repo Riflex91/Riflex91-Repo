@@ -73,6 +73,25 @@ Assert(defaults.SignalControlUrl.Contains("/functions/v1/albot-v6-signal-control
 Assert(defaults.TelemetryTokenEnvironmentVariable == "ALBOT_V6_TELEMETRY_TOKEN", "V6_TELEMETRY_ENV_DEFAULT");
 Assert(defaults.BotId == "albot-v6-main", "V6_BOT_ID_DEFAULT");
 Assert(defaults.WebDashboardWriteKeyEnvironmentVariable == "ALBOT_V6_WEB_DASHBOARD_WRITE_KEY", "V6_DASHBOARD_ENV_DEFAULT");
+Assert(BridgeConfig.TokenPath.EndsWith("telemetry-token-v6.dpapi", StringComparison.OrdinalIgnoreCase), "V6_TOKEN_STORE_PATH");
+Assert(BridgeConfig.WebDashboardWriteKeyPath.EndsWith("web-dashboard-write-key-v6.dpapi", StringComparison.OrdinalIgnoreCase), "V6_DASHBOARD_KEY_STORE_PATH");
+Assert(BridgeConfig.BackblazeCredentialsPath.EndsWith("backblaze-credentials-v6.dpapi", StringComparison.OrdinalIgnoreCase), "V6_BACKBLAZE_STORE_PATH");
+ExpectInvalid(defaults with {
+    TelemetryIngestUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest"
+}, "V6_TELEMETRY_ENDPOINT_REQUIRED");
+ExpectInvalid(defaults with {
+    SignalControlUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-chatgpt-signal-control"
+}, "V6_SIGNAL_ENDPOINT_REQUIRED");
+ExpectInvalid(defaults with {
+    WebDashboardBaseUrl = "https://example.invalid"
+}, "V6_DASHBOARD_ENDPOINT_REQUIRED");
+ExpectInvalid(defaults with {
+    TelemetryTokenEnvironmentVariable = "AIO_V3_DEBUG_TELEMETRY_TOKEN"
+}, "V6_TELEMETRY_TOKEN_ENV_REQUIRED");
+ExpectInvalid(defaults with {
+    WebDashboardWriteKeyEnvironmentVariable = "AIO_V3_WEB_DASHBOARD_WRITE_KEY"
+}, "V6_DASHBOARD_WRITE_KEY_ENV_REQUIRED");
+ExpectInvalid(defaults with { BotId = "pi-main" }, "V6_BOT_ID_REQUIRED");
 Assert(CdpAlBotV6Client.Generation == 6, "V6_BRIDGE_GENERATION");
 Assert(CdpAlBotV6Client.Product == "AL Bot", "V6_BRIDGE_PRODUCT");
 Assert(CdpAlBotV6Client.Protocol == "albot-v6-bridge-v1", "V6_BRIDGE_PROTOCOL");
