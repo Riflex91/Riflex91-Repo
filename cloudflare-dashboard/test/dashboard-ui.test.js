@@ -37,8 +37,8 @@ test('V5 GUI exposes complete navigable character, task, settings, statistics, l
 });
 
 test('V5 GUI renders telemetry from the existing overview/events transport', () => {
-  assert.match(DASHBOARD_HTML, /\/api\/v3\/overview/);
-  assert.match(DASHBOARD_HTML, /\/api\/v3\/events\?limit=/);
+  assert.match(DASHBOARD_HTML, /\/api\/v6\/overview/);
+  assert.match(DASHBOARD_HTML, /\/api\/v6\/events\?limit=/);
   assert.match(DASHBOARD_HTML, /performance\.current\.rates/);
   assert.match(DASHBOARD_HTML, /xpPerHour/);
   assert.match(DASHBOARD_HTML, /goldPerHour/);
