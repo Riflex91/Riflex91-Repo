@@ -103,6 +103,7 @@ var bridgePrivateFields = typeof(TelemetryBridgeService)
 Assert(bridgePrivateFields.Any(field => field.FieldType == typeof(CdpAlBotV6Client)), "ACTIVE_BRIDGE_MUST_USE_V6_CDP_CLIENT");
 Assert(!bridgePrivateFields.Any(field => field.FieldType == typeof(CdpAdventureLandClient)), "ACTIVE_BRIDGE_MUST_NOT_USE_LEGACY_CDP_CLIENT");
 Assert(!bridgePrivateFields.Any(field => field.FieldType == typeof(CdpBackblazeConfigurator)), "ACTIVE_BRIDGE_MUST_NOT_HOLD_LEGACY_BACKBLAZE_CONFIGURATOR");
+Assert(bridgePrivateFields.Any(field => field.FieldType == typeof(BackblazeV6ArchiveSink)), "ACTIVE_BRIDGE_MUST_USE_V6_BACKBLAZE_HOST_SINK");
 Assert(CloudflareV6DashboardSink.RuntimePath == "/api/v6/runtime", "V6_DASHBOARD_RUNTIME_PATH");
 Assert(CloudflareV6DashboardSink.IsWithinPayloadBudget(CloudflareV6DashboardSink.MaxPayloadBytes), "V6_DASHBOARD_PAYLOAD_BUDGET");
 Assert(!CloudflareV6DashboardSink.IsWithinPayloadBudget(CloudflareV6DashboardSink.MaxPayloadBytes + 1), "V6_DASHBOARD_PAYLOAD_OVERSIZE_BLOCKED");
@@ -137,13 +138,15 @@ Assert(defaults.WebDashboardEnabled, "WEB_DASHBOARD_PROFILE_SYNC_DEFAULT_ON");
 Assert(defaults.WebDashboardBaseUrl.StartsWith("https://", StringComparison.Ordinal), "WEB_DASHBOARD_MUST_DEFAULT_HTTPS");
 Assert(defaults.WebDashboardAccount == "default", "WEB_DASHBOARD_ACCOUNT_DEFAULT");
 Assert(!string.IsNullOrWhiteSpace(defaults.WebDashboardWriteKeyEnvironmentVariable), "WEB_DASHBOARD_ENV_REQUIRED");
-Assert(!defaults.BackblazeEnabled, "BACKBLAZE_LEGACY_HANDOFF_MUST_DEFAULT_OFF");
+Assert(defaults.BackblazeEnabled, "V6_BACKBLAZE_HOST_ARCHIVE_DEFAULT_ON");
 Assert(defaults.BackblazeEndpoint == "https://s3.eu-central-003.backblazeb2.com", "BACKBLAZE_ENDPOINT_DEFAULT");
 Assert(defaults.BackblazeRegion == "eu-central-003", "BACKBLAZE_REGION_DEFAULT");
 Assert(defaults.BackblazeBucket == "al-aio-bot", "BACKBLAZE_BUCKET_DEFAULT");
 Assert(defaults.BackblazePrefix == "v6", "BACKBLAZE_PREFIX_DEFAULT");
 Assert(defaults.BackblazeKeyIdEnvironmentVariable == "ALBOT_V6_BACKBLAZE_KEY_ID", "BACKBLAZE_KEY_ID_ENV_REQUIRED");
 Assert(defaults.BackblazeApplicationKeyEnvironmentVariable == "ALBOT_V6_BACKBLAZE_APPLICATION_KEY", "BACKBLAZE_APPLICATION_KEY_ENV_REQUIRED");
+Assert(BridgeConfig.CurrentConfigVersion == 11, "V6_CONFIG_VERSION_11");
+Assert(BridgeConfig.LegacyBackblazeCredentialsPath.EndsWith("backblaze-credentials.dpapi", StringComparison.OrdinalIgnoreCase), "LEGACY_BACKBLAZE_STORE_AVAILABLE_FOR_ONE_TIME_IMPORT");
 Assert(defaults.WissenswaechterAktiv, "WISSENSWAECHTER_DEFAULT_ON");
 Assert(V5ReadinessSystemtest.TestKennung == "V5_WINDOWS_BRIDGE_READINESS", "V5_READINESS_TEST_ID");
 Assert(V5ReadinessSystemtest.TestVersion == "1.1.0", "V5_READINESS_TEST_VERSION");
@@ -377,6 +380,7 @@ ExpectInvalid(defaults with { BackblazeRegion = "EU Central" }, "BACKBLAZE_REGIO
 ExpectInvalid(defaults with { BackblazeBucket = "AL-aio-bot" }, "BACKBLAZE_BUCKET_INVALID");
 ExpectInvalid(defaults with { BackblazeBucket = "b2-aio-bot" }, "BACKBLAZE_BUCKET_INVALID");
 ExpectInvalid(defaults with { BackblazePrefix = "v4/../secret" }, "BACKBLAZE_PREFIX_INVALID");
+ExpectInvalid(defaults with { BackblazePrefix = "v4" }, "V6_BACKBLAZE_PREFIX_REQUIRED");
 ExpectInvalid(defaults with { WissenswaechterIntervallMinuten = 10 }, "WISSENSWAECHTER_INTERVALL_MUSS_60_MINUTEN_SEIN");
 ExpectInvalid(defaults with { WissenswaechterIntervallMinuten = 120 }, "WISSENSWAECHTER_INTERVALL_MUSS_60_MINUTEN_SEIN");
 ExpectInvalid(defaults with { WissenswaechterMaxQuellenProLauf = 0 }, "WISSENSWAECHTER_QUELLENLIMIT_UNGUELTIG");
@@ -401,8 +405,42 @@ Assert(SsdVolumeGesundheitsPruefer.Bewerte(gesundeSsd with { FreiBytes = 149 }).
     BackblazeEndpoint = "https://s3.eu-central-003.backblazeb2.com",
     BackblazeRegion = "eu-central-003",
     BackblazeBucket = "al-aio-bot",
-    BackblazePrefix = "v4"
+    BackblazePrefix = "v6"
 }).Validate();
+
+using (var archiveSnapshot = JsonDocument.Parse("{}"))
+using (var archiveEvents = JsonDocument.Parse("[]"))
+{
+    var archiveRead = new DebugReadResult(
+        archiveSnapshot.RootElement.Clone(),
+        archiveEvents.RootElement.Clone(),
+        0,
+        0,
+        0,
+        0,
+        false,
+        "https://adventure.land/");
+    var archiveNow = DateTimeOffset.UtcNow;
+    Assert(BackblazeV6ArchiveSink.ShouldArchive(archiveRead, null, archiveNow), "V6_BACKBLAZE_INITIAL_SNAPSHOT_ARCHIVED");
+    Assert(!BackblazeV6ArchiveSink.ShouldArchive(archiveRead, archiveNow, archiveNow.AddMinutes(1)), "V6_BACKBLAZE_EMPTY_BATCH_SAMPLED");
+    Assert(BackblazeV6ArchiveSink.ShouldArchive(archiveRead, archiveNow, archiveNow.AddSeconds(BackblazeV6ArchiveSink.SnapshotArchiveIntervalSeconds + 1)), "V6_BACKBLAZE_PERIODIC_SNAPSHOT_ARCHIVED");
+}
+
+using (var archiveSnapshot = JsonDocument.Parse("{}"))
+using (var archiveEvents = JsonDocument.Parse("[{\"seq\":1}]"))
+{
+    var archiveRead = new DebugReadResult(
+        archiveSnapshot.RootElement.Clone(),
+        archiveEvents.RootElement.Clone(),
+        0,
+        0,
+        1,
+        1,
+        false,
+        "https://adventure.land/");
+    var archiveNow = DateTimeOffset.UtcNow;
+    Assert(BackblazeV6ArchiveSink.ShouldArchive(archiveRead, archiveNow, archiveNow.AddSeconds(1)), "V6_BACKBLAZE_EVENT_BATCH_ALWAYS_ARCHIVED");
+}
 
 Assert(CdpAdventureLandClient.OperationsContextPriority(false, false, null, null, null) == 0, "V5_CONTEXT_INVALID_REJECTED");
 Assert(CdpAdventureLandClient.OperationsContextPriority(true, false, null, null, "priest") == 10, "V5_CONTEXT_LEGACY_FALLBACK");
