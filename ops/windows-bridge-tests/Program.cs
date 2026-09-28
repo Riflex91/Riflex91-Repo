@@ -68,6 +68,47 @@ Assert(!WindowsBridgeSelfUpdater.IsUpdateRequired(123, new string('a', 40), self
 Assert(!WindowsBridgeSelfUpdater.IsUpdateRequired(124, new string('d', 40), selfUpdateManifest), "SELF_UPDATE_NEVER_DOWNGRADES");
 Assert(defaults.TelemetryIngestUrl.StartsWith("https://", StringComparison.Ordinal), "INGEST_MUST_DEFAULT_HTTPS");
 Assert(defaults.SignalControlUrl.StartsWith("https://", StringComparison.Ordinal), "SIGNAL_CONTROL_MUST_DEFAULT_HTTPS");
+Assert(defaults.TelemetryIngestUrl.Contains("/functions/v1/albot-v6-debug-ingest", StringComparison.Ordinal), "V6_INGEST_ENDPOINT_DEFAULT");
+Assert(defaults.SignalControlUrl.Contains("/functions/v1/albot-v6-signal-control", StringComparison.Ordinal), "V6_SIGNAL_ENDPOINT_DEFAULT");
+Assert(defaults.TelemetryTokenEnvironmentVariable == "ALBOT_V6_TELEMETRY_TOKEN", "V6_TELEMETRY_ENV_DEFAULT");
+Assert(defaults.BotId == "albot-v6-main", "V6_BOT_ID_DEFAULT");
+Assert(defaults.WebDashboardWriteKeyEnvironmentVariable == "ALBOT_V6_WEB_DASHBOARD_WRITE_KEY", "V6_DASHBOARD_ENV_DEFAULT");
+Assert(CdpAlBotV6Client.Generation == 6, "V6_BRIDGE_GENERATION");
+Assert(CdpAlBotV6Client.Product == "AL Bot", "V6_BRIDGE_PRODUCT");
+Assert(CdpAlBotV6Client.Protocol == "albot-v6-bridge-v1", "V6_BRIDGE_PROTOCOL");
+Assert(CdpAlBotV6Client.SnapshotType == "ALBOT_V6_DEBUG_SNAPSHOT", "V6_BRIDGE_SNAPSHOT_TYPE");
+Assert(CdpAlBotV6Client.EventsType == "ALBOT_V6_DEBUG_EVENTS", "V6_BRIDGE_EVENTS_TYPE");
+Assert(CdpAlBotV6Client.AckType == "ALBOT_V6_TELEMETRY_ACK", "V6_BRIDGE_ACK_TYPE");
+Assert(CloudflareV6DashboardSink.RuntimePath == "/api/v6/runtime", "V6_DASHBOARD_RUNTIME_PATH");
+Assert(CloudflareV6DashboardSink.IsWithinPayloadBudget(CloudflareV6DashboardSink.MaxPayloadBytes), "V6_DASHBOARD_PAYLOAD_BUDGET");
+Assert(!CloudflareV6DashboardSink.IsWithinPayloadBudget(CloudflareV6DashboardSink.MaxPayloadBytes + 1), "V6_DASHBOARD_PAYLOAD_OVERSIZE_BLOCKED");
+using (var v6IdentityDocument = JsonDocument.Parse("""
+{
+  "product": "AL Bot",
+  "generation": 6,
+  "bridgeProtocol": "albot-v6-bridge-v1",
+  "runtimeVersion": "0.22.7-h22",
+  "transportOnly": true,
+  "gameplayActionAuthority": false,
+  "acceptsLegacyGenerations": false
+}
+"""))
+{
+    Assert(CdpAlBotV6Client.IsV6Identity(v6IdentityDocument.RootElement), "V6_IDENTITY_ACCEPTED");
+}
+using (var legacyIdentityDocument = JsonDocument.Parse("""
+{
+  "product": "Adventure Land AiO Bot",
+  "generation": 5,
+  "bridgeProtocol": "aio-v3",
+  "transportOnly": true,
+  "gameplayActionAuthority": false,
+  "acceptsLegacyGenerations": true
+}
+"""))
+{
+    Assert(!CdpAlBotV6Client.IsV6Identity(legacyIdentityDocument.RootElement), "LEGACY_IDENTITY_REJECTED");
+}
 Assert(defaults.WebDashboardEnabled, "WEB_DASHBOARD_PROFILE_SYNC_DEFAULT_ON");
 Assert(defaults.WebDashboardBaseUrl.StartsWith("https://", StringComparison.Ordinal), "WEB_DASHBOARD_MUST_DEFAULT_HTTPS");
 Assert(defaults.WebDashboardAccount == "default", "WEB_DASHBOARD_ACCOUNT_DEFAULT");
@@ -842,9 +883,9 @@ using (var harmlessEvents = JsonDocument.Parse("""
 using (var mirrorBundle = JsonDocument.Parse("""
 {
   "schemaVersion": 1,
-  "type": "AIO_V3_PROBLEM_DIAGNOSTICS_BUNDLE",
+  "type": "ALBOT_V6_PROBLEM_DIAGNOSTICS_BUNDLE",
   "bundleId": "bundle-test-1",
-  "botId": "pi-main",
+  "botId": "albot-v6-main",
   "capturedAt": "2026-09-16T12:00:00Z",
   "trigger": { "severity": "ERROR", "reason": "NO_PROGRESS" },
   "snapshot": { "credential": "[REDACTED]" },
@@ -857,7 +898,7 @@ using (var mirrorHttp = new HttpClient())
     var metadata = new ProblemDiagnosticsMetadata(
         1,
         "bundle-test-1",
-        "pi-main",
+        "albot-v6-main",
         "2026-09-16T12:00:00Z",
         "2026-09-16",
         "ERROR",
@@ -868,8 +909,8 @@ using (var mirrorHttp = new HttpClient())
     var logicalPath = LocalProblemDiagnosticsArchive.LogicalArchivePath(metadata);
     var payload = sink.SerializePayload(mirrorBundle.RootElement.Clone(), metadata, logicalPath);
     using var parsed = JsonDocument.Parse(payload);
-    Assert(parsed.RootElement.GetProperty("type").GetString() == "AIO_V3_PROBLEM_DIAGNOSTICS_MIRROR", "PROBLEM_MIRROR_TYPE");
-    Assert(parsed.RootElement.GetProperty("botId").GetString() == "pi-main", "PROBLEM_MIRROR_BOT_ID");
+    Assert(parsed.RootElement.GetProperty("type").GetString() == "ALBOT_V6_PROBLEM_DIAGNOSTICS_MIRROR", "PROBLEM_MIRROR_TYPE");
+    Assert(parsed.RootElement.GetProperty("botId").GetString() == "albot-v6-main", "PROBLEM_MIRROR_BOT_ID");
     Assert(parsed.RootElement.GetProperty("archive").GetProperty("provider").GetString() == "local-spool", "PROBLEM_MIRROR_PROVIDER");
     Assert(parsed.RootElement.GetProperty("archive").GetProperty("sha256").GetString() == new string('a', 64), "PROBLEM_MIRROR_ARCHIVE_HASH");
     Assert(parsed.RootElement.GetProperty("bundle").GetProperty("bundleId").GetString() == "bundle-test-1", "PROBLEM_MIRROR_BUNDLE_ID");
