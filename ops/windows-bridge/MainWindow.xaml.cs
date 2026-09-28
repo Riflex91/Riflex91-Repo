@@ -555,7 +555,7 @@ public partial class MainWindow : Window
                 await SyncBackblazeProfileAsync(cts.Token);
                 try
                 {
-                    var cdp = new CdpAdventureLandClient(_httpClient, _config);
+                    var cdp = new CdpAlBotV6Client(_httpClient, _config);
                     var target = await cdp.FindBotTargetUrlAsync(cts.Token);
                     TargetUrlText.Text = target;
                     BotStateText.Text = "GEFUNDEN";
