@@ -6,13 +6,18 @@ namespace AioBotWindowsBridge;
 public sealed record BridgeConfig
 {
     public const int CurrentConfigVersion = 10;
+    public const string V6TelemetryIngestUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-debug-ingest";
+    public const string V6SignalControlUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-signal-control";
+    public const string V6TelemetryTokenEnvironmentVariable = "ALBOT_V6_TELEMETRY_TOKEN";
+    public const string V6DashboardBaseUrl = "https://aio-bot-dashboard.hansijuergenlul.workers.dev";
+    public const string V6DashboardWriteKeyEnvironmentVariable = "ALBOT_V6_WEB_DASHBOARD_WRITE_KEY";
 
     public int ConfigVersion { get; init; } = CurrentConfigVersion;
     public string CdpEndpoint { get; init; } = "http://127.0.0.1:9222";
     public string AllowedOrigin { get; init; } = "https://adventure.land";
-    public string TelemetryIngestUrl { get; init; } = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-debug-ingest";
-    public string SignalControlUrl { get; init; } = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-signal-control";
-    public string TelemetryTokenEnvironmentVariable { get; init; } = "ALBOT_V6_TELEMETRY_TOKEN";
+    public string TelemetryIngestUrl { get; init; } = V6TelemetryIngestUrl;
+    public string SignalControlUrl { get; init; } = V6SignalControlUrl;
+    public string TelemetryTokenEnvironmentVariable { get; init; } = V6TelemetryTokenEnvironmentVariable;
     public string BotId { get; init; } = "albot-v6-main";
     public bool TelemetryEnabled { get; init; }
     public bool AutoStartBrowser { get; init; } = true;
@@ -35,9 +40,9 @@ public sealed record BridgeConfig
     public long LiveWissensMaxGesamtBytesProLauf { get; init; } = 64L * 1024 * 1024;
 
     public bool WebDashboardEnabled { get; init; } = true;
-    public string WebDashboardBaseUrl { get; init; } = "https://aio-bot-dashboard.hansijuergenlul.workers.dev";
+    public string WebDashboardBaseUrl { get; init; } = V6DashboardBaseUrl;
     public string WebDashboardAccount { get; init; } = "default";
-    public string WebDashboardWriteKeyEnvironmentVariable { get; init; } = "ALBOT_V6_WEB_DASHBOARD_WRITE_KEY";
+    public string WebDashboardWriteKeyEnvironmentVariable { get; init; } = V6DashboardWriteKeyEnvironmentVariable;
 
     // Backblaze credentials are never stored in settings.json. Only the non-secret
     // endpoint/bucket settings live here; keyID + applicationKey are DPAPI-protected.
@@ -97,19 +102,19 @@ public sealed record BridgeConfig
                     ? 5
                     : loaded.PollIntervalSeconds,
                 TelemetryIngestUrl = storedVersion < 10
-                    ? "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-debug-ingest"
+                    ? V6TelemetryIngestUrl
                     : loaded.TelemetryIngestUrl,
                 SignalControlUrl = storedVersion < 10
-                    ? "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-signal-control"
+                    ? V6SignalControlUrl
                     : loaded.SignalControlUrl,
                 TelemetryTokenEnvironmentVariable = storedVersion < 10
-                    ? "ALBOT_V6_TELEMETRY_TOKEN"
+                    ? V6TelemetryTokenEnvironmentVariable
                     : loaded.TelemetryTokenEnvironmentVariable,
                 BotId = storedVersion < 10
                     ? "albot-v6-main"
                     : loaded.BotId,
                 WebDashboardWriteKeyEnvironmentVariable = storedVersion < 10
-                    ? "ALBOT_V6_WEB_DASHBOARD_WRITE_KEY"
+                    ? V6DashboardWriteKeyEnvironmentVariable
                     : loaded.WebDashboardWriteKeyEnvironmentVariable,
                 BackblazeEnabled = storedVersion < 10 ? false : loaded.BackblazeEnabled,
                 BackblazePrefix = storedVersion < 10 && string.Equals(loaded.BackblazePrefix, "v4", StringComparison.OrdinalIgnoreCase)
@@ -155,10 +160,19 @@ public sealed record BridgeConfig
         ValidateHttps(SignalControlUrl, "SIGNAL_CONTROL_HTTPS_REQUIRED");
         ValidateHttps(WebDashboardBaseUrl, "WEB_DASHBOARD_HTTPS_REQUIRED");
 
-        if (string.IsNullOrWhiteSpace(TelemetryTokenEnvironmentVariable))
-            throw new InvalidOperationException("TELEMETRY_TOKEN_ENV_REQUIRED");
-        if (string.IsNullOrWhiteSpace(WebDashboardWriteKeyEnvironmentVariable))
-            throw new InvalidOperationException("WEB_DASHBOARD_WRITE_KEY_ENV_REQUIRED");
+        if (!string.Equals(TelemetryIngestUrl.TrimEnd('/'), V6TelemetryIngestUrl, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("V6_TELEMETRY_ENDPOINT_REQUIRED");
+        if (!string.Equals(SignalControlUrl.TrimEnd('/'), V6SignalControlUrl, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("V6_SIGNAL_ENDPOINT_REQUIRED");
+        if (!string.Equals(WebDashboardBaseUrl.TrimEnd('/'), V6DashboardBaseUrl, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("V6_DASHBOARD_ENDPOINT_REQUIRED");
+        if (!string.Equals(TelemetryTokenEnvironmentVariable, V6TelemetryTokenEnvironmentVariable, StringComparison.Ordinal))
+            throw new InvalidOperationException("V6_TELEMETRY_TOKEN_ENV_REQUIRED");
+        if (!string.Equals(WebDashboardWriteKeyEnvironmentVariable, V6DashboardWriteKeyEnvironmentVariable, StringComparison.Ordinal))
+            throw new InvalidOperationException("V6_DASHBOARD_WRITE_KEY_ENV_REQUIRED");
+        if (string.Equals(BotId, "pi-main", StringComparison.OrdinalIgnoreCase)
+            || !BotId.StartsWith("albot-v6-", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("V6_BOT_ID_REQUIRED");
         if (string.IsNullOrWhiteSpace(WebDashboardAccount) || WebDashboardAccount.Length > 100)
             throw new InvalidOperationException("WEB_DASHBOARD_ACCOUNT_INVALID");
         if (string.IsNullOrWhiteSpace(BotId) || BotId.Length > 128)
