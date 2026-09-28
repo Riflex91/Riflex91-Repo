@@ -489,7 +489,7 @@ public partial class MainWindow : Window
             if (browser.Ready)
             {
                 await SyncDashboardProfileAsync(cts.Token);
-                await SyncBackblazeProfileAsync(cts.Token);
+                SyncBackblazeProfileState();
                 try
                 {
                     var cdp = new CdpAlBotV6Client(_httpClient, _config);
@@ -511,7 +511,7 @@ public partial class MainWindow : Window
                     ? "WARTET AUF BROWSER"
                     : _config.WebDashboardEnabled ? "WRITE-KEY FEHLT" : "DEAKTIVIERT";
                 BackblazeStateText.Text = _config.BackblazeEnabled
-                    ? _backblazeCredentials is { IsValid: true } ? "WARTET AUF BROWSER" : "ZUGANGSDATEN FEHLEN"
+                    ? "V6-VERTRAG AUSSTEHEND"
                     : "DEAKTIVIERT";
             }
         }
@@ -545,12 +545,15 @@ public partial class MainWindow : Window
 
     private async Task SyncDashboardProfileAsync(CancellationToken cancellationToken)
     {
-        var dashboard = new CdpWebDashboardConfigurator(_httpClient, _config);
         try
         {
+            // One-way migration cleanup only. V6 dashboard credentials live in the
+            // Windows host and are never written into Adventure Land/localStorage.
+            var dashboard = new CdpWebDashboardConfigurator(_httpClient, _config);
+            try { await dashboard.ClearAsync(cancellationToken); } catch { }
+
             if (!_config.WebDashboardEnabled)
             {
-                await dashboard.ClearAsync(cancellationToken);
                 DashboardStateText.Text = "DEAKTIVIERT";
                 DashboardErrorText.Text = string.Empty;
                 return;
@@ -558,18 +561,12 @@ public partial class MainWindow : Window
 
             if (!SecureDashboardWriteKeyStore.IsValidWriteKey(_dashboardWriteKey))
             {
-                await dashboard.ClearAsync(cancellationToken);
                 DashboardStateText.Text = "WRITE-KEY FEHLT";
                 DashboardErrorText.Text = string.Empty;
                 return;
             }
 
-            var result = await dashboard.ApplyAsync(
-                _config.WebDashboardBaseUrl,
-                _config.WebDashboardAccount,
-                _dashboardWriteKey!,
-                cancellationToken);
-            DashboardStateText.Text = result.Applied ? "BEREIT · PROFIL SYNCHRONISIERT" : "FEHLER";
+            DashboardStateText.Text = "BEREIT · V6 HOST-DIREKT";
             DashboardErrorText.Text = string.Empty;
         }
         catch (Exception error)
@@ -579,48 +576,14 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task SyncBackblazeProfileAsync(CancellationToken cancellationToken)
+    private void SyncBackblazeProfileState()
     {
-        var backblaze = new CdpBackblazeConfigurator(_httpClient, _config);
-        try
-        {
-            if (!_config.BackblazeEnabled)
-            {
-                await backblaze.ClearAsync(cancellationToken);
-                BackblazeStateText.Text = "DEAKTIVIERT";
-                BackblazeErrorText.Text = string.Empty;
-                return;
-            }
-
-            if (_backblazeCredentials is not { IsValid: true })
-            {
-                await backblaze.ClearAsync(cancellationToken);
-                BackblazeStateText.Text = "ZUGANGSDATEN FEHLEN";
-                BackblazeErrorText.Text = string.Empty;
-                return;
-            }
-
-            var result = await backblaze.ApplyAsync(
-                _config.BackblazeEndpoint,
-                _config.BackblazeRegion,
-                _config.BackblazeBucket,
-                _config.BackblazePrefix,
-                _backblazeCredentials,
-                cancellationToken);
-            BackblazeStateText.Text = result.Applied && result.VerifiedInBotContext
-                ? $"BEREIT · {result.ContextsConfigured} BOT-KONTEXT(E) VERIFIZIERT"
-                : "FEHLER";
-            BackblazeErrorText.Text = string.Empty;
-        }
-        catch (Exception error)
-        {
-            BackblazeStateText.Text = error.Message == CdpBackblazeConfigurator.BotContextNotFoundError
-                ? "WARTET AUF BOT-KONTEXT"
-                : "FEHLER";
-            BackblazeErrorText.Text = error.Message == CdpBackblazeConfigurator.BotContextNotFoundError
-                ? "AIO_V3.objectStorage wurde im CDP-Ausführungskontext noch nicht gefunden."
-                : Bounded(error.Message);
-        }
+        BackblazeStateText.Text = _config.BackblazeEnabled
+            ? "V6-VERTRAG AUSSTEHEND"
+            : "DEAKTIVIERT";
+        BackblazeErrorText.Text = _config.BackblazeEnabled
+            ? "LEGACY_BACKBLAZE_HANDOFF_DISABLED"
+            : string.Empty;
     }
 
     private void UpdateDashboardCredentialStatus(string? overrideText = null)
