@@ -226,7 +226,16 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  if (req.method !== "POST") return json(405, { ok: false, error: "METHOD_NOT_ALLOWED" });
+  if (req.method === "POST") {
+    return json(410, {
+      ok: false,
+      error: "LEGACY_TRANSPORT_RETIRED",
+      requiredGeneration: 6,
+      requiredProtocol: "albot-v6-bridge-v1",
+      historicalReadOnly: true
+    });
+  }
+  return json(405, { ok: false, error: "METHOD_NOT_ALLOWED" });
   const contentLength = Number(req.headers.get("content-length") || 0);
   if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) return json(413, { ok: false, error: "PAYLOAD_TOO_LARGE" });
   const auth = req.headers.get("authorization") || "";
