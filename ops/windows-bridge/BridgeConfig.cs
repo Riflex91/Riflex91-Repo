@@ -5,15 +5,15 @@ namespace AioBotWindowsBridge;
 
 public sealed record BridgeConfig
 {
-    public const int CurrentConfigVersion = 9;
+    public const int CurrentConfigVersion = 10;
 
     public int ConfigVersion { get; init; } = CurrentConfigVersion;
     public string CdpEndpoint { get; init; } = "http://127.0.0.1:9222";
     public string AllowedOrigin { get; init; } = "https://adventure.land";
-    public string TelemetryIngestUrl { get; init; } = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest";
-    public string SignalControlUrl { get; init; } = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-chatgpt-signal-control";
-    public string TelemetryTokenEnvironmentVariable { get; init; } = "AIO_V3_DEBUG_TELEMETRY_TOKEN";
-    public string BotId { get; init; } = "pi-main";
+    public string TelemetryIngestUrl { get; init; } = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-debug-ingest";
+    public string SignalControlUrl { get; init; } = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-signal-control";
+    public string TelemetryTokenEnvironmentVariable { get; init; } = "ALBOT_V6_TELEMETRY_TOKEN";
+    public string BotId { get; init; } = "albot-v6-main";
     public bool TelemetryEnabled { get; init; }
     public bool AutoStartBrowser { get; init; } = true;
     public string PreferredBrowser { get; init; } = "Brave";
@@ -37,7 +37,7 @@ public sealed record BridgeConfig
     public bool WebDashboardEnabled { get; init; } = true;
     public string WebDashboardBaseUrl { get; init; } = "https://aio-bot-dashboard.hansijuergenlul.workers.dev";
     public string WebDashboardAccount { get; init; } = "default";
-    public string WebDashboardWriteKeyEnvironmentVariable { get; init; } = "AIO_V3_WEB_DASHBOARD_WRITE_KEY";
+    public string WebDashboardWriteKeyEnvironmentVariable { get; init; } = "ALBOT_V6_WEB_DASHBOARD_WRITE_KEY";
 
     // Backblaze credentials are never stored in settings.json. Only the non-secret
     // endpoint/bucket settings live here; keyID + applicationKey are DPAPI-protected.
