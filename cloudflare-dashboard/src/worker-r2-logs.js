@@ -336,6 +336,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname;
+    if (request.method === 'GET' && RELEASE_OBJECTS[path]) return handleReleaseArtifact(request, env, path);
     if (request.method === 'GET' && releaseObjectKey(path)) return handleReleaseArtifact(request, env, path);
     if (request.method === 'POST' && path === '/api/v3/runtime') return handleRuntime(request, env, ctx);
     if (request.method === 'GET' && path === '/api/v3/log-archives') return handleArchiveList(request, env);
