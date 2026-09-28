@@ -132,11 +132,11 @@
                 <StackPanel>
                     <DockPanel LastChildFill="False">
                         <StackPanel>
-                            <TextBlock Text="Backblaze B2 für den Bot" FontSize="20" FontWeight="SemiBold" />
-                            <TextBlock Text="Die Bridge speichert keyID und applicationKey geschützt mit Windows-DPAPI und übergibt die Konfiguration nur an den Bot im dedizierten Adventure-Land-Profil. Die Bridge lädt selbst keine Dateien zu Backblaze hoch."
+                            <TextBlock Text="Backblaze B2 · V6 Langzeitarchiv" FontSize="20" FontWeight="SemiBold" />
+                            <TextBlock Text="V6 verwendet den bestehenden Bucket hostseitig über die Windows Bridge. keyID und applicationKey bleiben per Windows-DPAPI geschützt und werden niemals an Adventure Land oder das ALBot-V6-Bundle übergeben."
                                        Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,6,18,12" />
                         </StackPanel>
-                        <ToggleButton x:Name="BackblazeToggle" DockPanel.Dock="Right" Content="NICHT AN BOT SENDEN" HorizontalAlignment="Right" Margin="12,0,0,0" />
+                        <ToggleButton x:Name="BackblazeToggle" DockPanel.Dock="Right" Content="V6 ARCHIV AUS" HorizontalAlignment="Right" Margin="12,0,0,0" />
                     </DockPanel>
 
                     <Grid Margin="0,4,0,0">
@@ -180,14 +180,14 @@
                     </Grid>
 
                     <WrapPanel Margin="0,16,0,0">
-                        <Button Content="Speichern &amp; an Bot senden" Click="SaveBackblazeSettings_Click" MinWidth="205" Margin="0,0,10,0" />
-                        <Button Content="Jetzt an Bot senden" Click="SendBackblazeToBot_Click" MinWidth="155" Margin="0,0,10,0" />
+                        <Button Content="Speichern &amp; V6 aktivieren" Click="SaveBackblazeSettings_Click" MinWidth="205" Margin="0,0,10,0" />
+                        <Button Content="V6 Verbindung testen" Click="SendBackblazeToBot_Click" MinWidth="155" Margin="0,0,10,0" />
                         <Button Content="Zugangsdaten löschen" Click="DeleteBackblazeCredentials_Click" MinWidth="155" />
                     </WrapPanel>
                     <TextBlock x:Name="BackblazeStateText" Text="Backblaze-Konfiguration wird geprüft …" FontSize="16" FontWeight="SemiBold" Margin="0,14,0,0" />
                     <TextBlock x:Name="BackblazeErrorText" Text="" Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,5,0,0" />
                     <TextBlock x:Name="BackblazeCredentialStateText" Text="Zugangsdaten werden geprüft …" Style="{StaticResource MutedText}" Margin="0,5,0,0" />
-                    <TextBlock Text="Sicherheitsmodell: Die Schlüssel stehen nicht in settings.json, GitHub oder Supabase. Sie werden nur im Arbeitsspeicher der erlaubten Adventure-Land-Seite bereitgestellt und nicht in Browser-LocalStorage geschrieben. Verwende ausschließlich einen auf den Bucket al-aio-bot beschränkten Backblaze Application Key."
+                    <TextBlock Text="Sicherheitsmodell: Die Schlüssel stehen nicht in settings.json, GitHub, Supabase, Adventure Land oder Browser-LocalStorage. Die Windows Bridge schreibt ausschließlich hostseitig in den bestehenden Bucket al-aio-bot unter dem festen V6-Präfix v6/. Verwende einen auf diesen Bucket beschränkten Backblaze Application Key."
                                Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,10,0,0" />
                 </StackPanel>
             </Border>
