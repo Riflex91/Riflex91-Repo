@@ -49,6 +49,6 @@ test('Bridge defaults use dedicated V6 cloud identities', () => {
   assert.match(config, /telemetry-token-v6\.dpapi/);
   assert.match(config, /web-dashboard-write-key-v6\.dpapi/);
   assert.match(config, /backblaze-credentials-v6\.dpapi/);
-  assert.match(config, /storedVersion < 10[\s\S]*?albot-v6-debug-ingest/);
-  assert.match(config, /storedVersion < 10[\s\S]*?albot-v6-signal-control/);
+  assert.match(config, /TelemetryIngestUrl = storedVersion < 10[\s\S]*?\? V6TelemetryIngestUrl/);
+  assert.match(config, /SignalControlUrl = storedVersion < 10[\s\S]*?\? V6SignalControlUrl/);
 });
