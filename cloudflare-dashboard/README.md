@@ -15,6 +15,12 @@ Dieses Verzeichnis ist ab v3 die gemeinsame Web-Verwaltungszentrale für den Adv
 - D1-Datenbankübersicht
 - versionierte Settings mit Revision/Audit-Trail
 
+## Produktions-Deployment
+
+Der GitHub-Actions-Workflow `.github/workflows/deploy-cloudflare.yml` synchronisiert vor jedem produktiven Worker-Deploy die idempotente `cloudflare-dashboard/schema.sql` gegen die bestehende D1-Datenbank `aio-bot-dashboard`. Dadurch werden auch die V6-Tabellen `v6_runtime_status` und `v6_runtime_events` vor dem Worker-Rollout garantiert angelegt, ohne bestehende Daten zu löschen.
+
+Der Workflow prüft außerdem nur die Existenz des dedizierten Worker-Secrets `ALBOT_V6_WRITE_KEY`; Secret-Werte werden nicht in Actions-Logs ausgegeben.
+
 ## Cloudflare Bindings und Secrets
 
 `wrangler.jsonc` erwartet:
