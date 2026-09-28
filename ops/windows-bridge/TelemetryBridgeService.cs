@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace AioBotWindowsBridge;
 
 public sealed record RuntimeBridgeStatus(
@@ -22,7 +20,6 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     public const int MaxCatchUpBatches = 8;
     public const int DeepDiagnosticsIntervalSeconds = 30;
     public const int DeepDiagnosticEventLimit = 40;
-    public const int V5AutonomousTestDeploymentIntervalSeconds = 15;
     private const int CatchUpDelayMilliseconds = 100;
 
     private readonly BridgeConfig _config;
@@ -344,49 +341,6 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     }
 
     private void Publish(RuntimeBridgeStatus status) => StatusChanged?.Invoke(status);
-
-    private sealed record V5TransportState(bool IsV5, string? TerminalFingerprint);
-
-    private static V5TransportState ReadV5TransportState(JsonElement snapshot)
-    {
-        if (snapshot.ValueKind != JsonValueKind.Object
-            || !snapshot.TryGetProperty("status", out var statusNode)
-            || statusNode.ValueKind != JsonValueKind.Object
-            || !statusNode.TryGetProperty("v5AutonomousTest", out var v5)
-            || v5.ValueKind != JsonValueKind.Object)
-            return new V5TransportState(false, null);
-
-        var terminal = v5.TryGetProperty("terminal", out var terminalNode)
-            && terminalNode.ValueKind == JsonValueKind.True;
-        if (!terminal) return new V5TransportState(true, null);
-
-        var testId = v5.TryGetProperty("testId", out var testNode)
-            ? testNode.GetString() ?? "unknown"
-            : "unknown";
-        var status = v5.TryGetProperty("status", out var statusValue)
-            ? statusValue.GetString() ?? "UNKNOWN"
-            : "UNKNOWN";
-        var startedAt = v5.TryGetProperty("startedAtMs", out var startedNode)
-            && startedNode.TryGetInt64(out var started)
-            ? started
-            : 0;
-
-        return new V5TransportState(true, $"{testId}|{startedAt}|{status}");
-    }
-
-    public static bool ShouldUploadV5(
-        DateTimeOffset? lastUploadAt,
-        int statusIntervalSeconds,
-        DateTimeOffset now,
-        string? terminalFingerprint,
-        string? lastTerminalFingerprint)
-    {
-        var regularDue = !lastUploadAt.HasValue
-            || now - lastUploadAt.Value >= TimeSpan.FromSeconds(statusIntervalSeconds);
-        var terminalDue = !string.IsNullOrWhiteSpace(terminalFingerprint)
-            && !string.Equals(terminalFingerprint, lastTerminalFingerprint, StringComparison.Ordinal);
-        return regularDue || terminalDue;
-    }
 
     public static int EventLimitForRead(int configuredEventLimit, bool includeDeepDiagnostics)
     {
