@@ -14,7 +14,8 @@ test('active Windows Bridge service is V6-only', () => {
   assert.doesNotMatch(service, /EnsureV5AutonomousTest/);
   assert.doesNotMatch(service, /EnsureLegacyPr206/);
   assert.match(service, /CloudflareV6DashboardSink/);
-  assert.match(service, /LEGACY_BACKBLAZE_HANDOFF_DISABLED/);
+  assert.match(service, /BackblazeV6ArchiveSink/);
+  assert.match(service, /BACKBLAZE_V6_CREDENTIALS_REQUIRED/);
 });
 
 test('Windows UI never applies legacy transport credentials to Adventure Land', () => {
@@ -24,7 +25,8 @@ test('Windows UI never applies legacy transport credentials to Adventure Land', 
   assert.doesNotMatch(ui, /new CdpBackblazeConfigurator/);
   assert.doesNotMatch(ui, /dashboard\.ApplyAsync/);
   assert.doesNotMatch(ui, /EnsureV5AutonomousTest/);
-  assert.match(ui, /V6-VERTRAG AUSSTEHEND/);
+  assert.match(ui, /BackblazeV6ArchiveSink/);
+  assert.match(ui, /V6 HOST-ARCHIV/);
   assert.match(ui, /BEREIT · V6 HOST-DIREKT/);
 });
 
@@ -43,7 +45,7 @@ test('Bridge defaults use dedicated V6 cloud identities', () => {
   assert.match(config, /ALBOT_V6_TELEMETRY_TOKEN/);
   assert.match(config, /ALBOT_V6_WEB_DASHBOARD_WRITE_KEY/);
   assert.match(config, /BotId \{ get; init; \} = "albot-v6-main"/);
-  assert.match(config, /BackblazeEnabled \{ get; init; \} = false/);
+  assert.match(config, /BackblazeEnabled \{ get; init; \} = true/);
   assert.match(config, /ALBOT_V6_BACKBLAZE_KEY_ID/);
   assert.match(config, /ALBOT_V6_BACKBLAZE_APPLICATION_KEY/);
   assert.match(config, /telemetry-token-v6\.dpapi/);
