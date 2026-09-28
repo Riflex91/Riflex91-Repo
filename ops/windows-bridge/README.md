@@ -114,9 +114,9 @@ Some V3/V5 helper classes remain in the repository for historical regression evi
 
 ```text
 %APPDATA%\AioBotWindowsBridge\settings.json
-%APPDATA%\AioBotWindowsBridge\telemetry-token.dpapi
-%APPDATA%\AioBotWindowsBridge\web-dashboard-write-key.dpapi
-%APPDATA%\AioBotWindowsBridge\backblaze-credentials.dpapi
+%APPDATA%\AioBotWindowsBridge\telemetry-token-v6.dpapi
+%APPDATA%\AioBotWindowsBridge\web-dashboard-write-key-v6.dpapi
+%APPDATA%\AioBotWindowsBridge\backblaze-credentials-v6.dpapi
 %APPDATA%\AioBotWindowsBridge\bridge-state.json
 %APPDATA%\AioBotWindowsBridge\bridge-status.json
 ```
