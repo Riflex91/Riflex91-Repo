@@ -8,6 +8,8 @@ const MAX_BODY_BYTES = 512 * 1024;
 
 const runtimeWriteAt = new Map();
 let lastRetentionSweepAt = 0;
+let v6SchemaReady = false;
+let v6SchemaPromise = null;
 
 function json(payload, status = 200, headers = {}) {
   return new Response(JSON.stringify(payload), {
@@ -106,6 +108,53 @@ function buildEventStatements(env, account, character, cleanEvents, now) {
       now
     );
   });
+}
+
+async function ensureV6Schema(env) {
+  if (v6SchemaReady) return true;
+  if (!env || !env.DB || typeof env.DB.prepare !== 'function')
+    throw new Error('V6_D1_BINDING_MISSING');
+  if (v6SchemaPromise) return v6SchemaPromise;
+
+  v6SchemaPromise = (async () => {
+    const statements = [
+      `CREATE TABLE IF NOT EXISTS v6_runtime_status (
+        account TEXT NOT NULL,
+        character TEXT NOT NULL,
+        bot_id TEXT NOT NULL,
+        protocol TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        received_at INTEGER NOT NULL,
+        PRIMARY KEY(account, character)
+      )`,
+      'CREATE INDEX IF NOT EXISTS idx_v6_runtime_received_at ON v6_runtime_status(received_at)',
+      `CREATE TABLE IF NOT EXISTS v6_runtime_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        account TEXT NOT NULL,
+        character TEXT NOT NULL,
+        event_key TEXT NOT NULL,
+        severity TEXT,
+        component TEXT,
+        event TEXT,
+        reason TEXT,
+        payload TEXT,
+        event_at INTEGER NOT NULL,
+        received_at INTEGER NOT NULL,
+        UNIQUE(account, character, event_key)
+      )`,
+      'CREATE INDEX IF NOT EXISTS idx_v6_runtime_events_account_at ON v6_runtime_events(account, event_at DESC)',
+      'CREATE INDEX IF NOT EXISTS idx_v6_runtime_events_severity ON v6_runtime_events(account, severity, event_at DESC)'
+    ];
+    for (const sql of statements) await env.DB.prepare(sql).run();
+    v6SchemaReady = true;
+    return true;
+  })();
+
+  try {
+    return await v6SchemaPromise;
+  } finally {
+    v6SchemaPromise = null;
+  }
 }
 
 function requestIdentity(request) {
@@ -338,10 +387,20 @@ async function handleEvents(request, env) {
 async function handleV6Request(request, env) {
   const url = new URL(request.url);
   const path = url.pathname;
+  const recognized = (request.method === 'POST' && path === '/api/v6/runtime')
+    || (request.method === 'GET' && path === '/api/v6/overview')
+    || (request.method === 'GET' && path === '/api/v6/events');
+  if (!recognized) return null;
+
+  try {
+    await ensureV6Schema(env);
+  } catch (_) {
+    return json({ ok: false, error: 'V6_SCHEMA_UNAVAILABLE' }, 503);
+  }
+
   if (request.method === 'POST' && path === '/api/v6/runtime') return handleRuntime(request, env);
   if (request.method === 'GET' && path === '/api/v6/overview') return handleOverview(request, env);
-  if (request.method === 'GET' && path === '/api/v6/events') return handleEvents(request, env);
-  return null;
+  return handleEvents(request, env);
 }
 
 export {
@@ -350,6 +409,7 @@ export {
   RUNTIME_PUSH_TYPE,
   RUNTIME_MIN_WRITE_MS,
   EVENT_BATCH_MAX,
+  ensureV6Schema,
   legacyTransportBlocked,
   legacyBlockedResponse,
   handleV6Request,
