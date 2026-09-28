@@ -18,7 +18,7 @@ const SUPABASE_EDGE_MONTHLY_INVOCATION_LIMIT = 500_000;
 const USAGE_FLUSH_INTERVAL_MS = 60_000;
 const QUOTA_SNAPSHOT_CACHE_MS = 15_000;
 const SUPABASE_USAGE_CACHE_MS = 5 * 60_000;
-const DEFAULT_SUPABASE_USAGE_URL = 'https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest?mode=usage';
+const DEFAULT_SUPABASE_USAGE_URL = 'https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-debug-ingest?mode=usage';
 const rawStatement = new WeakMap();
 const guardedDatabases = new WeakMap();
 const pendingByDay = new Map();
