@@ -41,13 +41,13 @@ public sealed record BridgeConfig
 
     // Backblaze credentials are never stored in settings.json. Only the non-secret
     // endpoint/bucket settings live here; keyID + applicationKey are DPAPI-protected.
-    public bool BackblazeEnabled { get; init; } = true;
+    public bool BackblazeEnabled { get; init; } = false;
     public string BackblazeEndpoint { get; init; } = "https://s3.eu-central-003.backblazeb2.com";
     public string BackblazeRegion { get; init; } = "eu-central-003";
     public string BackblazeBucket { get; init; } = "al-aio-bot";
-    public string BackblazePrefix { get; init; } = "v4";
-    public string BackblazeKeyIdEnvironmentVariable { get; init; } = "AIO_V4_BACKBLAZE_KEY_ID";
-    public string BackblazeApplicationKeyEnvironmentVariable { get; init; } = "AIO_V4_BACKBLAZE_APPLICATION_KEY";
+    public string BackblazePrefix { get; init; } = "v6";
+    public string BackblazeKeyIdEnvironmentVariable { get; init; } = "ALBOT_V6_BACKBLAZE_KEY_ID";
+    public string BackblazeApplicationKeyEnvironmentVariable { get; init; } = "ALBOT_V6_BACKBLAZE_APPLICATION_KEY";
 
     public static string AppDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -95,7 +95,17 @@ public sealed record BridgeConfig
                     : loaded.PreferredBrowser,
                 PollIntervalSeconds = storedVersion < 9 && loaded.PollIntervalSeconds == 60
                     ? 5
-                    : loaded.PollIntervalSeconds
+                    : loaded.PollIntervalSeconds,
+                BackblazeEnabled = storedVersion < 10 ? false : loaded.BackblazeEnabled,
+                BackblazePrefix = storedVersion < 10 && string.Equals(loaded.BackblazePrefix, "v4", StringComparison.OrdinalIgnoreCase)
+                    ? "v6"
+                    : loaded.BackblazePrefix,
+                BackblazeKeyIdEnvironmentVariable = storedVersion < 10
+                    ? "ALBOT_V6_BACKBLAZE_KEY_ID"
+                    : loaded.BackblazeKeyIdEnvironmentVariable,
+                BackblazeApplicationKeyEnvironmentVariable = storedVersion < 10
+                    ? "ALBOT_V6_BACKBLAZE_APPLICATION_KEY"
+                    : loaded.BackblazeApplicationKeyEnvironmentVariable
             };
             await loaded.SaveAsync(cancellationToken);
         }
