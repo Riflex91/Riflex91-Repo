@@ -24,41 +24,21 @@ public sealed class SecureBackblazeCredentialStore
         string applicationKeyEnvironmentVariable,
         CancellationToken cancellationToken = default)
     {
-        if (File.Exists(_path))
+        var stored = await TryLoadProtectedAsync(_path, cancellationToken);
+        if (stored is { IsValid: true }) return stored;
+
+        // Explicit V6 takeover of the historical bucket: if no V6 credential file
+        // exists yet, import the old DPAPI-protected Backblaze key once into the
+        // V6 store. The legacy file is intentionally kept until V6 E2E succeeds.
+        if (string.Equals(_path, BridgeConfig.BackblazeCredentialsPath, StringComparison.OrdinalIgnoreCase)
+            && !File.Exists(_path)
+            && File.Exists(BridgeConfig.LegacyBackblazeCredentialsPath))
         {
-            try
+            var legacy = await TryLoadProtectedAsync(BridgeConfig.LegacyBackblazeCredentialsPath, cancellationToken);
+            if (legacy is { IsValid: true })
             {
-                var protectedText = await File.ReadAllTextAsync(_path, cancellationToken);
-                var protectedBytes = Convert.FromBase64String(protectedText.Trim());
-                try
-                {
-                    var clearBytes = ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser);
-                    try
-                    {
-                        var credentials = JsonSerializer.Deserialize<BackblazeCredentials>(clearBytes, BridgeConfig.JsonOptions);
-                        return credentials is { IsValid: true } ? credentials : null;
-                    }
-                    finally
-                    {
-                        CryptographicOperations.ZeroMemory(clearBytes);
-                    }
-                }
-                finally
-                {
-                    CryptographicOperations.ZeroMemory(protectedBytes);
-                }
-            }
-            catch (CryptographicException)
-            {
-                return null;
-            }
-            catch (FormatException)
-            {
-                return null;
-            }
-            catch (JsonException)
-            {
-                return null;
+                await SaveAsync(legacy, cancellationToken);
+                return legacy;
             }
         }
 
@@ -69,6 +49,47 @@ public sealed class SecureBackblazeCredentialStore
         var imported = new BackblazeCredentials(keyId!.Trim(), applicationKey!.Trim());
         await SaveAsync(imported, cancellationToken);
         return imported;
+    }
+
+    private static async Task<BackblazeCredentials?> TryLoadProtectedAsync(
+        string path,
+        CancellationToken cancellationToken)
+    {
+        if (!File.Exists(path)) return null;
+        try
+        {
+            var protectedText = await File.ReadAllTextAsync(path, cancellationToken);
+            var protectedBytes = Convert.FromBase64String(protectedText.Trim());
+            try
+            {
+                var clearBytes = ProtectedData.Unprotect(protectedBytes, null, DataProtectionScope.CurrentUser);
+                try
+                {
+                    var credentials = JsonSerializer.Deserialize<BackblazeCredentials>(clearBytes, BridgeConfig.JsonOptions);
+                    return credentials is { IsValid: true } ? credentials : null;
+                }
+                finally
+                {
+                    CryptographicOperations.ZeroMemory(clearBytes);
+                }
+            }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(protectedBytes);
+            }
+        }
+        catch (CryptographicException)
+        {
+            return null;
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     public async Task SaveAsync(BackblazeCredentials credentials, CancellationToken cancellationToken = default)

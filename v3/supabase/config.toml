@@ -1,0 +1,11 @@
+[functions.bot-debug-ingest]
+verify_jwt = false
+
+[functions.bot-chatgpt-signal-control]
+verify_jwt = false
+
+[functions.albot-v6-debug-ingest]
+verify_jwt = false
+
+[functions.albot-v6-signal-control]
+verify_jwt = false

@@ -1,5 +1,5 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.116.0";
 
 const MAX_BODY_BYTES = 768 * 1024;
 const MAX_PROBLEM_BUNDLE_BYTES = 640 * 1024;
@@ -145,7 +145,7 @@ async function handleProblemMirror(supabase: any, payload: any, botId: string, r
   if (Number(payload?.schemaVersion) !== 1) return json(400, { ok: false, error: "SCHEMA_MISMATCH" });
   const bundle = payload?.bundle;
   if (!bundle || typeof bundle !== "object" || Array.isArray(bundle)) return json(400, { ok: false, error: "PROBLEM_BUNDLE_REQUIRED" });
-  if (bundle?.type !== "AIO_V3_PROBLEM_DIAGNOSTICS_BUNDLE" || Number(bundle?.schemaVersion) !== 1)
+  if (bundle?.type !== "ALBOT_V6_PROBLEM_DIAGNOSTICS_BUNDLE" || Number(bundle?.schemaVersion) !== 1)
     return json(400, { ok: false, error: "PROBLEM_BUNDLE_SCHEMA_MISMATCH" });
 
   const bundleId = text(bundle?.bundleId, 220);
@@ -189,7 +189,7 @@ async function handleProblemMirror(supabase: any, payload: any, botId: string, r
 
   return json(200, {
     ok: true,
-    type: "AIO_V3_PROBLEM_DIAGNOSTICS_MIRROR_ACK",
+    type: "ALBOT_V6_PROBLEM_DIAGNOSTICS_MIRROR_ACK",
     bundleId,
     payloadBytes,
     payloadSha256,
@@ -226,16 +226,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  if (req.method === "POST") {
-    return json(410, {
-      ok: false,
-      error: "LEGACY_TRANSPORT_RETIRED",
-      requiredGeneration: 6,
-      requiredProtocol: "albot-v6-bridge-v1",
-      historicalReadOnly: true
-    });
-  }
-  return json(405, { ok: false, error: "METHOD_NOT_ALLOWED" });
+  if (req.method !== "POST") return json(405, { ok: false, error: "METHOD_NOT_ALLOWED" });
   const contentLength = Number(req.headers.get("content-length") || 0);
   if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) return json(413, { ok: false, error: "PAYLOAD_TOO_LARGE" });
   const auth = req.headers.get("authorization") || "";
@@ -244,8 +235,13 @@ Deno.serve(async (req: Request) => {
 
   let payload: any;
   try { payload = await req.json(); } catch (_) { return json(400, { ok: false, error: "INVALID_JSON" }); }
-  const botId = String(payload?.botId || req.headers.get("x-aio-v3-bot-id") || "").slice(0, 128);
+  const botId = String(payload?.botId || req.headers.get("x-albot-bot-id") || "").slice(0, 128);
   if (!botId) return json(400, { ok: false, error: "BOT_ID_REQUIRED" });
+
+  const generation = finiteInt(req.headers.get("x-albot-generation"), 0);
+  const bridgeProtocol = text(req.headers.get("x-albot-bridge-protocol"), 100);
+  if (generation !== 6 || bridgeProtocol !== "albot-v6-bridge-v1")
+    return json(403, { ok: false, error: "V6_BRIDGE_IDENTITY_REQUIRED" });
 
   const tokenHash = await sha256Hex(token);
   const { data: client, error: clientError } = await supabase.from("aio_debug_ingest_clients").select("bot_id, active").eq("bot_id", botId).eq("token_sha256", tokenHash).maybeSingle();
@@ -253,14 +249,23 @@ Deno.serve(async (req: Request) => {
 
   const receivedAt = new Date().toISOString();
   const nowMs = Date.now();
-  if (payload?.type === "AIO_V3_PROBLEM_DIAGNOSTICS_MIRROR")
+  if (payload?.type === "ALBOT_V6_PROBLEM_DIAGNOSTICS_MIRROR")
     return await handleProblemMirror(supabase, payload, botId, receivedAt, nowMs);
 
-  if (payload?.type !== "AIO_V3_DEBUG_TELEMETRY_BATCH" || Number(payload?.schemaVersion) !== 1)
+  if (payload?.type !== "ALBOT_V6_TELEMETRY_BATCH" || Number(payload?.schemaVersion) !== 1)
     return json(400, { ok: false, error: "SCHEMA_MISMATCH" });
 
   const events = Array.isArray(payload?.events) ? payload.events.slice(0, MAX_EVENTS) : [];
   const snapshot = payload?.snapshot && typeof payload.snapshot === "object" && !Array.isArray(payload.snapshot) ? payload.snapshot : {};
+  const identity = snapshot?.identity;
+  if (!identity
+      || identity?.product !== "AL Bot"
+      || Number(identity?.generation) !== 6
+      || text(identity?.bridgeProtocol, 100) !== "albot-v6-bridge-v1"
+      || identity?.transportOnly !== true
+      || identity?.gameplayActionAuthority !== false
+      || identity?.acceptsLegacyGenerations !== false)
+    return json(400, { ok: false, error: "V6_SNAPSHOT_IDENTITY_REQUIRED" });
   const cursorAfter = finiteInt(payload?.cursor?.afterSeq);
   const row = {
     bot_id: botId,

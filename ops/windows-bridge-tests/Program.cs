@@ -42,7 +42,7 @@ defaults.Validate();
 Assert(defaults.TelemetryEnabled == false, "TELEMETRY_MUST_DEFAULT_OFF");
 Assert(defaults.PreferredBrowser == "Brave", "BRAVE_MUST_DEFAULT");
 Assert(defaults.ConfigVersion == BridgeConfig.CurrentConfigVersion, "CONFIG_VERSION");
-Assert(BridgeConfig.CurrentConfigVersion == 9, "CONFIG_VERSION_9");
+Assert(BridgeConfig.CurrentConfigVersion == 11, "CONFIG_VERSION_11");
 Assert(defaults.PollIntervalSeconds == 5, "V5_LOCAL_OBSERVATION_DEFAULT");
 Assert(defaults.SupabaseStatusIntervalSeconds == 60, "V5_SUPABASE_STATUS_INTERVAL_60S");
 Assert(WindowsBridgeSelfUpdater.CheckIntervalSeconds == 60, "SELF_UPDATE_INTERVAL_60S");
@@ -68,17 +68,85 @@ Assert(!WindowsBridgeSelfUpdater.IsUpdateRequired(123, new string('a', 40), self
 Assert(!WindowsBridgeSelfUpdater.IsUpdateRequired(124, new string('d', 40), selfUpdateManifest), "SELF_UPDATE_NEVER_DOWNGRADES");
 Assert(defaults.TelemetryIngestUrl.StartsWith("https://", StringComparison.Ordinal), "INGEST_MUST_DEFAULT_HTTPS");
 Assert(defaults.SignalControlUrl.StartsWith("https://", StringComparison.Ordinal), "SIGNAL_CONTROL_MUST_DEFAULT_HTTPS");
+Assert(defaults.TelemetryIngestUrl.Contains("/functions/v1/albot-v6-debug-ingest", StringComparison.Ordinal), "V6_INGEST_ENDPOINT_DEFAULT");
+Assert(defaults.SignalControlUrl.Contains("/functions/v1/albot-v6-signal-control", StringComparison.Ordinal), "V6_SIGNAL_ENDPOINT_DEFAULT");
+Assert(defaults.TelemetryTokenEnvironmentVariable == "ALBOT_V6_TELEMETRY_TOKEN", "V6_TELEMETRY_ENV_DEFAULT");
+Assert(defaults.BotId == "albot-v6-main", "V6_BOT_ID_DEFAULT");
+Assert(defaults.WebDashboardWriteKeyEnvironmentVariable == "ALBOT_V6_WEB_DASHBOARD_WRITE_KEY", "V6_DASHBOARD_ENV_DEFAULT");
+Assert(BridgeConfig.TokenPath.EndsWith("telemetry-token-v6.dpapi", StringComparison.OrdinalIgnoreCase), "V6_TOKEN_STORE_PATH");
+Assert(BridgeConfig.WebDashboardWriteKeyPath.EndsWith("web-dashboard-write-key-v6.dpapi", StringComparison.OrdinalIgnoreCase), "V6_DASHBOARD_KEY_STORE_PATH");
+Assert(BridgeConfig.BackblazeCredentialsPath.EndsWith("backblaze-credentials-v6.dpapi", StringComparison.OrdinalIgnoreCase), "V6_BACKBLAZE_STORE_PATH");
+ExpectInvalid(defaults with {
+    TelemetryIngestUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-debug-ingest"
+}, "V6_TELEMETRY_ENDPOINT_REQUIRED");
+ExpectInvalid(defaults with {
+    SignalControlUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/bot-chatgpt-signal-control"
+}, "V6_SIGNAL_ENDPOINT_REQUIRED");
+ExpectInvalid(defaults with {
+    WebDashboardBaseUrl = "https://example.invalid"
+}, "V6_DASHBOARD_ENDPOINT_REQUIRED");
+ExpectInvalid(defaults with {
+    TelemetryTokenEnvironmentVariable = "AIO_V3_DEBUG_TELEMETRY_TOKEN"
+}, "V6_TELEMETRY_TOKEN_ENV_REQUIRED");
+ExpectInvalid(defaults with {
+    WebDashboardWriteKeyEnvironmentVariable = "AIO_V3_WEB_DASHBOARD_WRITE_KEY"
+}, "V6_DASHBOARD_WRITE_KEY_ENV_REQUIRED");
+ExpectInvalid(defaults with { BotId = "pi-main" }, "V6_BOT_ID_REQUIRED");
+Assert(CdpAlBotV6Client.Generation == 6, "V6_BRIDGE_GENERATION");
+Assert(CdpAlBotV6Client.Product == "AL Bot", "V6_BRIDGE_PRODUCT");
+Assert(CdpAlBotV6Client.Protocol == "albot-v6-bridge-v1", "V6_BRIDGE_PROTOCOL");
+Assert(CdpAlBotV6Client.SnapshotType == "ALBOT_V6_DEBUG_SNAPSHOT", "V6_BRIDGE_SNAPSHOT_TYPE");
+Assert(CdpAlBotV6Client.EventsType == "ALBOT_V6_DEBUG_EVENTS", "V6_BRIDGE_EVENTS_TYPE");
+Assert(CdpAlBotV6Client.AckType == "ALBOT_V6_TELEMETRY_ACK", "V6_BRIDGE_ACK_TYPE");
+var bridgePrivateFields = typeof(TelemetryBridgeService)
+    .GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+Assert(bridgePrivateFields.Any(field => field.FieldType == typeof(CdpAlBotV6Client)), "ACTIVE_BRIDGE_MUST_USE_V6_CDP_CLIENT");
+Assert(!bridgePrivateFields.Any(field => field.FieldType == typeof(CdpAdventureLandClient)), "ACTIVE_BRIDGE_MUST_NOT_USE_LEGACY_CDP_CLIENT");
+Assert(!bridgePrivateFields.Any(field => field.FieldType == typeof(CdpBackblazeConfigurator)), "ACTIVE_BRIDGE_MUST_NOT_HOLD_LEGACY_BACKBLAZE_CONFIGURATOR");
+Assert(bridgePrivateFields.Any(field => field.FieldType == typeof(BackblazeV6ArchiveSink)), "ACTIVE_BRIDGE_MUST_USE_V6_BACKBLAZE_HOST_SINK");
+Assert(CloudflareV6DashboardSink.RuntimePath == "/api/v6/runtime", "V6_DASHBOARD_RUNTIME_PATH");
+Assert(CloudflareV6DashboardSink.IsWithinPayloadBudget(CloudflareV6DashboardSink.MaxPayloadBytes), "V6_DASHBOARD_PAYLOAD_BUDGET");
+Assert(!CloudflareV6DashboardSink.IsWithinPayloadBudget(CloudflareV6DashboardSink.MaxPayloadBytes + 1), "V6_DASHBOARD_PAYLOAD_OVERSIZE_BLOCKED");
+using (var v6IdentityDocument = JsonDocument.Parse("""
+{
+  "product": "AL Bot",
+  "generation": 6,
+  "bridgeProtocol": "albot-v6-bridge-v1",
+  "runtimeVersion": "0.22.7-h22",
+  "transportOnly": true,
+  "gameplayActionAuthority": false,
+  "acceptsLegacyGenerations": false
+}
+"""))
+{
+    Assert(CdpAlBotV6Client.IsV6Identity(v6IdentityDocument.RootElement), "V6_IDENTITY_ACCEPTED");
+}
+using (var legacyIdentityDocument = JsonDocument.Parse("""
+{
+  "product": "Adventure Land AiO Bot",
+  "generation": 5,
+  "bridgeProtocol": "aio-v3",
+  "transportOnly": true,
+  "gameplayActionAuthority": false,
+  "acceptsLegacyGenerations": true
+}
+"""))
+{
+    Assert(!CdpAlBotV6Client.IsV6Identity(legacyIdentityDocument.RootElement), "LEGACY_IDENTITY_REJECTED");
+}
 Assert(defaults.WebDashboardEnabled, "WEB_DASHBOARD_PROFILE_SYNC_DEFAULT_ON");
 Assert(defaults.WebDashboardBaseUrl.StartsWith("https://", StringComparison.Ordinal), "WEB_DASHBOARD_MUST_DEFAULT_HTTPS");
 Assert(defaults.WebDashboardAccount == "default", "WEB_DASHBOARD_ACCOUNT_DEFAULT");
 Assert(!string.IsNullOrWhiteSpace(defaults.WebDashboardWriteKeyEnvironmentVariable), "WEB_DASHBOARD_ENV_REQUIRED");
-Assert(defaults.BackblazeEnabled, "BACKBLAZE_HANDOFF_MUST_DEFAULT_ON");
+Assert(defaults.BackblazeEnabled, "V6_BACKBLAZE_HOST_ARCHIVE_DEFAULT_ON");
 Assert(defaults.BackblazeEndpoint == "https://s3.eu-central-003.backblazeb2.com", "BACKBLAZE_ENDPOINT_DEFAULT");
 Assert(defaults.BackblazeRegion == "eu-central-003", "BACKBLAZE_REGION_DEFAULT");
 Assert(defaults.BackblazeBucket == "al-aio-bot", "BACKBLAZE_BUCKET_DEFAULT");
-Assert(defaults.BackblazePrefix == "v4", "BACKBLAZE_PREFIX_DEFAULT");
-Assert(!string.IsNullOrWhiteSpace(defaults.BackblazeKeyIdEnvironmentVariable), "BACKBLAZE_KEY_ID_ENV_REQUIRED");
-Assert(!string.IsNullOrWhiteSpace(defaults.BackblazeApplicationKeyEnvironmentVariable), "BACKBLAZE_APPLICATION_KEY_ENV_REQUIRED");
+Assert(defaults.BackblazePrefix == "v6", "BACKBLAZE_PREFIX_DEFAULT");
+Assert(defaults.BackblazeKeyIdEnvironmentVariable == "ALBOT_V6_BACKBLAZE_KEY_ID", "BACKBLAZE_KEY_ID_ENV_REQUIRED");
+Assert(defaults.BackblazeApplicationKeyEnvironmentVariable == "ALBOT_V6_BACKBLAZE_APPLICATION_KEY", "BACKBLAZE_APPLICATION_KEY_ENV_REQUIRED");
+Assert(BridgeConfig.CurrentConfigVersion == 11, "V6_CONFIG_VERSION_11");
+Assert(BridgeConfig.LegacyBackblazeCredentialsPath.EndsWith("backblaze-credentials.dpapi", StringComparison.OrdinalIgnoreCase), "LEGACY_BACKBLAZE_STORE_AVAILABLE_FOR_ONE_TIME_IMPORT");
 Assert(defaults.WissenswaechterAktiv, "WISSENSWAECHTER_DEFAULT_ON");
 Assert(V5ReadinessSystemtest.TestKennung == "V5_WINDOWS_BRIDGE_READINESS", "V5_READINESS_TEST_ID");
 Assert(V5ReadinessSystemtest.TestVersion == "1.1.0", "V5_READINESS_TEST_VERSION");
@@ -312,6 +380,7 @@ ExpectInvalid(defaults with { BackblazeRegion = "EU Central" }, "BACKBLAZE_REGIO
 ExpectInvalid(defaults with { BackblazeBucket = "AL-aio-bot" }, "BACKBLAZE_BUCKET_INVALID");
 ExpectInvalid(defaults with { BackblazeBucket = "b2-aio-bot" }, "BACKBLAZE_BUCKET_INVALID");
 ExpectInvalid(defaults with { BackblazePrefix = "v4/../secret" }, "BACKBLAZE_PREFIX_INVALID");
+ExpectInvalid(defaults with { BackblazePrefix = "v4" }, "V6_BACKBLAZE_PREFIX_REQUIRED");
 ExpectInvalid(defaults with { WissenswaechterIntervallMinuten = 10 }, "WISSENSWAECHTER_INTERVALL_MUSS_60_MINUTEN_SEIN");
 ExpectInvalid(defaults with { WissenswaechterIntervallMinuten = 120 }, "WISSENSWAECHTER_INTERVALL_MUSS_60_MINUTEN_SEIN");
 ExpectInvalid(defaults with { WissenswaechterMaxQuellenProLauf = 0 }, "WISSENSWAECHTER_QUELLENLIMIT_UNGUELTIG");
@@ -336,15 +405,43 @@ Assert(SsdVolumeGesundheitsPruefer.Bewerte(gesundeSsd with { FreiBytes = 149 }).
     BackblazeEndpoint = "https://s3.eu-central-003.backblazeb2.com",
     BackblazeRegion = "eu-central-003",
     BackblazeBucket = "al-aio-bot",
-    BackblazePrefix = "v4"
+    BackblazePrefix = "v6"
 }).Validate();
 
-var v5TransportNow = DateTimeOffset.UtcNow;
-Assert(TelemetryBridgeService.ShouldUploadV5(null, 60, v5TransportNow, null, null), "V5_STATUS_INITIAL_UPLOAD");
-Assert(!TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(59), null, null), "V5_STATUS_THROTTLED_BEFORE_60S");
-Assert(TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(60), null, null), "V5_STATUS_DUE_AT_60S");
-Assert(TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(5), "test|1|BESTANDEN", null), "V5_TERMINAL_IMMEDIATE");
-Assert(!TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(5), "test|1|BESTANDEN", "test|1|BESTANDEN"), "V5_TERMINAL_DEDUPED");
+using (var archiveSnapshot = JsonDocument.Parse("{}"))
+using (var archiveEvents = JsonDocument.Parse("[]"))
+{
+    var archiveRead = new DebugReadResult(
+        archiveSnapshot.RootElement.Clone(),
+        archiveEvents.RootElement.Clone(),
+        0,
+        0,
+        0,
+        0,
+        false,
+        "https://adventure.land/");
+    var archiveNow = DateTimeOffset.UtcNow;
+    Assert(BackblazeV6ArchiveSink.ShouldArchive(archiveRead, null, archiveNow), "V6_BACKBLAZE_INITIAL_SNAPSHOT_ARCHIVED");
+    Assert(!BackblazeV6ArchiveSink.ShouldArchive(archiveRead, archiveNow, archiveNow.AddMinutes(1)), "V6_BACKBLAZE_EMPTY_BATCH_SAMPLED");
+    Assert(BackblazeV6ArchiveSink.ShouldArchive(archiveRead, archiveNow, archiveNow.AddSeconds(BackblazeV6ArchiveSink.SnapshotArchiveIntervalSeconds + 1)), "V6_BACKBLAZE_PERIODIC_SNAPSHOT_ARCHIVED");
+}
+
+using (var archiveSnapshot = JsonDocument.Parse("{}"))
+using (var archiveEvents = JsonDocument.Parse("[{\"seq\":1}]"))
+{
+    var archiveRead = new DebugReadResult(
+        archiveSnapshot.RootElement.Clone(),
+        archiveEvents.RootElement.Clone(),
+        0,
+        0,
+        1,
+        1,
+        false,
+        "https://adventure.land/");
+    var archiveNow = DateTimeOffset.UtcNow;
+    Assert(BackblazeV6ArchiveSink.ShouldArchive(archiveRead, archiveNow, archiveNow.AddSeconds(1)), "V6_BACKBLAZE_EVENT_BATCH_ALWAYS_ARCHIVED");
+}
+
 Assert(CdpAdventureLandClient.OperationsContextPriority(false, false, null, null, null) == 0, "V5_CONTEXT_INVALID_REJECTED");
 Assert(CdpAdventureLandClient.OperationsContextPriority(true, false, null, null, "priest") == 10, "V5_CONTEXT_LEGACY_FALLBACK");
 Assert(CdpAdventureLandClient.OperationsContextPriority(true, true, "WORKER", "HEARTBEAT", "priest") == 50, "V5_CONTEXT_WORKER_PRIORITY");
@@ -756,10 +853,6 @@ Assert(!CdpAdventureLandClient.ShouldAttemptLegacyPr206RosterRecovery(
     "ROSTER",
     false, 0, 0, false, 0), "V5_LEGACY_ROSTER_RECOVERY_EXACT_TEST_ONLY");
 
-var v5DeployNow = DateTimeOffset.UtcNow;
-Assert(TelemetryBridgeService.ShouldEnsureV5AutonomousTestDeployment(null, v5DeployNow), "V5_AUTO_DEPLOY_INITIAL");
-Assert(!TelemetryBridgeService.ShouldEnsureV5AutonomousTestDeployment(v5DeployNow, v5DeployNow.AddSeconds(14)), "V5_AUTO_DEPLOY_THROTTLED");
-Assert(TelemetryBridgeService.ShouldEnsureV5AutonomousTestDeployment(v5DeployNow, v5DeployNow.AddSeconds(15)), "V5_AUTO_DEPLOY_15S");
 ExpectInvalid(defaults with { SupabaseStatusIntervalSeconds = 59 }, "SUPABASE_STATUS_INTERVAL_MUST_BE_60_SECONDS");
 
 Assert(TelemetryBridgeService.ComputeBackoffSeconds(5, 300, 1) == 5, "BACKOFF_1");
@@ -783,6 +876,12 @@ Assert(SupabaseTelemetrySink.IsWithinPayloadBudget(SupabaseTelemetrySink.MaxPayl
 Assert(!SupabaseTelemetrySink.IsWithinPayloadBudget(SupabaseTelemetrySink.MaxPayloadBytes + 1), "PAYLOAD_BUDGET_REJECTS_OVERSIZE");
 Assert(SupabaseProblemDiagnosticsSink.IsWithinPayloadBudget(SupabaseProblemDiagnosticsSink.MaxPayloadBytes), "PROBLEM_MIRROR_BUDGET_BOUNDARY");
 Assert(!SupabaseProblemDiagnosticsSink.IsWithinPayloadBudget(SupabaseProblemDiagnosticsSink.MaxPayloadBytes + 1), "PROBLEM_MIRROR_BUDGET_REJECTS_OVERSIZE");
+Assert(ProblemDiagnosticsMirrorOutbox.PendingDirectory.EndsWith("mirror-pending-v6", StringComparison.OrdinalIgnoreCase), "V6_PROBLEM_MIRROR_OUTBOX_NAMESPACED");
+Assert(ProblemDiagnosticsMirrorOutbox.LegacyPendingDirectory.EndsWith("mirror-pending", StringComparison.OrdinalIgnoreCase), "LEGACY_PROBLEM_MIRROR_OUTBOX_RETAINED");
+Assert(!string.Equals(
+    ProblemDiagnosticsMirrorOutbox.PendingDirectory,
+    ProblemDiagnosticsMirrorOutbox.LegacyPendingDirectory,
+    StringComparison.OrdinalIgnoreCase), "V6_PROBLEM_MIRROR_OUTBOX_ISOLATED_FROM_V3");
 
 using (var snapshotDocument = JsonDocument.Parse("{}"))
 using (var eventsDocument = JsonDocument.Parse("[]"))
@@ -842,9 +941,9 @@ using (var harmlessEvents = JsonDocument.Parse("""
 using (var mirrorBundle = JsonDocument.Parse("""
 {
   "schemaVersion": 1,
-  "type": "AIO_V3_PROBLEM_DIAGNOSTICS_BUNDLE",
+  "type": "ALBOT_V6_PROBLEM_DIAGNOSTICS_BUNDLE",
   "bundleId": "bundle-test-1",
-  "botId": "pi-main",
+  "botId": "albot-v6-main",
   "capturedAt": "2026-09-16T12:00:00Z",
   "trigger": { "severity": "ERROR", "reason": "NO_PROGRESS" },
   "snapshot": { "credential": "[REDACTED]" },
@@ -857,7 +956,7 @@ using (var mirrorHttp = new HttpClient())
     var metadata = new ProblemDiagnosticsMetadata(
         1,
         "bundle-test-1",
-        "pi-main",
+        "albot-v6-main",
         "2026-09-16T12:00:00Z",
         "2026-09-16",
         "ERROR",
@@ -868,8 +967,8 @@ using (var mirrorHttp = new HttpClient())
     var logicalPath = LocalProblemDiagnosticsArchive.LogicalArchivePath(metadata);
     var payload = sink.SerializePayload(mirrorBundle.RootElement.Clone(), metadata, logicalPath);
     using var parsed = JsonDocument.Parse(payload);
-    Assert(parsed.RootElement.GetProperty("type").GetString() == "AIO_V3_PROBLEM_DIAGNOSTICS_MIRROR", "PROBLEM_MIRROR_TYPE");
-    Assert(parsed.RootElement.GetProperty("botId").GetString() == "pi-main", "PROBLEM_MIRROR_BOT_ID");
+    Assert(parsed.RootElement.GetProperty("type").GetString() == "ALBOT_V6_PROBLEM_DIAGNOSTICS_MIRROR", "PROBLEM_MIRROR_TYPE");
+    Assert(parsed.RootElement.GetProperty("botId").GetString() == "albot-v6-main", "PROBLEM_MIRROR_BOT_ID");
     Assert(parsed.RootElement.GetProperty("archive").GetProperty("provider").GetString() == "local-spool", "PROBLEM_MIRROR_PROVIDER");
     Assert(parsed.RootElement.GetProperty("archive").GetProperty("sha256").GetString() == new string('a', 64), "PROBLEM_MIRROR_ARCHIVE_HASH");
     Assert(parsed.RootElement.GetProperty("bundle").GetProperty("bundleId").GetString() == "bundle-test-1", "PROBLEM_MIRROR_BUNDLE_ID");

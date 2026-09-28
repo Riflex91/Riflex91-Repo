@@ -35,7 +35,7 @@ public sealed class SupabaseSignalControlClient
         using var request = CreateRequest(HttpMethod.Post, new Uri(_config.SignalControlUrl));
         request.Content = new StringContent(JsonSerializer.Serialize(new
         {
-            type = "AIO_CHATGPT_SIGNAL_CONTROL",
+            type = "ALBOT_V6_SIGNAL_CONTROL",
             schemaVersion = 1,
             botId = _config.BotId,
             enabled
@@ -48,7 +48,9 @@ public sealed class SupabaseSignalControlClient
     {
         var request = new HttpRequestMessage(method, uri);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
-        request.Headers.TryAddWithoutValidation("x-aio-v3-bot-id", _config.BotId);
+        request.Headers.TryAddWithoutValidation("x-albot-bot-id", _config.BotId);
+        request.Headers.TryAddWithoutValidation("x-albot-generation", "6");
+        request.Headers.TryAddWithoutValidation("x-albot-bridge-protocol", CdpAlBotV6Client.Protocol);
         return request;
     }
 

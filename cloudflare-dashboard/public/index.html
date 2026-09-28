@@ -380,7 +380,7 @@ function renderLogs(){
 function renderAll(){renderCharacterSelect();renderDashboard();renderCharacters();renderTasks();renderStats();renderLogs();$('sidebarAccount').textContent=account;$('adminState').textContent=adminKey?'Admin':'Read-only';$('settingsAdmin').textContent=adminKey?'Admin aktiv':'Read-only'}
 function loadTelemetry(eventLimit){
   if(!readKey||loading)return Promise.resolve();loading=true;
-  return Promise.all([api(withAccount('/api/v3/overview')),api(withAccount('/api/v3/events?limit='+(eventLimit||80))).catch(function(){return {ok:true,events:[]}})]).then(function(r){overview=r[0];events=Array.isArray(r[1].events)?r[1].events:[];$('login').classList.add('hidden');$('loginError').textContent='';renderAll()}).catch(function(e){$('loginError').textContent=e.message;if($('login').classList.contains('hidden'))toast(e.message,true);throw e}).finally(function(){loading=false});
+  return Promise.all([api(withAccount('/api/v6/overview')),api(withAccount('/api/v6/events?limit='+(eventLimit||80))).catch(function(){return {ok:true,events:[]}})]).then(function(r){overview=r[0];events=Array.isArray(r[1].events)?r[1].events:[];$('login').classList.add('hidden');$('loginError').textContent='';renderAll()}).catch(function(e){$('loginError').textContent=e.message;if($('login').classList.contains('hidden'))toast(e.message,true);throw e}).finally(function(){loading=false});
 }
 function refreshAll(){return loadTelemetry(activePage==='logs'?200:80).then(function(){if(activePage==='settings'&&!settingsPayload)return loadSettings(false)}).catch(function(){})}
 function showPage(page){

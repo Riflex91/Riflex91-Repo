@@ -56,6 +56,36 @@ CREATE TABLE IF NOT EXISTS v3_runtime_status (
 );
 CREATE INDEX IF NOT EXISTS idx_v3_runtime_received_at ON v3_runtime_status(received_at);
 
+-- AL Bot V6 transport: isolated runtime status/events. Older generations remain
+-- readable from their historical v3 tables but do not write into this namespace.
+CREATE TABLE IF NOT EXISTS v6_runtime_status (
+  account TEXT NOT NULL,
+  character TEXT NOT NULL,
+  bot_id TEXT NOT NULL,
+  protocol TEXT NOT NULL,
+  payload TEXT NOT NULL,
+  received_at INTEGER NOT NULL,
+  PRIMARY KEY(account, character)
+);
+CREATE INDEX IF NOT EXISTS idx_v6_runtime_received_at ON v6_runtime_status(received_at);
+
+CREATE TABLE IF NOT EXISTS v6_runtime_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  account TEXT NOT NULL,
+  character TEXT NOT NULL,
+  event_key TEXT NOT NULL,
+  severity TEXT,
+  component TEXT,
+  event TEXT,
+  reason TEXT,
+  payload TEXT,
+  event_at INTEGER NOT NULL,
+  received_at INTEGER NOT NULL,
+  UNIQUE(account, character, event_key)
+);
+CREATE INDEX IF NOT EXISTS idx_v6_runtime_events_account_at ON v6_runtime_events(account, event_at DESC);
+CREATE INDEX IF NOT EXISTS idx_v6_runtime_events_severity ON v6_runtime_events(account, severity, event_at DESC);
+
 CREATE TABLE IF NOT EXISTS v3_control_settings (
   account TEXT PRIMARY KEY,
   schema_version INTEGER NOT NULL DEFAULT 1,

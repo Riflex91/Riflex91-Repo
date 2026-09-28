@@ -103,7 +103,7 @@ public partial class MainWindow : Window
             _token = await _tokenStore.LoadAsync(_config.TelemetryTokenEnvironmentVariable);
             TokenStateText.Text = SecureTokenStore.IsValidToken(_token)
                 ? "Token vorhanden und für diesen Windows-Benutzer geschützt gespeichert."
-                : "Kein Token gefunden. Einmalig einfügen oder als AIO_V3_DEBUG_TELEMETRY_TOKEN setzen.";
+                : "Kein Token gefunden. Einmalig einfügen oder als ALBOT_V6_TELEMETRY_TOKEN setzen.";
 
             _dashboardWriteKey = await _dashboardKeyStore.LoadAsync(_config.WebDashboardWriteKeyEnvironmentVariable);
             UpdateDashboardCredentialStatus();
@@ -142,7 +142,7 @@ public partial class MainWindow : Window
             _initializing = false;
         }
 
-        await RefreshConnectionsAsync(startBrowser: _config.TelemetryEnabled || _config.BackblazeEnabled);
+        await RefreshConnectionsAsync(startBrowser: _config.TelemetryEnabled);
         if (_config.TelemetryEnabled && SecureTokenStore.IsValidToken(_token))
             await StartBridgeAsync();
 
@@ -357,9 +357,8 @@ public partial class MainWindow : Window
             _config = candidate;
             BackblazeDetailEndpointText.Text = _config.BackblazeEndpoint;
             await RestartBridgeIfRunningAsync();
-            await RefreshConnectionsAsync(startBrowser: true);
-            UpdateBackblazeCredentialStatus("Backblaze-Einstellungen gespeichert; Übergabe wird im echten Bot-Kontext verifiziert.");
-            BackblazeErrorText.Text = string.Empty;
+            UpdateBackblazeCredentialStatus("Backblaze-Einstellungen gespeichert. V6 verwendet den bestehenden Bucket ausschließlich hostseitig unter v6/.");
+            BackblazeErrorText.Text = "Keine Zugangsdaten werden an Adventure Land übergeben.";
         }
         catch (Exception error)
         {
@@ -370,49 +369,28 @@ public partial class MainWindow : Window
 
     private async void SendBackblazeToBot_Click(object sender, RoutedEventArgs e)
     {
-        BackblazeStateText.Text = "SENDE · SUCHE BOT-KONTEXT …";
-        BackblazeErrorText.Text = string.Empty;
         try
         {
-            var candidate = BuildBackblazeConfigFromUi(forceEnabled: true);
             if (_backblazeCredentials is not { IsValid: true })
                 throw new InvalidOperationException("BACKBLAZE_CREDENTIALS_REQUIRED");
 
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            var launcher = new BrowserLauncher(_httpClient, candidate);
-            var browser = await launcher.EnsureReadyAsync(cts.Token);
-            if (!browser.Ready) throw new InvalidOperationException(browser.State);
+            var candidate = BuildBackblazeConfigFromUi(forceEnabled: true);
+            await candidate.SaveAsync();
+            _config = candidate;
+            BackblazeToggle.IsChecked = true;
+            UpdateToggleLabels();
 
-            var configurator = new CdpBackblazeConfigurator(_httpClient, candidate);
-            var result = await configurator.ApplyAsync(
-                candidate.BackblazeEndpoint,
-                candidate.BackblazeRegion,
-                candidate.BackblazeBucket,
-                candidate.BackblazePrefix,
-                _backblazeCredentials,
-                cts.Token);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+            var sink = new BackblazeV6ArchiveSink(_httpClient, _config, _backblazeCredentials);
+            var result = await sink.SelfTestAsync(cts.Token);
+            if (!result.Stored || !result.Verified)
+                throw new InvalidOperationException("BACKBLAZE_V6_SELF_TEST_NOT_VERIFIED");
 
-            if (!result.Applied || !result.VerifiedInBotContext)
-                throw new InvalidOperationException("BACKBLAZE_BOT_CONTEXT_READBACK_FAILED");
-
-            BackblazeStateText.Text = $"BEREIT · {result.ContextsConfigured} BOT-KONTEXT(E) VERIFIZIERT";
-            BackblazeErrorText.Text = string.Empty;
-
-            var liveTest = System.Windows.MessageBox.Show(
-                "Die Backblaze-Konfiguration ist jetzt im echten AIO-V3-Bot-Kontext verifiziert.\n\n" +
-                "Soll jetzt ein kleiner Live-Test ausgeführt werden? Der Bot lädt ein _health-JSON nach Backblaze hoch " +
-                "und prüft es anschließend per HEAD auf Größe und SHA-256-Metadatum. Das Testobjekt wird NICHT gelöscht.",
-                "Backblaze Live-Test",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Question);
-
-            if (liveTest != MessageBoxResult.Yes) return;
-
-            BackblazeStateText.Text = "LIVE-TEST · PUT + HEAD …";
-            using var testCts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            var test = await configurator.SelfTestAsync(testCts.Token);
-            BackblazeStateText.Text = "BEREIT · LIVE-TEST VERIFIZIERT";
-            BackblazeErrorText.Text = $"PUT + HEAD erfolgreich · {test.Key} · {test.Bytes} Bytes";
+            BackblazeStateText.Text = "BEREIT · V6 HOST-ARCHIV VERIFIZIERT";
+            BackblazeErrorText.Text =
+                $"Bucket {result.Bucket}, Objekt {result.Key}, {result.Bytes} Bytes · Zugangsdaten blieben in der Windows Bridge.";
+            UpdateBackblazeCredentialStatus("V6 Backblaze hostseitig verifiziert; der V3-Browser-Handoff bleibt deaktiviert.");
+            await RestartBridgeIfRunningAsync();
         }
         catch (Exception error)
         {
@@ -426,21 +404,6 @@ public partial class MainWindow : Window
         var restartTelemetry = _bridge is not null && _bridge.IsRunning;
         if (restartTelemetry) await StopBridgeAsync();
 
-        try
-        {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-            var launcher = new BrowserLauncher(_httpClient, _config with { AutoStartBrowser = false });
-            if (await launcher.ProbeAsync(cts.Token))
-            {
-                var configurator = new CdpBackblazeConfigurator(_httpClient, _config);
-                await configurator.ClearAsync(cts.Token);
-            }
-        }
-        catch (Exception error)
-        {
-            BackblazeErrorText.Text = "Bot-Bereinigung wird beim nächsten Start erneut versucht: " + Bounded(error.Message);
-        }
-
         await _backblazeCredentialStore.DeleteAsync();
         _backblazeCredentials = null;
         BackblazeKeyIdBox.Clear();
@@ -448,7 +411,7 @@ public partial class MainWindow : Window
         _config = _config with { BackblazeEnabled = false };
         await _config.SaveAsync();
         BackblazeToggle.IsChecked = false;
-        UpdateBackblazeCredentialStatus("Backblaze-Zugangsdaten gelöscht; Übergabe an den Bot wurde deaktiviert.");
+        UpdateBackblazeCredentialStatus("Backblaze-Zugangsdaten lokal gelöscht. Das V6 Host-Archiv ist deaktiviert.");
 
         if (restartTelemetry || _config.TelemetryEnabled) await StartBridgeAsync();
     }
@@ -479,17 +442,16 @@ public partial class MainWindow : Window
     private void UpdateBackblazeCredentialStatus(string? overrideText = null)
     {
         var credentialsPresent = _backblazeCredentials is { IsValid: true };
-        BackblazeToggle.Content = BackblazeToggle.IsChecked == true ? "AN BOT SENDEN" : "NICHT AN BOT SENDEN";
         BackblazeCredentialStateText.Text = overrideText ?? (credentialsPresent
-            ? "Backblaze keyID und applicationKey sind für diesen Windows-Benutzer mit DPAPI geschützt gespeichert."
-            : $"Keine Backblaze-Zugangsdaten gespeichert. Einmalig einfügen oder {_config.BackblazeKeyIdEnvironmentVariable} und {_config.BackblazeApplicationKeyEnvironmentVariable} setzen.");
+            ? "Backblaze keyID und applicationKey sind lokal per DPAPI geschützt gespeichert; V6 nutzt sie nur hostseitig."
+            : $"Keine Backblaze-Zugangsdaten gespeichert. Optional lokal über {_config.BackblazeKeyIdEnvironmentVariable} und {_config.BackblazeApplicationKeyEnvironmentVariable} importierbar.");
 
-        if (!_config.BackblazeEnabled)
-            BackblazeStateText.Text = "DEAKTIVIERT";
-        else if (!credentialsPresent)
-            BackblazeStateText.Text = "ZUGANGSDATEN FEHLEN";
-        else
-            BackblazeStateText.Text = "BEREIT · WIRD AN BOT ÜBERGEBEN";
+        BackblazeStateText.Text = !_config.BackblazeEnabled
+            ? "DEAKTIVIERT"
+            : credentialsPresent
+                ? "BEREIT · WARTET AUF V6 ARCHIV"
+                : "ZUGANGSDATEN FEHLEN";
+        UpdateToggleLabels();
     }
 
     private async Task RestartBridgeIfRunningAsync()
@@ -509,7 +471,7 @@ public partial class MainWindow : Window
             _token = token;
             TokenBox.Clear();
             TokenStateText.Text = "Token sicher mit Windows-DPAPI gespeichert.";
-            await RefreshConnectionsAsync(startBrowser: _config.TelemetryEnabled || _config.BackblazeEnabled);
+            await RefreshConnectionsAsync(startBrowser: _config.TelemetryEnabled);
             if (_config.TelemetryEnabled) await StartBridgeAsync();
         }
         catch (Exception error)
@@ -552,10 +514,10 @@ public partial class MainWindow : Window
             if (browser.Ready)
             {
                 await SyncDashboardProfileAsync(cts.Token);
-                await SyncBackblazeProfileAsync(cts.Token);
+                SyncBackblazeProfileState();
                 try
                 {
-                    var cdp = new CdpAdventureLandClient(_httpClient, _config);
+                    var cdp = new CdpAlBotV6Client(_httpClient, _config);
                     var target = await cdp.FindBotTargetUrlAsync(cts.Token);
                     TargetUrlText.Text = target;
                     BotStateText.Text = "GEFUNDEN";
@@ -573,9 +535,11 @@ public partial class MainWindow : Window
                 DashboardStateText.Text = SecureDashboardWriteKeyStore.IsValidWriteKey(_dashboardWriteKey)
                     ? "WARTET AUF BROWSER"
                     : _config.WebDashboardEnabled ? "WRITE-KEY FEHLT" : "DEAKTIVIERT";
-                BackblazeStateText.Text = _config.BackblazeEnabled
-                    ? _backblazeCredentials is { IsValid: true } ? "WARTET AUF BROWSER" : "ZUGANGSDATEN FEHLEN"
-                    : "DEAKTIVIERT";
+                BackblazeStateText.Text = !_config.BackblazeEnabled
+                    ? "DEAKTIVIERT"
+                    : _backblazeCredentials is { IsValid: true }
+                        ? "BEREIT · V6 HOST-ARCHIV"
+                        : "ZUGANGSDATEN FEHLEN";
             }
         }
         catch (Exception error)
@@ -608,12 +572,15 @@ public partial class MainWindow : Window
 
     private async Task SyncDashboardProfileAsync(CancellationToken cancellationToken)
     {
-        var dashboard = new CdpWebDashboardConfigurator(_httpClient, _config);
         try
         {
+            // One-way migration cleanup only. V6 dashboard credentials live in the
+            // Windows host and are never written into Adventure Land/localStorage.
+            var dashboard = new CdpWebDashboardConfigurator(_httpClient, _config);
+            try { await dashboard.ClearAsync(cancellationToken); } catch { }
+
             if (!_config.WebDashboardEnabled)
             {
-                await dashboard.ClearAsync(cancellationToken);
                 DashboardStateText.Text = "DEAKTIVIERT";
                 DashboardErrorText.Text = string.Empty;
                 return;
@@ -621,18 +588,12 @@ public partial class MainWindow : Window
 
             if (!SecureDashboardWriteKeyStore.IsValidWriteKey(_dashboardWriteKey))
             {
-                await dashboard.ClearAsync(cancellationToken);
                 DashboardStateText.Text = "WRITE-KEY FEHLT";
                 DashboardErrorText.Text = string.Empty;
                 return;
             }
 
-            var result = await dashboard.ApplyAsync(
-                _config.WebDashboardBaseUrl,
-                _config.WebDashboardAccount,
-                _dashboardWriteKey!,
-                cancellationToken);
-            DashboardStateText.Text = result.Applied ? "BEREIT · PROFIL SYNCHRONISIERT" : "FEHLER";
+            DashboardStateText.Text = "BEREIT · V6 HOST-DIREKT";
             DashboardErrorText.Text = string.Empty;
         }
         catch (Exception error)
@@ -642,48 +603,15 @@ public partial class MainWindow : Window
         }
     }
 
-    private async Task SyncBackblazeProfileAsync(CancellationToken cancellationToken)
+    private void SyncBackblazeProfileState()
     {
-        var backblaze = new CdpBackblazeConfigurator(_httpClient, _config);
-        try
-        {
-            if (!_config.BackblazeEnabled)
-            {
-                await backblaze.ClearAsync(cancellationToken);
-                BackblazeStateText.Text = "DEAKTIVIERT";
-                BackblazeErrorText.Text = string.Empty;
-                return;
-            }
-
-            if (_backblazeCredentials is not { IsValid: true })
-            {
-                await backblaze.ClearAsync(cancellationToken);
-                BackblazeStateText.Text = "ZUGANGSDATEN FEHLEN";
-                BackblazeErrorText.Text = string.Empty;
-                return;
-            }
-
-            var result = await backblaze.ApplyAsync(
-                _config.BackblazeEndpoint,
-                _config.BackblazeRegion,
-                _config.BackblazeBucket,
-                _config.BackblazePrefix,
-                _backblazeCredentials,
-                cancellationToken);
-            BackblazeStateText.Text = result.Applied && result.VerifiedInBotContext
-                ? $"BEREIT · {result.ContextsConfigured} BOT-KONTEXT(E) VERIFIZIERT"
-                : "FEHLER";
-            BackblazeErrorText.Text = string.Empty;
-        }
-        catch (Exception error)
-        {
-            BackblazeStateText.Text = error.Message == CdpBackblazeConfigurator.BotContextNotFoundError
-                ? "WARTET AUF BOT-KONTEXT"
-                : "FEHLER";
-            BackblazeErrorText.Text = error.Message == CdpBackblazeConfigurator.BotContextNotFoundError
-                ? "AIO_V3.objectStorage wurde im CDP-Ausführungskontext noch nicht gefunden."
-                : Bounded(error.Message);
-        }
+        var credentialsPresent = _backblazeCredentials is { IsValid: true };
+        BackblazeStateText.Text = !_config.BackblazeEnabled
+            ? "DEAKTIVIERT"
+            : credentialsPresent
+                ? "BEREIT · V6 HOST-ARCHIV"
+                : "ZUGANGSDATEN FEHLEN";
+        BackblazeErrorText.Text = string.Empty;
     }
 
     private void UpdateDashboardCredentialStatus(string? overrideText = null)
@@ -1014,7 +942,7 @@ public partial class MainWindow : Window
         TelemetryToggle.Content = TelemetryToggle.IsChecked == true ? "TELEMETRIE AN" : "TELEMETRIE AUS";
         SignalToggle.Content = SignalToggle.IsChecked == true ? "SIGNALE AN" : "SIGNALE AUS";
         if (BackblazeToggle is not null)
-            BackblazeToggle.Content = BackblazeToggle.IsChecked == true ? "AN BOT SENDEN" : "NICHT AN BOT SENDEN";
+            BackblazeToggle.Content = BackblazeToggle.IsChecked == true ? "V6 ARCHIV AN" : "V6 ARCHIV AUS";
         if (WissenswaechterToggle is not null)
             WissenswaechterToggle.Content = WissenswaechterToggle.IsChecked == true ? "WISSENSWÄCHTER AN" : "WISSENSWÄCHTER AUS";
     }
@@ -1031,8 +959,8 @@ public partial class MainWindow : Window
 
     private static string BackblazeStateLabel(string state) => state switch
     {
-        "READY" => "BEREIT · BOT-KONTEXT VERIFIZIERT",
-        "PENDING" => "BEREIT · WARTET AUF BROWSER",
+        "READY" => "BEREIT · V6 HOST-ARCHIV",
+        "PENDING" => "BEREIT · WARTET AUF ARCHIV",
         "CREDENTIALS_MISSING" => "ZUGANGSDATEN FEHLEN",
         "DISABLED" => "DEAKTIVIERT",
         "ERROR" => "FEHLER",

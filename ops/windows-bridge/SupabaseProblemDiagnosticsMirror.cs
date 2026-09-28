@@ -27,7 +27,7 @@ public sealed class SupabaseProblemDiagnosticsSink
         var payload = new
         {
             schemaVersion = 1,
-            type = "AIO_V3_PROBLEM_DIAGNOSTICS_MIRROR",
+            type = "ALBOT_V6_PROBLEM_DIAGNOSTICS_MIRROR",
             botId = _config.BotId,
             archive = new
             {
@@ -52,7 +52,9 @@ public sealed class SupabaseProblemDiagnosticsSink
 
         using var request = new HttpRequestMessage(HttpMethod.Post, _config.TelemetryIngestUrl);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _token);
-        request.Headers.TryAddWithoutValidation("x-aio-v3-bot-id", _config.BotId);
+        request.Headers.TryAddWithoutValidation("x-albot-bot-id", _config.BotId);
+        request.Headers.TryAddWithoutValidation("x-albot-generation", "6");
+        request.Headers.TryAddWithoutValidation("x-albot-bridge-protocol", CdpAlBotV6Client.Protocol);
         request.Content = new ByteArrayContent(payload);
         request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/json") { CharSet = "utf-8" };
 
@@ -89,7 +91,10 @@ public sealed class ProblemDiagnosticsMirrorOutbox
         _sink = sink;
     }
 
-    public static string PendingDirectory => Path.Combine(BridgeConfig.DiagnosticsDirectory, "mirror-pending");
+    // V6 uses its own outbox namespace so stale V3 mirror payloads cannot block
+    // the FIFO/backoff queue after the endpoint migrates to the V6-only ingest.
+    public static string PendingDirectory => Path.Combine(BridgeConfig.DiagnosticsDirectory, "mirror-pending-v6");
+    public static string LegacyPendingDirectory => Path.Combine(BridgeConfig.DiagnosticsDirectory, "mirror-pending");
 
     public async Task<bool> EnqueueLatestAsync(CancellationToken cancellationToken = default)
     {

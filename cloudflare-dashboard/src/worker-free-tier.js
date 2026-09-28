@@ -1,4 +1,5 @@
 import r2Worker, { releaseObjectKey } from './worker-r2-logs.js';
+import { handleV6Request, legacyTransportBlocked, legacyBlockedResponse } from './worker-v6-transport.js';
 import {
   R2_ARCHIVE_MIN_WRITE_MS,
   budgetPolicy,
@@ -122,7 +123,7 @@ function jsonResponse(payload, response) {
 }
 
 async function withQuotaOverview(request, response, env) {
-  if (request.method !== 'GET' || new URL(request.url).pathname !== '/api/v3/overview') return response;
+  if (request.method !== 'GET' || !['/api/v3/overview','/api/v6/overview'].includes(new URL(request.url).pathname)) return response;
   if (response.status >= 400) return response;
   try {
     const payload = await response.clone().json();
@@ -194,13 +195,21 @@ export default {
     const now = Date.now();
     recordWorkerRequest(now);
     const releaseRead = isPublicReleaseRead(request);
+    const guarded = guardedEnv(env, { directReleaseRead: releaseRead });
     let response;
-    if (isV4RuntimeReleaseRead(request)) {
-      response = await handleV4RuntimeReleaseArtifact(request, env);
-    } else if (isRuntimeReleaseRead(request)) {
-      response = await handleRuntimeReleaseArtifact(request, env);
+    if (legacyTransportBlocked(request)) {
+      response = legacyBlockedResponse();
     } else {
-      response = await r2Worker.fetch(request, guardedEnv(env, { directReleaseRead: releaseRead }), ctx);
+      const v6Response = await handleV6Request(request, guarded);
+      if (v6Response) {
+        response = v6Response;
+      } else if (isV4RuntimeReleaseRead(request)) {
+        response = await handleV4RuntimeReleaseArtifact(request, env);
+      } else if (isRuntimeReleaseRead(request)) {
+        response = await handleRuntimeReleaseArtifact(request, env);
+      } else {
+        response = await r2Worker.fetch(request, guarded, ctx);
+      }
     }
     response = await withQuotaOverview(request, response, env);
     response = await withFreeTierHealth(request, response);
