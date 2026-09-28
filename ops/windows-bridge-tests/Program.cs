@@ -876,6 +876,12 @@ Assert(SupabaseTelemetrySink.IsWithinPayloadBudget(SupabaseTelemetrySink.MaxPayl
 Assert(!SupabaseTelemetrySink.IsWithinPayloadBudget(SupabaseTelemetrySink.MaxPayloadBytes + 1), "PAYLOAD_BUDGET_REJECTS_OVERSIZE");
 Assert(SupabaseProblemDiagnosticsSink.IsWithinPayloadBudget(SupabaseProblemDiagnosticsSink.MaxPayloadBytes), "PROBLEM_MIRROR_BUDGET_BOUNDARY");
 Assert(!SupabaseProblemDiagnosticsSink.IsWithinPayloadBudget(SupabaseProblemDiagnosticsSink.MaxPayloadBytes + 1), "PROBLEM_MIRROR_BUDGET_REJECTS_OVERSIZE");
+Assert(ProblemDiagnosticsMirrorOutbox.PendingDirectory.EndsWith("mirror-pending-v6", StringComparison.OrdinalIgnoreCase), "V6_PROBLEM_MIRROR_OUTBOX_NAMESPACED");
+Assert(ProblemDiagnosticsMirrorOutbox.LegacyPendingDirectory.EndsWith("mirror-pending", StringComparison.OrdinalIgnoreCase), "LEGACY_PROBLEM_MIRROR_OUTBOX_RETAINED");
+Assert(!string.Equals(
+    ProblemDiagnosticsMirrorOutbox.PendingDirectory,
+    ProblemDiagnosticsMirrorOutbox.LegacyPendingDirectory,
+    StringComparison.OrdinalIgnoreCase), "V6_PROBLEM_MIRROR_OUTBOX_ISOLATED_FROM_V3");
 
 using (var snapshotDocument = JsonDocument.Parse("{}"))
 using (var eventsDocument = JsonDocument.Parse("[]"))
