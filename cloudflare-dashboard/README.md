@@ -17,9 +17,9 @@ Dieses Verzeichnis ist ab v3 die gemeinsame Web-Verwaltungszentrale für den Adv
 
 ## Produktions-Deployment
 
-Der GitHub-Actions-Workflow `.github/workflows/deploy-cloudflare.yml` synchronisiert vor jedem produktiven Worker-Deploy die idempotente `cloudflare-dashboard/schema.sql` gegen die bestehende D1-Datenbank `aio-bot-dashboard`. Dadurch werden auch die V6-Tabellen `v6_runtime_status` und `v6_runtime_events` vor dem Worker-Rollout garantiert angelegt, ohne bestehende Daten zu löschen.
+Der GitHub-Actions-Workflow `.github/workflows/deploy-cloudflare.yml` deployt Worker, Dashboard und R2-Artefakte mit den bestehenden Cloudflare-Credentials. Die V6-Tabellen `v6_runtime_status` und `v6_runtime_events` werden idempotent beim ersten V6-Request direkt über die gebundene D1-Datenbank initialisiert. Dadurch benötigt der Actions-Token keine zusätzliche D1-Import-Berechtigung und bestehende Daten werden nicht gelöscht.
 
-Der Workflow prüft außerdem nur die Existenz des dedizierten Worker-Secrets `ALBOT_V6_WRITE_KEY`; Secret-Werte werden nicht in Actions-Logs ausgegeben.
+Die vollständige `cloudflare-dashboard/schema.sql` bleibt die deklarative Referenz für neue/manuelle D1-Installationen. Der Workflow prüft außerdem nur die Existenz des dedizierten Worker-Secrets `ALBOT_V6_WRITE_KEY`; Secret-Werte werden nicht in Actions-Logs ausgegeben.
 
 ## Cloudflare Bindings und Secrets
 
