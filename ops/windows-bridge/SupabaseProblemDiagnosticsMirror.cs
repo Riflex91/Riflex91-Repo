@@ -91,7 +91,10 @@ public sealed class ProblemDiagnosticsMirrorOutbox
         _sink = sink;
     }
 
-    public static string PendingDirectory => Path.Combine(BridgeConfig.DiagnosticsDirectory, "mirror-pending");
+    // V6 uses its own outbox namespace so stale V3 mirror payloads cannot block
+    // the FIFO/backoff queue after the endpoint migrates to the V6-only ingest.
+    public static string PendingDirectory => Path.Combine(BridgeConfig.DiagnosticsDirectory, "mirror-pending-v6");
+    public static string LegacyPendingDirectory => Path.Combine(BridgeConfig.DiagnosticsDirectory, "mirror-pending");
 
     public async Task<bool> EnqueueLatestAsync(CancellationToken cancellationToken = default)
     {
