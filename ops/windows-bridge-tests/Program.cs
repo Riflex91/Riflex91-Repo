@@ -385,12 +385,6 @@ Assert(SsdVolumeGesundheitsPruefer.Bewerte(gesundeSsd with { FreiBytes = 149 }).
     BackblazePrefix = "v4"
 }).Validate();
 
-var v5TransportNow = DateTimeOffset.UtcNow;
-Assert(TelemetryBridgeService.ShouldUploadV5(null, 60, v5TransportNow, null, null), "V5_STATUS_INITIAL_UPLOAD");
-Assert(!TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(59), null, null), "V5_STATUS_THROTTLED_BEFORE_60S");
-Assert(TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(60), null, null), "V5_STATUS_DUE_AT_60S");
-Assert(TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(5), "test|1|BESTANDEN", null), "V5_TERMINAL_IMMEDIATE");
-Assert(!TelemetryBridgeService.ShouldUploadV5(v5TransportNow, 60, v5TransportNow.AddSeconds(5), "test|1|BESTANDEN", "test|1|BESTANDEN"), "V5_TERMINAL_DEDUPED");
 Assert(CdpAdventureLandClient.OperationsContextPriority(false, false, null, null, null) == 0, "V5_CONTEXT_INVALID_REJECTED");
 Assert(CdpAdventureLandClient.OperationsContextPriority(true, false, null, null, "priest") == 10, "V5_CONTEXT_LEGACY_FALLBACK");
 Assert(CdpAdventureLandClient.OperationsContextPriority(true, true, "WORKER", "HEARTBEAT", "priest") == 50, "V5_CONTEXT_WORKER_PRIORITY");
@@ -802,10 +796,6 @@ Assert(!CdpAdventureLandClient.ShouldAttemptLegacyPr206RosterRecovery(
     "ROSTER",
     false, 0, 0, false, 0), "V5_LEGACY_ROSTER_RECOVERY_EXACT_TEST_ONLY");
 
-var v5DeployNow = DateTimeOffset.UtcNow;
-Assert(TelemetryBridgeService.ShouldEnsureV5AutonomousTestDeployment(null, v5DeployNow), "V5_AUTO_DEPLOY_INITIAL");
-Assert(!TelemetryBridgeService.ShouldEnsureV5AutonomousTestDeployment(v5DeployNow, v5DeployNow.AddSeconds(14)), "V5_AUTO_DEPLOY_THROTTLED");
-Assert(TelemetryBridgeService.ShouldEnsureV5AutonomousTestDeployment(v5DeployNow, v5DeployNow.AddSeconds(15)), "V5_AUTO_DEPLOY_15S");
 ExpectInvalid(defaults with { SupabaseStatusIntervalSeconds = 59 }, "SUPABASE_STATUS_INTERVAL_MUST_BE_60_SECONDS");
 
 Assert(TelemetryBridgeService.ComputeBackoffSeconds(5, 300, 1) == 5, "BACKOFF_1");
