@@ -87,8 +87,8 @@ public sealed class SupabaseTelemetrySink
     {
         var fallback = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
-            ["schemaVersion"] = 2,
-            ["type"] = "ALBOT_V6_DEBUG_SNAPSHOT",
+            ["schemaVersion"] = 1,
+            ["type"] = CdpAlBotV6Client.SnapshotType,
             ["diagnostics"] = new
             {
                 schemaVersion = 1,
@@ -101,11 +101,12 @@ public sealed class SupabaseTelemetrySink
 
         if (snapshot.ValueKind == JsonValueKind.Object)
         {
-            CopyIfPresent(snapshot, fallback, "schemaVersion");
-            CopyIfPresent(snapshot, fallback, "type");
-            CopyIfPresent(snapshot, fallback, "status");
+            CopyIfPresent(snapshot, fallback, "identity");
+            CopyIfPresent(snapshot, fallback, "observedAt");
+            CopyIfPresent(snapshot, fallback, "character");
             CopyIfPresent(snapshot, fallback, "heartbeat");
-            CopyIfPresent(snapshot, fallback, "reconciliation");
+            CopyIfPresent(snapshot, fallback, "status");
+            CopyIfPresent(snapshot, fallback, "telemetry");
         }
 
         return fallback;
