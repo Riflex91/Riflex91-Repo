@@ -31,6 +31,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     private readonly LocalProblemDiagnosticsArchive _diagnostics;
     private readonly ProblemDiagnosticsMirrorOutbox _problemMirror;
     private readonly string? _dashboardWriteKey;
+    private readonly BackblazeV6ArchiveSink? _backblazeSink;
+    private DateTimeOffset? _lastBackblazeArchiveAt;
     private CancellationTokenSource? _loopCts;
     private Task? _loopTask;
     private bool _legacyDashboardProfileCleared;
@@ -56,9 +58,11 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         _dashboardSink = config.WebDashboardEnabled && _dashboardWriteKey is not null
             ? new CloudflareV6DashboardSink(httpClient, config, _dashboardWriteKey)
             : null;
-        // Stored Backblaze credentials are deliberately not handed to any browser runtime.
-        // A future AL Bot V6 object-storage contract must explicitly opt in.
-        _ = backblazeCredentials;
+        // V6 Backblaze is host-side only. Credentials remain DPAPI-protected in the
+        // Windows Bridge and are never injected into Adventure Land.
+        _backblazeSink = config.BackblazeEnabled && backblazeCredentials is { IsValid: true }
+            ? new BackblazeV6ArchiveSink(httpClient, config, backblazeCredentials)
+            : null;
     }
 
     public event Action<RuntimeBridgeStatus>? StatusChanged;
@@ -113,7 +117,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 if (!browserReady) throw new InvalidOperationException(browserConnection.State);
 
                 (dashboardState, dashboardError) = await SyncDashboardProfileAsync(cancellationToken);
-                (backblazeState, backblazeError) = await SyncBackblazeProfileAsync(cancellationToken);
+                (backblazeState, backblazeError) = BackblazeCurrentState();
 
                 RuntimeBridgeStatus? latestStatus = null;
                 for (var batchIndex = 0; batchIndex < MaxCatchUpBatches; batchIndex++)
@@ -142,6 +146,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                         dashboardState = "READY";
                         dashboardError = null;
                     }
+
+                    (backblazeState, backblazeError) = await ArchiveBackblazeSafeAsync(read, cancellationToken);
 
                     state = new BridgeState(read.MaxSeq);
                     await state.SaveAsync(cancellationToken);
@@ -298,15 +304,43 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         }
     }
 
-    private Task<(string State, string? Error)> SyncBackblazeProfileAsync(CancellationToken cancellationToken)
+    private async Task<(string State, string? Error)> ArchiveBackblazeSafeAsync(
+        DebugReadResult read,
+        CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        // Fail closed: the legacy AIO_V3 Backblaze CDP handoff is retired.
-        // Credentials may remain DPAPI-protected on disk, but V6 gets no object-storage
-        // credentials until a dedicated ALBot.bridge V6 storage contract exists.
-        return Task.FromResult<(string, string?)>((
-            _config.BackblazeEnabled ? "V6_CONTRACT_PENDING" : "DISABLED",
-            _config.BackblazeEnabled ? "LEGACY_BACKBLAZE_HANDOFF_DISABLED" : null));
+        if (!_config.BackblazeEnabled)
+            return ("DISABLED", null);
+        if (_backblazeSink is null)
+            return ("CREDENTIALS_MISSING", "BACKBLAZE_V6_CREDENTIALS_REQUIRED");
+        if (!BackblazeV6ArchiveSink.ShouldArchive(read, _lastBackblazeArchiveAt, DateTimeOffset.UtcNow))
+            return ("READY", null);
+
+        try
+        {
+            var result = await _backblazeSink.ArchiveAsync(read, cancellationToken);
+            if (!result.Stored || !result.Verified)
+                return ("ERROR", "BACKBLAZE_V6_ARCHIVE_NOT_VERIFIED");
+            _lastBackblazeArchiveAt = DateTimeOffset.UtcNow;
+            return ("READY", null);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception error)
+        {
+            // Backblaze is an additional archive path. Supabase remains the telemetry
+            // commit/ACK authority, so archive outages never block bot telemetry.
+            return ("ERROR", Bounded(error.Message));
+        }
+    }
+
+    private (string State, string? Error) BackblazeCurrentState()
+    {
+        if (!_config.BackblazeEnabled) return ("DISABLED", null);
+        return _backblazeSink is null
+            ? ("CREDENTIALS_MISSING", "BACKBLAZE_V6_CREDENTIALS_REQUIRED")
+            : ("PENDING", null);
     }
 
     private string DashboardInitialState()
@@ -319,7 +353,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
 
     private string BackblazeInitialState()
     {
-        return _config.BackblazeEnabled ? "V6_CONTRACT_PENDING" : "DISABLED";
+        if (!_config.BackblazeEnabled) return "DISABLED";
+        return _backblazeSink is null ? "CREDENTIALS_MISSING" : "PENDING";
     }
 
     private async Task SaveStatusAsync(RuntimeBridgeStatus status, CancellationToken cancellationToken)
