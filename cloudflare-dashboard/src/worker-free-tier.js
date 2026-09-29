@@ -23,6 +23,10 @@ import {
   handleV4RuntimeReleaseArtifact,
   isV4RuntimeReleaseRead
 } from './v4-runtime-release-artifact.js';
+import {
+  handleAlhdPublicAsset,
+  isAlhdPublicAssetRead
+} from './alhd-public-asset.js';
 
 const WORKER_NAME = 'aio-bot-dashboard';
 const R2_BINDING = 'LOG_ARCHIVE';
@@ -61,7 +65,8 @@ function isPublicReleaseRead(request) {
     const path = new URL(request.url).pathname;
     return PUBLIC_RELEASE_PATHS.has(path)
       || !!releaseObjectKey(path)
-      || isV4RuntimeReleaseRead(request);
+      || isV4RuntimeReleaseRead(request)
+      || isAlhdPublicAssetRead(request);
   } catch (_) {
     return false;
   }
@@ -203,6 +208,8 @@ export default {
       const v6Response = await handleV6Request(request, guarded);
       if (v6Response) {
         response = v6Response;
+      } else if (isAlhdPublicAssetRead(request)) {
+        response = await handleAlhdPublicAsset(request, env);
       } else if (isV4RuntimeReleaseRead(request)) {
         response = await handleV4RuntimeReleaseArtifact(request, env);
       } else if (isRuntimeReleaseRead(request)) {
