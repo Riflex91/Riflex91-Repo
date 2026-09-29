@@ -264,3 +264,28 @@ test('mutation-only economy circuit keeps independent merchant families enabled'
   assert.deepEqual(disabled, []);
   assert.equal(result.economyGuardReason, null);
 });
+
+
+test('stale TRAVEL state does not suppress formation recovery while combat still does', () => {
+  const owner = {
+    runtime: {
+      pendingEmergencyRetreat: false,
+      farmer: { state: 'TRAVEL' }
+    }
+  };
+  const snapshot = {
+    character: { name: 'Leader', rip: false, dead: false, target: null },
+    entities: []
+  };
+
+  assert.equal(
+    TeamCohesionDeadlockHotfix.prototype._combatOrSafetyBusy.call(owner, snapshot),
+    false
+  );
+
+  owner.runtime.farmer.state = 'ENGAGE';
+  assert.equal(
+    TeamCohesionDeadlockHotfix.prototype._combatOrSafetyBusy.call(owner, snapshot),
+    true
+  );
+});
