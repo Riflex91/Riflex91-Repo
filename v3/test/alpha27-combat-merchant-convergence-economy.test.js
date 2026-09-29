@@ -232,15 +232,15 @@ test('mutation risk gate gives bounded credit only to evidence-backed meaningful
   const check = { meta: { g: 1000 } };
   const replacement = { spareEquivalents: 0 };
 
-  const marginal = convergence._mutationRiskThreshold(tx, check, replacement, {
+  const marginal = convergence.atomic._mutationRiskThreshold(tx, check, replacement, {
     usefulNow: false,
     maxFutureImprovementRatio: 0.01
   });
-  const substantial = convergence._mutationRiskThreshold(tx, check, replacement, {
+  const substantial = convergence.atomic._mutationRiskThreshold(tx, check, replacement, {
     usefulNow: false,
     maxFutureImprovementRatio: 0.25
   });
-  const alreadyUseful = convergence._mutationRiskThreshold(tx, check, replacement, {
+  const alreadyUseful = convergence.atomic._mutationRiskThreshold(tx, check, replacement, {
     usefulNow: true,
     maxFutureImprovementRatio: 0.25
   });
@@ -288,7 +288,7 @@ test('mutation party value derives benefit magnitude only from complete future-g
     ]
   };
 
-  const partyValue = convergence._mutationPartyCurrentValue({
+  const partyValue = convergence.atomic._mutationPartyCurrentValue({
     type: 'UPGRADE',
     character: 'Merchant',
     item: 'sword',
