@@ -142,17 +142,17 @@ var executionContextCandidateMethod = typeof(CdpAlBotV6Client).GetMethod(
 Assert(executionContextCandidateMethod is not null, "V6_EXECUTION_CONTEXT_CANDIDATE_METHOD");
 using (var sandboxContextDocument = JsonDocument.Parse("""{"id":42,"origin":""}"""))
 {
-    object?[] args = [sandboxContextDocument.RootElement, 0];
-    var accepted = (bool)executionContextCandidateMethod!.Invoke(null, args)!;
+    object?[] invokeArgs = [sandboxContextDocument.RootElement, 0];
+    var accepted = (bool)executionContextCandidateMethod!.Invoke(null, invokeArgs)!;
     Assert(accepted, "V6_SANDBOX_CONTEXT_WITH_EMPTY_ORIGIN_ACCEPTED_FOR_IDENTITY_PROBE");
-    Assert((int)args[1]! == 42, "V6_SANDBOX_CONTEXT_ID_PRESERVED");
+    Assert((int)invokeArgs[1]! == 42, "V6_SANDBOX_CONTEXT_ID_PRESERVED");
 }
 using (var missingOriginContextDocument = JsonDocument.Parse("""{"id":43}"""))
 {
-    object?[] args = [missingOriginContextDocument.RootElement, 0];
-    var accepted = (bool)executionContextCandidateMethod!.Invoke(null, args)!;
+    object?[] invokeArgs = [missingOriginContextDocument.RootElement, 0];
+    var accepted = (bool)executionContextCandidateMethod!.Invoke(null, invokeArgs)!;
     Assert(accepted, "V6_CONTEXT_WITHOUT_ORIGIN_ACCEPTED_FOR_IDENTITY_PROBE");
-    Assert((int)args[1]! == 43, "V6_CONTEXT_WITHOUT_ORIGIN_ID_PRESERVED");
+    Assert((int)invokeArgs[1]! == 43, "V6_CONTEXT_WITHOUT_ORIGIN_ID_PRESERVED");
 }
 Assert(typeof(CdpAlBotV6Client).GetMethods().Any(method =>
     method.Name == "AcknowledgeThroughAsync"
