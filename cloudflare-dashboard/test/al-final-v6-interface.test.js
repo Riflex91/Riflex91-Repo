@@ -35,6 +35,12 @@ test('AL Final V6 live interface keeps V6 transport and V3 map/sprite capabiliti
     "referrerPolicy='no-referrer'",
     'v.npcs',
     'v.doors',
+    'class="sonar a"',
+    'class="sonar b"',
+    '@keyframes sonar',
+    'prefers-reduced-motion:reduce',
+    'before!==selectedMap',
+    'else renderMap()',
     'renderTerrain',
     'gameSprite',
     'mapSprite',
@@ -44,6 +50,9 @@ test('AL Final V6 live interface keeps V6 transport and V3 map/sprite capabiliti
     "addEventListener('pointerdown'"
   ]) assert.ok(html.includes(required), `missing ${required}`);
 
+  assert.doesNotMatch(html, /v\.spawns/);
+  assert.doesNotMatch(html, /class="spawn"/);
+  assert.doesNotMatch(html, /function render\(\)\{[^}]*fitMap\(\)\}/);
   assert.doesNotMatch(html, /\/api\/v3\/runtime/);
   assert.doesNotMatch(html, /WRITE_KEY/);
   assert.doesNotMatch(html, /ADMIN_KEY/);
