@@ -1148,6 +1148,44 @@ using (var strictSignalsDocument = JsonDocument.Parse(JsonSerializer.Serialize(s
         "V6_SUPABASE_STRICT_COMPACTION_DEDUPE_KEYS_REMAIN_DISTINCT");
 }
 
+var missingDedupeSignalRows = new[]
+{
+    new Dictionary<string, object?>
+    {
+        ["seq"] = 11,
+        ["severity"] = "WARN",
+        ["component"] = "combat",
+        ["event"] = "HEARTBEAT",
+        ["reason"] = new string('a', 80) + "NO_PROGRESS",
+        ["character"] = "My_Ranger1"
+    },
+    new Dictionary<string, object?>
+    {
+        ["seq"] = 12,
+        ["severity"] = "WARN",
+        ["component"] = "combat",
+        ["event"] = "HEARTBEAT",
+        ["reason"] = new string('b', 80) + "NO_PROGRESS",
+        ["character"] = "My_Ranger1"
+    }
+};
+using (var missingDedupeSignalsDocument = JsonDocument.Parse(JsonSerializer.Serialize(missingDedupeSignalRows)))
+{
+    var strictSignals = (IReadOnlyList<object>)strictCompactEventsMethod!.Invoke(
+        null,
+        [missingDedupeSignalsDocument.RootElement])!;
+    using var strictSignalsJson = JsonDocument.Parse(JsonSerializer.Serialize(strictSignals));
+
+    var firstMissingDedupe = strictSignalsJson.RootElement[0];
+    var secondMissingDedupe = strictSignalsJson.RootElement[1];
+    Assert(firstMissingDedupe.GetProperty("reason").GetString() == "NO_PROGRESS",
+        "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_MISSING_DEDUPE_WARNING_MARKER");
+    Assert(firstMissingDedupe.GetProperty("dedupeKey").GetString()!.StartsWith("auto#", StringComparison.Ordinal),
+        "V6_SUPABASE_STRICT_COMPACTION_SYNTHESIZES_DEDUPE_KEY");
+    Assert(firstMissingDedupe.GetProperty("dedupeKey").GetString() != secondMissingDedupe.GetProperty("dedupeKey").GetString(),
+        "V6_SUPABASE_STRICT_COMPACTION_SYNTHETIC_DEDUPE_PRESERVES_REASON_IDENTITY");
+}
+
 var minimalSnapshotMethod = typeof(SupabaseTelemetrySink).GetMethod(
     "CreateMinimalBudgetSnapshot",
     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
