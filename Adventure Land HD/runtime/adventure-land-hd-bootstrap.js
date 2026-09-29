@@ -22,7 +22,30 @@
     return "HD";
   }
 
-  function makeLookup(manifest) {
+  function validPixels(value) {
+    return value && Number.isInteger(value.width) && value.width > 0 && Number.isInteger(value.height) && value.height > 0;
+  }
+
+  function detectMaxTextureSize() {
+    try {
+      var doc = root && root.document;
+      if (!doc || typeof doc.createElement !== "function") return null;
+      var canvas = doc.createElement("canvas");
+      if (!canvas || typeof canvas.getContext !== "function") return null;
+      var gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+      if (!gl || typeof gl.getParameter !== "function" || typeof gl.MAX_TEXTURE_SIZE === "undefined") return null;
+      var value = Number(gl.getParameter(gl.MAX_TEXTURE_SIZE));
+      try {
+        var lose = typeof gl.getExtension === "function" && gl.getExtension("WEBGL_lose_context");
+        if (lose && typeof lose.loseContext === "function") lose.loseContext();
+      } catch (_ignore) {}
+      return Number.isFinite(value) && value > 0 ? value : null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function makeLookup(manifest, maxTextureSize, diagnostics) {
     var lookup = Object.create(null);
     var replacements = manifest && Array.isArray(manifest.replacements) ? manifest.replacements : [];
     replacements.forEach(function (entry) {
@@ -31,6 +54,11 @@
       if (!sourcePath || typeof entry.runtimeUrl !== "string") return;
       if (!entry.originalFallback || !entry.preserveLogicalSize) return;
       if (!resolutionSuffix(entry.runtimeUrl, entry.scale)) return;
+      diagnostics.available.push(sourcePath);
+      if (maxTextureSize && validPixels(entry.hdPixels) && (entry.hdPixels.width > maxTextureSize || entry.hdPixels.height > maxTextureSize)) {
+        diagnostics.blocked.push(sourcePath);
+        return;
+      }
       lookup[sourcePath] = entry;
     });
     return lookup;
@@ -59,18 +87,24 @@
   }
 
   var mode = requestedMode();
-  var stats = { applied: 0, available: 0, paths: [], missing: [], reason: null };
+  var stats = { applied: 0, available: 0, eligible: 0, paths: [], missing: [], blocked: [], maxTextureSize: null, reason: null };
   var manifest = root && root.__ALHD_MANIFEST__;
   var gameData = root && root.G;
-  var lookup = manifest && manifest.schemaVersion === 1 ? makeLookup(manifest) : Object.create(null);
-  var availablePaths = Object.keys(lookup).sort();
+  var maxTextureSize = detectMaxTextureSize();
+  var lookupDiagnostics = { available: [], blocked: [] };
+  var lookup = manifest && manifest.schemaVersion === 1 ? makeLookup(manifest, maxTextureSize, lookupDiagnostics) : Object.create(null);
+  var availablePaths = Array.from(new Set(lookupDiagnostics.available)).sort();
+  var eligiblePaths = Object.keys(lookup).sort();
   stats.available = availablePaths.length;
+  stats.eligible = eligiblePaths.length;
+  stats.blocked = Array.from(new Set(lookupDiagnostics.blocked)).sort();
+  stats.maxTextureSize = maxTextureSize;
 
   if (mode === "ORIGINAL") {
     stats.reason = "ORIGINAL_MODE";
   } else if (!gameData || typeof gameData !== "object") {
     stats.reason = "G_UNAVAILABLE";
-    stats.missing = availablePaths.slice();
+    stats.missing = eligiblePaths.slice();
   } else if (!manifest || manifest.schemaVersion !== 1) {
     stats.reason = "MANIFEST_UNAVAILABLE";
   } else {
@@ -80,17 +114,20 @@
     applyFamily(gameData.imagesets, lookup, stats);
     stats.paths = Array.from(new Set(stats.paths)).sort();
     var appliedPaths = new Set(stats.paths);
-    stats.missing = availablePaths.filter(function (sourcePath) { return !appliedPaths.has(sourcePath); });
+    stats.missing = eligiblePaths.filter(function (sourcePath) { return !appliedPaths.has(sourcePath); });
     stats.reason = "READY";
   }
 
   root.ALHD = Object.freeze({
-    version: "0.3.2",
+    version: "0.3.3",
     mode: mode,
     applied: stats.applied,
     available: stats.available,
+    eligible: stats.eligible,
     paths: Object.freeze(stats.paths.slice()),
     missing: Object.freeze(stats.missing.slice()),
+    blocked: Object.freeze(stats.blocked.slice()),
+    maxTextureSize: stats.maxTextureSize,
     reason: stats.reason,
     status: function () {
       return {
@@ -98,8 +135,11 @@
         mode: this.mode,
         applied: this.applied,
         available: this.available,
+        eligible: this.eligible,
         paths: this.paths.slice(),
         missing: this.missing.slice(),
+        blocked: this.blocked.slice(),
+        maxTextureSize: this.maxTextureSize,
         reason: this.reason
       };
     }

@@ -26,6 +26,7 @@ for(const item of manifest.replacements||[]){
   if(seenSourcePaths.has(sourcePath)) throw new Error(sourcePath+": duplicate active sourcePath after normalization.");
   seenSourcePaths.add(sourcePath);
   if(!hasResolutionSuffix(item.hdPath,item.scale)) throw new Error(item.sourcePath+": hdPath must contain @"+item.scale+"x before the extension.");
+  if(!Number.isInteger(item.hdPixels?.width)||item.hdPixels.width<=0||!Number.isInteger(item.hdPixels?.height)||item.hdPixels.height<=0) throw new Error(item.sourcePath+": active replacement requires positive hdPixels dimensions.");
   const assetPath=path.join(hdRoot,...item.hdPath.split("/"));
   if(!fs.existsSync(assetPath)) throw new Error("Missing active HD file: "+item.hdPath);
   const assetVersion=crypto.createHash("sha256").update(fs.readFileSync(assetPath)).digest("hex").slice(0,12);
@@ -33,6 +34,7 @@ for(const item of manifest.replacements||[]){
     sourcePath,
     runtimeUrl:"/images/alhd/"+item.hdPath.replace(/^\/+/, "")+"?alhdv="+assetVersion,
     scale:item.scale,
+    hdPixels:{width:item.hdPixels.width,height:item.hdPixels.height},
     state:"active",
     preserveLogicalSize:true,
     originalFallback:true

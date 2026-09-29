@@ -8,7 +8,7 @@ import {fileURLToPath} from "node:url";
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const source=fs.readFileSync(path.join(root,"runtime","adventure-land-hd-bootstrap.js"),"utf8");
 
-function run(manifest, search="") {
+function run(manifest, search="", options={}) {
   const original={file:"/images/all_characters/mchar16.png?v=7",rows:2,columns:4,gameplayMarker:{hp:123}};
   const window={
     location:{search},
@@ -20,6 +20,7 @@ function run(manifest, search="") {
     },
     __ALHD_MANIFEST__:manifest
   };
+  if(options.document) window.document=options.document;
   const context={window,globalThis:window,Object,Array,Number,RegExp,Set};
   vm.createContext(context);
   vm.runInContext(source,context);
@@ -30,6 +31,7 @@ const active={schemaVersion:1,replacements:[{
   sourcePath:"images/all_characters/mchar16.png",
   runtimeUrl:"/images/alhd/characters/mchar16@4x.png?alhdv=abc123def456",
   scale:4,
+  hdPixels:{width:400,height:400},
   state:"active",
   preserveLogicalSize:true,
   originalFallback:true
@@ -43,6 +45,8 @@ test("HD mode applies matching active visual override only",()=>{
   assert.equal(original.gameplayMarker.hp,123);
   assert.equal(window.ALHD.applied,1);
   assert.equal(window.ALHD.available,1);
+  assert.equal(window.ALHD.eligible,1);
+  assert.deepEqual(Array.from(window.ALHD.blocked),[]);
   assert.deepEqual(Array.from(window.ALHD.missing),[]);
   assert.equal(window.ALHD.mode,"HD");
 });
@@ -54,6 +58,7 @@ test("HD mode applies multiple active families in one pass",()=>{
       sourcePath:"images/tiles/map/main.png",
       runtimeUrl:"/images/alhd/map/main@8x.png?alhdv=111122223333",
       scale:8,
+      hdPixels:{width:800,height:800},
       state:"active",
       preserveLogicalSize:true,
       originalFallback:true
@@ -64,6 +69,8 @@ test("HD mode applies multiple active families in one pass",()=>{
   assert.equal(window.G.tilesets.main.file,"/images/alhd/map/main@8x.png?alhdv=111122223333");
   assert.equal(window.ALHD.applied,2);
   assert.equal(window.ALHD.available,2);
+  assert.equal(window.ALHD.eligible,2);
+  assert.deepEqual(Array.from(window.ALHD.blocked),[]);
   assert.deepEqual(Array.from(window.ALHD.paths),["images/all_characters/mchar16.png","images/tiles/map/main.png"]);
   assert.deepEqual(Array.from(window.ALHD.missing),[]);
 });
@@ -90,6 +97,8 @@ test("prepared entry is not activated",()=>{
   assert.equal(original.file,"/images/all_characters/mchar16.png?v=7");
   assert.equal(window.ALHD.applied,0);
   assert.equal(window.ALHD.available,0);
+  assert.equal(window.ALHD.eligible,0);
+  assert.deepEqual(Array.from(window.ALHD.blocked),[]);
   assert.deepEqual(Array.from(window.ALHD.missing),[]);
 });
 
@@ -123,6 +132,29 @@ test("HD status reports valid manifest paths that did not match a runtime defini
   assert.equal(window.ALHD.applied,0);
   assert.deepEqual(Array.from(window.ALHD.paths),[]);
   assert.deepEqual(Array.from(window.ALHD.missing),["images/tiles/monsters/not_loaded_here.png"]);
+});
+
+test("HD mode blocks oversized textures using the detected WebGL texture limit",()=>{
+  let lost=false;
+  const gl={
+    MAX_TEXTURE_SIZE:3379,
+    getParameter(value){return value===3379?4096:null;},
+    getExtension(name){return name==="WEBGL_lose_context"?{loseContext(){lost=true;}}:null;}
+  };
+  const document={createElement(){return {getContext(name){return name==="webgl"?gl:null;}};}};
+  const oversized={schemaVersion:1,replacements:[{
+    ...active.replacements[0],
+    hdPixels:{width:5000,height:1000}
+  }]};
+  const {window,original}=run(oversized,"?alhd=on",{document});
+  assert.equal(original.file,"/images/all_characters/mchar16.png?v=7");
+  assert.equal(window.ALHD.maxTextureSize,4096);
+  assert.equal(window.ALHD.available,1);
+  assert.equal(window.ALHD.eligible,0);
+  assert.equal(window.ALHD.applied,0);
+  assert.deepEqual(Array.from(window.ALHD.blocked),["images/all_characters/mchar16.png"]);
+  assert.deepEqual(Array.from(window.ALHD.missing),[]);
+  assert.equal(lost,true);
 });
 
 test("bootstrap contains no gameplay transport authority",()=>{
