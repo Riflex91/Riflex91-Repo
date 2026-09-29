@@ -1111,6 +1111,43 @@ using (var adversarialEventsDocument = JsonDocument.Parse(JsonSerializer.Seriali
         "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_DATA_CHARACTER_FIELD");
 }
 
+var sharedDedupePrefix = new string('d', 96);
+var strictSignalRows = new[]
+{
+    new Dictionary<string, object?>
+    {
+        ["seq"] = 1,
+        ["severity"] = "WARN",
+        ["event"] = "HEARTBEAT",
+        ["reason"] = new string('x', 80) + "NO_PROGRESS",
+        ["dedupeKey"] = sharedDedupePrefix + ":alpha"
+    },
+    new Dictionary<string, object?>
+    {
+        ["seq"] = 2,
+        ["severity"] = "WARN",
+        ["event"] = "HEARTBEAT",
+        ["reason"] = new string('x', 80) + "NO_PROGRESS",
+        ["dedupeKey"] = sharedDedupePrefix + ":beta"
+    }
+};
+using (var strictSignalsDocument = JsonDocument.Parse(JsonSerializer.Serialize(strictSignalRows)))
+{
+    var strictSignals = (IReadOnlyList<object>)strictCompactEventsMethod!.Invoke(
+        null,
+        [strictSignalsDocument.RootElement])!;
+    using var strictSignalsJson = JsonDocument.Parse(JsonSerializer.Serialize(strictSignals));
+
+    var firstStrictSignal = strictSignalsJson.RootElement[0];
+    var secondStrictSignal = strictSignalsJson.RootElement[1];
+    Assert(firstStrictSignal.GetProperty("reason").GetString() == "NO_PROGRESS",
+        "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_WARNING_MARKER");
+    Assert(firstStrictSignal.GetProperty("dedupeKey").GetString()!.Length <= SupabaseTelemetrySink.StrictEventStringMaxChars,
+        "V6_SUPABASE_STRICT_COMPACTION_BOUNDS_DEDUPE_KEY");
+    Assert(firstStrictSignal.GetProperty("dedupeKey").GetString() != secondStrictSignal.GetProperty("dedupeKey").GetString(),
+        "V6_SUPABASE_STRICT_COMPACTION_DEDUPE_KEYS_REMAIN_DISTINCT");
+}
+
 var minimalSnapshotMethod = typeof(SupabaseTelemetrySink).GetMethod(
     "CreateMinimalBudgetSnapshot",
     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
