@@ -138,21 +138,35 @@ Assert(typeof(CdpAlBotV6Client).GetMethods().Any(method => method.Name == "ReadA
 
 var executionContextCandidateMethod = typeof(CdpAlBotV6Client).GetMethod(
     "TryGetExecutionContextId",
-    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
 Assert(executionContextCandidateMethod is not null, "V6_EXECUTION_CONTEXT_CANDIDATE_METHOD");
+using var executionContextHttpClient = new HttpClient();
+var executionContextClient = new CdpAlBotV6Client(executionContextHttpClient, defaults);
 using (var sandboxContextDocument = JsonDocument.Parse("""{"id":42,"origin":""}"""))
 {
     object?[] invokeArgs = [sandboxContextDocument.RootElement, 0];
-    var accepted = (bool)executionContextCandidateMethod!.Invoke(null, invokeArgs)!;
+    var accepted = (bool)executionContextCandidateMethod!.Invoke(executionContextClient, invokeArgs)!;
     Assert(accepted, "V6_SANDBOX_CONTEXT_WITH_EMPTY_ORIGIN_ACCEPTED_FOR_IDENTITY_PROBE");
     Assert((int)invokeArgs[1]! == 42, "V6_SANDBOX_CONTEXT_ID_PRESERVED");
 }
 using (var missingOriginContextDocument = JsonDocument.Parse("""{"id":43}"""))
 {
     object?[] invokeArgs = [missingOriginContextDocument.RootElement, 0];
-    var accepted = (bool)executionContextCandidateMethod!.Invoke(null, invokeArgs)!;
+    var accepted = (bool)executionContextCandidateMethod!.Invoke(executionContextClient, invokeArgs)!;
     Assert(accepted, "V6_CONTEXT_WITHOUT_ORIGIN_ACCEPTED_FOR_IDENTITY_PROBE");
     Assert((int)invokeArgs[1]! == 43, "V6_CONTEXT_WITHOUT_ORIGIN_ID_PRESERVED");
+}
+using (var sameOriginContextDocument = JsonDocument.Parse("""{"id":44,"origin":"https://adventure.land"}"""))
+{
+    object?[] invokeArgs = [sameOriginContextDocument.RootElement, 0];
+    var accepted = (bool)executionContextCandidateMethod!.Invoke(executionContextClient, invokeArgs)!;
+    Assert(accepted, "V6_ADVENTURE_LAND_CONTEXT_ACCEPTED_FOR_IDENTITY_PROBE");
+}
+using (var foreignOriginContextDocument = JsonDocument.Parse("""{"id":45,"origin":"https://example.invalid"}"""))
+{
+    object?[] invokeArgs = [foreignOriginContextDocument.RootElement, 0];
+    var accepted = (bool)executionContextCandidateMethod!.Invoke(executionContextClient, invokeArgs)!;
+    Assert(!accepted, "V6_EXPLICIT_FOREIGN_CONTEXT_REJECTED");
 }
 Assert(typeof(CdpAlBotV6Client).GetMethods().Any(method =>
     method.Name == "AcknowledgeThroughAsync"
