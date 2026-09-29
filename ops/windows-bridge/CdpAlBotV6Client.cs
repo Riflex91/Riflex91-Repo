@@ -373,8 +373,11 @@ public sealed class CdpAlBotV6Client
             var contexts = new List<int>();
             while (true)
             {
-                using var message = await ReceiveJsonAsync(socket, token);
-                var root = message.RootElement;
+                var message = await ReceiveJsonAsync(socket, id, token);
+                if (message is null) continue;
+                using (message)
+                {
+                    var root = message.RootElement;
                 if (root.ValueKind == JsonValueKind.Object
                     && root.TryGetProperty("method", out var methodNode)
                     && string.Equals(methodNode.GetString(), "Runtime.executionContextCreated", StringComparison.Ordinal)
@@ -387,9 +390,10 @@ public sealed class CdpAlBotV6Client
                     || !idNode.TryGetInt32(out var responseId)
                     || responseId != id)
                     continue;
-                if (root.TryGetProperty("error", out var error))
-                    throw new InvalidOperationException("CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
-                break;
+                    if (root.TryGetProperty("error", out var error))
+                        throw new InvalidOperationException("CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
+                    break;
+                }
             }
             return contexts.Distinct().ToArray();
         }
@@ -456,21 +460,25 @@ public sealed class CdpAlBotV6Client
             await socket.SendAsync(command, WebSocketMessageType.Text, true, token);
             while (true)
             {
-                using var message = await ReceiveJsonAsync(socket, token);
-                var root = message.RootElement;
-                if (!root.TryGetProperty("id", out var idNode)
-                    || !idNode.TryGetInt32(out var responseId)
-                    || responseId != id)
-                    continue;
-                if (root.TryGetProperty("error", out var error))
-                    throw new InvalidOperationException("CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
-                var result = root.GetProperty("result");
-                if (result.TryGetProperty("exceptionDetails", out var exception))
-                    throw new InvalidOperationException("CDP_EVALUATION_FAILED:" + Bounded(exception.ToString()));
-                var remote = result.GetProperty("result");
-                if (!remote.TryGetProperty("value", out var value))
-                    throw new InvalidOperationException("CDP_RESULT_VALUE_MISSING");
-                return value.Clone();
+                var message = await ReceiveJsonAsync(socket, id, token);
+                if (message is null) continue;
+                using (message)
+                {
+                    var root = message.RootElement;
+                    if (!root.TryGetProperty("id", out var idNode)
+                        || !idNode.TryGetInt32(out var responseId)
+                        || responseId != id)
+                        continue;
+                    if (root.TryGetProperty("error", out var error))
+                        throw new InvalidOperationException("CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
+                    var result = root.GetProperty("result");
+                    if (result.TryGetProperty("exceptionDetails", out var exception))
+                        throw new InvalidOperationException("CDP_EVALUATION_FAILED:" + Bounded(exception.ToString()));
+                    var remote = result.GetProperty("result");
+                    if (!remote.TryGetProperty("value", out var value))
+                        throw new InvalidOperationException("CDP_RESULT_VALUE_MISSING");
+                    return value.Clone();
+                }
             }
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -479,11 +487,19 @@ public sealed class CdpAlBotV6Client
         }
     }
 
-    private static async Task<JsonDocument> ReceiveJsonAsync(ClientWebSocket socket, CancellationToken cancellationToken)
+    private const int MaxCdpMessageBytes = 1024 * 1024;
+
+    private static async Task<JsonDocument?> ReceiveJsonAsync(
+        ClientWebSocket socket,
+        int expectedResponseId,
+        CancellationToken cancellationToken)
     {
         var buffer = new byte[16 * 1024];
         using var stream = new MemoryStream();
         WebSocketMessageType? messageType = null;
+        var oversized = false;
+        long totalBytes = 0;
+
         while (true)
         {
             var result = await socket.ReceiveAsync(buffer, cancellationToken);
@@ -492,9 +508,20 @@ public sealed class CdpAlBotV6Client
             messageType ??= result.MessageType;
             if (result.MessageType != messageType)
                 throw new InvalidOperationException("CDP_FRAME_TYPE_CHANGED");
-            if (result.Count > 0) stream.Write(buffer, 0, result.Count);
-            if (stream.Length > 1024 * 1024)
-                throw new InvalidOperationException("CDP_RESPONSE_TOO_LARGE");
+
+            if (result.Count > 0)
+            {
+                totalBytes += result.Count;
+                if (!oversized)
+                {
+                    var remaining = MaxCdpMessageBytes - (int)stream.Length;
+                    if (remaining > 0)
+                        stream.Write(buffer, 0, Math.Min(remaining, result.Count));
+                    if (totalBytes > MaxCdpMessageBytes)
+                        oversized = true;
+                }
+            }
+
             if (result.EndOfMessage) break;
         }
 
@@ -503,7 +530,60 @@ public sealed class CdpAlBotV6Client
             throw new InvalidOperationException(
                 "CDP_NON_TEXT_FRAME:" + (messageType?.ToString() ?? "UNKNOWN") + ":" + PayloadPreview(payload));
 
+        if (oversized)
+        {
+            var kind = ClassifyCdpEnvelopePrefix(payload, expectedResponseId);
+            if (string.Equals(kind, "expected-response", StringComparison.Ordinal))
+                throw new InvalidOperationException(
+                    "CDP_RESPONSE_TOO_LARGE:id=" + expectedResponseId + ":bytes>" + MaxCdpMessageBytes);
+            if (string.Equals(kind, "event", StringComparison.Ordinal)
+                || string.Equals(kind, "other-response", StringComparison.Ordinal))
+                return null;
+
+            throw new InvalidOperationException(
+                "CDP_MESSAGE_TOO_LARGE_UNCLASSIFIED:bytes>" + MaxCdpMessageBytes + ":" + PayloadPreview(payload));
+        }
+
         return ParseCdpJson(payload);
+    }
+
+    private static string ClassifyCdpEnvelopePrefix(byte[] prefix, int expectedResponseId)
+    {
+        if (prefix is null || prefix.Length == 0) return "unknown";
+        try
+        {
+            var reader = new Utf8JsonReader(prefix, isFinalBlock: false, state: default);
+            if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
+                return "unknown";
+
+            var inspectedProperties = 0;
+            while (inspectedProperties < 8 && reader.Read())
+            {
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                    continue;
+
+                inspectedProperties++;
+                var name = reader.GetString();
+                if (!reader.Read()) break;
+
+                if (string.Equals(name, "id", StringComparison.Ordinal)
+                    && reader.TokenType == JsonTokenType.Number
+                    && reader.TryGetInt32(out var id))
+                    return id == expectedResponseId ? "expected-response" : "other-response";
+
+                if (string.Equals(name, "method", StringComparison.Ordinal)
+                    && reader.TokenType == JsonTokenType.String)
+                    return "event";
+
+                if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+                    return "unknown";
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        return "unknown";
     }
 
     private static JsonDocument ParseCdpJson(byte[] payload)
