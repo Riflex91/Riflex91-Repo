@@ -14099,12 +14099,61 @@ function compatible(meta, character) {
   const classes = Array.isArray(meta.class) ? meta.class : meta.class ? [meta.class] : [];
   if (classes.length && !classes.map((x) => String(x).toLowerCase()).includes(ctype)) return false;
   const required = finite(meta.level, 0);
-  if (required > finite(character.level, 0)) return false;
+  return required <= finite(character.level, 0);
+}
 
-  // Live alpha.20.107 proved that a raw shield can score above a Ranger's
-  // quiver while Adventure Land rejects the actual equip command. Do not turn
-  // a stat-only offhand comparison into an impossible Ranger gear goal.
-  if (ctype === 'ranger' && String(meta.type || '').toLowerCase() === 'shield') return false;
+function classEquipmentRules(gameData, ctype) {
+  const row = gameData && gameData.classes && gameData.classes[String(ctype || '').toLowerCase()];
+  if (!row || typeof row !== 'object') return null;
+  return {
+    mainhand: new Set(Object.keys(row.mainhand && typeof row.mainhand === 'object' ? row.mainhand : {})),
+    doublehand: new Set(Object.keys(row.doublehand && typeof row.doublehand === 'object' ? row.doublehand : {})),
+    offhand: new Set(Object.keys(row.offhand && typeof row.offhand === 'object' ? row.offhand : {}))
+  };
+}
+
+function equippedMeta(character, slot, gameData) {
+  const equipped = character && character.gear && character.gear[slot];
+  if (!equipped || !equipped.name) return null;
+  const meta = gameData && gameData.items && gameData.items[equipped.name];
+  return meta && typeof meta === 'object' ? meta : null;
+}
+
+function slotCompatible(meta, character, slot, gameData) {
+  if (!compatible(meta, character)) return false;
+  const ctype = String(character && character.ctype || '').toLowerCase();
+  const type = String(meta && meta.type || '').toLowerCase();
+  const wtype = String(meta && meta.wtype || '').toLowerCase();
+  const rules = classEquipmentRules(gameData, ctype);
+
+  if (slot === 'mainhand') {
+    if (type !== 'weapon' && type !== 'tool') return false;
+    if (!rules) return true;
+    const oneHand = !!wtype && rules.mainhand.has(wtype);
+    const twoHand = !!wtype && rules.doublehand.has(wtype);
+    if (!oneHand && !twoHand) return false;
+    if (twoHand && character && character.gear && character.gear.offhand) return false;
+    return true;
+  }
+
+  if (slot === 'offhand') {
+    const currentMainMeta = equippedMeta(character, 'mainhand', gameData);
+    const currentMainWtype = String(currentMainMeta && currentMainMeta.wtype || '').toLowerCase();
+    if (rules && currentMainWtype && rules.doublehand.has(currentMainWtype)) return false;
+
+    if (type === 'weapon' || type === 'tool') {
+      return !!(rules && wtype && rules.offhand.has(wtype));
+    }
+
+    if (!['shield', 'source', 'quiver', 'misc_offhand'].includes(type)) return false;
+    if (rules) return rules.offhand.has(type);
+
+    // Legacy/fail-safe fallback when class metadata is unavailable. Preserve
+    // the live-proven Ranger shield rejection instead of guessing permissively.
+    if (ctype === 'ranger' && type === 'shield') return false;
+    return true;
+  }
+
   return true;
 }
 
@@ -14116,8 +14165,8 @@ function candidateSlots(meta) {
     amulet: ['amulet'], belt: ['belt'], orb: ['orb'], ring: ['ring1', 'ring2'], earring: ['earring1', 'earring2']
   };
   if (map[type]) return map[type];
-  if (type === 'weapon') return ['mainhand'];
-  if (type === 'shield' || type === 'source' || type === 'quiver') return ['offhand'];
+  if (type === 'weapon' || type === 'tool') return ['mainhand', 'offhand'];
+  if (type === 'shield' || type === 'source' || type === 'quiver' || type === 'misc_offhand') return ['offhand'];
   return [];
 }
 
@@ -14380,6 +14429,7 @@ class GearProgressionEvaluator {
         }
         let best = null;
         for (const slot of candidate.slots) {
+          if (!slotCompatible(candidate.meta, character, slot, gameData)) continue;
           const current = this._currentItem(character, slot, gameData);
           const observedLevel = levelOf(candidate.item);
           const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
@@ -14744,7 +14794,10 @@ module.exports = {
   effectiveStats,
   scoreItem,
   scoreImprovement,
-  candidateSlots
+  candidateSlots,
+  compatible,
+  classEquipmentRules,
+  slotCompatible
 };
 
 },
@@ -40510,8 +40563,35 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
     const useful = goals.filter((goal) => goal.observedMeaningful === true);
     useful.sort((a, b) => finite(b.observedSurvivalImprovement, 0) - finite(a.observedSurvivalImprovement, 0)
       || finite(b.observedImprovement, 0) - finite(a.observedImprovement, 0));
+
+    const future = goals.filter((goal) => (
+      goal.projectedUpgradeRequired === true
+      && finite(goal.targetLevel, 0) > finite(goal.observedLevel, 0)
+      && goal.targetEvidenceComplete === true
+    )).map((goal) => {
+      const currentScore = Math.max(1, Math.abs(finite(goal.currentScore, 0)));
+      const improvement = Math.max(0, finite(goal.improvement, 0));
+      const improvementRatio = Math.max(0, Math.min(1, improvement / currentScore));
+      return {
+        character: goal.character,
+        slot: goal.slot,
+        currentItem: goal.currentItem || null,
+        currentLevel: finite(goal.currentLevel, 0),
+        observedLevel: finite(goal.observedLevel, 0),
+        targetLevel: finite(goal.targetLevel, 0),
+        improvement,
+        survivalImprovement: Math.max(0, finite(goal.survivalImprovement, 0)),
+        improvementRatio,
+        cumulativeSuccessChance: finite(goal.cumulativeSuccessChance, null),
+        riskAdjustedUtility: finite(goal.riskAdjustedUtility, null)
+      };
+    }).sort((a, b) => b.improvementRatio - a.improvementRatio
+      || finite(b.riskAdjustedUtility, 0) - finite(a.riskAdjustedUtility, 0));
+
     return {
       usefulNow: useful.length > 0,
+      maxFutureImprovementRatio: future.length ? future[0].improvementRatio : 0,
+      maxFutureRiskAdjustedUtility: future.reduce((max, goal) => Math.max(max, finite(goal.riskAdjustedUtility, 0)), 0),
       goals: useful.slice(0, 8).map((goal) => ({
         character: goal.character,
         slot: goal.slot,
@@ -40520,7 +40600,8 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
         observedLevel: finite(goal.observedLevel, 0),
         observedImprovement: finite(goal.observedImprovement, 0),
         observedSurvivalImprovement: finite(goal.observedSurvivalImprovement, 0)
-      }))
+      })),
+      futureGoals: future.slice(0, 8)
     };
   }
 
@@ -40541,7 +40622,14 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
       ? Math.max(1, finite(this.options.compoundValueCap, 500000))
       : Math.max(1, finite(this.options.upgradeValueCap, 2000000));
     const valuePenalty = Math.min(0.08, (value / cap) * 0.08);
-    const minChance = Math.max(0, Math.min(0.995, base + levelPenalty + compoundPenalty + partyPenalty + valuePenalty));
+
+    // A mutation that unlocks a large, evidence-backed Party gear improvement
+    // may accept somewhat more roll risk than a marginal +1% improvement. The
+    // credit is deliberately bounded and never cancels the protection penalty
+    // for an item that is already useful at its current safe level.
+    const futureImprovementRatio = Math.max(0, Math.min(1, finite(partyValue && partyValue.maxFutureImprovementRatio, 0)));
+    const benefitCredit = Math.min(0.10, Math.max(0, futureImprovementRatio - 0.05) * 0.50);
+    const minChance = Math.max(0.05, Math.min(0.995, base + levelPenalty + compoundPenalty + partyPenalty + valuePenalty - benefitCredit));
     return {
       minChance,
       base,
@@ -40549,6 +40637,8 @@ class Alpha27AtomicEconomy extends Alpha27AtomicService {
       compoundPenalty,
       partyPenalty,
       valuePenalty,
+      benefitCredit,
+      futureImprovementRatio,
       level,
       spareEquivalents: spare
     };
