@@ -156,6 +156,12 @@ async function withFreeTierHealth(request, response) {
   }
 }
 
+async function serveDashboardRoot(request, env) {
+  if (request.method !== 'GET' || new URL(request.url).pathname !== '/') return null;
+  if (!env || !env.ASSETS || typeof env.ASSETS.fetch !== 'function') return null;
+  return env.ASSETS.fetch(request);
+}
+
 async function withCharacterInventoryPresentation(request, response) {
   if (request.method !== 'GET' || new URL(request.url).pathname !== '/' || response.status >= 400) return response;
   const contentType = String(response.headers.get('content-type') || '').toLowerCase();
@@ -184,6 +190,7 @@ export {
   guardedArchiveBinding,
   guardedEnv,
   isPublicReleaseRead,
+  serveDashboardRoot,
   withCharacterInventoryPresentation,
   WORKER_NAME,
   R2_BINDING,
@@ -208,7 +215,8 @@ export default {
       } else if (isRuntimeReleaseRead(request)) {
         response = await handleRuntimeReleaseArtifact(request, env);
       } else {
-        response = await r2Worker.fetch(request, guarded, ctx);
+        const dashboardRoot = await serveDashboardRoot(request, env);
+        response = dashboardRoot || await r2Worker.fetch(request, guarded, ctx);
       }
     }
     response = await withQuotaOverview(request, response, env);
