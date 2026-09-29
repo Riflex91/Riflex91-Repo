@@ -522,215 +522,91 @@ public sealed class CdpAlBotV6Client
         return Bounded(cleaned);
     }
 
-    private static string BuildSnapshotExpression(bool deep) => $"""
-    (() => {
-      const roots = [];
-      const seen = new Set();
-      const visit = candidate => {
-        if (!candidate || roots.length >= 64) return;
-        try {
-          if (seen.has(candidate)) return;
-          seen.add(candidate);
-          void candidate.location.href;
-        } catch { return; }
-        roots.push(candidate);
-        try { if (candidate.parent && candidate.parent !== candidate) visit(candidate.parent); } catch {}
-        try { if (candidate.top && candidate.top !== candidate) visit(candidate.top); } catch {}
-        try {
-          const frames = candidate.frames;
-          for (let i = 0; frames && i < frames.length && i < 32; i += 1) visit(frames[i]);
-        } catch {}
-      };
-      visit(globalThis);
+    private const string BridgeResolverSource = """
+    const roots = [];
+    const seen = new Set();
+    const visit = candidate => {
+      if (!candidate || roots.length >= 64) return;
+      try {
+        if (seen.has(candidate)) return;
+        seen.add(candidate);
+        void candidate.location.href;
+      } catch { return; }
+      roots.push(candidate);
+      try { if (candidate.parent && candidate.parent !== candidate) visit(candidate.parent); } catch {}
+      try { if (candidate.top && candidate.top !== candidate) visit(candidate.top); } catch {}
+      try {
+        const frames = candidate.frames;
+        for (let i = 0; frames && i < frames.length && i < 32; i += 1) visit(frames[i]);
+      } catch {}
+    };
+    visit(globalThis);
 
-      const candidates = [];
-      for (const candidateRoot of roots) {
-        try { if (candidateRoot.ALBot) candidates.push(candidateRoot.ALBot); } catch {}
-        try {
-          const shared = candidateRoot.__ALBOT_SHARED_RUNTIME__;
-          const runner = shared && shared.runnerRoot;
-          if (runner && runner.ALBot) candidates.push(runner.ALBot);
-        } catch {}
-      }
+    const candidates = [];
+    for (const candidateRoot of roots) {
+      try { if (candidateRoot.ALBot) candidates.push(candidateRoot.ALBot); } catch {}
+      try {
+        const shared = candidateRoot.__ALBOT_SHARED_RUNTIME__;
+        const runner = shared && shared.runnerRoot;
+        if (runner && runner.ALBot) candidates.push(runner.ALBot);
+      } catch {}
+    }
 
-      const api = candidates.find(candidate => {
-        try {
-          const bridge = candidate && candidate.bridge;
-          const identity = bridge && typeof bridge.identity === 'function' ? bridge.identity() : null;
-          return !!identity
-            && identity.product === 'AL Bot'
-            && Number(identity.generation) === 6
-            && identity.bridgeProtocol === 'albot-v6-bridge-v1'
-            && identity.transportOnly === true
-            && identity.gameplayActionAuthority === false
-            && identity.acceptsLegacyGenerations === false
-            && typeof bridge.snapshot === 'function';
-        } catch { return false; }
-      }) || null;
-      if (!api) throw new Error('ALBOT_V6_BRIDGE_UNAVAILABLE');
-      return api.bridge.snapshot({ deep: {{(deep ? "true" : "false")}} });
-    })()
+    const findBridgeApi = requiredMethod => candidates.find(candidate => {
+      try {
+        const bridge = candidate && candidate.bridge;
+        const identity = bridge && typeof bridge.identity === 'function' ? bridge.identity() : null;
+        return !!identity
+          && identity.product === 'AL Bot'
+          && Number(identity.generation) === 6
+          && identity.bridgeProtocol === 'albot-v6-bridge-v1'
+          && identity.transportOnly === true
+          && identity.gameplayActionAuthority === false
+          && identity.acceptsLegacyGenerations === false
+          && typeof bridge[requiredMethod] === 'function';
+      } catch { return false; }
+    }) || null;
     """;
+
+    private static string BuildSnapshotExpression(bool deep) =>
+        "(() => {\n"
+        + BridgeResolverSource
+        + "\nconst api = findBridgeApi('snapshot');\n"
+        + "if (!api) throw new Error('ALBOT_V6_BRIDGE_UNAVAILABLE');\n"
+        + "return api.bridge.snapshot({ deep: " + (deep ? "true" : "false") + " });\n"
+        + "})()";
 
     private static string BuildEventsExpression(long afterSeq, int limit)
     {
         var after = Math.Max(0, afterSeq);
         var boundedLimit = Math.Clamp(limit, 1, 200);
-        return $$"""
-        (() => {
-      const roots = [];
-      const seen = new Set();
-      const visit = candidate => {
-        if (!candidate || roots.length >= 64) return;
-        try {
-          if (seen.has(candidate)) return;
-          seen.add(candidate);
-          void candidate.location.href;
-        } catch { return; }
-        roots.push(candidate);
-        try { if (candidate.parent && candidate.parent !== candidate) visit(candidate.parent); } catch {}
-        try { if (candidate.top && candidate.top !== candidate) visit(candidate.top); } catch {}
-        try {
-          const frames = candidate.frames;
-          for (let i = 0; frames && i < frames.length && i < 32; i += 1) visit(frames[i]);
-        } catch {}
-      };
-      visit(globalThis);
-
-      const candidates = [];
-      for (const candidateRoot of roots) {
-        try { if (candidateRoot.ALBot) candidates.push(candidateRoot.ALBot); } catch {}
-        try {
-          const shared = candidateRoot.__ALBOT_SHARED_RUNTIME__;
-          const runner = shared && shared.runnerRoot;
-          if (runner && runner.ALBot) candidates.push(runner.ALBot);
-        } catch {}
-      }
-
-      const api = candidates.find(candidate => {
-        try {
-          const bridge = candidate && candidate.bridge;
-          const identity = bridge && typeof bridge.identity === 'function' ? bridge.identity() : null;
-          return !!identity
-            && identity.product === 'AL Bot'
-            && Number(identity.generation) === 6
-            && identity.bridgeProtocol === 'albot-v6-bridge-v1'
-            && identity.transportOnly === true
-            && identity.gameplayActionAuthority === false
-            && identity.acceptsLegacyGenerations === false
-            && typeof bridge.events === 'function';
-        } catch { return false; }
-      }) || null;
-          if (!api) throw new Error('ALBOT_V6_BRIDGE_UNAVAILABLE');
-          return api.bridge.events({{after}}, {{boundedLimit}});
-        })()
-        """;
+        return "(() => {\n"
+            + BridgeResolverSource
+            + "\nconst api = findBridgeApi('events');\n"
+            + "if (!api) throw new Error('ALBOT_V6_BRIDGE_UNAVAILABLE');\n"
+            + "return api.bridge.events(" + after + ", " + boundedLimit + ");\n"
+            + "})()";
     }
 
     private static string BuildAcknowledgeExpression(long maxSeq)
     {
         var bounded = Math.Max(0, maxSeq);
-        return $$"""
-        (() => {
-      const roots = [];
-      const seen = new Set();
-      const visit = candidate => {
-        if (!candidate || roots.length >= 64) return;
-        try {
-          if (seen.has(candidate)) return;
-          seen.add(candidate);
-          void candidate.location.href;
-        } catch { return; }
-        roots.push(candidate);
-        try { if (candidate.parent && candidate.parent !== candidate) visit(candidate.parent); } catch {}
-        try { if (candidate.top && candidate.top !== candidate) visit(candidate.top); } catch {}
-        try {
-          const frames = candidate.frames;
-          for (let i = 0; frames && i < frames.length && i < 32; i += 1) visit(frames[i]);
-        } catch {}
-      };
-      visit(globalThis);
-
-      const candidates = [];
-      for (const candidateRoot of roots) {
-        try { if (candidateRoot.ALBot) candidates.push(candidateRoot.ALBot); } catch {}
-        try {
-          const shared = candidateRoot.__ALBOT_SHARED_RUNTIME__;
-          const runner = shared && shared.runnerRoot;
-          if (runner && runner.ALBot) candidates.push(runner.ALBot);
-        } catch {}
-      }
-
-      const api = candidates.find(candidate => {
-        try {
-          const bridge = candidate && candidate.bridge;
-          const identity = bridge && typeof bridge.identity === 'function' ? bridge.identity() : null;
-          return !!identity
-            && identity.product === 'AL Bot'
-            && Number(identity.generation) === 6
-            && identity.bridgeProtocol === 'albot-v6-bridge-v1'
-            && identity.transportOnly === true
-            && identity.gameplayActionAuthority === false
-            && identity.acceptsLegacyGenerations === false
-            && typeof bridge.acknowledgeTelemetry === 'function';
-        } catch { return false; }
-      }) || null;
-          if (!api) throw new Error('ALBOT_V6_BRIDGE_UNAVAILABLE');
-          return api.bridge.acknowledgeTelemetry({{bounded}});
-        })()
-        """;
+        return "(() => {\n"
+            + BridgeResolverSource
+            + "\nconst api = findBridgeApi('acknowledgeTelemetry');\n"
+            + "if (!api) throw new Error('ALBOT_V6_BRIDGE_UNAVAILABLE');\n"
+            + "return api.bridge.acknowledgeTelemetry(" + bounded + ");\n"
+            + "})()";
     }
 
-    private const string ProbeExpression = """
-    (() => {
-      const roots = [];
-      const seen = new Set();
-      const visit = candidate => {
-        if (!candidate || roots.length >= 64) return;
-        try {
-          if (seen.has(candidate)) return;
-          seen.add(candidate);
-          void candidate.location.href;
-        } catch { return; }
-        roots.push(candidate);
-        try { if (candidate.parent && candidate.parent !== candidate) visit(candidate.parent); } catch {}
-        try { if (candidate.top && candidate.top !== candidate) visit(candidate.top); } catch {}
-        try {
-          const frames = candidate.frames;
-          for (let i = 0; frames && i < frames.length && i < 32; i += 1) visit(frames[i]);
-        } catch {}
-      };
-      visit(globalThis);
-
-      const candidates = [];
-      for (const candidateRoot of roots) {
-        try { if (candidateRoot.ALBot) candidates.push(candidateRoot.ALBot); } catch {}
-        try {
-          const shared = candidateRoot.__ALBOT_SHARED_RUNTIME__;
-          const runner = shared && shared.runnerRoot;
-          if (runner && runner.ALBot) candidates.push(runner.ALBot);
-        } catch {}
-      }
-
-      const api = candidates.find(candidate => {
-        try {
-          const bridge = candidate && candidate.bridge;
-          const identity = bridge && typeof bridge.identity === 'function' ? bridge.identity() : null;
-          return !!identity
-            && identity.product === 'AL Bot'
-            && Number(identity.generation) === 6
-            && identity.bridgeProtocol === 'albot-v6-bridge-v1'
-            && identity.transportOnly === true
-            && identity.gameplayActionAuthority === false
-            && identity.acceptsLegacyGenerations === false
-            && typeof bridge.identity === 'function';
-        } catch { return false; }
-      }) || null;
-      if (!api) return { valid: false, identity: null };
-      try { return { valid: true, identity: api.bridge.identity() }; }
-      catch { return { valid: false, identity: null }; }
-    })()
-    """;
+    private static readonly string ProbeExpression =
+        "(() => {\n"
+        + BridgeResolverSource
+        + "\nconst api = findBridgeApi('identity');\n"
+        + "if (!api) return { valid: false, identity: null };\n"
+        + "try { return { valid: true, identity: api.bridge.identity() }; }\n"
+        + "catch { return { valid: false, identity: null }; }\n"
+        + "})()";
 
     private static long ReadInt64(JsonElement value, string property, long fallback)
     {
