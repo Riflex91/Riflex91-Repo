@@ -998,6 +998,12 @@ Assert(TelemetryBridgeService.ShouldIncludeDeepDiagnostics(
 Assert(TelemetryBridgeService.EventLimitForRead(100, false) == 100, "NORMAL_EVENT_LIMIT");
 Assert(TelemetryBridgeService.EventLimitForRead(100, true) == TelemetryBridgeService.DeepDiagnosticEventLimit, "DIAGNOSTIC_EVENT_LIMIT");
 Assert(TelemetryBridgeService.EventLimitForRead(20, true) == 20, "DIAGNOSTIC_SMALL_EVENT_LIMIT");
+Assert(!TelemetryBridgeService.LiveTransportIncludesDeepDiagnostics,
+    "V6_LIVE_TRANSPORT_MUST_USE_SHALLOW_SNAPSHOT");
+Assert(typeof(TelemetryBridgeService).GetMethod(
+    "CaptureDeepDiagnosticsBestEffortAsync",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance) is not null,
+    "V6_DEEP_DIAGNOSTICS_MUST_BE_SEPARATE_BEST_EFFORT_PATH");
 Assert(SupabaseTelemetrySink.IsWithinPayloadBudget(SupabaseTelemetrySink.MaxPayloadBytes), "PAYLOAD_BUDGET_BOUNDARY");
 Assert(!SupabaseTelemetrySink.IsWithinPayloadBudget(SupabaseTelemetrySink.MaxPayloadBytes + 1), "PAYLOAD_BUDGET_REJECTS_OVERSIZE");
 Assert(SupabaseProblemDiagnosticsSink.IsWithinPayloadBudget(SupabaseProblemDiagnosticsSink.MaxPayloadBytes), "PROBLEM_MIRROR_BUDGET_BOUNDARY");
