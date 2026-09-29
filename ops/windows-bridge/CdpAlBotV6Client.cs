@@ -175,7 +175,13 @@ public sealed class CdpAlBotV6Client
         {
             var detail = probeDiagnostics.Count == 0
                 ? "NO_PROBE_RESULTS"
-                : string.Join("|", probeDiagnostics.Take(6));
+                : string.Join("|", probeDiagnostics
+                    .GroupBy(row => row.Split(':', 2)[0], StringComparer.OrdinalIgnoreCase)
+                    .Select(group => group.FirstOrDefault(row =>
+                        !row.Contains("/a0/", StringComparison.Ordinal)
+                        && !row.EndsWith(":NO_DIAG", StringComparison.Ordinal))
+                        ?? group.First())
+                    .Take(6));
             throw new InvalidOperationException("ALBOT_V6_BRIDGE_UNAVAILABLE:" + Bounded(detail));
         }
 
