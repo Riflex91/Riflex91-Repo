@@ -1124,6 +1124,8 @@ Assert(TelemetryBridgeService.EventLimitForRead(100, false) == 100, "NORMAL_EVEN
 Assert(TelemetryBridgeService.EventLimitForRead(1000, false) == 200, "NORMAL_EVENT_LIMIT_HARD_CAP_200");
 Assert(TelemetryBridgeService.EventLimitForRead(100, true) == TelemetryBridgeService.DeepDiagnosticEventLimit, "DIAGNOSTIC_EVENT_LIMIT");
 Assert(TelemetryBridgeService.EventLimitForRead(20, true) == 20, "DIAGNOSTIC_SMALL_EVENT_LIMIT");
+Assert(TelemetryBridgeService.ShouldPublishConnecting(null), "BRIDGE_CONNECTING_SHOWN_BEFORE_FIRST_SUCCESS");
+Assert(!TelemetryBridgeService.ShouldPublishConnecting(DateTimeOffset.UtcNow), "BRIDGE_HEALTHY_STATE_NOT_RESET_BETWEEN_POLLS");
 Assert(!TelemetryBridgeService.LiveTransportIncludesDeepDiagnostics,
     "V6_LIVE_TRANSPORT_MUST_USE_SHALLOW_SNAPSHOT");
 Assert(typeof(TelemetryBridgeService).GetMethod(

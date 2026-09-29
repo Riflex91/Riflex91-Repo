@@ -109,10 +109,17 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
             string? backblazeError = null;
             try
             {
-                Publish(new RuntimeBridgeStatus(
-                    "CONNECTING", false, false, attempt, lastSuccess, state.LastEventSeq, 0, null, null,
-                    dashboardState, null,
-                    backblazeState, null));
+                // CONNECTING is an initial-start state. Once we have completed a healthy
+                // cycle, keep the last healthy UI state visible while the next poll probes
+                // browser/CDP/Supabase. A real failure is published as DEGRADED below.
+                if (ShouldPublishConnecting(lastSuccess))
+                {
+                    Publish(new RuntimeBridgeStatus(
+                        "CONNECTING", false, false, attempt, lastSuccess, state.LastEventSeq, 0, null, null,
+                        dashboardState, null,
+                        backblazeState, null));
+                }
+
                 var browserConnection = await _launcher.EnsureReadyAsync(cancellationToken);
                 browserReady = browserConnection.Ready;
                 if (!browserReady) throw new InvalidOperationException(browserConnection.State);
@@ -476,6 +483,9 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     }
 
     private void Publish(RuntimeBridgeStatus status) => StatusChanged?.Invoke(status);
+
+    public static bool ShouldPublishConnecting(DateTimeOffset? lastSuccess) =>
+        !lastSuccess.HasValue;
 
     public static int EventLimitForRead(int configuredEventLimit, bool includeDeepDiagnostics)
     {
