@@ -123,18 +123,34 @@ Assert(v6ProbeExpression.Contains("version: candidate && candidate.version", Str
     "V6_PROBE_REPORTS_RUNTIME_VERSION");
 Assert(v6ProbeExpression.Contains("hasBridge: !!bridge", StringComparison.Ordinal),
     "V6_PROBE_REPORTS_BRIDGE_PRESENCE");
-Assert(v6ProbeExpression.Contains("candidateSet", StringComparison.Ordinal),
+Assert(v6ProbeExpression.Contains("rowSet", StringComparison.Ordinal),
     "V6_PROBE_DEDUPES_BRIDGE_CANDIDATES");
 Assert(v6ProbeExpression.Contains("findBridgeApiForCharacter", StringComparison.Ordinal),
     "V6_PROBE_SUPPORTS_EXACT_CHARACTER_SELECTION");
+Assert(v6ProbeExpression.Contains("iframe[data-name]", StringComparison.Ordinal),
+    "V6_PROBE_PRIORITIZES_ADVENTURE_LAND_CHARACTER_IFRAMES");
+Assert(v6ProbeExpression.Contains("findAdventureLandCharacterRoot", StringComparison.Ordinal),
+    "V6_PROBE_RESOLVES_NAMED_CHARACTER_ROOT");
+Assert(v6ProbeExpression.Contains("collectCharacterScopeRoots", StringComparison.Ordinal),
+    "V6_PROBE_SCOPES_CHARACTER_RUNNER_SEARCH");
+Assert(v6ProbeExpression.Contains("element.dataset && element.dataset.name", StringComparison.Ordinal),
+    "V6_PROBE_PREVENTS_CROSS_CHARACTER_SCOPE_LEAK");
 
 var v6CharacterCatalogExpression = CdpAlBotV6Client.BuildCharacterCatalogExpression();
-Assert(v6CharacterCatalogExpression.Contains("validBridgeApis('snapshot')", StringComparison.Ordinal),
-    "V6_CHARACTER_CATALOG_ENUMERATES_ALL_VALID_BRIDGES");
-Assert(v6CharacterCatalogExpression.Contains("seenCharacters", StringComparison.Ordinal),
+Assert(v6CharacterCatalogExpression.Contains("get_active_characters", StringComparison.Ordinal),
+    "V6_CHARACTER_CATALOG_USES_ADVENTURE_LAND_LIVENESS_ROSTER");
+Assert(v6CharacterCatalogExpression.Contains("const roster = new Map()", StringComparison.Ordinal),
     "V6_CHARACTER_CATALOG_DEDUPES_CHARACTER_NAMES");
-Assert(v6CharacterCatalogExpression.Contains("rows.push({ character: name })", StringComparison.Ordinal),
-    "V6_CHARACTER_CATALOG_RETURNS_CHARACTER_NAMES");
+Assert(v6CharacterCatalogExpression.Contains("findBridgeApiForCharacter('snapshot', row.character)", StringComparison.Ordinal),
+    "V6_CHARACTER_CATALOG_ROUTES_EACH_ROSTER_CHARACTER_EXACTLY");
+Assert(v6CharacterCatalogExpression.Contains("source: row.source", StringComparison.Ordinal),
+    "V6_CHARACTER_CATALOG_RETURNS_ROSTER_SOURCE_DIAGNOSTIC");
+Assert(v6CharacterCatalogExpression.Contains("bridgeAvailable: false", StringComparison.Ordinal),
+    "V6_CHARACTER_CATALOG_REPORTS_ACTIVE_CHARACTER_WITHOUT_BRIDGE");
+Assert(v6CharacterCatalogExpression.Contains("bridgeAvailable: true", StringComparison.Ordinal),
+    "V6_CHARACTER_CATALOG_REPORTS_ROUTABLE_CHARACTER");
+Assert(typeof(CdpAlBotV6Client).GetProperty("LastDiscoveryWarning") is not null,
+    "V6_DISCOVERY_WARNING_PUBLIC_STATUS");
 Assert(CdpAlBotV6Client.IsSupportedTargetType("page"), "V6_CDP_PAGE_TARGET_SUPPORTED");
 Assert(CdpAlBotV6Client.IsSupportedTargetType("iframe"), "V6_CDP_IFRAME_TARGET_SUPPORTED");
 Assert(!CdpAlBotV6Client.IsSupportedTargetType("service_worker"), "V6_CDP_FOREIGN_TARGET_TYPE_REJECTED");

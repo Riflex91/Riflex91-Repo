@@ -208,7 +208,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                         lastSuccess,
                         state.LastEventSeq,
                         totalEventCount,
-                        null,
+                        _browser.LastDiscoveryWarning,
                         targetUrl,
                         dashboardState,
                         dashboardError,
@@ -228,7 +228,8 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 if (latestStatus is null)
                 {
                     latestStatus = new RuntimeBridgeStatus(
-                        "HEALTHY", true, true, attempt, lastSuccess, state.LastEventSeq, 0, null, null,
+                        "HEALTHY", true, true, attempt, lastSuccess, state.LastEventSeq, 0,
+                        _browser.LastDiscoveryWarning, null,
                         dashboardState, dashboardError,
                         backblazeState, backblazeError);
                     Publish(latestStatus);
