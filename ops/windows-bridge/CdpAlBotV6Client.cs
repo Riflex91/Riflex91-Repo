@@ -90,7 +90,12 @@ public sealed class CdpAlBotV6Client
 
         foreach (var target in await FindTargetsAsync(cancellationToken))
         {
+            var targetCharacter = CharacterNameFromTargetUrl(target.Url);
+            if (!string.IsNullOrWhiteSpace(targetCharacter))
+                rosterCharacters.Add(targetCharacter);
+
             using var socket = new ClientWebSocket();
+            var targetResolved = false;
             try
             {
                 await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
@@ -98,50 +103,29 @@ public sealed class CdpAlBotV6Client
                 {
                     try
                     {
-                        // Read only the bridge owned by this execution context. Cross-frame
-                        // discovery is useful for roster/diagnostics, but routing telemetry
-                        // through a sibling frame can collapse several characters onto the
-                        // same runtime. Local contexts keep snapshot/events/ACK character-exact.
-                        var localProbe = await EvaluateAsync(
+                        // A browser target already identifies its Adventure Land character in
+                        // /character/<name>/... . Use that target identity as the routing key,
+                        // then allow the bounded same-target frame resolver to find the V6 bridge.
+                        // This avoids both failure modes seen live: local-only probing can miss
+                        // nested runner bridges, while account-wide cross-frame enumeration can
+                        // accidentally collapse several characters onto one runtime.
+                        var probe = await EvaluateAsync(
                             socket,
-                            LocalProbeExpression,
+                            ProbeExpression,
                             contextId,
                             cancellationToken);
-                        if (localProbe.ValueKind != JsonValueKind.Object
-                            || !ReadBoolean(localProbe, "valid", false)
-                            || !localProbe.TryGetProperty("identity", out var localIdentity)
-                            || !IsV6Identity(localIdentity))
+                        if (probe.ValueKind != JsonValueKind.Object
+                            || !ReadBoolean(probe, "valid", false)
+                            || !probe.TryGetProperty("identity", out var identity)
+                            || !IsV6Identity(identity))
+                        {
+                            AddProbeDiagnostic(probeDiagnostics, target.Url, contextId, probe);
                             continue;
-
-                        try
-                        {
-                            var catalog = await EvaluateAsync(
-                                socket,
-                                CharacterCatalogExpression,
-                                contextId,
-                                cancellationToken);
-                            if (catalog.ValueKind == JsonValueKind.Array)
-                            {
-                                foreach (var catalogRow in catalog.EnumerateArray())
-                                {
-                                    var rosterName = ReadString(catalogRow, "character")?.Trim();
-                                    if (!string.IsNullOrWhiteSpace(rosterName))
-                                        rosterCharacters.Add(rosterName);
-                                }
-                            }
-                        }
-                        catch (InvalidOperationException error)
-                        {
-                            AddProbeDiagnostic(
-                                probeDiagnostics,
-                                target.Url,
-                                contextId,
-                                "ROSTER:" + error.Message);
                         }
 
                         var snapshot = await EvaluateAsync(
                             socket,
-                            BuildSnapshotExpression(includeDeepDiagnostics),
+                            BuildSnapshotExpression(includeDeepDiagnostics, targetCharacter),
                             contextId,
                             cancellationToken);
                         if (!IsV6Snapshot(snapshot))
@@ -151,9 +135,21 @@ public sealed class CdpAlBotV6Client
                         if (string.IsNullOrWhiteSpace(characterName))
                             throw new InvalidOperationException("ALBOT_V6_CHARACTER_NAME_MISSING");
 
+                        if (!string.IsNullOrWhiteSpace(targetCharacter)
+                            && !string.Equals(
+                                characterName,
+                                targetCharacter,
+                                StringComparison.OrdinalIgnoreCase))
+                            throw new InvalidOperationException(
+                                "ALBOT_V6_TARGET_CHARACTER_MISMATCH:"
+                                + Bounded(targetCharacter)
+                                + "!="
+                                + Bounded(characterName));
+
                         rosterCharacters.Add(characterName);
+                        targetResolved = true;
                         if (seenCharacters.Contains(characterName))
-                            continue;
+                            break;
 
                         JsonElement? dashboardVisual = null;
                         try
@@ -177,8 +173,6 @@ public sealed class CdpAlBotV6Client
                         }
                         catch (InvalidOperationException error)
                         {
-                            // Dashboard visuals are observational only. Missing/large
-                            // map metadata must never hide a live character.
                             AddProbeDiagnostic(
                                 probeDiagnostics,
                                 target.Url,
@@ -187,7 +181,7 @@ public sealed class CdpAlBotV6Client
                         }
 
                         var afterSeq = Math.Max(0, afterSeqForCharacter(characterName));
-                        var eventBatch = await EvaluateLocalEventsAdaptiveAsync(
+                        var eventBatch = await EvaluateEventsAdaptiveAsync(
                             socket,
                             characterName,
                             afterSeq,
@@ -230,11 +224,10 @@ public sealed class CdpAlBotV6Client
                             target.Url,
                             dashboardVisual));
                         seenCharacters.Add(characterName);
+                        break;
                     }
                     catch (InvalidOperationException error)
                     {
-                        // A single stale/non-bot execution context must not hide the
-                        // remaining live V6 characters in the same browser page.
                         AddProbeDiagnostic(probeDiagnostics, target.Url, contextId, error.Message);
                     }
                 }
@@ -247,6 +240,13 @@ public sealed class CdpAlBotV6Client
             {
                 AddProbeDiagnostic(probeDiagnostics, target.Url, null, error.Message);
             }
+
+            if (!targetResolved && !string.IsNullOrWhiteSpace(targetCharacter))
+                AddProbeDiagnostic(
+                    probeDiagnostics,
+                    target.Url,
+                    null,
+                    "TARGET_CHARACTER_BRIDGE_MISSING:" + Bounded(targetCharacter));
         }
 
         var missingCharacters = rosterCharacters
@@ -267,7 +267,7 @@ public sealed class CdpAlBotV6Client
         if (reads.Count == 0)
         {
             var detail = probeDiagnostics.Count == 0
-                ? "NO_LOCAL_V6_CONTEXTS"
+                ? "NO_TARGET_BOUND_V6_CONTEXTS"
                 : string.Join("|", probeDiagnostics
                     .GroupBy(row => row.Split(':', 2)[0], StringComparer.OrdinalIgnoreCase)
                     .Select(group => group.FirstOrDefault(row =>
@@ -295,6 +295,15 @@ public sealed class CdpAlBotV6Client
 
         foreach (var target in await FindTargetsAsync(cancellationToken))
         {
+            var targetCharacter = CharacterNameFromTargetUrl(target.Url);
+            if (!string.IsNullOrWhiteSpace(characterName)
+                && !string.IsNullOrWhiteSpace(targetCharacter)
+                && !string.Equals(
+                    characterName,
+                    targetCharacter,
+                    StringComparison.OrdinalIgnoreCase))
+                continue;
+
             using var socket = new ClientWebSocket();
             try
             {
@@ -303,14 +312,14 @@ public sealed class CdpAlBotV6Client
                 {
                     try
                     {
-                        var localProbe = await EvaluateAsync(
+                        var probe = await EvaluateAsync(
                             socket,
-                            LocalProbeExpression,
+                            ProbeExpression,
                             contextId,
                             cancellationToken);
-                        if (localProbe.ValueKind != JsonValueKind.Object
-                            || !ReadBoolean(localProbe, "valid", false)
-                            || !localProbe.TryGetProperty("identity", out var identity)
+                        if (probe.ValueKind != JsonValueKind.Object
+                            || !ReadBoolean(probe, "valid", false)
+                            || !probe.TryGetProperty("identity", out var identity)
                             || !IsV6Identity(identity))
                             continue;
 
@@ -318,7 +327,7 @@ public sealed class CdpAlBotV6Client
                         {
                             var snapshot = await EvaluateAsync(
                                 socket,
-                                BuildSnapshotExpression(deep: false),
+                                BuildSnapshotExpression(deep: false, characterName),
                                 contextId,
                                 cancellationToken);
                             var currentCharacter = ReadCharacterName(snapshot);
@@ -331,7 +340,7 @@ public sealed class CdpAlBotV6Client
 
                         var value = await EvaluateAsync(
                             socket,
-                            BuildAcknowledgeExpression(maxSeq),
+                            BuildAcknowledgeExpression(maxSeq, characterName),
                             contextId,
                             cancellationToken);
                         if (value.ValueKind != JsonValueKind.Object
@@ -1599,18 +1608,21 @@ catch { return { valid: false, identity: null, diagnostics }; }
         diagnostics.Add(label + ":" + context + ":" + Bounded(error));
     }
 
-    private static string TargetLabel(string targetUrl)
+    public static string? CharacterNameFromTargetUrl(string? targetUrl)
     {
-        if (Uri.TryCreate(targetUrl, UriKind.Absolute, out var uri))
-        {
-            var parts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-            var characterIndex = Array.FindIndex(parts, value =>
-                string.Equals(value, "character", StringComparison.OrdinalIgnoreCase));
-            if (characterIndex >= 0 && characterIndex + 1 < parts.Length)
-                return Bounded(Uri.UnescapeDataString(parts[characterIndex + 1]));
-        }
-        return "target";
+        if (!Uri.TryCreate(targetUrl, UriKind.Absolute, out var uri))
+            return null;
+        var parts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+        var characterIndex = Array.FindIndex(parts, value =>
+            string.Equals(value, "character", StringComparison.OrdinalIgnoreCase));
+        if (characterIndex < 0 || characterIndex + 1 >= parts.Length)
+            return null;
+        var name = Uri.UnescapeDataString(parts[characterIndex + 1]).Trim();
+        return string.IsNullOrWhiteSpace(name) ? null : name;
     }
+
+    private static string TargetLabel(string targetUrl) =>
+        Bounded(CharacterNameFromTargetUrl(targetUrl) ?? "target");
 
     private static long ReadInt64(JsonElement value, string property, long fallback)
     {
