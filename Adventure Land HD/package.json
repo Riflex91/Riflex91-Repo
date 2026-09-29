@@ -24,6 +24,7 @@
     "entities:main:candidates": "node tools/build-mainland-entity-candidates.mjs",
     "mainland:staged-manifest": "node tools/build-mainland-staged-manifest.mjs",
     "mainland:staged-overlay": "node tools/prepare-mainland-staged-overlay.mjs",
-    "runtime:main:coverage": "node tools/verify-mainland-runtime-coverage.mjs"
+    "runtime:main:coverage": "node tools/verify-mainland-runtime-coverage.mjs",
+    "runtime:main:application": "node tools/verify-mainland-runtime-application.mjs"
   }
 }

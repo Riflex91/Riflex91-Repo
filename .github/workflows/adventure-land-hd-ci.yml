@@ -74,6 +74,16 @@ jobs:
           path: /tmp/alhd-mainland-runtime-coverage.json
           if-no-files-found: error
           compression-level: 0
+      - name: Simulate full 48-source Mainland runtime application
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-runtime-application.mjs --upstream "../.upstream-adventureland" --report "/tmp/alhd-mainland-runtime-application.json"
+      - name: Upload Mainland runtime application report
+        uses: actions/upload-artifact@v4
+        with:
+          name: alhd-mainland-runtime-application
+          path: /tmp/alhd-mainland-runtime-application.json
+          if-no-files-found: error
+          compression-level: 0
       - name: Verify Mainland terrain production contract
         working-directory: Adventure Land HD
         run: node tools/verify-mainland-terrain-plan.mjs --upstream "../.upstream-adventureland"
