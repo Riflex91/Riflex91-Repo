@@ -135,6 +135,25 @@ using (var legacyIdentityDocument = JsonDocument.Parse("""
     Assert(!CdpAlBotV6Client.IsV6Identity(legacyIdentityDocument.RootElement), "LEGACY_IDENTITY_REJECTED");
 }
 Assert(typeof(CdpAlBotV6Client).GetMethods().Any(method => method.Name == "ReadAllAsync"), "V6_MULTI_CHARACTER_READ_API");
+
+var executionContextCandidateMethod = typeof(CdpAlBotV6Client).GetMethod(
+    "TryGetExecutionContextId",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+Assert(executionContextCandidateMethod is not null, "V6_EXECUTION_CONTEXT_CANDIDATE_METHOD");
+using (var sandboxContextDocument = JsonDocument.Parse("""{"id":42,"origin":""}"""))
+{
+    object?[] args = [sandboxContextDocument.RootElement, 0];
+    var accepted = (bool)executionContextCandidateMethod!.Invoke(null, args)!;
+    Assert(accepted, "V6_SANDBOX_CONTEXT_WITH_EMPTY_ORIGIN_ACCEPTED_FOR_IDENTITY_PROBE");
+    Assert((int)args[1]! == 42, "V6_SANDBOX_CONTEXT_ID_PRESERVED");
+}
+using (var missingOriginContextDocument = JsonDocument.Parse("""{"id":43}"""))
+{
+    object?[] args = [missingOriginContextDocument.RootElement, 0];
+    var accepted = (bool)executionContextCandidateMethod!.Invoke(null, args)!;
+    Assert(accepted, "V6_CONTEXT_WITHOUT_ORIGIN_ACCEPTED_FOR_IDENTITY_PROBE");
+    Assert((int)args[1]! == 43, "V6_CONTEXT_WITHOUT_ORIGIN_ID_PRESERVED");
+}
 Assert(typeof(CdpAlBotV6Client).GetMethods().Any(method =>
     method.Name == "AcknowledgeThroughAsync"
     && method.GetParameters().Length == 3
