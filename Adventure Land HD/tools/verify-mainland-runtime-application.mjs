@@ -49,6 +49,7 @@ for(const entry of activationEntries){
     sourcePath,
     runtimeUrl,
     scale:entry.scale,
+    hdPixels:{width:entry.expectedPixels.width,height:entry.expectedPixels.height},
     state:"active",
     preserveLogicalSize:true,
     originalFallback:true
@@ -115,6 +116,8 @@ if(hd.status.reason!=="READY") errors.push("HD runtime status reason must be REA
 if(hd.status.mode!=="HD") errors.push("HD runtime status mode must be HD");
 if(hd.status.applied!==changed.length) errors.push("HD runtime applied count does not match changed definition count");
 if(hd.status.available!==48) errors.push("HD runtime available count must be 48");
+if(hd.status.eligible!==48) errors.push("HD runtime eligible count must be 48 when no WebGL limit is injected");
+if(hd.status.blocked.length!==0) errors.push("HD runtime blocked list must be empty when no WebGL limit is injected");
 if(hd.status.missing.length!==0) errors.push("HD runtime missing list must be empty");
 if(JSON.stringify([...hd.status.paths].sort())!==JSON.stringify(scopeSources)) errors.push("ALHD.status().paths must contain exactly all 48 Mainland sources");
 if(JSON.stringify([...seen].sort())!==JSON.stringify(scopeSources)) errors.push("runtime bootstrap did not apply every Mainland source at least once");
@@ -124,6 +127,8 @@ if(original.status.reason!=="ORIGINAL_MODE") errors.push("original runtime statu
 if(original.status.mode!=="ORIGINAL") errors.push("original runtime status mode must be ORIGINAL");
 if(original.status.applied!==0) errors.push("original runtime mode must apply zero replacements");
 if(original.status.available!==48) errors.push("original runtime mode must still report 48 available manifest paths");
+if(original.status.eligible!==48) errors.push("original runtime mode must still report 48 eligible paths without an injected WebGL limit");
+if(original.status.blocked.length!==0) errors.push("original runtime mode blocked list must be empty without an injected WebGL limit");
 if(original.status.paths.length!==0) errors.push("original runtime mode must report zero replacement paths");
 if(original.status.missing.length!==0) errors.push("original runtime mode must not report intentionally bypassed paths as missing");
 if(JSON.stringify(original.G)!==JSON.stringify(baseFamilies)) errors.push("original runtime mode changed pinned presentation definitions");

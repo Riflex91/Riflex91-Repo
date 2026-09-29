@@ -41,6 +41,7 @@
 - [x] 48/48 Mainland-Runtime-Coverage gegatet: 14 Terrain-Quellen via G.tilesets, 34 Entity-/Cosmetic-/Monster-Quellen via G.sprites
 - [x] vollständige 48-Quellen-Runtime-Anwendung simuliert: nur .file mutiert, ALHD.status() deckt 48/48 ab, ?alhd=off bleibt unverändert
 - [x] ALHD Live-Diagnostik erweitert: status() meldet available/applied/paths/missing; vollständiges Mainland-Soll = 48/48/48/0
+- [x] Hardware-Textur-Fail-Safe: Runtime-Manifest trägt HD-Maße; WebGL MAX_TEXTURE_SIZE blockiert zu große Atlanten automatisch auf Original-Fallback
 - [ ] Mainland Terrain/Tilesets vollständig auf HD umstellen
 - [x] Mainland NPC-/Monster-Produktionsscope gepinnt: 34 Entity-Sheets / 7 Cosmetics / 18 Character-Sheets / 9 Monster-Sheets; sicherer Start `jubchan@8x + 33×4x`
 - [ ] Mainland NPC-Sheets vollständig auf HD umstellen
