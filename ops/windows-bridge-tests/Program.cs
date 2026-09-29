@@ -98,6 +98,19 @@ Assert(CdpAlBotV6Client.Protocol == "albot-v6-bridge-v1", "V6_BRIDGE_PROTOCOL");
 Assert(CdpAlBotV6Client.SnapshotType == "ALBOT_V6_DEBUG_SNAPSHOT", "V6_BRIDGE_SNAPSHOT_TYPE");
 Assert(CdpAlBotV6Client.EventsType == "ALBOT_V6_DEBUG_EVENTS", "V6_BRIDGE_EVENTS_TYPE");
 Assert(CdpAlBotV6Client.AckType == "ALBOT_V6_TELEMETRY_ACK", "V6_BRIDGE_ACK_TYPE");
+var v6ProbeExpression = CdpAlBotV6Client.BuildProbeExpression();
+Assert(v6ProbeExpression.Contains("__ALBOT_SHARED_RUNTIME__", StringComparison.Ordinal),
+    "V6_PROBE_USES_SHARED_RUNTIME_RUNNER");
+Assert(v6ProbeExpression.Contains("runnerRoot", StringComparison.Ordinal),
+    "V6_PROBE_USES_RUNNER_ROOT");
+Assert(v6ProbeExpression.Contains("candidate.frames", StringComparison.Ordinal),
+    "V6_PROBE_SCANS_SAME_ORIGIN_FRAMES");
+Assert(v6ProbeExpression.Contains("void candidate.location.href", StringComparison.Ordinal),
+    "V6_PROBE_GATES_FRAME_ACCESS_BY_SAME_ORIGIN_READ");
+Assert(v6ProbeExpression.Contains("identity.bridgeProtocol === 'albot-v6-bridge-v1'", StringComparison.Ordinal),
+    "V6_PROBE_STILL_REQUIRES_EXACT_PROTOCOL");
+Assert(v6ProbeExpression.Contains("identity.gameplayActionAuthority === false", StringComparison.Ordinal),
+    "V6_PROBE_STILL_REJECTS_GAMEPLAY_AUTHORITY");
 var bridgePrivateFields = typeof(TelemetryBridgeService)
     .GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
 Assert(bridgePrivateFields.Any(field => field.FieldType == typeof(CdpAlBotV6Client)), "ACTIVE_BRIDGE_MUST_USE_V6_CDP_CLIENT");
