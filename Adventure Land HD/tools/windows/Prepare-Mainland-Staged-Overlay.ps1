@@ -71,7 +71,7 @@ function Invoke-Git {
     param([string[]]$Arguments)
     & $git @Arguments
     if ($LASTEXITCODE -ne 0) {
-        throw "git failed with exit code $LASTEXITCODE: git $($Arguments -join ' ')"
+        throw "git failed with exit code ${LASTEXITCODE}: git $($Arguments -join ' ')"
     }
 }
 
@@ -83,7 +83,7 @@ function Invoke-NodeTool {
     $toolPath = Join-Path (Join-Path $alhdRoot "tools") $Tool
     & $node $toolPath @Arguments
     if ($LASTEXITCODE -ne 0) {
-        throw "Node tool failed with exit code $LASTEXITCODE: $Tool"
+        throw "Node tool failed with exit code ${LASTEXITCODE}: $Tool"
     }
 }
 
