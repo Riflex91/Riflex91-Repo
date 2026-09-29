@@ -54,3 +54,45 @@ test('Bridge defaults use dedicated V6 cloud identities', () => {
   assert.match(config, /TelemetryIngestUrl = storedVersion < 10[\s\S]*?\? V6TelemetryIngestUrl/);
   assert.match(config, /SignalControlUrl = storedVersion < 10[\s\S]*?\? V6SignalControlUrl/);
 });
+
+
+test('V6 host bridge keeps independent cursors for every live character', () => {
+  const client = read('../../ops/windows-bridge/CdpAlBotV6Client.cs');
+  const service = read('../../ops/windows-bridge/TelemetryBridgeService.cs');
+  const config = read('../../ops/windows-bridge/BridgeConfig.cs');
+
+  assert.match(client, /ReadAllAsync\(/);
+  assert.match(client, /HashSet<string>\(StringComparer\.OrdinalIgnoreCase\)/);
+  assert.match(client, /ReadCharacterName\(snapshot\)/);
+  assert.match(client, /AcknowledgeThroughAsync\(\s*string\? characterName/);
+
+  assert.match(config, /Dictionary<string, long>\? CharacterEventSeqs/);
+  assert.match(config, /GetLastEventSeq\(string\? character\)/);
+  assert.match(config, /WithCharacterSeq\(string character, long lastEventSeq\)/);
+
+  assert.match(service, /_browser\.ReadAllAsync\(/);
+  assert.match(service, /state\.GetLastEventSeq\(character\)/);
+  assert.match(service, /state\.WithCharacterSeq\(characterName, read\.MaxSeq\)/);
+  assert.match(service, /AcknowledgeThroughAsync\(characterName, read\.MaxSeq/);
+});
+
+test('Cloudflare dashboard failures stay observational and cannot block Supabase ACK', () => {
+  const service = read('../../ops/windows-bridge/TelemetryBridgeService.cs');
+  assert.match(service, /await _sink\.SendAsync\(read, read\.EffectiveAfterSeq/);
+  assert.match(service, /SendDashboardSafeAsync\(read, cancellationToken\)/);
+  assert.match(service, /Cloudflare outages or key rotation never block telemetry ACK/);
+
+  const supabaseAt = service.indexOf('await _sink.SendAsync(read, read.EffectiveAfterSeq');
+  const dashboardAt = service.indexOf('await SendDashboardSafeAsync(read, cancellationToken)');
+  const stateAt = service.indexOf('state = state.WithCharacterSeq(characterName, read.MaxSeq)');
+  const ackAt = service.indexOf('await _browser.AcknowledgeThroughAsync(characterName, read.MaxSeq');
+  assert.ok(supabaseAt >= 0 && dashboardAt > supabaseAt && stateAt > dashboardAt && ackAt > stateAt);
+});
+
+test('Cloudflare deployment fails closed when the V6 Worker secret is absent', () => {
+  const workflow = read('../../.github/workflows/deploy-cloudflare.yml');
+  assert.match(workflow, /wrangler secret list/);
+  assert.match(workflow, /ALBOT_V6_WRITE_KEY is not configured as a Cloudflare Worker secret/);
+  assert.match(workflow, /process\.exit\(1\)/);
+  assert.doesNotMatch(workflow, /V6 runtime writes will remain unavailable until the secret is set/);
+});
