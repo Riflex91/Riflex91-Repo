@@ -1,5 +1,8 @@
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace AioBotWindowsBridge;
 
@@ -9,6 +12,10 @@ public sealed class SupabaseTelemetrySink
     // Keep explicit headroom for HTTP/JSON growth and future small schema additions.
     public const int MaxPayloadBytes = 480 * 1024;
     public const int StrictEventStringMaxChars = 32;
+
+    private static readonly Regex ImportantSignalPattern = new(
+        @"(FAIL(?:ED|URE)?|ERROR|QUARANTIN|SAFE_MODE|RESTART_REQUIRED|CIRCUIT_OPEN|UNAVAILABLE|NOT_LIVE|\bDEAD\b|NO_PROGRESS|DRIFT_DETECTED|TIMEOUT|EXHAUSTED|DEGRADED|REJECTED|DISCONNECTED|OUTAGE)",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     private readonly HttpClient _httpClient;
     private readonly Uri _endpoint;
@@ -197,11 +204,11 @@ public sealed class SupabaseTelemetrySink
                 ["at"] = ReadInt64(row, "at"),
                 ["severity"] = ReadBoundedString(row, "severity", StrictEventStringMaxChars),
                 ["component"] = ReadBoundedString(row, "component", StrictEventStringMaxChars),
-                ["event"] = ReadBoundedString(row, "event", StrictEventStringMaxChars),
-                ["type"] = ReadBoundedString(row, "type", StrictEventStringMaxChars),
-                ["reason"] = ReadBoundedString(row, "reason", StrictEventStringMaxChars),
+                ["event"] = ReadSignalPreservingString(row, "event", StrictEventStringMaxChars),
+                ["type"] = ReadSignalPreservingString(row, "type", StrictEventStringMaxChars),
+                ["reason"] = ReadSignalPreservingString(row, "reason", StrictEventStringMaxChars),
                 ["character"] = ReadBoundedString(row, "character", StrictEventStringMaxChars),
-                ["dedupeKey"] = ReadBoundedString(row, "dedupeKey", StrictEventStringMaxChars),
+                ["dedupeKey"] = ReadOrSynthesizeDedupeKey(row, StrictEventStringMaxChars),
                 ["payloadCompacted"] = true,
                 ["payloadStrictBudget"] = true
             };
@@ -274,14 +281,67 @@ public sealed class SupabaseTelemetrySink
         return minimal;
     }
 
-    private static string? ReadBoundedString(JsonElement source, string propertyName, int max)
+    private static string? ReadSignalPreservingString(JsonElement source, string propertyName, int max)
+    {
+        var text = ReadString(source, propertyName);
+        if (string.IsNullOrEmpty(text) || text.Length <= max) return text;
+
+        var important = ImportantSignalPattern.Match(text);
+        return important.Success
+            ? TruncateText(important.Value, max)
+            : TruncateText(text, max);
+    }
+
+    private static string? ReadOrSynthesizeDedupeKey(JsonElement row, int max)
+    {
+        var explicitKey = ReadCollisionResistantBoundedString(row, "dedupeKey", max);
+        if (!string.IsNullOrEmpty(explicitKey)) return explicitKey;
+        if (max <= 0) return string.Empty;
+
+        var component = ReadString(row, "component") ?? string.Empty;
+        var eventType = ReadString(row, "event") ?? ReadString(row, "type") ?? string.Empty;
+        var reason = ReadString(row, "reason") ?? string.Empty;
+        var character = ReadString(row, "character") ?? string.Empty;
+        if (row.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object)
+        {
+            if (string.IsNullOrEmpty(component)) component = ReadString(data, "component") ?? string.Empty;
+            if (string.IsNullOrEmpty(character)) character = ReadString(data, "character") ?? string.Empty;
+        }
+
+        var source = string.Join("\u001F", component, eventType, reason, character);
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source)));
+        var prefix = "auto#";
+        if (max <= prefix.Length) return prefix[..max];
+
+        return prefix + hash[..Math.Min(max - prefix.Length, hash.Length)];
+    }
+
+    private static string? ReadCollisionResistantBoundedString(JsonElement source, string propertyName, int max)
+    {
+        var text = ReadString(source, propertyName);
+        if (string.IsNullOrEmpty(text) || text.Length <= max) return text;
+        if (max <= 0) return string.Empty;
+
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)));
+        if (max <= 17) return hash[..Math.Min(max, hash.Length)];
+
+        var prefixLength = max - 17;
+        var prefix = TruncateText(text, prefixLength);
+        return prefix + "#" + hash[..16];
+    }
+
+    private static string? ReadString(JsonElement source, string propertyName)
     {
         if (source.ValueKind != JsonValueKind.Object
             || !source.TryGetProperty(propertyName, out var value)
             || value.ValueKind != JsonValueKind.String)
             return null;
-        var text = value.GetString();
-        if (string.IsNullOrEmpty(text)) return text;
+        return value.GetString();
+    }
+
+    private static string TruncateText(string text, int max)
+    {
+        if (max <= 0) return string.Empty;
         if (text.Length <= max) return text;
 
         var length = max;
@@ -292,6 +352,13 @@ public sealed class SupabaseTelemetrySink
             length--;
 
         return text[..length];
+    }
+
+    private static string? ReadBoundedString(JsonElement source, string propertyName, int max)
+    {
+        var text = ReadString(source, propertyName);
+        if (string.IsNullOrEmpty(text)) return text;
+        return TruncateText(text, max);
     }
 
     private static bool? ReadBoolean(JsonElement source, string propertyName)
