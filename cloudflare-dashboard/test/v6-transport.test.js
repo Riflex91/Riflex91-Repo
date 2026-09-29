@@ -5,6 +5,7 @@ import freeTierWorker from '../src/worker-free-tier.js';
 import {
   GENERATION,
   PROTOCOL,
+  RUNTIME_STATUS_VISIBLE_MS,
   ensureV6Schema,
   handleV6Request,
   legacyTransportBlocked
@@ -115,6 +116,27 @@ test('V6 transport bootstraps its D1 tables through the Worker binding', async (
   const countAfterFirst = DB.calls.length;
   await ensureV6Schema({ DB });
   assert.equal(DB.calls.length, countAfterFirst);
+});
+
+test('V6 overview only exposes recent runtime rows', async () => {
+  const DB = fakeDb();
+  const response = await handleV6Request(
+    new Request('https://dashboard.test/api/v6/overview?account=default', {
+      headers: { 'x-aio-read-key': 'read-secret' }
+    }),
+    { DB, READ_KEY: 'read-secret' }
+  );
+  assert.equal(response.status, 200);
+  const runtimeRead = DB.calls.find(row =>
+    row.kind === 'all'
+    && /FROM v6_runtime_status/.test(String(row.sql || '')));
+  assert.ok(runtimeRead);
+  assert.match(runtimeRead.sql, /received_at>=\?/);
+  assert.equal(runtimeRead.args.length, 2);
+  const cutoffAge = Date.now() - Number(runtimeRead.args[1]);
+  assert.ok(cutoffAge >= RUNTIME_STATUS_VISIBLE_MS - 5000);
+  assert.ok(cutoffAge <= RUNTIME_STATUS_VISIBLE_MS + 5000);
+  assert.equal(RUNTIME_STATUS_VISIBLE_MS, 5 * 60 * 1000);
 });
 
 test('V6 runtime endpoint requires the generation-locked bridge identity and dedicated secret', async () => {
