@@ -5,7 +5,7 @@ on:
       - "Adventure Land HD/**"
       - ".github/workflows/adventure-land-hd-ci.yml"
   push:
-    branches: [main]
+    branches: [main, "chatgpt/alhd-dev-v2"]
     paths:
       - "Adventure Land HD/**"
       - ".github/workflows/adventure-land-hd-ci.yml"
@@ -62,6 +62,71 @@ jobs:
       - name: Verify Mainland terrain production contract
         working-directory: Adventure Land HD
         run: node tools/verify-mainland-terrain-plan.mjs --upstream "../.upstream-adventureland"
+      - name: Verify Mainland terrain runtime memory profile
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-terrain-runtime-profile.mjs --upstream "../.upstream-adventureland"
+      - name: Build safe Mainland terrain candidate set
+        working-directory: Adventure Land HD
+        run: |
+          rm -rf /tmp/alhd-mainland-staged-assets
+          mkdir -p /tmp/alhd-mainland-staged-assets
+          node tools/build-mainland-terrain-candidates.mjs \
+            --upstream "../.upstream-adventureland" \
+            --output-dir "/tmp/alhd-mainland-staged-assets" \
+            --report "/tmp/alhd-mainland-terrain-report.json"
+      - name: Verify Mainland terrain candidate report
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-terrain-candidate-report.mjs --report "/tmp/alhd-mainland-terrain-report.json"
+      - name: Upload Mainland terrain candidate report
+        uses: actions/upload-artifact@v4
+        with:
+          name: alhd-mainland-terrain-report
+          path: /tmp/alhd-mainland-terrain-report.json
+          if-no-files-found: error
+          compression-level: 0
+      - name: Verify complete Mainland NPC and monster entity plan
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-entity-plan.mjs --upstream "../.upstream-adventureland"
+      - name: Build safe Mainland entity candidate set
+        working-directory: Adventure Land HD
+        run: |
+          mkdir -p /tmp/alhd-mainland-staged-assets
+          node tools/build-mainland-entity-candidates.mjs \
+            --upstream "../.upstream-adventureland" \
+            --output-dir "/tmp/alhd-mainland-staged-assets" \
+            --report "/tmp/alhd-mainland-entity-report.json"
+      - name: Verify Mainland entity candidate report
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-entity-candidate-report.mjs --report "/tmp/alhd-mainland-entity-report.json"
+      - name: Upload Mainland entity candidate report
+        uses: actions/upload-artifact@v4
+        with:
+          name: alhd-mainland-entity-report
+          path: /tmp/alhd-mainland-entity-report.json
+          if-no-files-found: error
+          compression-level: 0
+      - name: Build verified Mainland terrain promotion
+        working-directory: Adventure Land HD
+        run: node tools/build-mainland-terrain-promotion.mjs --report "/tmp/alhd-mainland-terrain-report.json" --output "/tmp/alhd-mainland-terrain-promotion.json"
+      - name: Build verified Mainland entity promotion
+        working-directory: Adventure Land HD
+        run: node tools/build-mainland-entity-promotion.mjs --report "/tmp/alhd-mainland-entity-report.json" --output "/tmp/alhd-mainland-entity-promotion.json"
+      - name: Build complete Mainland staged HD manifest
+        working-directory: Adventure Land HD
+        run: node tools/build-mainland-staged-manifest.mjs --terrain-promotion "/tmp/alhd-mainland-terrain-promotion.json" --entity-promotion "/tmp/alhd-mainland-entity-promotion.json" --output "/tmp/alhd-mainland-staged-manifest.json"
+      - name: Validate complete Mainland staged HD manifest
+        working-directory: Adventure Land HD
+        run: node tools/validate-hd-assets.mjs --upstream "../.upstream-adventureland" --hd-root "/tmp/alhd-mainland-staged-assets" --manifest "/tmp/alhd-mainland-staged-manifest.json"
+      - name: Upload complete Mainland staged evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: alhd-mainland-staged-evidence
+          path: |
+            /tmp/alhd-mainland-terrain-promotion.json
+            /tmp/alhd-mainland-entity-promotion.json
+            /tmp/alhd-mainland-staged-manifest.json
+          if-no-files-found: error
+          compression-level: 0
       - name: Audit renderer compatibility contracts
         working-directory: Adventure Land HD
         run: node tools/analyze-contracts.mjs --upstream "../.upstream-adventureland" --check-only

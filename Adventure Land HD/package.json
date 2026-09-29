@@ -13,6 +13,16 @@
     "check": "npm run inventory:verify && npm test && node --check runtime/adventure-land-hd-bootstrap.js",
     "scope:main": "node tools/verify-main-map-scope.mjs",
     "terrain:main:verify": "node tools/verify-mainland-terrain-plan.mjs",
-    "hd:materialize-generated": "node tools/materialize-generated-hd-assets.mjs"
+    "hd:materialize-generated": "node tools/materialize-generated-hd-assets.mjs",
+    "terrain:main:runtime-profile": "node tools/verify-mainland-terrain-runtime-profile.mjs",
+    "terrain:main:candidates": "node tools/build-mainland-terrain-candidates.mjs",
+    "terrain:main:report": "node tools/verify-mainland-terrain-candidate-report.mjs",
+    "terrain:main:promotion": "node tools/build-mainland-terrain-promotion.mjs",
+    "entities:main:verify": "node tools/verify-mainland-entity-plan.mjs",
+    "entities:main:report": "node tools/verify-mainland-entity-candidate-report.mjs",
+    "entities:main:promotion": "node tools/build-mainland-entity-promotion.mjs",
+    "entities:main:candidates": "node tools/build-mainland-entity-candidates.mjs",
+    "mainland:staged-manifest": "node tools/build-mainland-staged-manifest.mjs",
+    "mainland:staged-overlay": "node tools/prepare-mainland-staged-overlay.mjs"
   }
 }
