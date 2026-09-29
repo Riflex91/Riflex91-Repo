@@ -1,5 +1,7 @@
 'use strict';
 
+// Regression coverage for the centralized AL Final future-gear decision chain.
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
