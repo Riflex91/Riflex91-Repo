@@ -1,0 +1,24 @@
+[Unit]
+Description=AIO Bot Linux Bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=notify
+NotifyAccess=all
+ExecStart=%h/.local/lib/aio-bot-linux-bridge/AioBotLinuxBridge
+WorkingDirectory=%h/.local/lib/aio-bot-linux-bridge
+Restart=always
+RestartSec=5
+WatchdogSec=45
+TimeoutStopSec=30
+KillMode=mixed
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.config/aio-bot-linux-bridge %h/.local/share/aio-bot-linux-bridge %h/.local/state/aio-bot-linux-bridge
+Environment=DOTNET_EnableDiagnostics=0
+
+[Install]
+WantedBy=default.target
