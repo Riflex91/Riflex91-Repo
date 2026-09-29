@@ -223,3 +223,80 @@ test('restart reconciliation commits an atomic mutation only when persisted pre-
   assert.equal(engine.transactions.get(row.id).state, 'COMMITTED');
   assert.equal(convergence.stats.restartAtomicTransactionsAborted, 0);
 });
+
+
+test('mutation risk gate gives bounded credit only to evidence-backed meaningful future gear gains', () => {
+  const { convergence } = mutationFixture('UPGRADE');
+
+  const tx = { type: 'UPGRADE', item: 'sword', level: 0 };
+  const check = { meta: { g: 1000 } };
+  const replacement = { spareEquivalents: 0 };
+
+  const marginal = convergence._mutationRiskThreshold(tx, check, replacement, {
+    usefulNow: false,
+    maxFutureImprovementRatio: 0.01
+  });
+  const substantial = convergence._mutationRiskThreshold(tx, check, replacement, {
+    usefulNow: false,
+    maxFutureImprovementRatio: 0.25
+  });
+  const alreadyUseful = convergence._mutationRiskThreshold(tx, check, replacement, {
+    usefulNow: true,
+    maxFutureImprovementRatio: 0.25
+  });
+
+  assert.equal(marginal.benefitCredit, 0);
+  assert.ok(substantial.benefitCredit >= 0.09 && substantial.benefitCredit <= 0.10);
+  assert.ok(substantial.minChance < marginal.minChance);
+  assert.ok(alreadyUseful.minChance > substantial.minChance, 'safe current Party value must still increase required success chance');
+});
+
+test('mutation party value derives benefit magnitude only from complete future-gear evidence', () => {
+  const { convergence, runtime } = mutationFixture('UPGRADE');
+  runtime.gearProgression = {
+    list: () => [
+      {
+        sourceCharacter: 'Merchant',
+        sourceIndex: null,
+        character: 'Farmer',
+        item: 'sword',
+        observedLevel: 0,
+        targetLevel: 3,
+        projectedUpgradeRequired: true,
+        targetEvidenceComplete: true,
+        currentScore: 100,
+        improvement: 30,
+        survivalImprovement: 5,
+        cumulativeSuccessChance: 0.8,
+        riskAdjustedUtility: 20,
+        observedMeaningful: false
+      },
+      {
+        sourceCharacter: 'Merchant',
+        sourceIndex: null,
+        character: 'OtherFarmer',
+        item: 'sword',
+        observedLevel: 0,
+        targetLevel: 7,
+        projectedUpgradeRequired: true,
+        targetEvidenceComplete: false,
+        currentScore: 10,
+        improvement: 1000,
+        riskAdjustedUtility: 999,
+        observedMeaningful: false
+      }
+    ]
+  };
+
+  const partyValue = convergence._mutationPartyCurrentValue({
+    type: 'UPGRADE',
+    character: 'Merchant',
+    item: 'sword',
+    level: 0
+  });
+
+  assert.equal(partyValue.usefulNow, false);
+  assert.equal(partyValue.maxFutureImprovementRatio, 0.3);
+  assert.equal(partyValue.futureGoals.length, 1);
+  assert.equal(partyValue.futureGoals[0].character, 'Farmer');
+});

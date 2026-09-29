@@ -5,7 +5,9 @@ const assert = require('node:assert/strict');
 
 const {
   GearProgressionEvaluator,
-  scoreItem
+  scoreItem,
+  candidateSlots,
+  slotCompatible
 } = require('../src/economy/gear-progression');
 
 test('future gear intelligence chooses a risk-adjusted dynamic target instead of a fixed +5', () => {
@@ -128,4 +130,52 @@ test('future gear intelligence remains fail-closed when content requires revalid
   assert.ok(safety);
   assert.equal(safety.checked, false);
   assert.equal(safety.blockedByUnknownContent, true);
+});
+
+
+test('weapon and offhand compatibility follows live class rules instead of class-specific exceptions', () => {
+  const gameData = {
+    classes: {
+      ranger: {
+        mainhand: { bow: {}, crossbow: {} },
+        doublehand: { dagger: {}, fist: {} },
+        offhand: { quiver: {} }
+      },
+      warrior: {
+        mainhand: { sword: {}, mace: {} },
+        doublehand: { great_sword: {} },
+        offhand: { shield: {}, sword: {} }
+      }
+    },
+    items: {
+      bow: { type: 'weapon', wtype: 'bow' },
+      dagger: { type: 'weapon', wtype: 'dagger' },
+      sword: { type: 'weapon', wtype: 'sword' },
+      shield: { type: 'shield' },
+      quiver: { type: 'quiver' },
+      greatsword: { type: 'weapon', wtype: 'great_sword' }
+    }
+  };
+
+  assert.deepEqual(candidateSlots(gameData.items.sword), ['mainhand', 'offhand']);
+
+  const ranger = {
+    ctype: 'ranger',
+    level: 80,
+    gear: { mainhand: { name: 'bow' }, offhand: { name: 'quiver' } }
+  };
+  assert.equal(slotCompatible(gameData.items.shield, ranger, 'offhand', gameData), false);
+  assert.equal(slotCompatible(gameData.items.quiver, ranger, 'offhand', gameData), true);
+  assert.equal(slotCompatible(gameData.items.dagger, ranger, 'mainhand', gameData), false, 'doublehand candidate cannot silently evict an occupied offhand');
+
+  const warrior = {
+    ctype: 'warrior',
+    level: 80,
+    gear: { mainhand: { name: 'sword' } }
+  };
+  assert.equal(slotCompatible(gameData.items.sword, warrior, 'offhand', gameData), true);
+  assert.equal(slotCompatible(gameData.items.greatsword, warrior, 'mainhand', gameData), true);
+
+  warrior.gear.offhand = { name: 'shield' };
+  assert.equal(slotCompatible(gameData.items.greatsword, warrior, 'mainhand', gameData), false);
 });

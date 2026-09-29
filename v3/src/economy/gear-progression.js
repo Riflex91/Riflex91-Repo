@@ -49,12 +49,61 @@ function compatible(meta, character) {
   const classes = Array.isArray(meta.class) ? meta.class : meta.class ? [meta.class] : [];
   if (classes.length && !classes.map((x) => String(x).toLowerCase()).includes(ctype)) return false;
   const required = finite(meta.level, 0);
-  if (required > finite(character.level, 0)) return false;
+  return required <= finite(character.level, 0);
+}
 
-  // Live alpha.20.107 proved that a raw shield can score above a Ranger's
-  // quiver while Adventure Land rejects the actual equip command. Do not turn
-  // a stat-only offhand comparison into an impossible Ranger gear goal.
-  if (ctype === 'ranger' && String(meta.type || '').toLowerCase() === 'shield') return false;
+function classEquipmentRules(gameData, ctype) {
+  const row = gameData && gameData.classes && gameData.classes[String(ctype || '').toLowerCase()];
+  if (!row || typeof row !== 'object') return null;
+  return {
+    mainhand: new Set(Object.keys(row.mainhand && typeof row.mainhand === 'object' ? row.mainhand : {})),
+    doublehand: new Set(Object.keys(row.doublehand && typeof row.doublehand === 'object' ? row.doublehand : {})),
+    offhand: new Set(Object.keys(row.offhand && typeof row.offhand === 'object' ? row.offhand : {}))
+  };
+}
+
+function equippedMeta(character, slot, gameData) {
+  const equipped = character && character.gear && character.gear[slot];
+  if (!equipped || !equipped.name) return null;
+  const meta = gameData && gameData.items && gameData.items[equipped.name];
+  return meta && typeof meta === 'object' ? meta : null;
+}
+
+function slotCompatible(meta, character, slot, gameData) {
+  if (!compatible(meta, character)) return false;
+  const ctype = String(character && character.ctype || '').toLowerCase();
+  const type = String(meta && meta.type || '').toLowerCase();
+  const wtype = String(meta && meta.wtype || '').toLowerCase();
+  const rules = classEquipmentRules(gameData, ctype);
+
+  if (slot === 'mainhand') {
+    if (type !== 'weapon' && type !== 'tool') return false;
+    if (!rules) return true;
+    const oneHand = !!wtype && rules.mainhand.has(wtype);
+    const twoHand = !!wtype && rules.doublehand.has(wtype);
+    if (!oneHand && !twoHand) return false;
+    if (twoHand && character && character.gear && character.gear.offhand) return false;
+    return true;
+  }
+
+  if (slot === 'offhand') {
+    const currentMainMeta = equippedMeta(character, 'mainhand', gameData);
+    const currentMainWtype = String(currentMainMeta && currentMainMeta.wtype || '').toLowerCase();
+    if (rules && currentMainWtype && rules.doublehand.has(currentMainWtype)) return false;
+
+    if (type === 'weapon' || type === 'tool') {
+      return !!(rules && wtype && rules.offhand.has(wtype));
+    }
+
+    if (!['shield', 'source', 'quiver', 'misc_offhand'].includes(type)) return false;
+    if (rules) return rules.offhand.has(type);
+
+    // Legacy/fail-safe fallback when class metadata is unavailable. Preserve
+    // the live-proven Ranger shield rejection instead of guessing permissively.
+    if (ctype === 'ranger' && type === 'shield') return false;
+    return true;
+  }
+
   return true;
 }
 
@@ -66,8 +115,8 @@ function candidateSlots(meta) {
     amulet: ['amulet'], belt: ['belt'], orb: ['orb'], ring: ['ring1', 'ring2'], earring: ['earring1', 'earring2']
   };
   if (map[type]) return map[type];
-  if (type === 'weapon') return ['mainhand'];
-  if (type === 'shield' || type === 'source' || type === 'quiver') return ['offhand'];
+  if (type === 'weapon' || type === 'tool') return ['mainhand', 'offhand'];
+  if (type === 'shield' || type === 'source' || type === 'quiver' || type === 'misc_offhand') return ['offhand'];
   return [];
 }
 
@@ -330,6 +379,7 @@ class GearProgressionEvaluator {
         }
         let best = null;
         for (const slot of candidate.slots) {
+          if (!slotCompatible(candidate.meta, character, slot, gameData)) continue;
           const current = this._currentItem(character, slot, gameData);
           const observedLevel = levelOf(candidate.item);
           const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
@@ -694,5 +744,8 @@ module.exports = {
   effectiveStats,
   scoreItem,
   scoreImprovement,
-  candidateSlots
+  candidateSlots,
+  compatible,
+  classEquipmentRules,
+  slotCompatible
 };
