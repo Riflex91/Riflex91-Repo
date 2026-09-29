@@ -996,6 +996,7 @@ Assert(TelemetryBridgeService.ShouldIncludeDeepDiagnostics(
     diagnosticNow,
     diagnosticNow.AddSeconds(TelemetryBridgeService.DeepDiagnosticsIntervalSeconds)), "DIAGNOSTICS_INTERVAL");
 Assert(TelemetryBridgeService.EventLimitForRead(100, false) == 100, "NORMAL_EVENT_LIMIT");
+Assert(TelemetryBridgeService.EventLimitForRead(1000, false) == 200, "NORMAL_EVENT_LIMIT_HARD_CAP_200");
 Assert(TelemetryBridgeService.EventLimitForRead(100, true) == TelemetryBridgeService.DeepDiagnosticEventLimit, "DIAGNOSTIC_EVENT_LIMIT");
 Assert(TelemetryBridgeService.EventLimitForRead(20, true) == 20, "DIAGNOSTIC_SMALL_EVENT_LIMIT");
 Assert(!TelemetryBridgeService.LiveTransportIncludesDeepDiagnostics,
@@ -1011,6 +1012,11 @@ var compactEventsMethod = typeof(SupabaseTelemetrySink).GetMethod(
     "CreateBudgetFallbackEvents",
     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 Assert(compactEventsMethod is not null, "V6_SUPABASE_EVENT_COMPACTION_HELPER");
+var strictCompactEventsMethod = typeof(SupabaseTelemetrySink).GetMethod(
+    "CreateStrictBudgetFallbackEvents",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+Assert(strictCompactEventsMethod is not null, "V6_SUPABASE_STRICT_EVENT_COMPACTION_HELPER");
+Assert(SupabaseTelemetrySink.StrictEventStringMaxChars == 32, "V6_SUPABASE_STRICT_EVENT_STRING_CAP");
 
 var hugeEventRows = Enumerable.Range(1, 200)
     .Select(seq => new Dictionary<string, object?>
@@ -1055,6 +1061,56 @@ using (var hugeEventsDocument = JsonDocument.Parse(JsonSerializer.Serialize(huge
         "V6_SUPABASE_COMPACTION_DROPS_LARGE_DETAIL_FIELDS");
 }
 
+var worstEscaped = new string('\u0001', 700);
+var adversarialEventRows = Enumerable.Range(1, 200)
+    .Select(seq => new Dictionary<string, object?>
+    {
+        ["seq"] = seq,
+        ["ts"] = worstEscaped,
+        ["at"] = 1_790_709_000_000L + seq,
+        ["severity"] = worstEscaped,
+        ["component"] = worstEscaped,
+        ["event"] = worstEscaped,
+        ["type"] = worstEscaped,
+        ["reason"] = worstEscaped,
+        ["character"] = worstEscaped,
+        ["dedupeKey"] = worstEscaped,
+        ["data"] = new Dictionary<string, object?>
+        {
+            ["component"] = worstEscaped,
+            ["character"] = worstEscaped,
+            ["huge"] = new string('x', 24_000)
+        }
+    })
+    .ToArray();
+using (var adversarialEventsDocument = JsonDocument.Parse(JsonSerializer.Serialize(adversarialEventRows)))
+{
+    var strictEvents = (IReadOnlyList<object>)strictCompactEventsMethod!.Invoke(
+        null,
+        [adversarialEventsDocument.RootElement])!;
+    Assert(strictEvents.Count == 200, "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_EVENT_COUNT");
+
+    var strictBytes = JsonSerializer.SerializeToUtf8Bytes(strictEvents);
+    Assert(strictBytes.Length < SupabaseTelemetrySink.MaxPayloadBytes - (32 * 1024),
+        "V6_SUPABASE_STRICT_COMPACTION_LEAVES_ENVELOPE_HEADROOM");
+
+    using var strictDocument = JsonDocument.Parse(strictBytes);
+    var strictFirst = strictDocument.RootElement[0];
+    Assert(strictFirst.GetProperty("seq").GetInt64() == 1, "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_SEQ");
+    Assert(strictFirst.TryGetProperty("ts", out _), "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_TS_FIELD");
+    Assert(strictFirst.TryGetProperty("severity", out _), "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_SEVERITY_FIELD");
+    Assert(strictFirst.TryGetProperty("component", out _), "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_COMPONENT_FIELD");
+    Assert(strictFirst.TryGetProperty("event", out _), "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_EVENT_FIELD");
+    Assert(strictFirst.TryGetProperty("type", out _), "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_TYPE_FIELD");
+    Assert(strictFirst.TryGetProperty("reason", out _), "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_REASON_FIELD");
+    Assert(strictFirst.TryGetProperty("character", out _), "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_CHARACTER_FIELD");
+    Assert(strictFirst.TryGetProperty("dedupeKey", out _), "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_DEDUPE_FIELD");
+    Assert(strictFirst.GetProperty("data").TryGetProperty("component", out _),
+        "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_DATA_COMPONENT_FIELD");
+    Assert(strictFirst.GetProperty("data").TryGetProperty("character", out _),
+        "V6_SUPABASE_STRICT_COMPACTION_PRESERVES_DATA_CHARACTER_FIELD");
+}
+
 var minimalSnapshotMethod = typeof(SupabaseTelemetrySink).GetMethod(
     "CreateMinimalBudgetSnapshot",
     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
@@ -1065,6 +1121,8 @@ using (var oversizedSnapshotDocument = JsonDocument.Parse("""
     "product": "AL Bot",
     "generation": 6,
     "bridgeProtocol": "albot-v6-bridge-v1",
+    "runtimeVersion": "0.22.7-h22",
+    "oversized": "must-be-omitted",
     "transportOnly": true,
     "gameplayActionAuthority": false,
     "acceptsLegacyGenerations": false
@@ -1088,6 +1146,10 @@ using (var oversizedSnapshotDocument = JsonDocument.Parse("""
         "V6_SUPABASE_MINIMAL_SNAPSHOT_PRESERVES_IDENTITY");
     Assert(minimalJson.Contains("\"name\":\"My_Ranger1\"", StringComparison.Ordinal),
         "V6_SUPABASE_MINIMAL_SNAPSHOT_PRESERVES_CHARACTER");
+    Assert(minimalJson.Contains("\"runtimeVersion\":\"0.22.7-h22\"", StringComparison.Ordinal),
+        "V6_SUPABASE_MINIMAL_SNAPSHOT_PRESERVES_RUNTIME_VERSION");
+    Assert(!minimalJson.Contains("\"oversized\"", StringComparison.Ordinal),
+        "V6_SUPABASE_MINIMAL_SNAPSHOT_BOUNDS_IDENTITY");
     Assert(!minimalJson.Contains("\"status\"", StringComparison.Ordinal),
         "V6_SUPABASE_MINIMAL_SNAPSHOT_OMITS_HEAVY_STATUS");
 }
