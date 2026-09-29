@@ -187,7 +187,7 @@ class TeamCohesionDeadlockHotfix {
     if (c.target) return true;
     if ((snapshot.entities || []).some((entity) => entity && entity.mtype && !entity.dead && String(entity.target || '') === String(c.name || ''))) return true;
     const farmer = this.runtime.farmer;
-    return !!(farmer && ['ENGAGE', 'TRAVEL', 'RECOVER'].includes(farmer.state));
+    return !!(farmer && ['ENGAGE', 'RECOVER'].includes(farmer.state));
   }
 
   _progressState(name, currentDistance) {
