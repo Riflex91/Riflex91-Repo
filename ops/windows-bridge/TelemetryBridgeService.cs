@@ -20,6 +20,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     public const int MaxCatchUpBatches = 8;
     public const int DeepDiagnosticsIntervalSeconds = 30;
     public const int DeepDiagnosticEventLimit = 40;
+    public const bool LiveTransportIncludesDeepDiagnostics = false;
     private const int CatchUpDelayMilliseconds = 100;
 
     private readonly BridgeConfig _config;
@@ -122,8 +123,10 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 RuntimeBridgeStatus? latestStatus = null;
                 for (var batchIndex = 0; batchIndex < MaxCatchUpBatches; batchIndex++)
                 {
-                    var now = DateTimeOffset.UtcNow;
-                    var includeDeepDiagnostics = ShouldIncludeDeepDiagnostics(lastDeepDiagnosticsAt, now);
+                    // The live transport must stay bounded and fast. Deep snapshots can
+                    // exceed the CDP response budget and are observational only, so they
+                    // are never part of the Supabase/Cloudflare commit path.
+                    var includeDeepDiagnostics = LiveTransportIncludesDeepDiagnostics;
                     var readLimit = EventLimitForRead(_config.EventLimit, includeDeepDiagnostics);
                     var reads = await _browser.ReadAllAsync(
                         character => state.GetLastEventSeq(character),
@@ -190,7 +193,6 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
 
                     failures = 0;
                     lastSuccess = DateTimeOffset.UtcNow;
-                    if (includeDeepDiagnostics) lastDeepDiagnosticsAt = lastSuccess;
                     latestStatus = new RuntimeBridgeStatus(
                         hasMoreEvents ? "CATCHING_UP" : "HEALTHY",
                         true,
@@ -226,6 +228,17 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                     await SaveStatusAsync(latestStatus, cancellationToken);
                 }
 
+                // Deep diagnostics are explicitly best-effort and run only after a
+                // successful live cycle. Their size or availability must never move
+                // BOT/Supabase/Webinterface back to DEGRADED.
+                var diagnosticsNow = DateTimeOffset.UtcNow;
+                if (lastSuccess.HasValue
+                    && ShouldIncludeDeepDiagnostics(lastDeepDiagnosticsAt, diagnosticsNow))
+                {
+                    lastDeepDiagnosticsAt = diagnosticsNow;
+                    await CaptureDeepDiagnosticsBestEffortAsync(state, cancellationToken);
+                }
+
                 await Task.Delay(TimeSpan.FromSeconds(_config.PollIntervalSeconds), cancellationToken);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -246,6 +259,33 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 var backoff = ComputeBackoffSeconds(_config.PollIntervalSeconds, _config.MaxBackoffSeconds, failures);
                 await Task.Delay(TimeSpan.FromSeconds(backoff), cancellationToken);
             }
+        }
+    }
+
+    private async Task CaptureDeepDiagnosticsBestEffortAsync(
+        BridgeState state,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var reads = await _browser.ReadAllAsync(
+                character => state.GetLastEventSeq(character),
+                DeepDiagnosticEventLimit,
+                includeDeepDiagnostics: true,
+                cancellationToken);
+            foreach (var read in reads)
+                await CaptureDiagnosticsSafeAsync(read, cancellationToken);
+            await FlushDiagnosticsSafeAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch
+        {
+            // Deep diagnostics are observational only. A large deep snapshot,
+            // transient CDP issue, or diagnostics sink failure must never block
+            // shallow live telemetry, ACK, Supabase, or the Cloudflare dashboard.
         }
     }
 
