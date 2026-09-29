@@ -111,6 +111,25 @@ Assert(v6ProbeExpression.Contains("identity.bridgeProtocol === 'albot-v6-bridge-
     "V6_PROBE_STILL_REQUIRES_EXACT_PROTOCOL");
 Assert(v6ProbeExpression.Contains("identity.gameplayActionAuthority === false", StringComparison.Ordinal),
     "V6_PROBE_STILL_REJECTS_GAMEPLAY_AUTHORITY");
+Assert(v6ProbeExpression.Contains("directAlBotCount", StringComparison.Ordinal),
+    "V6_PROBE_REPORTS_DIRECT_ALBOT_COUNT");
+Assert(v6ProbeExpression.Contains("sharedRuntimeCount", StringComparison.Ordinal),
+    "V6_PROBE_REPORTS_SHARED_RUNTIME_COUNT");
+Assert(v6ProbeExpression.Contains("runnerRootCount", StringComparison.Ordinal),
+    "V6_PROBE_REPORTS_RUNNER_ROOT_COUNT");
+Assert(v6ProbeExpression.Contains("candidateCount", StringComparison.Ordinal),
+    "V6_PROBE_REPORTS_CANDIDATE_COUNT");
+Assert(v6ProbeExpression.Contains("version: candidate && candidate.version", StringComparison.Ordinal),
+    "V6_PROBE_REPORTS_RUNTIME_VERSION");
+Assert(v6ProbeExpression.Contains("hasBridge: !!bridge", StringComparison.Ordinal),
+    "V6_PROBE_REPORTS_BRIDGE_PRESENCE");
+
+var telemetryBoundedMethod = typeof(TelemetryBridgeService).GetMethod(
+    "Bounded",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+Assert(telemetryBoundedMethod is not null, "V6_UI_ERROR_BOUND_HELPER");
+var boundedDiagnostic = (string)telemetryBoundedMethod!.Invoke(null, [new string('x', 700)])!;
+Assert(boundedDiagnostic.Length == 512, "V6_UI_ERROR_BOUND_PRESERVES_DIAGNOSTICS");
 var bridgePrivateFields = typeof(TelemetryBridgeService)
     .GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
 Assert(bridgePrivateFields.Any(field => field.FieldType == typeof(CdpAlBotV6Client)), "ACTIVE_BRIDGE_MUST_USE_V6_CDP_CLIENT");

@@ -466,7 +466,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     private static string Bounded(string? value)
     {
         var text = string.IsNullOrWhiteSpace(value) ? "WINDOWS_BRIDGE_FAILED" : value;
-        return text.Length <= 256 ? text : text[..256];
+        return text.Length <= 512 ? text : text[..512];
     }
 
     public async ValueTask DisposeAsync() => await StopAsync();
