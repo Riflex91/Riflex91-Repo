@@ -39,11 +39,14 @@ public sealed class CdpAlBotV6Client
     {
         foreach (var target in await FindTargetsAsync(cancellationToken))
         {
-            using var socket = new ClientWebSocket();
             try
             {
+                var contextIds = await CollectTargetExecutionContextsAsync(
+                    target.WebSocketDebuggerUrl,
+                    cancellationToken);
+                using var socket = new ClientWebSocket();
                 await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
-                if (await FindV6ContextAsync(socket, cancellationToken) is not null)
+                if (await FindV6ContextAsync(socket, contextIds, cancellationToken) is not null)
                     return target.Url;
             }
             catch (WebSocketException)
@@ -94,12 +97,15 @@ public sealed class CdpAlBotV6Client
             if (!string.IsNullOrWhiteSpace(targetCharacter))
                 rosterCharacters.Add(targetCharacter);
 
-            using var socket = new ClientWebSocket();
             var targetResolved = false;
             try
             {
+                var contextIds = await CollectTargetExecutionContextsAsync(
+                    target.WebSocketDebuggerUrl,
+                    cancellationToken);
+                using var socket = new ClientWebSocket();
                 await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
-                foreach (var contextId in await CollectTargetExecutionContextsAsync(socket, cancellationToken))
+                foreach (var contextId in contextIds)
                 {
                     try
                     {
@@ -304,11 +310,14 @@ public sealed class CdpAlBotV6Client
                     StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            using var socket = new ClientWebSocket();
             try
             {
+                var contextIds = await CollectTargetExecutionContextsAsync(
+                    target.WebSocketDebuggerUrl,
+                    cancellationToken);
+                using var socket = new ClientWebSocket();
                 await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
-                foreach (var contextId in await CollectTargetExecutionContextsAsync(socket, cancellationToken))
+                foreach (var contextId in contextIds)
                 {
                     try
                     {
@@ -446,9 +455,12 @@ public sealed class CdpAlBotV6Client
         value.ValueKind == JsonValueKind.Object
         && string.Equals(ReadString(value, "type"), EventsType, StringComparison.Ordinal);
 
-    private async Task<int?> FindV6ContextAsync(ClientWebSocket socket, CancellationToken cancellationToken)
+    private async Task<int?> FindV6ContextAsync(
+        ClientWebSocket socket,
+        IReadOnlyList<int> contextIds,
+        CancellationToken cancellationToken)
     {
-        foreach (var contextId in await CollectTargetExecutionContextsAsync(socket, cancellationToken))
+        foreach (var contextId in contextIds)
         {
             try
             {
@@ -501,9 +513,16 @@ public sealed class CdpAlBotV6Client
     }
 
     private async Task<IReadOnlyList<int>> CollectTargetExecutionContextsAsync(
-        ClientWebSocket socket,
+        string webSocketDebuggerUrl,
         CancellationToken cancellationToken)
     {
+        // ClientWebSocket treats cancellation of an in-flight ReceiveAsync as a terminal
+        // socket abort. The bounded quiet-period drain below is therefore isolated on a
+        // disposable discovery connection. Snapshot/event/ACK evaluation always uses a
+        // freshly opened socket and can never inherit the drain's Aborted state.
+        using var socket = new ClientWebSocket();
+        await socket.ConnectAsync(new Uri(webSocketDebuggerUrl), cancellationToken);
+
         using var commandCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         commandCts.CancelAfter(TimeSpan.FromSeconds(CdpCommandTimeoutSeconds));
         var token = commandCts.Token;
