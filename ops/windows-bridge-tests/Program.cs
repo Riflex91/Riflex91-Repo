@@ -103,6 +103,22 @@ Assert(CdpAlBotV6Client.DashboardTerrainMaxChars <= 400_000, "V6_DASHBOARD_TERRA
 Assert(CdpAlBotV6Client.ExecutionContextDrainMilliseconds >= 100
     && CdpAlBotV6Client.ExecutionContextDrainMilliseconds <= 1000,
     "V6_CDP_EXECUTION_CONTEXT_DRAIN_BOUNDED");
+var v6CollectContextsMethod = typeof(CdpAlBotV6Client).GetMethod(
+    "CollectTargetExecutionContextsAsync",
+    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+Assert(v6CollectContextsMethod is not null, "V6_CDP_CONTEXT_DISCOVERY_METHOD");
+var v6CollectContextParameters = v6CollectContextsMethod!.GetParameters();
+Assert(v6CollectContextParameters.Length == 2
+    && v6CollectContextParameters[0].ParameterType == typeof(string)
+    && v6CollectContextParameters.All(parameter => parameter.ParameterType.Name != "ClientWebSocket"),
+    "V6_CDP_CONTEXT_DISCOVERY_OWNS_DISPOSABLE_SOCKET");
+var v6FindContextMethod = typeof(CdpAlBotV6Client).GetMethod(
+    "FindV6ContextAsync",
+    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+Assert(v6FindContextMethod is not null
+    && v6FindContextMethod.GetParameters().Any(parameter =>
+        parameter.ParameterType == typeof(IReadOnlyList<int>)),
+    "V6_CDP_EVALUATION_USES_PRECOLLECTED_CONTEXTS_ON_FRESH_SOCKET");
 Assert(CdpAlBotV6Client.AdaptiveEventLimits(200).SequenceEqual([200, 24, 12, 6, 3, 1]),
     "V6_OVERSIZE_EVENT_RETRY_LADDER");
 Assert(CdpAlBotV6Client.AdaptiveEventLimits(12).SequenceEqual([12, 6, 3, 1]),
