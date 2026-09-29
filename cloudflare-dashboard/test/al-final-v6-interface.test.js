@@ -5,6 +5,7 @@ import { resolve } from 'node:path';
 
 const root = resolve(import.meta.dirname, '..');
 const file = resolve(root, 'public/al-final/index.html');
+const rootFile = resolve(root, 'public/index.html');
 
 test('AL Final V6 live interface keeps V6 transport and V3 map/sprite capabilities', async () => {
   const html = await readFile(file, 'utf8');
@@ -37,4 +38,15 @@ test('AL Final V6 live interface keeps V6 transport and V3 map/sprite capabiliti
   assert.doesNotMatch(html, /\/api\/v3\/runtime/);
   assert.doesNotMatch(html, /WRITE_KEY/);
   assert.doesNotMatch(html, /ADMIN_KEY/);
+});
+
+test('dashboard root serves the AL Final V6 interface', async () => {
+  const [rootHtml, alFinalHtml] = await Promise.all([
+    readFile(rootFile, 'utf8'),
+    readFile(file, 'utf8')
+  ]);
+
+  assert.equal(rootHtml, alFinalHtml);
+  assert.match(rootHtml, /AL Final · Bot V6/);
+  assert.match(rootHtml, /\/api\/v6\/overview/);
 });
