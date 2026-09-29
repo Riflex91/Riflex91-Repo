@@ -8,6 +8,7 @@ public sealed class SupabaseTelemetrySink
     // The AL Bot V6 ingest Edge Function rejects bodies above 512 KiB.
     // Keep explicit headroom for HTTP/JSON growth and future small schema additions.
     public const int MaxPayloadBytes = 480 * 1024;
+    public const int StrictEventStringMaxChars = 32;
 
     private readonly HttpClient _httpClient;
     private readonly Uri _endpoint;
@@ -46,6 +47,15 @@ public sealed class SupabaseTelemetrySink
         if (!IsWithinPayloadBudget(payloadBytes.Length))
         {
             snapshot = CreateMinimalBudgetSnapshot(read.Snapshot);
+            payloadBytes = SerializePayload(read, afterSeq, observedAt, snapshot, events);
+        }
+
+        if (!IsWithinPayloadBudget(payloadBytes.Length))
+        {
+            // Live reads are hard-capped at 200 events. A 32 UTF-16-code-unit cap on every
+            // signal string keeps even worst-case JSON escaping below the 480 KiB host budget
+            // while preserving every event seq and all signal-relevant fields.
+            events = CreateStrictBudgetFallbackEvents(read.Events);
             payloadBytes = SerializePayload(read, afterSeq, observedAt, snapshot, events);
         }
 
@@ -171,6 +181,46 @@ public sealed class SupabaseTelemetrySink
         return compact;
     }
 
+    private static IReadOnlyList<object> CreateStrictBudgetFallbackEvents(JsonElement events)
+    {
+        var compact = new List<object>();
+        if (events.ValueKind != JsonValueKind.Array) return compact;
+
+        foreach (var row in events.EnumerateArray())
+        {
+            if (row.ValueKind != JsonValueKind.Object) continue;
+
+            var item = new Dictionary<string, object?>(StringComparer.Ordinal)
+            {
+                ["seq"] = ReadInt64(row, "seq"),
+                ["ts"] = ReadBoundedString(row, "ts", StrictEventStringMaxChars),
+                ["at"] = ReadInt64(row, "at"),
+                ["severity"] = ReadBoundedString(row, "severity", StrictEventStringMaxChars),
+                ["component"] = ReadBoundedString(row, "component", StrictEventStringMaxChars),
+                ["event"] = ReadBoundedString(row, "event", StrictEventStringMaxChars),
+                ["type"] = ReadBoundedString(row, "type", StrictEventStringMaxChars),
+                ["reason"] = ReadBoundedString(row, "reason", StrictEventStringMaxChars),
+                ["character"] = ReadBoundedString(row, "character", StrictEventStringMaxChars),
+                ["dedupeKey"] = ReadBoundedString(row, "dedupeKey", StrictEventStringMaxChars),
+                ["payloadCompacted"] = true,
+                ["payloadStrictBudget"] = true
+            };
+
+            if (row.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object)
+            {
+                item["data"] = new Dictionary<string, object?>(StringComparer.Ordinal)
+                {
+                    ["component"] = ReadBoundedString(data, "component", StrictEventStringMaxChars),
+                    ["character"] = ReadBoundedString(data, "character", StrictEventStringMaxChars)
+                };
+            }
+
+            compact.Add(item);
+        }
+
+        return compact;
+    }
+
     private static object CreateMinimalBudgetSnapshot(JsonElement snapshot)
     {
         var minimal = new Dictionary<string, object?>(StringComparer.Ordinal)
@@ -189,7 +239,21 @@ public sealed class SupabaseTelemetrySink
 
         if (snapshot.ValueKind == JsonValueKind.Object)
         {
-            CopyIfPresent(snapshot, minimal, "identity");
+            if (snapshot.TryGetProperty("identity", out var identity)
+                && identity.ValueKind == JsonValueKind.Object)
+            {
+                minimal["identity"] = new Dictionary<string, object?>(StringComparer.Ordinal)
+                {
+                    ["product"] = ReadBoundedString(identity, "product", 80),
+                    ["generation"] = ReadInt64(identity, "generation"),
+                    ["bridgeProtocol"] = ReadBoundedString(identity, "bridgeProtocol", 80),
+                    ["runtimeVersion"] = ReadBoundedString(identity, "runtimeVersion", 160),
+                    ["transportOnly"] = ReadBoolean(identity, "transportOnly"),
+                    ["gameplayActionAuthority"] = ReadBoolean(identity, "gameplayActionAuthority"),
+                    ["acceptsLegacyGenerations"] = ReadBoolean(identity, "acceptsLegacyGenerations")
+                };
+            }
+
             CopyIfPresent(snapshot, minimal, "observedAt");
 
             if (snapshot.TryGetProperty("character", out var character)
@@ -218,7 +282,26 @@ public sealed class SupabaseTelemetrySink
             return null;
         var text = value.GetString();
         if (string.IsNullOrEmpty(text)) return text;
-        return text.Length <= max ? text : text[..max];
+        if (text.Length <= max) return text;
+
+        var length = max;
+        if (length > 0
+            && length < text.Length
+            && char.IsHighSurrogate(text[length - 1])
+            && char.IsLowSurrogate(text[length]))
+            length--;
+
+        return text[..length];
+    }
+
+    private static bool? ReadBoolean(JsonElement source, string propertyName)
+    {
+        if (source.ValueKind != JsonValueKind.Object
+            || !source.TryGetProperty(propertyName, out var value))
+            return null;
+        if (value.ValueKind == JsonValueKind.True) return true;
+        if (value.ValueKind == JsonValueKind.False) return false;
+        return null;
     }
 
     private static long? ReadInt64(JsonElement source, string propertyName)
