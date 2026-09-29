@@ -53,13 +53,13 @@ public sealed class CloudflareV6DashboardSink
 
         if (bytes.Length > MaxPayloadBytes)
         {
-            snapshot = CreateReducedSnapshot(read.Snapshot, read.DashboardVisual);
+            snapshot = CreateReducedSnapshotWithVisual(read.Snapshot, read.DashboardVisual);
             bytes = Serialize(read, character, snapshot, events);
         }
 
         if (bytes.Length > MaxPayloadBytes)
         {
-            snapshot = CreateCompactSnapshot(read.Snapshot, read.DashboardVisual);
+            snapshot = CreateCompactSnapshotWithVisual(read.Snapshot, read.DashboardVisual);
             bytes = Serialize(read, character, snapshot, events);
         }
 
@@ -158,9 +158,9 @@ public sealed class CloudflareV6DashboardSink
     }
 
     private static object CreateReducedSnapshot(JsonElement snapshot) =>
-        CreateReducedSnapshot(snapshot, dashboardVisual: null);
+        CreateReducedSnapshotWithVisual(snapshot, dashboardVisual: null);
 
-    private static object CreateReducedSnapshot(JsonElement snapshot, JsonElement? dashboardVisual)
+    private static object CreateReducedSnapshotWithVisual(JsonElement snapshot, JsonElement? dashboardVisual)
     {
         var reduced = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
@@ -231,9 +231,9 @@ public sealed class CloudflareV6DashboardSink
     }
 
     private static object CreateCompactSnapshot(JsonElement snapshot) =>
-        CreateCompactSnapshot(snapshot, dashboardVisual: null);
+        CreateCompactSnapshotWithVisual(snapshot, dashboardVisual: null);
 
-    private static object CreateCompactSnapshot(JsonElement snapshot, JsonElement? dashboardVisual)
+    private static object CreateCompactSnapshotWithVisual(JsonElement snapshot, JsonElement? dashboardVisual)
     {
         var compact = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
