@@ -110,7 +110,7 @@ test('V6 overview only exposes recent runtime rows', async () => {
     new Request('https://dashboard.test/api/v6/overview?account=default', {
       headers: { 'x-aio-read-key': 'read-secret' }
     }),
-    { DB, AIO_READ_KEY: 'read-secret' }
+    { DB, READ_KEY: 'read-secret' }
   );
   assert.equal(response.status, 200);
   const runtimeRead = DB.calls.find(row =>
