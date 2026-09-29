@@ -139,6 +139,131 @@ Assert(bridgePrivateFields.Any(field => field.FieldType == typeof(BackblazeV6Arc
 Assert(CloudflareV6DashboardSink.RuntimePath == "/api/v6/runtime", "V6_DASHBOARD_RUNTIME_PATH");
 Assert(CloudflareV6DashboardSink.IsWithinPayloadBudget(CloudflareV6DashboardSink.MaxPayloadBytes), "V6_DASHBOARD_PAYLOAD_BUDGET");
 Assert(!CloudflareV6DashboardSink.IsWithinPayloadBudget(CloudflareV6DashboardSink.MaxPayloadBytes + 1), "V6_DASHBOARD_PAYLOAD_OVERSIZE_BLOCKED");
+
+var compactDashboardSnapshotMethod = typeof(CloudflareV6DashboardSink).GetMethod(
+    "CreateCompactSnapshot",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+var compactDashboardEventsMethod = typeof(CloudflareV6DashboardSink).GetMethod(
+    "CreateCompactEvents",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+Assert(compactDashboardSnapshotMethod is not null, "V6_DASHBOARD_COMPACT_SNAPSHOT_HELPER");
+Assert(compactDashboardEventsMethod is not null, "V6_DASHBOARD_COMPACT_EVENTS_HELPER");
+
+var oversizedDashboardSnapshot = new Dictionary<string, object?>
+{
+    ["schemaVersion"] = 1,
+    ["type"] = "ALBOT_V6_DEBUG_SNAPSHOT",
+    ["identity"] = new Dictionary<string, object?>
+    {
+        ["product"] = "AL Bot",
+        ["generation"] = 6,
+        ["bridgeProtocol"] = "albot-v6-bridge-v1",
+        ["runtimeVersion"] = "0.22.7-h22",
+        ["transportOnly"] = true,
+        ["gameplayActionAuthority"] = false,
+        ["acceptsLegacyGenerations"] = false,
+        ["huge"] = new string('i', 180_000)
+    },
+    ["observedAt"] = 123456789L,
+    ["character"] = new Dictionary<string, object?>
+    {
+        ["name"] = "My_Ranger1",
+        ["ctype"] = "ranger",
+        ["level"] = 80,
+        ["hp"] = 900,
+        ["max_hp"] = 1000,
+        ["mp"] = 450,
+        ["max_mp"] = 500,
+        ["gold"] = 12345,
+        ["map"] = "main",
+        ["x"] = 12.5,
+        ["y"] = -7.25,
+        ["inventory"] = new string('c', 220_000)
+    },
+    ["status"] = new Dictionary<string, object?>
+    {
+        ["currentTask"] = "Farm goo",
+        ["huge"] = new string('s', 220_000)
+    },
+    ["telemetry"] = new Dictionary<string, object?>
+    {
+        ["performance"] = new Dictionary<string, object?>
+        {
+            ["current"] = new Dictionary<string, object?>
+            {
+                ["rates"] = new Dictionary<string, object?>
+                {
+                    ["xpPerHour"] = 1234.5,
+                    ["goldPerHour"] = 678.9
+                }
+            }
+        },
+        ["huge"] = new string('t', 220_000)
+    }
+};
+using (var oversizedDashboardDocument = JsonDocument.Parse(JsonSerializer.Serialize(oversizedDashboardSnapshot)))
+{
+    var compactDashboardSnapshot = compactDashboardSnapshotMethod!.Invoke(
+        null,
+        [oversizedDashboardDocument.RootElement])!;
+    var compactDashboardBytes = JsonSerializer.SerializeToUtf8Bytes(compactDashboardSnapshot);
+    Assert(compactDashboardBytes.Length < 64 * 1024, "V6_DASHBOARD_COMPACT_SNAPSHOT_SMALL");
+    Assert(compactDashboardBytes.Length < CloudflareV6DashboardSink.MaxPayloadBytes,
+        "V6_DASHBOARD_COMPACT_SNAPSHOT_FITS_HOST_BUDGET");
+
+    using var compactDashboardDocument = JsonDocument.Parse(compactDashboardBytes);
+    var compactRoot = compactDashboardDocument.RootElement;
+    Assert(compactRoot.GetProperty("identity").GetProperty("bridgeProtocol").GetString() == "albot-v6-bridge-v1",
+        "V6_DASHBOARD_COMPACT_SNAPSHOT_PRESERVES_IDENTITY");
+    Assert(compactRoot.GetProperty("character").GetProperty("name").GetString() == "My_Ranger1",
+        "V6_DASHBOARD_COMPACT_SNAPSHOT_PRESERVES_CHARACTER");
+    Assert(compactRoot.GetProperty("character").GetProperty("hp").GetDouble() == 900,
+        "V6_DASHBOARD_COMPACT_SNAPSHOT_PRESERVES_HP");
+    Assert(compactRoot.GetProperty("task").GetString() == "Farm goo",
+        "V6_DASHBOARD_COMPACT_SNAPSHOT_PRESERVES_TASK");
+    Assert(compactRoot.GetProperty("rates").GetProperty("xpPerHour").GetDouble() == 1234.5,
+        "V6_DASHBOARD_COMPACT_SNAPSHOT_PRESERVES_XP_RATE");
+    Assert(compactRoot.GetProperty("rates").GetProperty("goldPerHour").GetDouble() == 678.9,
+        "V6_DASHBOARD_COMPACT_SNAPSHOT_PRESERVES_GOLD_RATE");
+    Assert(!Encoding.UTF8.GetString(compactDashboardBytes).Contains(new string('s', 128), StringComparison.Ordinal),
+        "V6_DASHBOARD_COMPACT_SNAPSHOT_DROPS_HEAVY_STATUS");
+}
+
+var oversizedDashboardEvents = Enumerable.Range(1, 200)
+    .Select(seq => new Dictionary<string, object?>
+    {
+        ["seq"] = seq,
+        ["ts"] = "2026-09-29T19:00:00.000Z",
+        ["severity"] = seq % 10 == 0 ? "ERROR" : "INFO",
+        ["component"] = "combat",
+        ["event"] = "HEARTBEAT",
+        ["reason"] = new string('r', 5000),
+        ["data"] = new Dictionary<string, object?>
+        {
+            ["component"] = "combat",
+            ["character"] = "My_Ranger1",
+            ["huge"] = new string('x', 24_000)
+        }
+    })
+    .ToArray();
+using (var oversizedDashboardEventsDocument = JsonDocument.Parse(JsonSerializer.Serialize(oversizedDashboardEvents)))
+{
+    var compactDashboardEvents = (IReadOnlyList<object>)compactDashboardEventsMethod!.Invoke(
+        null,
+        [oversizedDashboardEventsDocument.RootElement])!;
+    Assert(compactDashboardEvents.Count == 24, "V6_DASHBOARD_EVENT_COMPACTION_MATCHES_WORKER_BATCH_MAX");
+
+    var compactDashboardEventBytes = JsonSerializer.SerializeToUtf8Bytes(compactDashboardEvents);
+    Assert(compactDashboardEventBytes.Length < 64 * 1024, "V6_DASHBOARD_COMPACT_EVENTS_SMALL");
+    using var compactDashboardEventsJson = JsonDocument.Parse(compactDashboardEventBytes);
+    Assert(compactDashboardEventsJson.RootElement[0].GetProperty("seq").GetInt64() == 177,
+        "V6_DASHBOARD_EVENT_COMPACTION_KEEPS_LATEST_WINDOW_START");
+    Assert(compactDashboardEventsJson.RootElement[23].GetProperty("seq").GetInt64() == 200,
+        "V6_DASHBOARD_EVENT_COMPACTION_KEEPS_LATEST_WINDOW_END");
+    Assert(!Encoding.UTF8.GetString(compactDashboardEventBytes).Contains(new string('x', 128), StringComparison.Ordinal),
+        "V6_DASHBOARD_EVENT_COMPACTION_DROPS_HEAVY_DATA");
+}
+
 using (var v6IdentityDocument = JsonDocument.Parse("""
 {
   "product": "AL Bot",
