@@ -99,59 +99,96 @@ public sealed class CdpAlBotV6Client
                             continue;
                         }
 
-                        var snapshot = await EvaluateAsync(
+                        var catalog = await EvaluateAsync(
                             socket,
-                            BuildSnapshotExpression(includeDeepDiagnostics),
+                            CharacterCatalogExpression,
                             contextId,
                             cancellationToken);
-                        if (!IsV6Snapshot(snapshot))
-                            continue;
-
-                        var characterName = ReadCharacterName(snapshot);
-                        if (string.IsNullOrWhiteSpace(characterName)
-                            || !seenCharacters.Add(characterName))
-                            continue;
-
-                        var afterSeq = Math.Max(0, afterSeqForCharacter(characterName));
-                        var eventBatch = await EvaluateAsync(
-                            socket,
-                            BuildEventsExpression(afterSeq, eventLimit),
-                            contextId,
-                            cancellationToken);
-                        if (!IsV6EventBatch(eventBatch))
-                            throw new InvalidOperationException("ALBOT_V6_EVENTS_INVALID");
-
-                        JsonElement events;
-                        if (eventBatch.TryGetProperty("events", out var eventsNode)
-                            && eventsNode.ValueKind == JsonValueKind.Array)
-                            events = eventsNode.Clone();
-                        else
+                        if (catalog.ValueKind != JsonValueKind.Array || catalog.GetArrayLength() == 0)
                         {
-                            using var empty = JsonDocument.Parse("[]");
-                            events = empty.RootElement.Clone();
+                            AddProbeDiagnostic(probeDiagnostics, target.Url, contextId, "CHARACTER_CATALOG_EMPTY");
+                            continue;
                         }
 
-                        var requestedAfterSeq = ReadInt64(eventBatch, "requestedAfterSeq", afterSeq);
-                        var effectiveAfterSeq = ReadInt64(eventBatch, "effectiveAfterSeq", requestedAfterSeq);
-                        var lastCapturedSeq = ReadInt64(eventBatch, "lastCapturedSeq", 0);
-                        var maxSeq = effectiveAfterSeq;
-                        foreach (var row in events.EnumerateArray())
+                        foreach (var catalogRow in catalog.EnumerateArray())
                         {
-                            if (row.ValueKind == JsonValueKind.Object
-                                && row.TryGetProperty("seq", out var seqNode)
-                                && seqNode.TryGetInt64(out var seq))
-                                maxSeq = Math.Max(maxSeq, seq);
-                        }
+                            var characterName = ReadString(catalogRow, "character")?.Trim();
+                            if (string.IsNullOrWhiteSpace(characterName)
+                                || seenCharacters.Contains(characterName))
+                                continue;
 
-                        reads.Add(new DebugReadResult(
-                            snapshot.Clone(),
-                            events,
-                            requestedAfterSeq,
-                            effectiveAfterSeq,
-                            maxSeq,
-                            lastCapturedSeq,
-                            ReadBoolean(eventBatch, "hasMore", false),
-                            target.Url));
+                            try
+                            {
+                                var snapshot = await EvaluateAsync(
+                                    socket,
+                                    BuildSnapshotExpression(includeDeepDiagnostics, characterName),
+                                    contextId,
+                                    cancellationToken);
+                                if (!IsV6Snapshot(snapshot))
+                                    throw new InvalidOperationException("ALBOT_V6_SNAPSHOT_INVALID");
+
+                                var resolvedCharacterName = ReadCharacterName(snapshot);
+                                if (!string.Equals(
+                                        resolvedCharacterName,
+                                        characterName,
+                                        StringComparison.OrdinalIgnoreCase))
+                                    throw new InvalidOperationException(
+                                        "ALBOT_V6_CHARACTER_SELECTION_MISMATCH:"
+                                        + Bounded(characterName)
+                                        + "!="
+                                        + Bounded(resolvedCharacterName));
+
+                                var afterSeq = Math.Max(0, afterSeqForCharacter(characterName));
+                                var eventBatch = await EvaluateAsync(
+                                    socket,
+                                    BuildEventsExpression(characterName, afterSeq, eventLimit),
+                                    contextId,
+                                    cancellationToken);
+                                if (!IsV6EventBatch(eventBatch))
+                                    throw new InvalidOperationException("ALBOT_V6_EVENTS_INVALID");
+
+                                JsonElement events;
+                                if (eventBatch.TryGetProperty("events", out var eventsNode)
+                                    && eventsNode.ValueKind == JsonValueKind.Array)
+                                    events = eventsNode.Clone();
+                                else
+                                {
+                                    using var empty = JsonDocument.Parse("[]");
+                                    events = empty.RootElement.Clone();
+                                }
+
+                                var requestedAfterSeq = ReadInt64(eventBatch, "requestedAfterSeq", afterSeq);
+                                var effectiveAfterSeq = ReadInt64(eventBatch, "effectiveAfterSeq", requestedAfterSeq);
+                                var lastCapturedSeq = ReadInt64(eventBatch, "lastCapturedSeq", 0);
+                                var maxSeq = effectiveAfterSeq;
+                                foreach (var row in events.EnumerateArray())
+                                {
+                                    if (row.ValueKind == JsonValueKind.Object
+                                        && row.TryGetProperty("seq", out var seqNode)
+                                        && seqNode.TryGetInt64(out var seq))
+                                        maxSeq = Math.Max(maxSeq, seq);
+                                }
+
+                                reads.Add(new DebugReadResult(
+                                    snapshot.Clone(),
+                                    events,
+                                    requestedAfterSeq,
+                                    effectiveAfterSeq,
+                                    maxSeq,
+                                    lastCapturedSeq,
+                                    ReadBoolean(eventBatch, "hasMore", false),
+                                    target.Url));
+                                seenCharacters.Add(characterName);
+                            }
+                            catch (InvalidOperationException error)
+                            {
+                                AddProbeDiagnostic(
+                                    probeDiagnostics,
+                                    target.Url,
+                                    contextId,
+                                    Bounded(characterName) + ":" + error.Message);
+                            }
+                        }
                     }
                     catch (InvalidOperationException error)
                     {
@@ -217,21 +254,9 @@ public sealed class CdpAlBotV6Client
                             || !IsV6Identity(identity))
                             continue;
 
-                        if (!string.IsNullOrWhiteSpace(characterName))
-                        {
-                            var snapshot = await EvaluateAsync(
-                                socket,
-                                BuildSnapshotExpression(deep: false),
-                                contextId,
-                                cancellationToken);
-                            var currentCharacter = ReadCharacterName(snapshot);
-                            if (!string.Equals(currentCharacter, characterName, StringComparison.OrdinalIgnoreCase))
-                                continue;
-                        }
-
                         var value = await EvaluateAsync(
                             socket,
-                            BuildAcknowledgeExpression(maxSeq),
+                            BuildAcknowledgeExpression(maxSeq, characterName),
                             contextId,
                             cancellationToken);
                         if (value.ValueKind != JsonValueKind.Object
@@ -264,6 +289,12 @@ public sealed class CdpAlBotV6Client
                 ? "ALBOT_V6_BRIDGE_UNAVAILABLE"
                 : "ALBOT_V6_CHARACTER_CONTEXT_UNAVAILABLE:" + Bounded(characterName));
     }
+
+    public static bool IsSupportedTargetType(string? targetType) =>
+        string.Equals(targetType, "page", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(targetType, "iframe", StringComparison.OrdinalIgnoreCase);
+
+    public static string BuildCharacterCatalogExpression() => CharacterCatalogExpression;
 
     public static bool IsV6Identity(JsonElement value)
     {
@@ -346,7 +377,7 @@ public sealed class CdpAlBotV6Client
         var matches = new List<Target>();
         foreach (var target in targets)
         {
-            if (!string.Equals(target.Type, "page", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!IsSupportedTargetType(target.Type)) continue;
             if (string.IsNullOrWhiteSpace(target.Url) || string.IsNullOrWhiteSpace(target.WebSocketDebuggerUrl)) continue;
             if (!Uri.TryCreate(target.Url, UriKind.Absolute, out var pageUri)) continue;
             if (!SameOrigin(pageUri, _allowedOrigin)) continue;
@@ -641,16 +672,22 @@ public sealed class CdpAlBotV6Client
     visit(globalThis);
 
     const candidates = [];
+    const candidateSet = new Set();
+    const pushCandidate = candidate => {
+      if (!candidate || candidateSet.has(candidate)) return;
+      candidateSet.add(candidate);
+      candidates.push(candidate);
+    };
     for (const candidateRoot of roots) {
-      try { if (candidateRoot.ALBot) candidates.push(candidateRoot.ALBot); } catch {}
+      try { if (candidateRoot.ALBot) pushCandidate(candidateRoot.ALBot); } catch {}
       try {
         const shared = candidateRoot.__ALBOT_SHARED_RUNTIME__;
         const runner = shared && shared.runnerRoot;
-        if (runner && runner.ALBot) candidates.push(runner.ALBot);
+        if (runner && runner.ALBot) pushCandidate(runner.ALBot);
       } catch {}
     }
 
-    const findBridgeApi = requiredMethod => candidates.find(candidate => {
+    const validBridgeApis = requiredMethod => candidates.filter(candidate => {
       try {
         const bridge = candidate && candidate.bridge;
         const identity = bridge && typeof bridge.identity === 'function' ? bridge.identity() : null;
@@ -663,35 +700,93 @@ public sealed class CdpAlBotV6Client
           && identity.acceptsLegacyGenerations === false
           && typeof bridge[requiredMethod] === 'function';
       } catch { return false; }
-    }) || null;
+    });
+
+    const findBridgeApi = requiredMethod => validBridgeApis(requiredMethod)[0] || null;
+
+    const findBridgeApiForCharacter = (requiredMethod, requestedCharacter) => {
+      const wanted = String(requestedCharacter || '').trim().toLowerCase();
+      if (!wanted) return null;
+      for (const candidate of validBridgeApis(requiredMethod)) {
+        try {
+          const bridge = candidate && candidate.bridge;
+          if (!bridge || typeof bridge.snapshot !== 'function') continue;
+          const snapshot = bridge.snapshot({ deep: false });
+          const name = snapshot && snapshot.character && snapshot.character.name;
+          if (String(name || '').trim().toLowerCase() === wanted) return candidate;
+        } catch {}
+      }
+      return null;
+    };
     """;
 
-    private static string BuildSnapshotExpression(bool deep) =>
+    private static readonly string CharacterCatalogExpression =
         "(() => {\n"
         + BridgeResolverSource
-        + "\nconst api = findBridgeApi('snapshot');\n"
-        + "if (!api) throw new Error('ALBOT_V6_BRIDGE_UNAVAILABLE');\n"
-        + "return api.bridge.snapshot({ deep: " + (deep ? "true" : "false") + " });\n"
-        + "})()";
+        + """
+const rows = [];
+const seenCharacters = new Set();
+for (const api of validBridgeApis('snapshot')) {
+  try {
+    const snapshot = api.bridge.snapshot({ deep: false });
+    const name = String(snapshot && snapshot.character && snapshot.character.name || '').trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seenCharacters.has(key)) continue;
+    seenCharacters.add(key);
+    rows.push({ character: name });
+  } catch {}
+}
+return rows;
+})()
+""";
 
-    private static string BuildEventsExpression(long afterSeq, int limit)
+    private static string BuildSnapshotExpression(bool deep, string? characterName = null)
+    {
+        var selector = string.IsNullOrWhiteSpace(characterName)
+            ? "findBridgeApi('snapshot')"
+            : "findBridgeApiForCharacter('snapshot', "
+                + JsonSerializer.Serialize(characterName.Trim())
+                + ")";
+        return "(() => {\n"
+            + BridgeResolverSource
+            + "\nconst api = " + selector + ";\n"
+            + "if (!api) throw new Error('ALBOT_V6_BRIDGE_UNAVAILABLE');\n"
+            + "return api.bridge.snapshot({ deep: " + (deep ? "true" : "false") + " });\n"
+            + "})()";
+    }
+
+    private static string BuildEventsExpression(string? characterName, long afterSeq, int limit)
     {
         var after = Math.Max(0, afterSeq);
         var boundedLimit = Math.Clamp(limit, 1, 200);
+        var selector = string.IsNullOrWhiteSpace(characterName)
+            ? "findBridgeApi('events')"
+            : "findBridgeApiForCharacter('events', "
+                + JsonSerializer.Serialize(characterName.Trim())
+                + ")";
         return "(() => {\n"
             + BridgeResolverSource
-            + "\nconst api = findBridgeApi('events');\n"
+            + "\nconst api = " + selector + ";\n"
             + "if (!api) throw new Error('ALBOT_V6_BRIDGE_UNAVAILABLE');\n"
             + "return api.bridge.events(" + after + ", " + boundedLimit + ");\n"
             + "})()";
     }
 
-    private static string BuildAcknowledgeExpression(long maxSeq)
+    private static string BuildEventsExpression(long afterSeq, int limit) =>
+        BuildEventsExpression(characterName: null, afterSeq, limit);
+
+    private static string BuildAcknowledgeExpression(long maxSeq, string? characterName = null)
     {
         var bounded = Math.Max(0, maxSeq);
+        var selector = string.IsNullOrWhiteSpace(characterName)
+            ? "findBridgeApi('acknowledgeTelemetry')"
+            : "findBridgeApiForCharacter('acknowledgeTelemetry', "
+                + JsonSerializer.Serialize(characterName.Trim())
+                + ")";
         return "(() => {\n"
             + BridgeResolverSource
-            + "\nconst api = findBridgeApi('acknowledgeTelemetry');\n"
+            + "\nconst api = " + selector + ";\n"
             + "if (!api) throw new Error('ALBOT_V6_BRIDGE_UNAVAILABLE');\n"
             + "return api.bridge.acknowledgeTelemetry(" + bounded + ");\n"
             + "})()";
