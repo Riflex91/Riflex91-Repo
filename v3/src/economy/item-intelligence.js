@@ -1,5 +1,6 @@
 'use strict';
 
+// Central future-gear evidence builder shared by progression and sell protection.
 const { progressionProbability } = require('./item-economic-evaluator');
 
 const ROLE_WEIGHT_MULTIPLIERS = Object.freeze({
