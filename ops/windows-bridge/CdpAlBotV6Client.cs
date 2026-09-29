@@ -309,11 +309,21 @@ public sealed class CdpAlBotV6Client
     {
         using var response = await _httpClient.GetAsync(new Uri(_cdpEndpoint, "json/list"), cancellationToken);
         response.EnsureSuccessStatusCode();
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        var targets = await JsonSerializer.DeserializeAsync<List<Target>>(stream, new JsonSerializerOptions
+        var payload = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        List<Target> targets;
+        try
         {
-            PropertyNameCaseInsensitive = true
-        }, cancellationToken) ?? [];
+            targets = JsonSerializer.Deserialize<List<Target>>(payload, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            }) ?? [];
+        }
+        catch (JsonException error)
+        {
+            throw new InvalidOperationException(
+                "CDP_TARGET_LIST_INVALID_JSON:" + PayloadPreview(payload),
+                error);
+        }
 
         var matches = new List<Target>();
         foreach (var target in targets)
@@ -455,17 +465,61 @@ public sealed class CdpAlBotV6Client
     {
         var buffer = new byte[16 * 1024];
         using var stream = new MemoryStream();
+        WebSocketMessageType? messageType = null;
         while (true)
         {
             var result = await socket.ReceiveAsync(buffer, cancellationToken);
             if (result.MessageType == WebSocketMessageType.Close)
                 throw new InvalidOperationException("CDP_SOCKET_CLOSED");
+            messageType ??= result.MessageType;
+            if (result.MessageType != messageType)
+                throw new InvalidOperationException("CDP_FRAME_TYPE_CHANGED");
             if (result.Count > 0) stream.Write(buffer, 0, result.Count);
             if (stream.Length > 1024 * 1024)
                 throw new InvalidOperationException("CDP_RESPONSE_TOO_LARGE");
             if (result.EndOfMessage) break;
         }
-        return JsonDocument.Parse(stream.ToArray());
+
+        var payload = stream.ToArray();
+        if (messageType != WebSocketMessageType.Text)
+            throw new InvalidOperationException(
+                "CDP_NON_TEXT_FRAME:" + (messageType?.ToString() ?? "UNKNOWN") + ":" + PayloadPreview(payload));
+
+        return ParseCdpJson(payload);
+    }
+
+    private static JsonDocument ParseCdpJson(byte[] payload)
+    {
+        if (payload is null || payload.Length == 0)
+            throw new InvalidOperationException("CDP_EMPTY_JSON_FRAME");
+        try
+        {
+            return JsonDocument.Parse(payload);
+        }
+        catch (JsonException error)
+        {
+            throw new InvalidOperationException(
+                "CDP_FRAME_INVALID_JSON:" + PayloadPreview(payload),
+                error);
+        }
+    }
+
+    private static string PayloadPreview(byte[] payload)
+    {
+        if (payload is null || payload.Length == 0) return "EMPTY";
+        var length = Math.Min(payload.Length, 96);
+        string text;
+        try
+        {
+            text = System.Text.Encoding.UTF8.GetString(payload, 0, length);
+        }
+        catch
+        {
+            return "UNDECODABLE";
+        }
+
+        var cleaned = new string(text.Select(ch => char.IsControl(ch) ? ' ' : ch).ToArray()).Trim();
+        return Bounded(cleaned);
     }
 
     private static string BuildSnapshotExpression(bool deep) => $$"""
