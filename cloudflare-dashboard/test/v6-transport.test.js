@@ -104,6 +104,20 @@ test('free-tier entrypoint blocks legacy runtime writes before the old worker', 
   assert.equal(payload.historicalReadOnly, true);
 });
 
+test('V6 transport bootstraps its D1 tables through the Worker binding', async () => {
+  const DB = fakeDb();
+  await ensureV6Schema({ DB });
+
+  const createRuns = DB.calls.filter(row => row.kind === 'run' && /^CREATE (TABLE|INDEX) IF NOT EXISTS/i.test(String(row.sql || '').trim()));
+  assert.equal(createRuns.length, 5);
+  assert.ok(createRuns.some(row => /CREATE TABLE IF NOT EXISTS v6_runtime_status/.test(row.sql)));
+  assert.ok(createRuns.some(row => /CREATE TABLE IF NOT EXISTS v6_runtime_events/.test(row.sql)));
+
+  const countAfterFirst = DB.calls.length;
+  await ensureV6Schema({ DB });
+  assert.equal(DB.calls.length, countAfterFirst);
+});
+
 test('V6 overview only exposes recent runtime rows', async () => {
   const DB = fakeDb();
   const response = await handleV6Request(
@@ -123,20 +137,6 @@ test('V6 overview only exposes recent runtime rows', async () => {
   assert.ok(cutoffAge >= RUNTIME_STATUS_VISIBLE_MS - 5000);
   assert.ok(cutoffAge <= RUNTIME_STATUS_VISIBLE_MS + 5000);
   assert.equal(RUNTIME_STATUS_VISIBLE_MS, 5 * 60 * 1000);
-});
-
-test('V6 transport bootstraps its D1 tables through the Worker binding', async () => {
-  const DB = fakeDb();
-  await ensureV6Schema({ DB });
-
-  const createRuns = DB.calls.filter(row => row.kind === 'run' && /^CREATE (TABLE|INDEX) IF NOT EXISTS/i.test(String(row.sql || '').trim()));
-  assert.equal(createRuns.length, 5);
-  assert.ok(createRuns.some(row => /CREATE TABLE IF NOT EXISTS v6_runtime_status/.test(row.sql)));
-  assert.ok(createRuns.some(row => /CREATE TABLE IF NOT EXISTS v6_runtime_events/.test(row.sql)));
-
-  const countAfterFirst = DB.calls.length;
-  await ensureV6Schema({ DB });
-  assert.equal(DB.calls.length, countAfterFirst);
 });
 
 test('V6 runtime endpoint requires the generation-locked bridge identity and dedicated secret', async () => {
