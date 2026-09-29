@@ -2142,7 +2142,8 @@ public sealed record DebugReadResult(
     long MaxSeq,
     long LastCapturedSeq,
     bool HasMoreEvents,
-    string TargetUrl)
+    string TargetUrl,
+    JsonElement? DashboardVisual = null)
 {
     public int EventCount => Events.ValueKind == JsonValueKind.Array ? Events.GetArrayLength() : 0;
     public bool CursorWasReset => EffectiveAfterSeq != RequestedAfterSeq;

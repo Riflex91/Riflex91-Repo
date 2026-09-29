@@ -62,9 +62,19 @@ async function readJson(request) {
   catch (_) { throw Object.assign(new Error('invalid JSON'), { status: 400 }); }
 }
 
+function redactArrayLimit(key) {
+  // V3 terrain tile definitions can legitimately exceed the generic telemetry
+  // array cap. Placements/groups are compact strings in V6, so only the tile
+  // definition table needs a larger bounded allowance.
+  if (key === 't') return 4096;
+  if (key === 'gc' || key === 'g') return 512;
+  return 300;
+}
+
 function redactDeep(value, depth = 0, key = '') {
   if (depth > 8) return null;
-  if (Array.isArray(value)) return value.slice(0, 300).map(row => redactDeep(row, depth + 1, ''));
+  if (Array.isArray(value))
+    return value.slice(0, redactArrayLimit(key)).map(row => redactDeep(row, depth + 1, ''));
   if (!value || typeof value !== 'object') return value;
   const out = {};
   for (const [k, v] of Object.entries(value)) {

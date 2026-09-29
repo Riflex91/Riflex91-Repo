@@ -146,6 +146,41 @@ test('V6 runtime endpoint requires the generation-locked bridge identity and ded
   assert.equal(wrongSecret.status, 401);
 });
 
+test('V6 runtime transport preserves the bounded V3 terrain tile table', async () => {
+  const DB = fakeDb();
+  const request = v6Request();
+  const body = await request.clone().json();
+  body.account = 'terrain-array-test';
+  body.character = 'TerrainFarmer';
+  body.status.character = { name: 'TerrainFarmer', ctype: 'ranger', map: 'main' };
+  body.status.terrain = {
+    map: 'main',
+    encoding: 'base36-all-v2',
+    t: Array.from({ length: 500 }, (_, index) => ['pack_20', index, 0, 32, 32]),
+    pc: '0,0,0',
+    gc: [],
+    ac: '',
+    s: { pack_20: '/images/pack_20.png' }
+  };
+
+  const accepted = await handleV6Request(new Request(request.url, {
+    method: 'POST',
+    headers: request.headers,
+    body: JSON.stringify(body)
+  }), { DB, ALBOT_V6_WRITE_KEY: 'v6-secret' });
+
+  assert.equal(accepted.status, 200);
+  const runtimeBatch = DB.calls.find(row =>
+    row.kind === 'batch'
+    && row.statements.some(statement => /INSERT INTO v6_runtime_status/.test(statement.sql)));
+  assert.ok(runtimeBatch);
+  const runtimeStatement = runtimeBatch.statements.find(statement => /INSERT INTO v6_runtime_status/.test(statement.sql));
+  assert.ok(runtimeStatement);
+  const stored = JSON.parse(runtimeStatement.args[4]);
+  assert.equal(stored.terrain.t.length, 500);
+  assert.equal(stored.terrain.encoding, 'base36-all-v2');
+});
+
 test('V6 runtime endpoint rejects a payload whose snapshot claims legacy compatibility', async () => {
   const request = v6Request();
   const body = await request.clone().json();

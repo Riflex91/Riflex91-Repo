@@ -98,6 +98,12 @@ Assert(CdpAlBotV6Client.Protocol == "albot-v6-bridge-v1", "V6_BRIDGE_PROTOCOL");
 Assert(CdpAlBotV6Client.SnapshotType == "ALBOT_V6_DEBUG_SNAPSHOT", "V6_BRIDGE_SNAPSHOT_TYPE");
 Assert(CdpAlBotV6Client.EventsType == "ALBOT_V6_DEBUG_EVENTS", "V6_BRIDGE_EVENTS_TYPE");
 Assert(CdpAlBotV6Client.AckType == "ALBOT_V6_TELEMETRY_ACK", "V6_BRIDGE_ACK_TYPE");
+Assert(CdpAlBotV6Client.DashboardVisualType == "ALBOT_V6_DASHBOARD_VISUAL", "V6_DASHBOARD_VISUAL_TYPE");
+Assert(CdpAlBotV6Client.DashboardTerrainMaxChars <= 400_000, "V6_DASHBOARD_TERRAIN_BUDGET_BOUNDED");
+Assert(CdpAlBotV6Client.AdaptiveEventLimits(200).SequenceEqual([200, 24, 12, 6, 3, 1]),
+    "V6_OVERSIZE_EVENT_RETRY_LADDER");
+Assert(CdpAlBotV6Client.AdaptiveEventLimits(12).SequenceEqual([12, 6, 3, 1]),
+    "V6_OVERSIZE_EVENT_RETRY_SMALL_LADDER");
 var v6ProbeExpression = CdpAlBotV6Client.BuildProbeExpression();
 Assert(v6ProbeExpression.Contains("__ALBOT_SHARED_RUNTIME__", StringComparison.Ordinal),
     "V6_PROBE_USES_SHARED_RUNTIME_RUNNER");
@@ -151,6 +157,29 @@ Assert(v6CharacterCatalogExpression.Contains("bridgeAvailable: true", StringComp
     "V6_CHARACTER_CATALOG_REPORTS_ROUTABLE_CHARACTER");
 Assert(typeof(CdpAlBotV6Client).GetProperty("LastDiscoveryWarning") is not null,
     "V6_DISCOVERY_WARNING_PUBLIC_STATUS");
+
+var v6DashboardVisualExpression = CdpAlBotV6Client.BuildDashboardVisualExpression("My_Merchant", includeTerrain: true);
+Assert(v6DashboardVisualExpression.Contains("findAdventureLandCharacterRoot", StringComparison.Ordinal),
+    "V6_DASHBOARD_VISUAL_SCOPES_EXACT_CHARACTER");
+Assert(v6DashboardVisualExpression.Contains("gameData.geometry", StringComparison.Ordinal),
+    "V6_DASHBOARD_VISUAL_READS_ADVENTURE_LAND_GEOMETRY");
+Assert(v6DashboardVisualExpression.Contains("gameData.maps", StringComparison.Ordinal),
+    "V6_DASHBOARD_VISUAL_READS_MAP_METADATA");
+Assert(v6DashboardVisualExpression.Contains("gameData.tilesets", StringComparison.Ordinal),
+    "V6_DASHBOARD_VISUAL_READS_TILESETS");
+Assert(v6DashboardVisualExpression.Contains("encoding: 'base36-all-v2'", StringComparison.Ordinal),
+    "V6_DASHBOARD_VISUAL_USES_V3_TERRAIN_ENCODING");
+Assert(v6DashboardVisualExpression.Contains("gc: groups.map(packRows)", StringComparison.Ordinal),
+    "V6_DASHBOARD_VISUAL_PRESERVES_TERRAIN_GROUPS");
+Assert(v6DashboardVisualExpression.Contains("ac: packRows(animations)", StringComparison.Ordinal),
+    "V6_DASHBOARD_VISUAL_PRESERVES_TERRAIN_ANIMATIONS");
+Assert(v6DashboardVisualExpression.Contains("mapBounds", StringComparison.Ordinal)
+    && v6DashboardVisualExpression.Contains("mapVisual", StringComparison.Ordinal)
+    && v6DashboardVisualExpression.Contains("sprite", StringComparison.Ordinal),
+    "V6_DASHBOARD_VISUAL_PRESERVES_V3_MAP_CONTRACT");
+var v6DashboardVisualNoTerrainExpression = CdpAlBotV6Client.BuildDashboardVisualExpression("My_Rogue", includeTerrain: false);
+Assert(v6DashboardVisualNoTerrainExpression.Contains("const includeTerrain = false", StringComparison.Ordinal),
+    "V6_DASHBOARD_VISUAL_SUPPORTS_PER_MAP_TERRAIN_DEDUP");
 Assert(CdpAlBotV6Client.IsSupportedTargetType("page"), "V6_CDP_PAGE_TARGET_SUPPORTED");
 Assert(CdpAlBotV6Client.IsSupportedTargetType("iframe"), "V6_CDP_IFRAME_TARGET_SUPPORTED");
 Assert(!CdpAlBotV6Client.IsSupportedTargetType("service_worker"), "V6_CDP_FOREIGN_TARGET_TYPE_REJECTED");
@@ -202,6 +231,55 @@ var compactDashboardEventsMethod = typeof(CloudflareV6DashboardSink).GetMethod(
     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 Assert(compactDashboardSnapshotMethod is not null, "V6_DASHBOARD_COMPACT_SNAPSHOT_HELPER");
 Assert(compactDashboardEventsMethod is not null, "V6_DASHBOARD_COMPACT_EVENTS_HELPER");
+
+var createDashboardSnapshotMethod = typeof(CloudflareV6DashboardSink).GetMethod(
+    "CreateDashboardSnapshot",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+Assert(createDashboardSnapshotMethod is not null, "V6_DASHBOARD_VISUAL_MERGE_HELPER");
+
+using (var baseDashboardSnapshotDoc = JsonDocument.Parse("""
+{
+  "schemaVersion": 1,
+  "type": "ALBOT_V6_DEBUG_SNAPSHOT",
+  "identity": {
+    "product": "AL Bot",
+    "generation": 6,
+    "bridgeProtocol": "albot-v6-bridge-v1",
+    "transportOnly": true,
+    "gameplayActionAuthority": false,
+    "acceptsLegacyGenerations": false
+  },
+  "character": { "name": "My_Merchant", "ctype": "merchant", "map": "main", "x": 1, "y": 2 }
+}
+"""))
+using (var dashboardVisualDoc = JsonDocument.Parse("""
+{
+  "schemaVersion": 1,
+  "type": "ALBOT_V6_DASHBOARD_VISUAL",
+  "character": "My_Merchant",
+  "available": true,
+  "mapBounds": { "minX": -1800, "minY": -1200, "maxX": 1800, "maxY": 1200 },
+  "mapVisual": { "npcs": [], "doors": [], "spawns": [] },
+  "terrain": { "map": "main", "encoding": "base36-all-v2", "t": [], "pc": "", "gc": [], "ac": "", "s": {} },
+  "sprite": { "skin": "merchant", "file": "/images/pack.png", "columns": 8, "rows": 8, "column": 1, "row": 2 }
+}
+"""))
+{
+    var mergedDashboardSnapshot = createDashboardSnapshotMethod!.Invoke(
+        null,
+        [baseDashboardSnapshotDoc.RootElement, (JsonElement?)dashboardVisualDoc.RootElement.Clone()])!;
+    var mergedDashboardJson = JsonSerializer.SerializeToUtf8Bytes(mergedDashboardSnapshot);
+    using var mergedDashboardDoc = JsonDocument.Parse(mergedDashboardJson);
+    var mergedRoot = mergedDashboardDoc.RootElement;
+    Assert(mergedRoot.GetProperty("character").GetProperty("name").GetString() == "My_Merchant",
+        "V6_DASHBOARD_VISUAL_MERGE_PRESERVES_CHARACTER");
+    Assert(mergedRoot.GetProperty("terrain").GetProperty("encoding").GetString() == "base36-all-v2",
+        "V6_DASHBOARD_VISUAL_MERGE_PRESERVES_REAL_TERRAIN");
+    Assert(mergedRoot.GetProperty("mapBounds").GetProperty("minX").GetInt32() == -1800,
+        "V6_DASHBOARD_VISUAL_MERGE_PRESERVES_MAP_BOUNDS");
+    Assert(mergedRoot.TryGetProperty("sprite", out _),
+        "V6_DASHBOARD_VISUAL_MERGE_PRESERVES_SPRITE");
+}
 
 var oversizedDashboardSnapshot = new Dictionary<string, object?>
 {

@@ -38,20 +38,28 @@ public sealed class CloudflareV6DashboardSink
         if (string.IsNullOrWhiteSpace(character))
             throw new InvalidOperationException("ALBOT_V6_DASHBOARD_CHARACTER_MISSING");
 
-        object snapshot = read.Snapshot;
+        object snapshot = CreateDashboardSnapshot(read.Snapshot, read.DashboardVisual);
         object events = read.Events;
         var bytes = Serialize(read, character, snapshot, events);
 
         if (bytes.Length > MaxPayloadBytes)
         {
-            snapshot = CreateReducedSnapshot(read.Snapshot);
+            // Keep the V3-quality map payload before sacrificing observability detail.
+            // Event bodies are the first budget reduction because the dashboard only
+            // needs the recent bounded event summary.
             events = CreateCompactEvents(read.Events);
             bytes = Serialize(read, character, snapshot, events);
         }
 
         if (bytes.Length > MaxPayloadBytes)
         {
-            snapshot = CreateCompactSnapshot(read.Snapshot);
+            snapshot = CreateReducedSnapshotWithVisual(read.Snapshot, read.DashboardVisual);
+            bytes = Serialize(read, character, snapshot, events);
+        }
+
+        if (bytes.Length > MaxPayloadBytes)
+        {
+            snapshot = CreateCompactSnapshotWithVisual(read.Snapshot, read.DashboardVisual);
             bytes = Serialize(read, character, snapshot, events);
         }
 
@@ -123,7 +131,36 @@ public sealed class CloudflareV6DashboardSink
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
-    private static object CreateReducedSnapshot(JsonElement snapshot)
+    private static object CreateDashboardSnapshot(JsonElement snapshot, JsonElement? dashboardVisual)
+    {
+        var merged = new Dictionary<string, object?>(StringComparer.Ordinal);
+        if (snapshot.ValueKind == JsonValueKind.Object)
+            foreach (var property in snapshot.EnumerateObject())
+                merged[property.Name] = property.Value.Clone();
+
+        CopyDashboardVisual(dashboardVisual, merged);
+        return merged;
+    }
+
+    private static void CopyDashboardVisual(
+        JsonElement? dashboardVisual,
+        IDictionary<string, object?> target)
+    {
+        if (dashboardVisual is not JsonElement visual
+            || visual.ValueKind != JsonValueKind.Object)
+            return;
+
+        foreach (var property in new[] { "sprite", "mapBounds", "mapVisual", "terrain" })
+            if (visual.TryGetProperty(property, out var value)
+                && value.ValueKind is not JsonValueKind.Null
+                && value.ValueKind is not JsonValueKind.Undefined)
+                target[property] = value.Clone();
+    }
+
+    private static object CreateReducedSnapshot(JsonElement snapshot) =>
+        CreateReducedSnapshotWithVisual(snapshot, dashboardVisual: null);
+
+    private static object CreateReducedSnapshotWithVisual(JsonElement snapshot, JsonElement? dashboardVisual)
     {
         var reduced = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
@@ -144,6 +181,7 @@ public sealed class CloudflareV6DashboardSink
             CopyIfPresent(snapshot, reduced, "status");
             CopyIfPresent(snapshot, reduced, "telemetry");
         }
+        CopyDashboardVisual(dashboardVisual, reduced);
         return reduced;
     }
 
@@ -192,7 +230,10 @@ public sealed class CloudflareV6DashboardSink
         return compact;
     }
 
-    private static object CreateCompactSnapshot(JsonElement snapshot)
+    private static object CreateCompactSnapshot(JsonElement snapshot) =>
+        CreateCompactSnapshotWithVisual(snapshot, dashboardVisual: null);
+
+    private static object CreateCompactSnapshotWithVisual(JsonElement snapshot, JsonElement? dashboardVisual)
     {
         var compact = new Dictionary<string, object?>(StringComparer.Ordinal)
         {
@@ -291,6 +332,7 @@ public sealed class CloudflareV6DashboardSink
             };
         }
 
+        CopyDashboardVisual(dashboardVisual, compact);
         return compact;
     }
 
