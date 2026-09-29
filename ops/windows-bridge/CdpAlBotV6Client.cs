@@ -327,7 +327,7 @@ public sealed class CdpAlBotV6Client
                         {
                             var snapshot = await EvaluateAsync(
                                 socket,
-                                BuildSnapshotExpression(deep: false, characterName),
+                                BuildSnapshotExpression(deep: false, characterName: characterName),
                                 contextId,
                                 cancellationToken);
                             var currentCharacter = ReadCharacterName(snapshot);
