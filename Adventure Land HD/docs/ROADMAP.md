@@ -42,6 +42,9 @@
 - [x] vollständige 48-Quellen-Runtime-Anwendung simuliert: nur .file mutiert, ALHD.status() deckt 48/48 ab, ?alhd=off bleibt unverändert
 - [x] ALHD Live-Diagnostik erweitert: status() meldet available/applied/paths/missing; vollständiges Mainland-Soll = 48/48/48/0
 - [x] Hardware-Textur-Fail-Safe: Runtime-Manifest trägt HD-Maße; WebGL MAX_TEXTURE_SIZE blockiert zu große Atlanten automatisch auf Original-Fallback
+- [x] offizieller Client-Fail-Closed: geänderte G.*.file-Pfade werden nicht überschrieben und erscheinen in ALHD.status().missing
+- [x] reproduzierbarer Public-Distribution-Build: Chromium + Firefox + 48-Asset-CDN-Bundle + SHA-256-Inventar
+- [x] Public-Extension-Architektur: MV3 MAIN-world document_start auf offiziellen adventure.land-Seiten, strikt presentation-only
 - [ ] Mainland Terrain/Tilesets vollständig auf HD umstellen
 - [x] Mainland NPC-/Monster-Produktionsscope gepinnt: 34 Entity-Sheets / 7 Cosmetics / 18 Character-Sheets / 9 Monster-Sheets; sicherer Start `jubchan@8x + 33×4x`
 - [ ] Mainland NPC-Sheets vollständig auf HD umstellen
