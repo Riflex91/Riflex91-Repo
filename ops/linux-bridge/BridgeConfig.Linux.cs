@@ -61,10 +61,12 @@ public sealed record BridgeConfig
     public static string ConfigDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config", "aio-bot-linux-bridge");
     public static string LocalAppDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share", "aio-bot-linux-bridge");
     public static string StateDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "state", "aio-bot-linux-bridge");
+    public static string AppDirectory => StateDirectory;
     public static string BrowserProfileDirectory => Path.Combine(LocalAppDirectory, "browser-profile");
     public static string DiagnosticsDirectory => Path.Combine(StateDirectory, "diagnostics");
     public static string SettingsPath => Path.Combine(ConfigDirectory, "settings.json");
     public static string BridgeStatePath => Path.Combine(StateDirectory, "bridge-state.json");
+    public static string StatusPath => Path.Combine(StateDirectory, "bridge-status.json");
     public static string WatchdogStatePath => Path.Combine(StateDirectory, "watchdog-state.json");
     public static string BrowserPidPath => Path.Combine(StateDirectory, "browser.pid");
     public static string BrowserStartBudgetPath => Path.Combine(StateDirectory, "browser-start-budget.json");
@@ -192,4 +194,30 @@ public sealed record DebugReadResult(JsonElement Snapshot, JsonElement Events, l
 public sealed record TelemetryAckResult(bool Supported, int Acknowledged, int Remaining, long LastAcknowledgedSeq, long LastCapturedSeq, int Dropped)
 {
     public static TelemetryAckResult Empty { get; } = new(false, 0, 0, 0, 0, 0);
+}
+
+
+public sealed record BridgeStatus(
+    string State,
+    string BotId,
+    bool TelemetryEnabled,
+    bool BrowserReady,
+    bool SupabaseReady,
+    DateTimeOffset? LastAttemptAt,
+    DateTimeOffset? LastSuccessAt,
+    long LastEventSeq,
+    int? LastEventCount,
+    string? LastError,
+    string? TargetUrl,
+    string WebDashboardState,
+    string? WebDashboardError,
+    string BackblazeState,
+    string? BackblazeError)
+{
+    public async Task SaveAsync(CancellationToken cancellationToken = default)
+    {
+        Directory.CreateDirectory(BridgeConfig.AppDirectory);
+        await using var stream = File.Create(BridgeConfig.StatusPath);
+        await JsonSerializer.SerializeAsync(stream, this, BridgeConfig.JsonOptions, cancellationToken);
+    }
 }
