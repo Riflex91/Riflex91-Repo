@@ -21,6 +21,9 @@ public sealed class CdpAlBotV6Client
     private readonly Uri _cdpEndpoint;
     private readonly Uri _allowedOrigin;
     private int _nextCommandId;
+    private string? _lastDiscoveryWarning;
+
+    public string? LastDiscoveryWarning => _lastDiscoveryWarning;
 
     public CdpAlBotV6Client(HttpClient httpClient, BridgeConfig config)
     {
@@ -77,7 +80,9 @@ public sealed class CdpAlBotV6Client
 
         var reads = new List<DebugReadResult>();
         var seenCharacters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var rosterCharacters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var probeDiagnostics = new List<string>();
+        _lastDiscoveryWarning = null;
 
         foreach (var target in await FindTargetsAsync(cancellationToken))
         {
@@ -113,8 +118,24 @@ public sealed class CdpAlBotV6Client
                         foreach (var catalogRow in catalog.EnumerateArray())
                         {
                             var characterName = ReadString(catalogRow, "character")?.Trim();
-                            if (string.IsNullOrWhiteSpace(characterName)
-                                || seenCharacters.Contains(characterName))
+                            if (string.IsNullOrWhiteSpace(characterName))
+                                continue;
+
+                            rosterCharacters.Add(characterName);
+                            if (!ReadBoolean(catalogRow, "bridgeAvailable", false))
+                            {
+                                AddProbeDiagnostic(
+                                    probeDiagnostics,
+                                    target.Url,
+                                    contextId,
+                                    "ACTIVE_CHARACTER_BRIDGE_MISSING:"
+                                    + Bounded(characterName)
+                                    + ":"
+                                    + Bounded(ReadString(catalogRow, "state")));
+                                continue;
+                            }
+
+                            if (seenCharacters.Contains(characterName))
                                 continue;
 
                             try
@@ -206,6 +227,21 @@ public sealed class CdpAlBotV6Client
             {
                 AddProbeDiagnostic(probeDiagnostics, target.Url, null, error.Message);
             }
+        }
+
+        var missingCharacters = rosterCharacters
+            .Where(name => !seenCharacters.Contains(name))
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (missingCharacters.Length > 0)
+        {
+            _lastDiscoveryWarning =
+                "ALBOT_V6_CHARACTER_DISCOVERY_INCOMPLETE:"
+                + seenCharacters.Count
+                + "/"
+                + rosterCharacters.Count
+                + ":missing="
+                + string.Join(",", missingCharacters.Select(Bounded));
         }
 
         if (reads.Count == 0)
@@ -874,17 +910,41 @@ for (const api of validBridgeApis('snapshot')) {
 const rows = [];
 for (const row of roster.values()) {
   const api = findBridgeApiForCharacter('snapshot', row.character);
-  if (!api) continue;
+  if (!api) {
+    rows.push({
+      character: row.character,
+      state: row.state,
+      source: row.source,
+      bridgeAvailable: false
+    });
+    continue;
+  }
   try {
     const snapshot = api.bridge.snapshot({ deep: false });
     const actual = String(snapshot && snapshot.character && snapshot.character.name || '').trim();
-    if (!actual || actual.toLowerCase() !== row.character.toLowerCase()) continue;
+    if (!actual || actual.toLowerCase() !== row.character.toLowerCase()) {
+      rows.push({
+        character: row.character,
+        state: row.state,
+        source: row.source,
+        bridgeAvailable: false
+      });
+      continue;
+    }
     rows.push({
       character: actual,
       state: row.state,
-      source: row.source
+      source: row.source,
+      bridgeAvailable: true
     });
-  } catch {}
+  } catch {
+    rows.push({
+      character: row.character,
+      state: row.state,
+      source: row.source,
+      bridgeAvailable: false
+    });
+  }
 }
 return rows;
 })()
