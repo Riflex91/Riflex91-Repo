@@ -417,9 +417,15 @@ class GearProgressionEvaluator {
               observedSurvivalImprovement: finite(row.observedDelta && row.observedDelta.survivalImprovement, 0),
               reason: isFarmerTarget ? 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL' : 'FUTURE_MERCHANT_GEAR_UPGRADE_POTENTIAL'
             };
-            if (!existingProtection
-              || protection.targetLevel < existingProtection.targetLevel
-              || protection.improvement > existingProtection.improvement) {
+            const existingIsFarmer = !!(existingProtection && existingProtection.reason === 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL');
+            const protectionIsFarmer = isFarmerTarget;
+            const shouldReplaceProtection = !existingProtection
+              || (protectionIsFarmer && !existingIsFarmer)
+              || (protectionIsFarmer === existingIsFarmer
+                && (finite(protection.riskAdjustedUtility, -Infinity) > finite(existingProtection.riskAdjustedUtility, -Infinity)
+                  || (finite(protection.riskAdjustedUtility, -Infinity) === finite(existingProtection.riskAdjustedUtility, -Infinity)
+                    && protection.improvement > existingProtection.improvement)));
+            if (shouldReplaceProtection) {
               this.futureFarmerProtection.set(protectionKey, protection);
             }
           }
@@ -652,7 +658,8 @@ class GearProgressionEvaluator {
       actionAuthority: false,
       directGameplayActionAccess: false,
       destructiveActionsEnabled: false,
-      defaultProgressionMode: 'role-aware-risk-adjusted-future-gear',
+      defaultProgressionMode: 'sustainable',
+      targetSelectionMode: 'ROLE_AWARE_RISK_ADJUSTED_FUTURE_GEAR',
       capacity: this.capacity,
       maxProbeLevel: this.maxProbeLevel,
       minImprovementRatio: this.minImprovementRatio,
