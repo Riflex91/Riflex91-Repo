@@ -1006,6 +1006,91 @@ Assert(typeof(TelemetryBridgeService).GetMethod(
     "V6_DEEP_DIAGNOSTICS_MUST_BE_SEPARATE_BEST_EFFORT_PATH");
 Assert(SupabaseTelemetrySink.IsWithinPayloadBudget(SupabaseTelemetrySink.MaxPayloadBytes), "PAYLOAD_BUDGET_BOUNDARY");
 Assert(!SupabaseTelemetrySink.IsWithinPayloadBudget(SupabaseTelemetrySink.MaxPayloadBytes + 1), "PAYLOAD_BUDGET_REJECTS_OVERSIZE");
+
+var compactEventsMethod = typeof(SupabaseTelemetrySink).GetMethod(
+    "CreateBudgetFallbackEvents",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+Assert(compactEventsMethod is not null, "V6_SUPABASE_EVENT_COMPACTION_HELPER");
+
+var hugeEventRows = Enumerable.Range(1, 200)
+    .Select(seq => new Dictionary<string, object?>
+    {
+        ["seq"] = seq,
+        ["ts"] = "2026-09-29T19:00:00.000Z",
+        ["severity"] = seq % 10 == 0 ? "ERROR" : "INFO",
+        ["component"] = "combat",
+        ["event"] = seq % 10 == 0 ? "NO_PROGRESS" : "HEARTBEAT",
+        ["reason"] = seq % 10 == 0 ? new string('r', 2000) : null,
+        ["character"] = "My_Ranger1",
+        ["dedupeKey"] = "combat:" + seq,
+        ["data"] = new Dictionary<string, object?>
+        {
+            ["component"] = "combat",
+            ["character"] = "My_Ranger1",
+            ["huge"] = new string('x', 24_000)
+        }
+    })
+    .ToArray();
+using (var hugeEventsDocument = JsonDocument.Parse(JsonSerializer.Serialize(hugeEventRows)))
+{
+    var compactEvents = (IReadOnlyList<object>)compactEventsMethod!.Invoke(
+        null,
+        [hugeEventsDocument.RootElement])!;
+    Assert(compactEvents.Count == 200, "V6_SUPABASE_COMPACTION_PRESERVES_EVENT_COUNT");
+
+    var compactBytes = JsonSerializer.SerializeToUtf8Bytes(compactEvents);
+    Assert(compactBytes.Length < SupabaseTelemetrySink.MaxPayloadBytes,
+        "V6_SUPABASE_COMPACT_EVENTS_FIT_BUDGET");
+
+    using var compactDocument = JsonDocument.Parse(compactBytes);
+    var first = compactDocument.RootElement[0];
+    var tenth = compactDocument.RootElement[9];
+    Assert(first.GetProperty("seq").GetInt64() == 1, "V6_SUPABASE_COMPACTION_PRESERVES_SEQ");
+    Assert(tenth.GetProperty("seq").GetInt64() == 10, "V6_SUPABASE_COMPACTION_PRESERVES_SIGNAL_SEQ");
+    Assert(tenth.GetProperty("severity").GetString() == "ERROR", "V6_SUPABASE_COMPACTION_PRESERVES_SEVERITY");
+    Assert(tenth.GetProperty("event").GetString() == "NO_PROGRESS", "V6_SUPABASE_COMPACTION_PRESERVES_EVENT_TYPE");
+    Assert(tenth.GetProperty("data").GetProperty("character").GetString() == "My_Ranger1",
+        "V6_SUPABASE_COMPACTION_PRESERVES_SIGNAL_CHARACTER");
+    Assert(!compactDocument.RootElement.ToString().Contains(new string('x', 128), StringComparison.Ordinal),
+        "V6_SUPABASE_COMPACTION_DROPS_LARGE_DETAIL_FIELDS");
+}
+
+var minimalSnapshotMethod = typeof(SupabaseTelemetrySink).GetMethod(
+    "CreateMinimalBudgetSnapshot",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+Assert(minimalSnapshotMethod is not null, "V6_SUPABASE_MINIMAL_SNAPSHOT_HELPER");
+using (var oversizedSnapshotDocument = JsonDocument.Parse("""
+{
+  "identity": {
+    "product": "AL Bot",
+    "generation": 6,
+    "bridgeProtocol": "albot-v6-bridge-v1",
+    "transportOnly": true,
+    "gameplayActionAuthority": false,
+    "acceptsLegacyGenerations": false
+  },
+  "observedAt": 123,
+  "character": {
+    "name": "My_Ranger1",
+    "ctype": "ranger",
+    "level": 80,
+    "map": "main",
+    "x": 12.5,
+    "y": -7.25
+  },
+  "status": {"large": "ignored"}
+}
+"""))
+{
+    var minimalSnapshot = minimalSnapshotMethod!.Invoke(null, [oversizedSnapshotDocument.RootElement])!;
+    var minimalJson = JsonSerializer.Serialize(minimalSnapshot);
+    Assert(minimalJson.Contains("\"bridgeProtocol\":\"albot-v6-bridge-v1\"", StringComparison.Ordinal),
+        "V6_SUPABASE_MINIMAL_SNAPSHOT_PRESERVES_IDENTITY");
+    Assert(minimalJson.Contains("\"name\":\"My_Ranger1\"", StringComparison.Ordinal),
+        "V6_SUPABASE_MINIMAL_SNAPSHOT_PRESERVES_CHARACTER");
+    Assert(!minimalJson.Contains("\"status\"", StringComparison.Ordinal),
+        "V6_SUPABASE_MINIMAL_SNAPSHOT_OMITS_HEAVY_STATUS");
+}
 Assert(SupabaseProblemDiagnosticsSink.IsWithinPayloadBudget(SupabaseProblemDiagnosticsSink.MaxPayloadBytes), "PROBLEM_MIRROR_BUDGET_BOUNDARY");
 Assert(!SupabaseProblemDiagnosticsSink.IsWithinPayloadBudget(SupabaseProblemDiagnosticsSink.MaxPayloadBytes + 1), "PROBLEM_MIRROR_BUDGET_REJECTS_OVERSIZE");
 Assert(ProblemDiagnosticsMirrorOutbox.PendingDirectory.EndsWith("mirror-pending-v6", StringComparison.OrdinalIgnoreCase), "V6_PROBLEM_MIRROR_OUTBOX_NAMESPACED");

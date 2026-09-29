@@ -27,12 +27,26 @@ public sealed class SupabaseTelemetrySink
     public async Task SendAsync(DebugReadResult read, long afterSeq, CancellationToken cancellationToken)
     {
         var observedAt = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var payloadBytes = SerializePayload(read, afterSeq, observedAt, read.Snapshot);
+        object snapshot = read.Snapshot;
+        object events = read.Events;
+        var payloadBytes = SerializePayload(read, afterSeq, observedAt, snapshot, events);
 
         if (!IsWithinPayloadBudget(payloadBytes.Length))
         {
-            var fallbackSnapshot = CreateBudgetFallbackSnapshot(read.Snapshot);
-            payloadBytes = SerializePayload(read, afterSeq, observedAt, fallbackSnapshot);
+            snapshot = CreateBudgetFallbackSnapshot(read.Snapshot);
+            payloadBytes = SerializePayload(read, afterSeq, observedAt, snapshot, events);
+        }
+
+        if (!IsWithinPayloadBudget(payloadBytes.Length))
+        {
+            events = CreateBudgetFallbackEvents(read.Events);
+            payloadBytes = SerializePayload(read, afterSeq, observedAt, snapshot, events);
+        }
+
+        if (!IsWithinPayloadBudget(payloadBytes.Length))
+        {
+            snapshot = CreateMinimalBudgetSnapshot(read.Snapshot);
+            payloadBytes = SerializePayload(read, afterSeq, observedAt, snapshot, events);
         }
 
         if (!IsWithinPayloadBudget(payloadBytes.Length))
@@ -60,7 +74,12 @@ public sealed class SupabaseTelemetrySink
 
     public static bool IsWithinPayloadBudget(int byteCount) => byteCount >= 0 && byteCount <= MaxPayloadBytes;
 
-    private byte[] SerializePayload(DebugReadResult read, long afterSeq, long observedAt, object snapshot)
+    private byte[] SerializePayload(
+        DebugReadResult read,
+        long afterSeq,
+        long observedAt,
+        object snapshot,
+        object events)
     {
         var payload = new
         {
@@ -77,7 +96,7 @@ public sealed class SupabaseTelemetrySink
                 platform = "windows-desktop-bridge"
             },
             snapshot,
-            events = read.Events
+            events
         };
 
         return JsonSerializer.SerializeToUtf8Bytes(payload);
@@ -110,6 +129,116 @@ public sealed class SupabaseTelemetrySink
         }
 
         return fallback;
+    }
+
+    private static IReadOnlyList<object> CreateBudgetFallbackEvents(JsonElement events)
+    {
+        var compact = new List<object>();
+        if (events.ValueKind != JsonValueKind.Array) return compact;
+
+        foreach (var row in events.EnumerateArray())
+        {
+            if (row.ValueKind != JsonValueKind.Object) continue;
+
+            var item = new Dictionary<string, object?>(StringComparer.Ordinal)
+            {
+                ["seq"] = ReadInt64(row, "seq"),
+                ["ts"] = ReadBoundedString(row, "ts", 80),
+                ["at"] = ReadInt64(row, "at"),
+                ["severity"] = ReadBoundedString(row, "severity", 32),
+                ["component"] = ReadBoundedString(row, "component", 160),
+                ["event"] = ReadBoundedString(row, "event", 200),
+                ["type"] = ReadBoundedString(row, "type", 200),
+                ["reason"] = ReadBoundedString(row, "reason", 300),
+                ["character"] = ReadBoundedString(row, "character", 160),
+                ["dedupeKey"] = ReadBoundedString(row, "dedupeKey", 700),
+                ["payloadCompacted"] = true
+            };
+
+            if (row.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object)
+            {
+                var compactData = new Dictionary<string, object?>(StringComparer.Ordinal)
+                {
+                    ["component"] = ReadBoundedString(data, "component", 160),
+                    ["character"] = ReadBoundedString(data, "character", 160)
+                };
+                item["data"] = compactData;
+            }
+
+            compact.Add(item);
+        }
+
+        return compact;
+    }
+
+    private static object CreateMinimalBudgetSnapshot(JsonElement snapshot)
+    {
+        var minimal = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["schemaVersion"] = 1,
+            ["type"] = CdpAlBotV6Client.SnapshotType,
+            ["diagnostics"] = new
+            {
+                schemaVersion = 1,
+                type = "ALBOT_V6_AUTONOMY_DIAGNOSTICS",
+                sizeLimited = true,
+                omitted = true,
+                reason = "INGEST_PAYLOAD_BUDGET_MINIMAL"
+            }
+        };
+
+        if (snapshot.ValueKind == JsonValueKind.Object)
+        {
+            CopyIfPresent(snapshot, minimal, "identity");
+            CopyIfPresent(snapshot, minimal, "observedAt");
+
+            if (snapshot.TryGetProperty("character", out var character)
+                && character.ValueKind == JsonValueKind.Object)
+            {
+                minimal["character"] = new Dictionary<string, object?>(StringComparer.Ordinal)
+                {
+                    ["name"] = ReadBoundedString(character, "name", 160),
+                    ["ctype"] = ReadBoundedString(character, "ctype", 80),
+                    ["level"] = ReadInt64(character, "level"),
+                    ["map"] = ReadBoundedString(character, "map", 160),
+                    ["x"] = ReadNumber(character, "x"),
+                    ["y"] = ReadNumber(character, "y")
+                };
+            }
+        }
+
+        return minimal;
+    }
+
+    private static string? ReadBoundedString(JsonElement source, string propertyName, int max)
+    {
+        if (source.ValueKind != JsonValueKind.Object
+            || !source.TryGetProperty(propertyName, out var value)
+            || value.ValueKind != JsonValueKind.String)
+            return null;
+        var text = value.GetString();
+        if (string.IsNullOrEmpty(text)) return text;
+        return text.Length <= max ? text : text[..max];
+    }
+
+    private static long? ReadInt64(JsonElement source, string propertyName)
+    {
+        if (source.ValueKind == JsonValueKind.Object
+            && source.TryGetProperty(propertyName, out var value)
+            && value.ValueKind == JsonValueKind.Number
+            && value.TryGetInt64(out var parsed))
+            return parsed;
+        return null;
+    }
+
+    private static double? ReadNumber(JsonElement source, string propertyName)
+    {
+        if (source.ValueKind == JsonValueKind.Object
+            && source.TryGetProperty(propertyName, out var value)
+            && value.ValueKind == JsonValueKind.Number
+            && value.TryGetDouble(out var parsed))
+            return parsed;
+        return null;
     }
 
     private static void CopyIfPresent(JsonElement source, IDictionary<string, object?> target, string propertyName)
