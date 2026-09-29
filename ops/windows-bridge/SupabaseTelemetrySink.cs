@@ -208,7 +208,7 @@ public sealed class SupabaseTelemetrySink
                 ["type"] = ReadSignalPreservingString(row, "type", StrictEventStringMaxChars),
                 ["reason"] = ReadSignalPreservingString(row, "reason", StrictEventStringMaxChars),
                 ["character"] = ReadBoundedString(row, "character", StrictEventStringMaxChars),
-                ["dedupeKey"] = ReadCollisionResistantBoundedString(row, "dedupeKey", StrictEventStringMaxChars),
+                ["dedupeKey"] = ReadOrSynthesizeDedupeKey(row, StrictEventStringMaxChars),
                 ["payloadCompacted"] = true,
                 ["payloadStrictBudget"] = true
             };
@@ -290,6 +290,30 @@ public sealed class SupabaseTelemetrySink
         return important.Success
             ? TruncateText(important.Value, max)
             : TruncateText(text, max);
+    }
+
+    private static string? ReadOrSynthesizeDedupeKey(JsonElement row, int max)
+    {
+        var explicitKey = ReadCollisionResistantBoundedString(row, "dedupeKey", max);
+        if (!string.IsNullOrEmpty(explicitKey)) return explicitKey;
+        if (max <= 0) return string.Empty;
+
+        var component = ReadString(row, "component") ?? string.Empty;
+        var eventType = ReadString(row, "event") ?? ReadString(row, "type") ?? string.Empty;
+        var reason = ReadString(row, "reason") ?? string.Empty;
+        var character = ReadString(row, "character") ?? string.Empty;
+        if (row.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object)
+        {
+            if (string.IsNullOrEmpty(component)) component = ReadString(data, "component") ?? string.Empty;
+            if (string.IsNullOrEmpty(character)) character = ReadString(data, "character") ?? string.Empty;
+        }
+
+        var source = string.Join("\u001F", component, eventType, reason, character);
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(source)));
+        var prefix = "auto#";
+        if (max <= prefix.Length) return prefix[..max];
+
+        return prefix + hash[..Math.Min(max - prefix.Length, hash.Length)];
     }
 
     private static string? ReadCollisionResistantBoundedString(JsonElement source, string propertyName, int max)
