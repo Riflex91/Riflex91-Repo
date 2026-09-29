@@ -15,7 +15,9 @@ public sealed class CdpAlBotV6Client
     public const string SnapshotType = "ALBOT_V6_DEBUG_SNAPSHOT";
     public const string EventsType = "ALBOT_V6_DEBUG_EVENTS";
     public const string AckType = "ALBOT_V6_TELEMETRY_ACK";
+    public const string DashboardVisualType = "ALBOT_V6_DASHBOARD_VISUAL";
     public const int CdpCommandTimeoutSeconds = 12;
+    public const int DashboardTerrainMaxChars = 400_000;
 
     private readonly HttpClient _httpClient;
     private readonly Uri _cdpEndpoint;
@@ -81,6 +83,7 @@ public sealed class CdpAlBotV6Client
         var reads = new List<DebugReadResult>();
         var seenCharacters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var rosterCharacters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var terrainMaps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var probeDiagnostics = new List<string>();
         _lastDiscoveryWarning = null;
 
@@ -159,10 +162,37 @@ public sealed class CdpAlBotV6Client
                                         + "!="
                                         + Bounded(resolvedCharacterName));
 
+                                JsonElement? dashboardVisual = null;
+                                try
+                                {
+                                    var mapId = ReadCharacterMap(snapshot);
+                                    var includeTerrain = !string.IsNullOrWhiteSpace(mapId)
+                                        && terrainMaps.Add(mapId);
+                                    var visual = await EvaluateAsync(
+                                        socket,
+                                        BuildDashboardVisualExpression(characterName, includeTerrain),
+                                        contextId,
+                                        cancellationToken);
+                                    if (IsDashboardVisual(visual))
+                                        dashboardVisual = visual.Clone();
+                                }
+                                catch (InvalidOperationException error)
+                                {
+                                    // Dashboard visuals are observational only. Missing/large
+                                    // map metadata must never hide a live character.
+                                    AddProbeDiagnostic(
+                                        probeDiagnostics,
+                                        target.Url,
+                                        contextId,
+                                        Bounded(characterName) + ":DASHBOARD_VISUAL:" + error.Message);
+                                }
+
                                 var afterSeq = Math.Max(0, afterSeqForCharacter(characterName));
-                                var eventBatch = await EvaluateAsync(
+                                var eventBatch = await EvaluateEventsAdaptiveAsync(
                                     socket,
-                                    BuildEventsExpression(characterName, afterSeq, eventLimit),
+                                    characterName,
+                                    afterSeq,
+                                    eventLimit,
                                     contextId,
                                     cancellationToken);
                                 if (!IsV6EventBatch(eventBatch))
@@ -198,7 +228,8 @@ public sealed class CdpAlBotV6Client
                                     maxSeq,
                                     lastCapturedSeq,
                                     ReadBoolean(eventBatch, "hasMore", false),
-                                    target.Url));
+                                    target.Url,
+                                    dashboardVisual));
                                 seenCharacters.Add(characterName);
                             }
                             catch (InvalidOperationException error)
@@ -331,6 +362,20 @@ public sealed class CdpAlBotV6Client
         || string.Equals(targetType, "iframe", StringComparison.OrdinalIgnoreCase);
 
     public static string BuildCharacterCatalogExpression() => CharacterCatalogExpression;
+
+    private static bool IsDashboardVisual(JsonElement value) =>
+        value.ValueKind == JsonValueKind.Object
+        && string.Equals(ReadString(value, "type"), DashboardVisualType, StringComparison.Ordinal)
+        && ReadBoolean(value, "available", false);
+
+    private static string? ReadCharacterMap(JsonElement snapshot)
+    {
+        if (snapshot.ValueKind != JsonValueKind.Object
+            || !snapshot.TryGetProperty("character", out var character)
+            || character.ValueKind != JsonValueKind.Object)
+            return null;
+        return ReadString(character, "map")?.Trim();
+    }
 
     public static bool IsV6Identity(JsonElement value)
     {
@@ -963,6 +1008,322 @@ return rows;
             + "if (!api) throw new Error('ALBOT_V6_BRIDGE_UNAVAILABLE');\n"
             + "return api.bridge.snapshot({ deep: " + (deep ? "true" : "false") + " });\n"
             + "})()";
+    }
+
+    public static string BuildDashboardVisualExpression(string characterName, bool includeTerrain = true)
+    {
+        var requestedCharacter = JsonSerializer.Serialize((characterName ?? string.Empty).Trim());
+        return "(() => {\n"
+            + BridgeResolverSource
+            + "\nconst requestedCharacter = " + requestedCharacter + ";\n"
+            + "\nconst includeTerrain = " + (includeTerrain ? "true" : "false") + ";\n"
+            + $$"""
+const wanted = String(requestedCharacter || '').trim().toLowerCase();
+const characterRoot = findAdventureLandCharacterRoot(requestedCharacter);
+if (!wanted || !characterRoot) return {
+  schemaVersion: 1,
+  type: 'ALBOT_V6_DASHBOARD_VISUAL',
+  character: requestedCharacter,
+  available: false,
+  reason: 'CHARACTER_ROOT_UNAVAILABLE'
+};
+
+const scopedRoots = collectCharacterScopeRoots(characterRoot);
+const runtimeRoot = scopedRoots.find(candidate => {
+  try {
+    const row = candidate && candidate.character;
+    return String(row && row.name || '').trim().toLowerCase() === wanted;
+  } catch { return false; }
+}) || characterRoot;
+
+const character = (() => {
+  try {
+    const direct = runtimeRoot && runtimeRoot.character;
+    if (direct && String(direct.name || '').trim().toLowerCase() === wanted) return direct;
+  } catch {}
+  try {
+    const direct = characterRoot && characterRoot.character;
+    if (direct && String(direct.name || '').trim().toLowerCase() === wanted) return direct;
+  } catch {}
+  return null;
+})();
+
+const gameData = (() => {
+  const candidates = [];
+  const add = candidate => {
+    if (!candidate || candidates.includes(candidate)) return;
+    candidates.push(candidate);
+  };
+  add(runtimeRoot);
+  add(characterRoot);
+  for (const candidate of scopedRoots) add(candidate);
+  for (const candidate of candidates) {
+    try {
+      if (candidate.G && typeof candidate.G === 'object') return candidate.G;
+    } catch {}
+    try {
+      if (candidate.parent && candidate.parent.G && typeof candidate.parent.G === 'object')
+        return candidate.parent.G;
+    } catch {}
+  }
+  return null;
+})();
+
+if (!character || !gameData) return {
+  schemaVersion: 1,
+  type: 'ALBOT_V6_DASHBOARD_VISUAL',
+  character: requestedCharacter,
+  available: false,
+  reason: !character ? 'CHARACTER_STATE_UNAVAILABLE' : 'GAME_DATA_UNAVAILABLE'
+};
+
+const mapId = String(character.map || '').trim();
+const geometry = gameData.geometry && gameData.geometry[mapId] || null;
+const mapDef = gameData.maps && gameData.maps[mapId] || {};
+
+const finite = value => Number.isFinite(Number(value));
+const boundedText = (value, max) => String(value == null ? '' : value).slice(0, max);
+const mapBounds = geometry && finite(geometry.min_x) && finite(geometry.min_y)
+    && finite(geometry.max_x) && finite(geometry.max_y)
+  ? {
+      minX: Number(geometry.min_x),
+      minY: Number(geometry.min_y),
+      maxX: Number(geometry.max_x),
+      maxY: Number(geometry.max_y)
+    }
+  : {
+      minX: Number(character.x || character.real_x || 0) - 1200,
+      minY: Number(character.y || character.real_y || 0) - 1200,
+      maxX: Number(character.x || character.real_x || 0) + 1200,
+      maxY: Number(character.y || character.real_y || 0) + 1200
+    };
+
+const mapVisual = { npcs: [], doors: [], spawns: [] };
+try {
+  for (const raw of (Array.isArray(mapDef.npcs) ? mapDef.npcs : []).slice(0, 80)) {
+    const id = Array.isArray(raw) ? raw[0] : raw && raw.id;
+    const x = Array.isArray(raw) ? raw[1] : raw && raw.x;
+    const y = Array.isArray(raw) ? raw[2] : raw && raw.y;
+    if (finite(x) && finite(y))
+      mapVisual.npcs.push({ id: boundedText(id, 40), x: Number(x), y: Number(y) });
+  }
+} catch {}
+try {
+  for (const raw of (Array.isArray(mapDef.doors) ? mapDef.doors : []).slice(0, 80)) {
+    const x = Array.isArray(raw) ? raw[0] : raw && raw.x;
+    const y = Array.isArray(raw) ? raw[1] : raw && raw.y;
+    const to = Array.isArray(raw) ? raw[4] : raw && (raw.map || raw.to);
+    if (finite(x) && finite(y))
+      mapVisual.doors.push({ x: Number(x), y: Number(y), to: boundedText(to, 40) });
+  }
+} catch {}
+try {
+  for (const monster of (Array.isArray(mapDef.monsters) ? mapDef.monsters : []).slice(0, 50)) {
+    if (!monster) continue;
+    const boundary = monster.boundary || monster.boundaries || null;
+    if (Array.isArray(boundary) && boundary.length >= 4 && boundary.slice(0, 4).every(finite)) {
+      mapVisual.spawns.push({
+        type: boundedText(monster.type, 40),
+        x1: Number(boundary[0]),
+        y1: Number(boundary[1]),
+        x2: Number(boundary[2]),
+        y2: Number(boundary[3])
+      });
+    }
+  }
+} catch {}
+
+const positionFromImageSets = skin => {
+  try {
+    for (const [packName, pack] of Object.entries(gameData.imagesets || {})) {
+      const matrix = Array.isArray(pack && pack.matrix) ? pack.matrix : [];
+      for (let y = 0; y < matrix.length; y += 1) {
+        const row = Array.isArray(matrix[y]) ? matrix[y] : [];
+        for (let x = 0; x < row.length; x += 1) {
+          const cell = row[x];
+          if (cell === skin || (Array.isArray(cell) && cell.includes(skin)))
+            return [packName, x, y];
+        }
+      }
+    }
+  } catch {}
+  return null;
+};
+const skin = String(character.skin || '').trim();
+const directPosition = skin && gameData.positions && gameData.positions[skin];
+const position = Array.isArray(directPosition) ? directPosition : positionFromImageSets(skin);
+let sprite = null;
+if (skin && Array.isArray(position)) {
+  const packName = position[0] || 'pack_20';
+  const pack = gameData.imagesets && gameData.imagesets[packName] || null;
+  let rows = Number(pack && pack.rows);
+  if (!(rows > 0) && Array.isArray(pack && pack.matrix)) rows = pack.matrix.length;
+  if (!(rows > 0)) {
+    let maxY = -1;
+    try {
+      for (const row of Object.values(gameData.positions || {})) {
+        if (!Array.isArray(row) || (row[0] || 'pack_20') !== packName) continue;
+        const py = Number(row[2]);
+        if (Number.isFinite(py) && py >= 0) maxY = Math.max(maxY, py);
+      }
+    } catch {}
+    rows = maxY >= 0 ? maxY + 1 : 0;
+  }
+  const file = String(pack && pack.file || '');
+  const size = Number(pack && pack.size);
+  const columns = Number(pack && pack.columns);
+  const column = Number(position[1]);
+  const row = Number(position[2]);
+  if (file && size > 0 && columns > 0 && rows > 0
+      && Number.isFinite(column) && Number.isFinite(row)) {
+    sprite = {
+      skin,
+      file,
+      size,
+      columns,
+      rows,
+      column,
+      row,
+      x: column,
+      y: row
+    };
+  }
+}
+
+const compactLines = (rows, limit = 420) => (Array.isArray(rows) ? rows : [])
+  .slice(0, limit)
+  .map(row => Array.isArray(row) ? row.slice(0, 3).map(value => Number(value) || 0) : null)
+  .filter(Boolean);
+const vectorFallback = geometry ? {
+  x: compactLines(geometry.x_lines),
+  y: compactLines(geometry.y_lines)
+} : { x: [], y: [] };
+
+const packRows = rows => (Array.isArray(rows) ? rows : [])
+  .map(row => (Array.isArray(row) ? row : [])
+    .map(value => {
+      if (value == null) return '';
+      const number = Number(value);
+      return Number.isFinite(number) ? Math.round(number).toString(36) : '';
+    })
+    .join(','))
+  .join(';');
+
+let terrain = null;
+if (geometry) {
+  if (!includeTerrain) {
+    terrain = {
+      map: mapId,
+      omitted: true,
+      reason: 'PER_MAP_DEDUP',
+      source: 'Adventure Land G.geometry/G.tilesets',
+      v: vectorFallback
+    };
+  } else if (Array.isArray(geometry.tiles) && Array.isArray(geometry.placements)) {
+    const used = {};
+    for (const tile of geometry.tiles) {
+      if (tile && tile[0] != null) used[String(tile[0])] = true;
+    }
+    const sets = {};
+    for (const id of Object.keys(used)) {
+      const tileset = gameData.tilesets && gameData.tilesets[id];
+      if (tileset && tileset.file) sets[id] = String(tileset.file);
+    }
+    const groups = Array.isArray(geometry.groups) ? geometry.groups : [];
+    const animations = Array.isArray(geometry.animations) ? geometry.animations : [];
+    terrain = {
+      map: mapId,
+      d: geometry.default,
+      t: geometry.tiles,
+      pc: packRows(geometry.placements),
+      gc: groups.map(packRows),
+      ac: packRows(animations),
+      s: sets,
+      source: 'Adventure Land G.geometry/G.tilesets',
+      encoding: 'base36-all-v2',
+      v: vectorFallback
+    };
+    let terrainChars = 0;
+    try { terrainChars = JSON.stringify(terrain).length; } catch { terrainChars = {{DashboardTerrainMaxChars + 1}}; }
+    terrain.bytes = terrainChars;
+    if (terrainChars > {{DashboardTerrainMaxChars}}) {
+      terrain = {
+        map: mapId,
+        omitted: true,
+        bytes: terrainChars,
+        reason: 'DASHBOARD_TERRAIN_BUDGET',
+        source: 'Adventure Land G.geometry/G.tilesets',
+        encoding: 'base36-all-v2',
+        v: vectorFallback
+      };
+    }
+  } else {
+    terrain = {
+      map: mapId,
+      omitted: true,
+      reason: 'GEOMETRY_TILES_UNAVAILABLE',
+      source: 'Adventure Land G.geometry',
+      v: vectorFallback
+    };
+  }
+}
+
+return {
+  schemaVersion: 1,
+  type: 'ALBOT_V6_DASHBOARD_VISUAL',
+  character: String(character.name || requestedCharacter),
+  map: mapId,
+  available: true,
+  sprite,
+  mapBounds,
+  mapVisual,
+  terrain
+};
+})()
+""";
+    }
+
+    public static IReadOnlyList<int> AdaptiveEventLimits(int requestedLimit)
+    {
+        var bounded = Math.Clamp(requestedLimit, 1, 200);
+        var values = new List<int> { bounded };
+        foreach (var fallback in new[] { 24, 12, 6, 3, 1 })
+            if (fallback < bounded && !values.Contains(fallback))
+                values.Add(fallback);
+        return values;
+    }
+
+    private async Task<JsonElement> EvaluateEventsAdaptiveAsync(
+        ClientWebSocket socket,
+        string characterName,
+        long afterSeq,
+        int eventLimit,
+        int contextId,
+        CancellationToken cancellationToken)
+    {
+        InvalidOperationException? oversized = null;
+        foreach (var limit in AdaptiveEventLimits(eventLimit))
+        {
+            try
+            {
+                return await EvaluateAsync(
+                    socket,
+                    BuildEventsExpression(characterName, afterSeq, limit),
+                    contextId,
+                    cancellationToken);
+            }
+            catch (InvalidOperationException error) when (
+                error.Message.StartsWith("CDP_RESPONSE_TOO_LARGE", StringComparison.Ordinal))
+            {
+                oversized = error;
+            }
+        }
+
+        throw new InvalidOperationException(
+            "ALBOT_V6_EVENTS_TOO_LARGE:"
+            + Bounded(characterName)
+            + ":"
+            + (oversized?.Message ?? "CDP_RESPONSE_TOO_LARGE"));
     }
 
     private static string BuildEventsExpression(string? characterName, long afterSeq, int limit)
