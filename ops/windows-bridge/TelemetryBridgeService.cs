@@ -125,36 +125,66 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                     var now = DateTimeOffset.UtcNow;
                     var includeDeepDiagnostics = ShouldIncludeDeepDiagnostics(lastDeepDiagnosticsAt, now);
                     var readLimit = EventLimitForRead(_config.EventLimit, includeDeepDiagnostics);
-                    var read = await _browser.ReadAsync(
-                        state.LastEventSeq,
+                    var reads = await _browser.ReadAllAsync(
+                        character => state.GetLastEventSeq(character),
                         readLimit,
                         includeDeepDiagnostics,
                         cancellationToken);
 
-                    await CaptureDiagnosticsSafeAsync(read, cancellationToken);
+                    var processed = 0;
+                    var totalEventCount = 0;
+                    var hasMoreEvents = false;
+                    string? targetUrl = null;
 
-                    // During catch-up an empty second read is only a probe that the backlog is gone.
-                    // Avoid creating an extra empty Supabase row unless this is the normal poll or a deep diagnostic sample is due.
-                    if (batchIndex > 0 && read.EventCount == 0 && !includeDeepDiagnostics)
-                        break;
-
-                    // Supabase acceptance is the commit point. We never acknowledge browser telemetry before this succeeds.
-                    await _sink.SendAsync(read, read.EffectiveAfterSeq, cancellationToken);
-                    if (_dashboardSink is not null)
+                    foreach (var read in reads)
                     {
-                        await _dashboardSink.SendAsync(read, cancellationToken);
-                        dashboardState = "READY";
-                        dashboardError = null;
+                        var characterName = CdpAlBotV6Client.ReadCharacterName(read.Snapshot);
+                        if (string.IsNullOrWhiteSpace(characterName))
+                            continue;
+
+                        hasMoreEvents |= read.HasMoreEvents;
+
+                        // During catch-up an empty follow-up read is only a probe that
+                        // this character's backlog is gone. The first poll still sends
+                        // an empty snapshot so the dashboard receives live presence.
+                        if (batchIndex > 0 && read.EventCount == 0 && !includeDeepDiagnostics)
+                            continue;
+
+                        await CaptureDiagnosticsSafeAsync(read, cancellationToken);
+
+                        // Supabase acceptance is the commit point. Cloudflare is
+                        // observability-only and must never block cursor persistence or ACK.
+                        await _sink.SendAsync(read, read.EffectiveAfterSeq, cancellationToken);
+
+                        var dashboardResult = await SendDashboardSafeAsync(read, cancellationToken);
+                        if (dashboardResult.State == "ERROR"
+                            || dashboardState != "ERROR")
+                        {
+                            dashboardState = dashboardResult.State;
+                            dashboardError = dashboardResult.Error;
+                        }
+
+                        var archiveResult = await ArchiveBackblazeSafeAsync(read, cancellationToken);
+                        if (archiveResult.State == "ERROR"
+                            || backblazeState != "ERROR")
+                        {
+                            backblazeState = archiveResult.State;
+                            backblazeError = archiveResult.Error;
+                        }
+
+                        state = state.WithCharacterSeq(characterName, read.MaxSeq);
+                        await state.SaveAsync(cancellationToken);
+
+                        if (read.MaxSeq > 0)
+                            await _browser.AcknowledgeThroughAsync(characterName, read.MaxSeq, cancellationToken);
+
+                        totalEventCount += read.EventCount;
+                        targetUrl ??= read.TargetUrl;
+                        processed++;
                     }
 
-                    (backblazeState, backblazeError) = await ArchiveBackblazeSafeAsync(read, cancellationToken);
-
-                    state = new BridgeState(read.MaxSeq);
-                    await state.SaveAsync(cancellationToken);
-
-                    // Sequence-aware acknowledgement is best effort for older bot bundles and exact for new bundles.
-                    if (state.LastEventSeq > 0)
-                        await _browser.AcknowledgeThroughAsync(state.LastEventSeq, cancellationToken);
+                    if (processed == 0)
+                        break;
 
                     await FlushDiagnosticsSafeAsync(cancellationToken);
 
@@ -162,15 +192,15 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                     lastSuccess = DateTimeOffset.UtcNow;
                     if (includeDeepDiagnostics) lastDeepDiagnosticsAt = lastSuccess;
                     latestStatus = new RuntimeBridgeStatus(
-                        read.HasMoreEvents ? "CATCHING_UP" : "HEALTHY",
+                        hasMoreEvents ? "CATCHING_UP" : "HEALTHY",
                         true,
                         true,
                         attempt,
                         lastSuccess,
                         state.LastEventSeq,
-                        read.EventCount,
+                        totalEventCount,
                         null,
-                        read.TargetUrl,
+                        targetUrl,
                         dashboardState,
                         dashboardError,
                         backblazeState,
@@ -178,7 +208,9 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                     Publish(latestStatus);
                     await SaveStatusAsync(latestStatus, cancellationToken);
 
-                    if (!ShouldCatchUp(read.EventCount, readLimit, read.HasMoreEvents, batchIndex + 1))
+                    var shouldCatchUp = reads.Any(read =>
+                        ShouldCatchUp(read.EventCount, readLimit, read.HasMoreEvents, batchIndex + 1));
+                    if (!shouldCatchUp)
                         break;
 
                     await Task.Delay(TimeSpan.FromMilliseconds(CatchUpDelayMilliseconds), cancellationToken);
@@ -300,6 +332,32 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         }
         catch (Exception error)
         {
+            return ("ERROR", Bounded(error.Message));
+        }
+    }
+
+    private async Task<(string State, string? Error)> SendDashboardSafeAsync(
+        DebugReadResult read,
+        CancellationToken cancellationToken)
+    {
+        if (!_config.WebDashboardEnabled)
+            return ("DISABLED", null);
+        if (_dashboardSink is null)
+            return ("WRITE_KEY_MISSING", "WEB_DASHBOARD_WRITE_KEY_REQUIRED");
+
+        try
+        {
+            await _dashboardSink.SendAsync(read, cancellationToken);
+            return ("READY", null);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception error)
+        {
+            // The dashboard is observability-only. Supabase remains the commit
+            // point, so Cloudflare outages or key rotation never block telemetry ACK.
             return ("ERROR", Bounded(error.Message));
         }
     }
