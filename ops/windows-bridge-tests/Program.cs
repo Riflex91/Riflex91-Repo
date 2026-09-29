@@ -227,6 +227,23 @@ catch (System.Reflection.TargetInvocationException error)
         "V6_CDP_INVALID_JSON_CLASSIFIED");
 }
 
+var classifyCdpEnvelopeMethod = typeof(CdpAlBotV6Client).GetMethod(
+    "ClassifyCdpEnvelopePrefix",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+Assert(classifyCdpEnvelopeMethod is not null, "V6_CDP_ENVELOPE_CLASSIFIER");
+string ClassifyCdp(string json, int expectedId) =>
+    (string)classifyCdpEnvelopeMethod!.Invoke(
+        null,
+        [System.Text.Encoding.UTF8.GetBytes(json), expectedId])!;
+Assert(ClassifyCdp("""{"method":"Runtime.consoleAPICalled","params":{"id":77}}""", 77) == "event",
+    "V6_CDP_UNSOLICITED_EVENT_CLASSIFIED_BEFORE_NESTED_ID");
+Assert(ClassifyCdp("""{"id":77,"result":{}}""", 77) == "expected-response",
+    "V6_CDP_EXPECTED_RESPONSE_CLASSIFIED");
+Assert(ClassifyCdp("""{"id":76,"result":{}}""", 77) == "other-response",
+    "V6_CDP_OTHER_RESPONSE_CLASSIFIED");
+Assert(ClassifyCdp("""{"garbage":{"id":77}}""", 77) == "unknown",
+    "V6_CDP_UNCLASSIFIED_LARGE_MESSAGE_FAILS_CLOSED");
+
 using (var multiCharacterSnapshot = JsonDocument.Parse("""{"character":{"name":"My_Ranger1"}}"""))
 {
     Assert(CdpAlBotV6Client.ReadCharacterName(multiCharacterSnapshot.RootElement) == "My_Ranger1",
