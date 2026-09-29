@@ -59,72 +59,126 @@ public sealed class CdpAlBotV6Client
         bool includeDeepDiagnostics,
         CancellationToken cancellationToken)
     {
+        var reads = await ReadAllAsync(
+            _ => Math.Max(0, afterSeq),
+            eventLimit,
+            includeDeepDiagnostics,
+            cancellationToken);
+        return reads[0];
+    }
+
+    public async Task<IReadOnlyList<DebugReadResult>> ReadAllAsync(
+        Func<string, long> afterSeqForCharacter,
+        int eventLimit,
+        bool includeDeepDiagnostics,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(afterSeqForCharacter);
+
+        var reads = new List<DebugReadResult>();
+        var seenCharacters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var target in await FindTargetsAsync(cancellationToken))
         {
             using var socket = new ClientWebSocket();
             try
             {
                 await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
-                var contextId = await FindV6ContextAsync(socket, cancellationToken);
-                if (contextId is null) continue;
-
-                var snapshot = await EvaluateAsync(
-                    socket,
-                    BuildSnapshotExpression(includeDeepDiagnostics),
-                    contextId.Value,
-                    cancellationToken);
-                if (!IsV6Snapshot(snapshot))
-                    continue;
-
-                var eventBatch = await EvaluateAsync(
-                    socket,
-                    BuildEventsExpression(afterSeq, eventLimit),
-                    contextId.Value,
-                    cancellationToken);
-                if (!IsV6EventBatch(eventBatch))
-                    throw new InvalidOperationException("ALBOT_V6_EVENTS_INVALID");
-
-                JsonElement events;
-                if (eventBatch.TryGetProperty("events", out var eventsNode)
-                    && eventsNode.ValueKind == JsonValueKind.Array)
-                    events = eventsNode.Clone();
-                else
+                foreach (var contextId in await CollectAllowedExecutionContextsAsync(socket, cancellationToken))
                 {
-                    using var empty = JsonDocument.Parse("[]");
-                    events = empty.RootElement.Clone();
-                }
+                    try
+                    {
+                        var probe = await EvaluateAsync(socket, ProbeExpression, contextId, cancellationToken);
+                        if (probe.ValueKind != JsonValueKind.Object
+                            || !ReadBoolean(probe, "valid", false)
+                            || !probe.TryGetProperty("identity", out var identity)
+                            || !IsV6Identity(identity))
+                            continue;
 
-                var requestedAfterSeq = ReadInt64(eventBatch, "requestedAfterSeq", Math.Max(0, afterSeq));
-                var effectiveAfterSeq = ReadInt64(eventBatch, "effectiveAfterSeq", requestedAfterSeq);
-                var lastCapturedSeq = ReadInt64(eventBatch, "lastCapturedSeq", 0);
-                var maxSeq = effectiveAfterSeq;
-                foreach (var row in events.EnumerateArray())
-                {
-                    if (row.ValueKind == JsonValueKind.Object
-                        && row.TryGetProperty("seq", out var seqNode)
-                        && seqNode.TryGetInt64(out var seq))
-                        maxSeq = Math.Max(maxSeq, seq);
-                }
+                        var snapshot = await EvaluateAsync(
+                            socket,
+                            BuildSnapshotExpression(includeDeepDiagnostics),
+                            contextId,
+                            cancellationToken);
+                        if (!IsV6Snapshot(snapshot))
+                            continue;
 
-                return new DebugReadResult(
-                    snapshot.Clone(),
-                    events,
-                    requestedAfterSeq,
-                    effectiveAfterSeq,
-                    maxSeq,
-                    lastCapturedSeq,
-                    ReadBoolean(eventBatch, "hasMore", false),
-                    target.Url);
+                        var characterName = ReadCharacterName(snapshot);
+                        if (string.IsNullOrWhiteSpace(characterName)
+                            || !seenCharacters.Add(characterName))
+                            continue;
+
+                        var afterSeq = Math.Max(0, afterSeqForCharacter(characterName));
+                        var eventBatch = await EvaluateAsync(
+                            socket,
+                            BuildEventsExpression(afterSeq, eventLimit),
+                            contextId,
+                            cancellationToken);
+                        if (!IsV6EventBatch(eventBatch))
+                            throw new InvalidOperationException("ALBOT_V6_EVENTS_INVALID");
+
+                        JsonElement events;
+                        if (eventBatch.TryGetProperty("events", out var eventsNode)
+                            && eventsNode.ValueKind == JsonValueKind.Array)
+                            events = eventsNode.Clone();
+                        else
+                        {
+                            using var empty = JsonDocument.Parse("[]");
+                            events = empty.RootElement.Clone();
+                        }
+
+                        var requestedAfterSeq = ReadInt64(eventBatch, "requestedAfterSeq", afterSeq);
+                        var effectiveAfterSeq = ReadInt64(eventBatch, "effectiveAfterSeq", requestedAfterSeq);
+                        var lastCapturedSeq = ReadInt64(eventBatch, "lastCapturedSeq", 0);
+                        var maxSeq = effectiveAfterSeq;
+                        foreach (var row in events.EnumerateArray())
+                        {
+                            if (row.ValueKind == JsonValueKind.Object
+                                && row.TryGetProperty("seq", out var seqNode)
+                                && seqNode.TryGetInt64(out var seq))
+                                maxSeq = Math.Max(maxSeq, seq);
+                        }
+
+                        reads.Add(new DebugReadResult(
+                            snapshot.Clone(),
+                            events,
+                            requestedAfterSeq,
+                            effectiveAfterSeq,
+                            maxSeq,
+                            lastCapturedSeq,
+                            ReadBoolean(eventBatch, "hasMore", false),
+                            target.Url));
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // A single stale/non-bot execution context must not hide the
+                        // remaining live V6 characters in the same browser page.
+                    }
+                }
             }
             catch (WebSocketException)
             {
             }
+            catch (InvalidOperationException)
+            {
+            }
         }
 
-        throw new InvalidOperationException("ALBOT_V6_BRIDGE_UNAVAILABLE");
+        if (reads.Count == 0)
+            throw new InvalidOperationException("ALBOT_V6_BRIDGE_UNAVAILABLE");
+
+        return reads
+            .OrderBy(read => ReadCharacterName(read.Snapshot), StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
-    public async Task<TelemetryAckResult> AcknowledgeThroughAsync(long maxSeq, CancellationToken cancellationToken)
+    public Task<TelemetryAckResult> AcknowledgeThroughAsync(long maxSeq, CancellationToken cancellationToken) =>
+        AcknowledgeThroughAsync(characterName: null, maxSeq, cancellationToken);
+
+    public async Task<TelemetryAckResult> AcknowledgeThroughAsync(
+        string? characterName,
+        long maxSeq,
+        CancellationToken cancellationToken)
     {
         if (maxSeq <= 0) return TelemetryAckResult.Empty;
 
@@ -134,32 +188,63 @@ public sealed class CdpAlBotV6Client
             try
             {
                 await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
-                var contextId = await FindV6ContextAsync(socket, cancellationToken);
-                if (contextId is null) continue;
+                foreach (var contextId in await CollectAllowedExecutionContextsAsync(socket, cancellationToken))
+                {
+                    try
+                    {
+                        var probe = await EvaluateAsync(socket, ProbeExpression, contextId, cancellationToken);
+                        if (probe.ValueKind != JsonValueKind.Object
+                            || !ReadBoolean(probe, "valid", false)
+                            || !probe.TryGetProperty("identity", out var identity)
+                            || !IsV6Identity(identity))
+                            continue;
 
-                var value = await EvaluateAsync(
-                    socket,
-                    BuildAcknowledgeExpression(maxSeq),
-                    contextId.Value,
-                    cancellationToken);
-                if (value.ValueKind != JsonValueKind.Object
-                    || !string.Equals(ReadString(value, "type"), AckType, StringComparison.Ordinal))
-                    throw new InvalidOperationException("ALBOT_V6_ACK_INVALID");
+                        if (!string.IsNullOrWhiteSpace(characterName))
+                        {
+                            var snapshot = await EvaluateAsync(
+                                socket,
+                                BuildSnapshotExpression(deep: false),
+                                contextId,
+                                cancellationToken);
+                            var currentCharacter = ReadCharacterName(snapshot);
+                            if (!string.Equals(currentCharacter, characterName, StringComparison.OrdinalIgnoreCase))
+                                continue;
+                        }
 
-                return new TelemetryAckResult(
-                    ReadBoolean(value, "supported", false),
-                    (int)Math.Clamp(ReadInt64(value, "acknowledged", 0), 0, int.MaxValue),
-                    (int)Math.Clamp(ReadInt64(value, "remaining", 0), 0, int.MaxValue),
-                    ReadInt64(value, "lastAcknowledgedSeq", 0),
-                    ReadInt64(value, "lastCapturedSeq", 0),
-                    (int)Math.Clamp(ReadInt64(value, "dropped", 0), 0, int.MaxValue));
+                        var value = await EvaluateAsync(
+                            socket,
+                            BuildAcknowledgeExpression(maxSeq),
+                            contextId,
+                            cancellationToken);
+                        if (value.ValueKind != JsonValueKind.Object
+                            || !string.Equals(ReadString(value, "type"), AckType, StringComparison.Ordinal))
+                            throw new InvalidOperationException("ALBOT_V6_ACK_INVALID");
+
+                        return new TelemetryAckResult(
+                            ReadBoolean(value, "supported", false),
+                            (int)Math.Clamp(ReadInt64(value, "acknowledged", 0), 0, int.MaxValue),
+                            (int)Math.Clamp(ReadInt64(value, "remaining", 0), 0, int.MaxValue),
+                            ReadInt64(value, "lastAcknowledgedSeq", 0),
+                            ReadInt64(value, "lastCapturedSeq", 0),
+                            (int)Math.Clamp(ReadInt64(value, "dropped", 0), 0, int.MaxValue));
+                    }
+                    catch (InvalidOperationException)
+                    {
+                    }
+                }
             }
             catch (WebSocketException)
             {
             }
+            catch (InvalidOperationException)
+            {
+            }
         }
 
-        throw new InvalidOperationException("ALBOT_V6_BRIDGE_UNAVAILABLE");
+        throw new InvalidOperationException(
+            string.IsNullOrWhiteSpace(characterName)
+                ? "ALBOT_V6_BRIDGE_UNAVAILABLE"
+                : "ALBOT_V6_CHARACTER_CONTEXT_UNAVAILABLE:" + Bounded(characterName));
     }
 
     public static bool IsV6Identity(JsonElement value)
@@ -174,6 +259,18 @@ public sealed class CdpAlBotV6Client
     }
 
     public static string BuildProbeExpression() => ProbeExpression;
+
+    public static string? ReadCharacterName(JsonElement snapshot)
+    {
+        if (snapshot.ValueKind != JsonValueKind.Object
+            || !snapshot.TryGetProperty("character", out var character)
+            || character.ValueKind != JsonValueKind.Object
+            || !character.TryGetProperty("name", out var name)
+            || name.ValueKind != JsonValueKind.String)
+            return null;
+        var value = name.GetString()?.Trim();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
 
     private static bool IsV6Snapshot(JsonElement value)
     {
