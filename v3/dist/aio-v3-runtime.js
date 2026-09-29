@@ -14050,9 +14050,16 @@ module.exports = {
 "src/economy/gear-progression.js": function(require,module,exports){
 'use strict';
 
+const {
+  contextualWeights,
+  roleProfile,
+  buildProgressionCurve,
+  selectDynamicTarget
+} = require('./item-intelligence');
+
 const GEAR_PROGRESSION_SCHEMA_VERSION = 1;
-const GEAR_PROGRESSION_MODE = 'shadow-planning-only';
-const FARMER_UPGRADE_MAX_LEVEL = 5;
+const GEAR_PROGRESSION_MODE = 'future-gear-intelligence-v2';
+const FARMER_UPGRADE_MAX_LEVEL = 7;
 const ECONOMIC_UPGRADE_FALLBACK_LEVEL = 3;
 
 const CLASS_WEIGHTS = Object.freeze({
@@ -14139,8 +14146,9 @@ function effectiveStats(meta, level) {
   return out;
 }
 
-function scoreItem(meta, level, ctype) {
-  const weights = CLASS_WEIGHTS[String(ctype || '').toLowerCase()] || DEFAULT_WEIGHTS;
+function scoreItem(meta, level, ctype, character = null) {
+  const baseWeights = CLASS_WEIGHTS[String(ctype || '').toLowerCase()] || DEFAULT_WEIGHTS;
+  const { weights } = contextualWeights(baseWeights, character);
   const stats = effectiveStats(meta, level);
   let total = 0;
   let survival = 0;
@@ -14248,19 +14256,26 @@ class GearProgressionEvaluator {
     const equipped = character && character.gear && character.gear[slot];
     if (!equipped || !equipped.name) return { name: null, level: 0, score: { total: 0, survival: 0, stats: {} } };
     const meta = gameData && gameData.items && gameData.items[equipped.name];
-    return { name: equipped.name, level: levelOf(equipped), score: scoreItem(meta, levelOf(equipped), character.ctype) };
+    return { name: equipped.name, level: levelOf(equipped), score: scoreItem(meta, levelOf(equipped), character.ctype, character) };
   }
 
-  _firstMeaningful(meta, observedLevel, currentScore, ctype, probeMaxLevel = this.maxProbeLevel) {
+  _progressionDecision(meta, observedLevel, currentScore, character, gameData, probeMaxLevel = this.maxProbeLevel) {
     const start = Math.max(0, observedLevel);
     const boundedProbeMax = Math.max(start, Math.min(this.maxProbeLevel, Math.max(0, Math.floor(finite(probeMaxLevel, this.maxProbeLevel)))));
-    const max = meta && (meta.upgrade || meta.compound) ? boundedProbeMax : start;
-    for (let level = start; level <= max; level += 1) {
-      const score = scoreItem(meta, level, ctype);
-      const delta = scoreImprovement(currentScore, score, ctype, this.minImprovementRatio);
-      if (delta.meaningful) return { level, score, delta };
-    }
-    return null;
+    const curve = buildProgressionCurve({
+      meta,
+      observedLevel: start,
+      maxLevel: boundedProbeMax,
+      currentScore,
+      ctype: character && character.ctype,
+      character,
+      gameData,
+      minImprovementRatio: this.minImprovementRatio,
+      scoreAtLevel: scoreItem,
+      scoreImprovement
+    });
+    const decision = selectDynamicTarget(curve, start);
+    return decision ? { ...decision, curve } : null;
   }
 
   futureProtectionFor(character, index, name, level) {
@@ -14368,41 +14383,37 @@ class GearProgressionEvaluator {
           const current = this._currentItem(character, slot, gameData);
           const observedLevel = levelOf(candidate.item);
           const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
-          // Keep the Farmer's safe baseline goal bounded at +5. Mutation
-          // execution is still stepwise and risk-gated one level at a time.
+          // Probe the complete safe future curve. The selected target is no
+          // longer a fixed +5: it is the level with the best risk-adjusted gear
+          // value for this exact character/role, while execution still mutates
+          // only one level and re-evaluates afterwards.
           const probeMaxLevel = isFarmerTarget && candidate.meta.upgrade
             ? Math.min(this.maxProbeLevel, FARMER_UPGRADE_MAX_LEVEL)
             : this.maxProbeLevel;
-          const meaningful = this._firstMeaningful(candidate.meta, observedLevel, current.score, character.ctype, probeMaxLevel);
-          if (!meaningful) continue;
+          const progression = this._progressionDecision(candidate.meta, observedLevel, current.score, character, gameData, probeMaxLevel);
+          if (!progression) continue;
+          const meaningful = progression.target;
+          const firstMeaningful = progression.firstMeaningful;
 
-          // Score the item exactly as it exists now as well as the first future
-          // level that would be meaningful. This lets the mutation risk gate ask
-          // the same question at +0, +1, +5, +8, ...: "is the safe item already
-          // useful to the party, and is another roll worth risking it?"
-          const observedScore = scoreItem(candidate.meta, observedLevel, character.ctype);
+          const observedScore = scoreItem(candidate.meta, observedLevel, character.ctype, character);
           const observedDelta = scoreImprovement(current.score, observedScore, character.ctype, this.minImprovementRatio);
           const improvement = meaningful.delta ? meaningful.delta.improvement : meaningful.score.total - current.score.total;
           const survivalImprovement = meaningful.delta ? meaningful.delta.survivalImprovement : meaningful.score.survival - current.score.survival;
           const speedImprovement = meaningful.delta ? meaningful.delta.speedImprovement : finite(meaningful.score.stats && meaningful.score.stats.speed, 0) - finite(current.score.stats && current.score.stats.speed, 0);
 
-          // The goal is the stable Farmer baseline (+5), while execution remains
-          // one mutation at a time. Keeping those concepts separate lets the
-          // risk gate re-evaluate every +level without shrinking the actual goal.
-          const projectedFarmerUpgrade = isFarmerTarget
-            && !!candidate.meta.upgrade
-            && observedLevel < FARMER_UPGRADE_MAX_LEVEL
-            && meaningful.level <= FARMER_UPGRADE_MAX_LEVEL;
-          const progressionTargetLevel = projectedFarmerUpgrade
-            ? FARMER_UPGRADE_MAX_LEVEL
-            : meaningful.level;
-          const nextMutationLevel = projectedFarmerUpgrade
+          const progressionTargetLevel = meaningful.level;
+          const nextMutationLevel = progressionTargetLevel > observedLevel
             ? Math.min(progressionTargetLevel, observedLevel + 1)
-            : meaningful.level;
+            : observedLevel;
           const row = {
             slot,
             current,
             meaningful,
+            firstMeaningful,
+            progressionCurve: progression.curve,
+            targetSelectionReason: progression.reason,
+            targetEvidenceComplete: progression.evidenceComplete,
+            roleProfile: roleProfile(character),
             observedScore,
             observedDelta,
             observedMeaningful: observedDelta.meaningful === true,
@@ -14410,7 +14421,9 @@ class GearProgressionEvaluator {
             survivalImprovement,
             speedImprovement,
             progressionTargetLevel,
-            nextMutationLevel
+            nextMutationLevel,
+            cumulativeSuccessChance: meaningful.cumulativeSuccessChance,
+            riskAdjustedUtility: meaningful.riskAdjustedUtility
           };
           if (progressionTargetLevel > observedLevel
             && Number.isInteger(Number(candidate.item.index))) {
@@ -14423,7 +14436,21 @@ class GearProgressionEvaluator {
               observedLevel,
               targetLevel: progressionTargetLevel,
               nextMutationLevel: row.nextMutationLevel,
-              firstMeaningfulLevel: meaningful.level,
+              firstMeaningfulLevel: row.firstMeaningful.level,
+              targetSelectionReason: row.targetSelectionReason,
+              targetEvidenceComplete: row.targetEvidenceComplete,
+              roleProfile: row.roleProfile,
+              cumulativeSuccessChance: row.cumulativeSuccessChance,
+              riskAdjustedUtility: row.riskAdjustedUtility,
+              progressionCurve: row.progressionCurve.slice(0, 16).map((curveRow) => ({
+                level: curveRow.level,
+                meaningful: curveRow.meaningful,
+                stepChance: curveRow.stepChance,
+                cumulativeSuccessChance: curveRow.cumulativeSuccessChance,
+                improvement: finite(curveRow.delta && curveRow.delta.improvement, 0),
+                survivalImprovement: finite(curveRow.delta && curveRow.delta.survivalImprovement, 0),
+                riskAdjustedUtility: curveRow.riskAdjustedUtility
+              })),
               targetCharacter: character.name,
               targetSlot: slot,
               targetOffline,
@@ -14431,15 +14458,24 @@ class GearProgressionEvaluator {
               lastTargetPartyAt: targetOffline ? finite(character.lastPartyAt, null) : null,
               improvement,
               survivalImprovement,
-              upgradeLifecycle: candidate.meta.upgrade && projectedFarmerUpgrade ? 'FARMER_POTENTIAL_TO_PLUS5' : null,
+              upgradeLifecycle: candidate.meta.upgrade && isFarmerTarget
+                ? (progressionTargetLevel === 5 ? 'FARMER_POTENTIAL_TO_PLUS5' : 'FARMER_DYNAMIC_GEAR_TARGET')
+                : null,
+              dynamicTargetPolicy: candidate.meta.upgrade && isFarmerTarget ? 'RISK_ADJUSTED_FUTURE_GEAR' : null,
               observedMeaningful: row.observedMeaningful,
               observedImprovement: finite(row.observedDelta && row.observedDelta.improvement, 0),
               observedSurvivalImprovement: finite(row.observedDelta && row.observedDelta.survivalImprovement, 0),
               reason: isFarmerTarget ? 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL' : 'FUTURE_MERCHANT_GEAR_UPGRADE_POTENTIAL'
             };
-            if (!existingProtection
-              || protection.targetLevel < existingProtection.targetLevel
-              || protection.improvement > existingProtection.improvement) {
+            const existingIsFarmer = !!(existingProtection && existingProtection.reason === 'FUTURE_FARMER_GEAR_UPGRADE_POTENTIAL');
+            const protectionIsFarmer = isFarmerTarget;
+            const shouldReplaceProtection = !existingProtection
+              || (protectionIsFarmer && !existingIsFarmer)
+              || (protectionIsFarmer === existingIsFarmer
+                && (finite(protection.riskAdjustedUtility, -Infinity) > finite(existingProtection.riskAdjustedUtility, -Infinity)
+                  || (finite(protection.riskAdjustedUtility, -Infinity) === finite(existingProtection.riskAdjustedUtility, -Infinity)
+                    && protection.improvement > existingProtection.improvement)));
+            if (shouldReplaceProtection) {
               this.futureFarmerProtection.set(protectionKey, protection);
             }
           }
@@ -14478,8 +14514,22 @@ class GearProgressionEvaluator {
           observedImprovement: finite(best.observedDelta && best.observedDelta.improvement, 0),
           observedSurvivalImprovement: finite(best.observedDelta && best.observedDelta.survivalImprovement, 0),
           observedSpeedImprovement: finite(best.observedDelta && best.observedDelta.speedImprovement, 0),
-          firstMeaningfulLevel: best.meaningful.level,
+          firstMeaningfulLevel: best.firstMeaningful.level,
           nextMutationLevel: best.nextMutationLevel,
+          roleProfile: best.roleProfile,
+          targetSelectionReason: best.targetSelectionReason,
+          targetEvidenceComplete: best.targetEvidenceComplete,
+          cumulativeSuccessChance: best.cumulativeSuccessChance,
+          riskAdjustedUtility: best.riskAdjustedUtility,
+          progressionCurve: best.progressionCurve.slice(0, 16).map((curveRow) => ({
+            level: curveRow.level,
+            meaningful: curveRow.meaningful,
+            stepChance: curveRow.stepChance,
+            cumulativeSuccessChance: curveRow.cumulativeSuccessChance,
+            improvement: finite(curveRow.delta && curveRow.delta.improvement, 0),
+            survivalImprovement: finite(curveRow.delta && curveRow.delta.survivalImprovement, 0),
+            riskAdjustedUtility: curveRow.riskAdjustedUtility
+          })),
           improvement: best.improvement,
           survivalImprovement: best.survivalImprovement,
           speedImprovement: best.speedImprovement,
@@ -14659,6 +14709,7 @@ class GearProgressionEvaluator {
       directGameplayActionAccess: false,
       destructiveActionsEnabled: false,
       defaultProgressionMode: 'sustainable',
+      targetSelectionMode: 'ROLE_AWARE_RISK_ADJUSTED_FUTURE_GEAR',
       capacity: this.capacity,
       maxProbeLevel: this.maxProbeLevel,
       minImprovementRatio: this.minImprovementRatio,
@@ -14666,8 +14717,11 @@ class GearProgressionEvaluator {
       futureFarmerProtectedItems: this.futureFarmerProtection.size,
       futureFarmerEvaluatedItems: this.futureFarmerEvaluation.size,
       futureProtectionMode: 'STEPWISE_MUTATION_RISK_MANAGED_TO_MAX_PROBE_LEVEL',
-      farmerUpgradeProgression: 'ONE_LEVEL_THEN_REEVALUATE',
-      farmerUpgradePotentialMaxLevel: this.maxProbeLevel,
+      farmerUpgradeProgression: 'DYNAMIC_TARGET_ONE_LEVEL_THEN_REEVALUATE',
+      farmerUpgradePotentialMaxLevel: Math.min(this.maxProbeLevel, FARMER_UPGRADE_MAX_LEVEL),
+      roleAwareGearScoring: true,
+      fullFutureProgressionCurve: true,
+      dynamicRiskAdjustedTargetSelection: true,
       economicUpgradeFallbackLevel: ECONOMIC_UPGRADE_FALLBACK_LEVEL,
       processedGearSellRequiresExplicitFutureSafety: true,
       rememberedOfflinePartyGearPlanning: true,
@@ -14691,6 +14745,447 @@ module.exports = {
   scoreItem,
   scoreImprovement,
   candidateSlots
+};
+
+},
+"src/economy/item-intelligence.js": function(require,module,exports){
+'use strict';
+
+// Central future-gear evidence builder shared by progression and sell protection.
+const { progressionProbability } = require('./item-economic-evaluator');
+
+const ROLE_WEIGHT_MULTIPLIERS = Object.freeze({
+  tank: Object.freeze({ armor: 1.30, resistance: 1.30, hp: 1.25, vit: 1.20, evasion: 1.10, attack: 0.90 }),
+  healer: Object.freeze({ mp: 1.25, int: 1.15, resistance: 1.15, hp: 1.10, attack: 0.90 }),
+  support: Object.freeze({ mp: 1.20, int: 1.10, resistance: 1.15, hp: 1.10, speed: 1.05 }),
+  aoe: Object.freeze({ attack: 1.15, frequency: 1.20, range: 1.10, mp: 1.10, crit: 1.05 }),
+  boss: Object.freeze({ attack: 1.15, crit: 1.20, frequency: 1.15, armor: 1.08, resistance: 1.08, hp: 1.08 }),
+  dps: Object.freeze({ attack: 1.15, crit: 1.15, frequency: 1.15, dex: 1.08, int: 1.08, str: 1.08 }),
+  economy: Object.freeze({ speed: 1.20, hp: 1.10, resistance: 1.10 })
+});
+
+function finite(value, fallback = null) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function lower(value) {
+  return String(value == null ? '' : value).trim().toLowerCase();
+}
+
+function roleProfile(character) {
+  if (!character || typeof character !== 'object') return null;
+  const direct = [
+    character.gearRole,
+    character.combatRole,
+    character.farmRole,
+    character.localRole,
+    character.role
+  ].map(lower).find(Boolean);
+
+  const task = character.currentTask || character.task || character.assignment || null;
+  const taskText = lower(task && typeof task === 'object'
+    ? task.type || task.kind || task.role || task.mode
+    : task);
+
+  const candidates = [direct, taskText].filter(Boolean);
+  for (const value of candidates) {
+    if (value.includes('tank')) return 'tank';
+    if (value.includes('heal')) return 'healer';
+    if (value.includes('support')) return 'support';
+    if (value.includes('aoe') || value.includes('area')) return 'aoe';
+    if (value.includes('boss') || value.includes('single')) return 'boss';
+    if (value.includes('dps') || value.includes('damage')) return 'dps';
+    if (value.includes('econom') || value.includes('merchant')) return 'economy';
+  }
+  return null;
+}
+
+function contextualWeights(baseWeights, character) {
+  const out = { ...(baseWeights || {}) };
+  const profile = roleProfile(character);
+  const multipliers = profile && ROLE_WEIGHT_MULTIPLIERS[profile];
+  if (!multipliers) return { weights: out, roleProfile: profile };
+  for (const [key, multiplier] of Object.entries(multipliers)) {
+    if (finite(out[key]) == null) continue;
+    out[key] *= multiplier;
+  }
+  return { weights: out, roleProfile: profile };
+}
+
+function buildProgressionCurve(options = {}) {
+  const meta = options.meta || {};
+  const observedLevel = Math.max(0, Math.floor(finite(options.observedLevel, 0)));
+  const maxLevel = Math.max(observedLevel, Math.floor(finite(options.maxLevel, observedLevel)));
+  const currentScore = options.currentScore || { total: 0, survival: 0, stats: {} };
+  const ctype = options.ctype || null;
+  const character = options.character || null;
+  const gameData = options.gameData || {};
+  const scoreAtLevel = options.scoreAtLevel;
+  const scoreImprovement = options.scoreImprovement;
+  const minImprovementRatio = Math.max(0, finite(options.minImprovementRatio, 0));
+  if (typeof scoreAtLevel !== 'function' || typeof scoreImprovement !== 'function') return [];
+
+  const progression = meta.upgrade
+    ? 'UPGRADE'
+    : meta.compound
+      ? 'COMPOUND'
+      : null;
+  const compound = progression === 'COMPOUND';
+  const limit = progression ? maxLevel : observedLevel;
+  let cumulativeSuccessChance = 1;
+  const rows = [];
+
+  for (let level = observedLevel; level <= limit; level += 1) {
+    let stepChance = level === observedLevel ? 1 : null;
+    if (level > observedLevel) {
+      stepChance = progressionProbability(gameData, meta, level, compound);
+      cumulativeSuccessChance = cumulativeSuccessChance == null || stepChance == null
+        ? null
+        : cumulativeSuccessChance * stepChance;
+    }
+
+    const score = scoreAtLevel(meta, level, ctype, character);
+    const delta = scoreImprovement(currentScore, score, ctype, minImprovementRatio);
+    const rawUtility = Math.max(0, finite(delta && delta.improvement, 0))
+      + Math.max(0, finite(delta && delta.survivalImprovement, 0)) * 0.20;
+    const riskAdjustedUtility = level === observedLevel
+      ? rawUtility
+      : cumulativeSuccessChance == null
+        ? null
+        : rawUtility * cumulativeSuccessChance;
+
+    rows.push({
+      level,
+      progression,
+      score,
+      delta,
+      meaningful: !!(delta && delta.meaningful),
+      stepChance,
+      cumulativeSuccessChance,
+      rawUtility,
+      riskAdjustedUtility
+    });
+  }
+  return rows;
+}
+
+function selectDynamicTarget(curve = [], observedLevel = 0) {
+  const meaningful = (Array.isArray(curve) ? curve : []).filter((row) => row && row.meaningful === true);
+  if (!meaningful.length) return null;
+  const firstMeaningful = meaningful[0];
+
+  const scored = meaningful.map((row) => ({
+    row,
+    utility: finite(row.riskAdjustedUtility,
+      row.level === observedLevel ? finite(row.rawUtility, 0) : finite(row.rawUtility, 0) * 0.25)
+  })).sort((a, b) =>
+    b.utility - a.utility
+    || finite(b.row.delta && b.row.delta.improvement, 0) - finite(a.row.delta && a.row.delta.improvement, 0)
+    || a.row.level - b.row.level
+  );
+
+  const selected = scored[0] && scored[0].row || firstMeaningful;
+  return {
+    firstMeaningful,
+    target: selected,
+    reason: selected.level === observedLevel
+      ? 'CURRENT_LEVEL_ALREADY_BEST_RISK_ADJUSTED_GEAR'
+      : 'RISK_ADJUSTED_FUTURE_GEAR_VALUE',
+    evidenceComplete: selected.level === observedLevel || selected.cumulativeSuccessChance != null
+  };
+}
+
+module.exports = {
+  ROLE_WEIGHT_MULTIPLIERS,
+  roleProfile,
+  contextualWeights,
+  buildProgressionCurve,
+  selectDynamicTarget
+};
+
+},
+"src/economy/item-economic-evaluator.js": function(require,module,exports){
+'use strict';
+
+const DEFAULT_UPGRADE_CHANCES = Object.freeze({
+  0: Object.freeze({ 1: 0.9999999, 2: 0.98, 3: 0.95, 4: 0.7, 5: 0.6, 6: 0.4, 7: 0.25, 8: 0.15, 9: 0.07, 10: 0.024, 11: 0.14, 12: 0.11 }),
+  1: Object.freeze({ 1: 0.99998, 2: 0.97, 3: 0.94, 4: 0.68, 5: 0.58, 6: 0.38, 7: 0.24, 8: 0.14, 9: 0.066, 10: 0.018, 11: 0.13, 12: 0.10 }),
+  2: Object.freeze({ 1: 0.97, 2: 0.94, 3: 0.92, 4: 0.64, 5: 0.52, 6: 0.32, 7: 0.232, 8: 0.13, 9: 0.062, 10: 0.015, 11: 0.12, 12: 0.09 })
+});
+const DEFAULT_COMPOUND_CHANCES = Object.freeze({
+  0: Object.freeze({ 1: 0.99, 2: 0.75, 3: 0.40, 4: 0.25, 5: 0.20, 6: 0.10, 7: 0.08, 8: 0.05, 9: 0.05, 10: 0.05 }),
+  1: Object.freeze({ 1: 0.90, 2: 0.70, 3: 0.40, 4: 0.20, 5: 0.15, 6: 0.08, 7: 0.05, 8: 0.05, 9: 0.05, 10: 0.03 }),
+  2: Object.freeze({ 1: 0.80, 2: 0.60, 3: 0.32, 4: 0.16, 5: 0.10, 6: 0.05, 7: 0.03, 8: 0.03, 9: 0.03, 10: 0.02 })
+});
+
+function finite(value, fallback = null) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function levelOf(value) {
+  return Math.max(0, Math.floor(finite(value && typeof value === 'object' ? value.level : value, 0)));
+}
+
+function gradeForLevel(meta, level) {
+  const grades = Array.isArray(meta && meta.grades) ? meta.grades : [9, 10, 11, 12];
+  const current = levelOf(level);
+  for (let index = Math.min(3, grades.length - 1); index >= 0; index -= 1) {
+    const threshold = finite(grades[index]);
+    if (threshold != null && current >= threshold) return index + 1;
+  }
+  return 0;
+}
+
+function progressionTable(gameData, compound) {
+  const live = gameData && (compound ? gameData.compounds : gameData.upgrades);
+  return live && typeof live === 'object'
+    ? live
+    : compound ? DEFAULT_COMPOUND_CHANCES : DEFAULT_UPGRADE_CHANCES;
+}
+
+function progressionProbability(gameData, meta, nextLevel, compound = false) {
+  const bucket = Math.max(0, Math.min(2, Math.floor(finite(meta && meta.igrade, 0))));
+  const table = progressionTable(gameData, compound);
+  const row = table && (table[bucket] || table[String(bucket)]);
+  const raw = row && (row[nextLevel] != null ? row[nextLevel] : row[String(nextLevel)]);
+  const chance = finite(raw);
+  return chance != null && chance >= 0 && chance <= 1 ? chance : null;
+}
+
+function scrollName(meta, currentLevel, compound = false) {
+  return `${compound ? 'cscroll' : 'scroll'}${Math.max(0, Math.min(3, gradeForLevel(meta, currentLevel)))}`;
+}
+
+function scrollBuyCost(gameData, meta, currentLevel, compound = false) {
+  const name = scrollName(meta, currentLevel, compound);
+  const def = gameData && gameData.items && gameData.items[name];
+  const value = finite(def && def.g);
+  return { name, cost: value != null && value >= 0 ? value : null };
+}
+
+// Mirrors Adventure Land's NPC sell-value calculation for ordinary gold items.
+// Cash/event/special protection is handled by the inventory safety layer before
+// this model is allowed to authorize disposal.
+function itemNpcSellValue(gameData, itemOrName, explicitLevel = null, quantity = 1) {
+  const item = typeof itemOrName === 'string'
+    ? { name: itemOrName, level: explicitLevel == null ? 0 : explicitLevel }
+    : itemOrName || {};
+  const name = String(item.name || '');
+  const def = gameData && gameData.items && gameData.items[name];
+  if (!def || typeof def !== 'object') return null;
+  if (item.gift) return 1;
+  const base = finite(def.g);
+  if (base == null || base < 0) return null;
+  let value = def.cash ? base : base * 0.6;
+  const markup = finite(def.markup);
+  if (markup != null && markup > 0) value /= markup;
+  const level = Math.max(0, Math.floor(explicitLevel == null ? levelOf(item) : finite(explicitLevel, 0)));
+  if (def.compound && level > 0) {
+    const grades = Array.isArray(def.grades) ? def.grades : [11, 12];
+    let grade = 0;
+    for (let i = 1; i <= level; i += 1) {
+      if (i > finite(grades[1], 12)) grade = 2;
+      else if (i > finite(grades[0], 11)) grade = 1;
+      if (def.cash) value *= 1.5;
+      else value *= 3.2;
+      if (String(def.type || '') !== 'booster') {
+        const scroll = gameData.items && gameData.items[`cscroll${grade}`];
+        const scrollGold = finite(scroll && scroll.g, 0);
+        value += scrollGold / 2.4;
+      } else value *= 0.75;
+    }
+  }
+  if (def.upgrade && level > 0) {
+    const grades = Array.isArray(def.grades) ? def.grades : [11, 12];
+    let grade = 0;
+    let scrollContribution = 0;
+    for (let i = 1; i <= level; i += 1) {
+      if (i > finite(grades[1], 12)) grade = 2;
+      else if (i > finite(grades[0], 11)) grade = 1;
+      const scroll = gameData.items && gameData.items[`scroll${grade}`];
+      scrollContribution += finite(scroll && scroll.g, 0) / 2;
+      if (i >= 7) {
+        value *= 3;
+        scrollContribution *= 1.32;
+      } else if (i === 6) value *= 2.4;
+      else if (i >= 4) value *= 2;
+      if (i === 9) {
+        value *= 2.64;
+        value += 400000;
+      }
+      if (i === 10) value *= 5;
+      if (i === 12) value *= 0.8;
+    }
+    value += scrollContribution;
+  }
+  if (item.expires) value /= 8;
+  const q = Math.max(1, Math.floor(finite(quantity != null ? quantity : item.q, 1)));
+  return Math.round(value * q);
+}
+
+function evaluateUpgradeEconomics(options = {}) {
+  const gameData = options.gameData || {};
+  const name = String(options.itemName || '');
+  const meta = gameData.items && gameData.items[name];
+  const currentLevel = levelOf(options.currentLevel);
+  const maxLevel = Math.max(currentLevel, Math.min(12, Math.floor(finite(options.maxLevel, currentLevel))));
+  if (!meta || !meta.upgrade) return { modeled: false, action: 'SELL', reason: 'NOT_UPGRADEABLE', currentLevel, targetLevel: currentLevel };
+
+  const values = new Map();
+  const direct = new Map();
+  for (let level = currentLevel; level <= maxLevel; level += 1) {
+    const sellValue = itemNpcSellValue(gameData, name, level, 1);
+    direct.set(level, sellValue);
+    values.set(level, {
+      expectedGold: sellValue,
+      targetLevel: level,
+      action: 'SELL',
+      chance: null,
+      scroll: null,
+      scrollCost: 0
+    });
+  }
+  for (let level = maxLevel - 1; level >= currentLevel; level -= 1) {
+    const nextLevel = level + 1;
+    const chance = progressionProbability(gameData, meta, nextLevel, false);
+    const scroll = scrollBuyCost(gameData, meta, level, false);
+    const next = values.get(nextLevel);
+    const sale = direct.get(level);
+    if (chance == null || scroll.cost == null || next == null || sale == null) continue;
+    const upgradeExpected = chance * next.expectedGold - scroll.cost;
+    if (upgradeExpected > sale) {
+      values.set(level, {
+        expectedGold: upgradeExpected,
+        targetLevel: next.targetLevel,
+        action: 'UPGRADE',
+        chance,
+        scroll: scroll.name,
+        scrollCost: scroll.cost
+      });
+    }
+  }
+  const choice = values.get(currentLevel) || {};
+  const directSellGold = direct.get(currentLevel);
+  return {
+    modeled: directSellGold != null,
+    family: 'UPGRADE',
+    action: choice.action || 'SELL',
+    item: name,
+    currentLevel,
+    targetLevel: choice.targetLevel == null ? currentLevel : choice.targetLevel,
+    expectedGold: finite(choice.expectedGold, directSellGold),
+    directSellGold,
+    expectedGain: finite(choice.expectedGold, directSellGold) - finite(directSellGold, 0),
+    nextChance: choice.chance == null ? null : choice.chance,
+    scroll: choice.scroll || null,
+    scrollCost: finite(choice.scrollCost, 0),
+    model: 'NPC_SELL_EXPECTED_VALUE_V1'
+  };
+}
+
+function evaluateCompoundEconomics(options = {}) {
+  const gameData = options.gameData || {};
+  const name = String(options.itemName || '');
+  const meta = gameData.items && gameData.items[name];
+  const currentLevel = levelOf(options.currentLevel);
+  const same = Math.max(0, Math.floor(finite(options.sameCount, 0)));
+  const maxLevel = Math.max(currentLevel, Math.min(10, Math.floor(finite(options.maxLevel, currentLevel))));
+  const directOne = itemNpcSellValue(gameData, name, currentLevel, 1);
+  if (!meta || !meta.compound || currentLevel >= maxLevel || directOne == null) {
+    return { modeled: directOne != null, family: 'COMPOUND', action: 'SELL', item: name, currentLevel, targetLevel: currentLevel, directSellGold: directOne, expectedGold: directOne, expectedGain: 0, sameCount: same, model: 'NPC_SELL_EXPECTED_VALUE_V1' };
+  }
+  const nextLevel = currentLevel + 1;
+  const chance = progressionProbability(gameData, meta, nextLevel, true);
+  const scroll = scrollBuyCost(gameData, meta, currentLevel, true);
+  const nextSell = itemNpcSellValue(gameData, name, nextLevel, 1);
+  if (chance == null || scroll.cost == null || nextSell == null) {
+    return { modeled: false, family: 'COMPOUND', action: 'SELL', item: name, currentLevel, targetLevel: currentLevel, directSellGold: directOne, expectedGold: directOne, expectedGain: 0, sameCount: same, model: 'NPC_SELL_EXPECTED_VALUE_V1' };
+  }
+  const directSet = directOne * 3;
+  const compoundExpected = chance * nextSell - scroll.cost;
+  const profitable = compoundExpected > directSet;
+  return {
+    modeled: true,
+    family: 'COMPOUND',
+    action: profitable ? (same >= 3 ? 'COMPOUND' : 'ACCUMULATE') : 'SELL',
+    item: name,
+    currentLevel,
+    targetLevel: profitable ? nextLevel : currentLevel,
+    expectedGold: profitable ? compoundExpected : directSet,
+    directSellGold: directSet,
+    expectedGain: compoundExpected - directSet,
+    nextChance: chance,
+    scroll: scroll.name,
+    scrollCost: scroll.cost,
+    sameCount: same,
+    model: 'NPC_SELL_EXPECTED_VALUE_V1'
+  };
+}
+
+function evaluateItemEconomics(options = {}) {
+  const gameData = options.gameData || {};
+  const meta = gameData.items && gameData.items[String(options.itemName || '')];
+  if (meta && meta.compound) return evaluateCompoundEconomics(options);
+  if (meta && meta.upgrade) return evaluateUpgradeEconomics(options);
+  const directSellGold = itemNpcSellValue(gameData, String(options.itemName || ''), levelOf(options.currentLevel), 1);
+  return {
+    modeled: directSellGold != null,
+    family: 'NONE',
+    action: 'SELL',
+    item: String(options.itemName || ''),
+    currentLevel: levelOf(options.currentLevel),
+    targetLevel: levelOf(options.currentLevel),
+    expectedGold: directSellGold,
+    directSellGold,
+    expectedGain: 0,
+    model: 'NPC_SELL_EXPECTED_VALUE_V1'
+  };
+}
+
+function itemEconomyCatalog(gameData, name, maxLevel = 10) {
+  const meta = gameData && gameData.items && gameData.items[name];
+  if (!meta || typeof meta !== 'object') return null;
+  const limit = Math.max(0, Math.min(12, Math.floor(finite(maxLevel, 10))));
+  const sellValues = [];
+  for (let level = 0; level <= limit; level += 1) {
+    const value = itemNpcSellValue(gameData, name, level, 1);
+    if (value == null) break;
+    sellValues.push({ level, value });
+    if (!meta.upgrade && !meta.compound) break;
+  }
+  const chances = [];
+  const compound = !!meta.compound;
+  if (meta.upgrade || compound) {
+    for (let nextLevel = 1; nextLevel <= limit; nextLevel += 1) {
+      const chance = progressionProbability(gameData, meta, nextLevel, compound);
+      if (chance == null) break;
+      chances.push({ level: nextLevel, chance });
+    }
+  }
+  return {
+    baseGold: finite(meta.g),
+    npcSellValues: sellValues,
+    progression: meta.compound ? 'COMPOUND' : meta.upgrade ? 'UPGRADE' : null,
+    baseChances: chances,
+    grades: Array.isArray(meta.grades) ? meta.grades.slice(0, 6) : [],
+    itemGrade: finite(meta.igrade, 0),
+    model: 'AL_ATLAS_GAME_DATA_V1'
+  };
+}
+
+module.exports = {
+  DEFAULT_UPGRADE_CHANCES,
+  DEFAULT_COMPOUND_CHANCES,
+  progressionProbability,
+  scrollName,
+  scrollBuyCost,
+  itemNpcSellValue,
+  evaluateUpgradeEconomics,
+  evaluateCompoundEconomics,
+  evaluateItemEconomics,
+  itemEconomyCatalog
 };
 
 },
@@ -31057,11 +31552,28 @@ class TeamCombatCohesionHotfix {
         if (!team.leaderTargetId) {
           if (typeof this.farmer._setLogicalTeamTarget === 'function') this.farmer._setLogicalTeamTarget(null);
           this.stats.soloTargetBlocks += 1;
+
+          // Target authority belongs to the leader, but formation authority does
+          // not have to wait for a target. When the team is not cohesive, a
+          // follower with no leader target must still close formation; otherwise
+          // the leader waits for cohesion while the follower waits for a leader
+          // target and both sides deadlock.
+          let formationDecision = null;
+          if (!team.cohesive) {
+            this._followLeader(context, team, 'WAITING_FOR_TEAM_COHESION_BEFORE_LEADER_TARGET');
+            if (this.lastDecision && String(this.lastDecision.action || '').startsWith('FORMATION_')) {
+              formationDecision = { ...this.lastDecision };
+            }
+          }
+
           this.lastDecision = {
+            ...(formationDecision || {}),
             at: this.now(),
-            action: 'TARGET_HOLD',
+            action: formationDecision ? formationDecision.action : 'TARGET_HOLD',
             reason: 'WAITING_FOR_TEAM_LEADER_TARGET',
-            leaderName: team.leaderName
+            formationReason: formationDecision && formationDecision.reason || null,
+            leaderName: team.leaderName,
+            maxPairDistance: Number.isFinite(team.maxPairDistance) ? team.maxPairDistance : null
           };
           return null;
         }
@@ -31678,7 +32190,7 @@ class TeamCohesionDeadlockHotfix {
     if (c.target) return true;
     if ((snapshot.entities || []).some((entity) => entity && entity.mtype && !entity.dead && String(entity.target || '') === String(c.name || ''))) return true;
     const farmer = this.runtime.farmer;
-    return !!(farmer && ['ENGAGE', 'TRAVEL', 'RECOVER'].includes(farmer.state));
+    return !!(farmer && ['ENGAGE', 'RECOVER'].includes(farmer.state));
   }
 
   _progressState(name, currentDistance) {
@@ -41541,290 +42053,6 @@ class Alpha27AtomicCore {
 }
 
 module.exports = { Alpha27AtomicCore };
-
-},
-"src/economy/item-economic-evaluator.js": function(require,module,exports){
-'use strict';
-
-const DEFAULT_UPGRADE_CHANCES = Object.freeze({
-  0: Object.freeze({ 1: 0.9999999, 2: 0.98, 3: 0.95, 4: 0.7, 5: 0.6, 6: 0.4, 7: 0.25, 8: 0.15, 9: 0.07, 10: 0.024, 11: 0.14, 12: 0.11 }),
-  1: Object.freeze({ 1: 0.99998, 2: 0.97, 3: 0.94, 4: 0.68, 5: 0.58, 6: 0.38, 7: 0.24, 8: 0.14, 9: 0.066, 10: 0.018, 11: 0.13, 12: 0.10 }),
-  2: Object.freeze({ 1: 0.97, 2: 0.94, 3: 0.92, 4: 0.64, 5: 0.52, 6: 0.32, 7: 0.232, 8: 0.13, 9: 0.062, 10: 0.015, 11: 0.12, 12: 0.09 })
-});
-const DEFAULT_COMPOUND_CHANCES = Object.freeze({
-  0: Object.freeze({ 1: 0.99, 2: 0.75, 3: 0.40, 4: 0.25, 5: 0.20, 6: 0.10, 7: 0.08, 8: 0.05, 9: 0.05, 10: 0.05 }),
-  1: Object.freeze({ 1: 0.90, 2: 0.70, 3: 0.40, 4: 0.20, 5: 0.15, 6: 0.08, 7: 0.05, 8: 0.05, 9: 0.05, 10: 0.03 }),
-  2: Object.freeze({ 1: 0.80, 2: 0.60, 3: 0.32, 4: 0.16, 5: 0.10, 6: 0.05, 7: 0.03, 8: 0.03, 9: 0.03, 10: 0.02 })
-});
-
-function finite(value, fallback = null) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function levelOf(value) {
-  return Math.max(0, Math.floor(finite(value && typeof value === 'object' ? value.level : value, 0)));
-}
-
-function gradeForLevel(meta, level) {
-  const grades = Array.isArray(meta && meta.grades) ? meta.grades : [9, 10, 11, 12];
-  const current = levelOf(level);
-  for (let index = Math.min(3, grades.length - 1); index >= 0; index -= 1) {
-    const threshold = finite(grades[index]);
-    if (threshold != null && current >= threshold) return index + 1;
-  }
-  return 0;
-}
-
-function progressionTable(gameData, compound) {
-  const live = gameData && (compound ? gameData.compounds : gameData.upgrades);
-  return live && typeof live === 'object'
-    ? live
-    : compound ? DEFAULT_COMPOUND_CHANCES : DEFAULT_UPGRADE_CHANCES;
-}
-
-function progressionProbability(gameData, meta, nextLevel, compound = false) {
-  const bucket = Math.max(0, Math.min(2, Math.floor(finite(meta && meta.igrade, 0))));
-  const table = progressionTable(gameData, compound);
-  const row = table && (table[bucket] || table[String(bucket)]);
-  const raw = row && (row[nextLevel] != null ? row[nextLevel] : row[String(nextLevel)]);
-  const chance = finite(raw);
-  return chance != null && chance >= 0 && chance <= 1 ? chance : null;
-}
-
-function scrollName(meta, currentLevel, compound = false) {
-  return `${compound ? 'cscroll' : 'scroll'}${Math.max(0, Math.min(3, gradeForLevel(meta, currentLevel)))}`;
-}
-
-function scrollBuyCost(gameData, meta, currentLevel, compound = false) {
-  const name = scrollName(meta, currentLevel, compound);
-  const def = gameData && gameData.items && gameData.items[name];
-  const value = finite(def && def.g);
-  return { name, cost: value != null && value >= 0 ? value : null };
-}
-
-// Mirrors Adventure Land's NPC sell-value calculation for ordinary gold items.
-// Cash/event/special protection is handled by the inventory safety layer before
-// this model is allowed to authorize disposal.
-function itemNpcSellValue(gameData, itemOrName, explicitLevel = null, quantity = 1) {
-  const item = typeof itemOrName === 'string'
-    ? { name: itemOrName, level: explicitLevel == null ? 0 : explicitLevel }
-    : itemOrName || {};
-  const name = String(item.name || '');
-  const def = gameData && gameData.items && gameData.items[name];
-  if (!def || typeof def !== 'object') return null;
-  if (item.gift) return 1;
-  const base = finite(def.g);
-  if (base == null || base < 0) return null;
-  let value = def.cash ? base : base * 0.6;
-  const markup = finite(def.markup);
-  if (markup != null && markup > 0) value /= markup;
-  const level = Math.max(0, Math.floor(explicitLevel == null ? levelOf(item) : finite(explicitLevel, 0)));
-  if (def.compound && level > 0) {
-    const grades = Array.isArray(def.grades) ? def.grades : [11, 12];
-    let grade = 0;
-    for (let i = 1; i <= level; i += 1) {
-      if (i > finite(grades[1], 12)) grade = 2;
-      else if (i > finite(grades[0], 11)) grade = 1;
-      if (def.cash) value *= 1.5;
-      else value *= 3.2;
-      if (String(def.type || '') !== 'booster') {
-        const scroll = gameData.items && gameData.items[`cscroll${grade}`];
-        const scrollGold = finite(scroll && scroll.g, 0);
-        value += scrollGold / 2.4;
-      } else value *= 0.75;
-    }
-  }
-  if (def.upgrade && level > 0) {
-    const grades = Array.isArray(def.grades) ? def.grades : [11, 12];
-    let grade = 0;
-    let scrollContribution = 0;
-    for (let i = 1; i <= level; i += 1) {
-      if (i > finite(grades[1], 12)) grade = 2;
-      else if (i > finite(grades[0], 11)) grade = 1;
-      const scroll = gameData.items && gameData.items[`scroll${grade}`];
-      scrollContribution += finite(scroll && scroll.g, 0) / 2;
-      if (i >= 7) {
-        value *= 3;
-        scrollContribution *= 1.32;
-      } else if (i === 6) value *= 2.4;
-      else if (i >= 4) value *= 2;
-      if (i === 9) {
-        value *= 2.64;
-        value += 400000;
-      }
-      if (i === 10) value *= 5;
-      if (i === 12) value *= 0.8;
-    }
-    value += scrollContribution;
-  }
-  if (item.expires) value /= 8;
-  const q = Math.max(1, Math.floor(finite(quantity != null ? quantity : item.q, 1)));
-  return Math.round(value * q);
-}
-
-function evaluateUpgradeEconomics(options = {}) {
-  const gameData = options.gameData || {};
-  const name = String(options.itemName || '');
-  const meta = gameData.items && gameData.items[name];
-  const currentLevel = levelOf(options.currentLevel);
-  const maxLevel = Math.max(currentLevel, Math.min(12, Math.floor(finite(options.maxLevel, currentLevel))));
-  if (!meta || !meta.upgrade) return { modeled: false, action: 'SELL', reason: 'NOT_UPGRADEABLE', currentLevel, targetLevel: currentLevel };
-
-  const values = new Map();
-  const direct = new Map();
-  for (let level = currentLevel; level <= maxLevel; level += 1) {
-    const sellValue = itemNpcSellValue(gameData, name, level, 1);
-    direct.set(level, sellValue);
-    values.set(level, {
-      expectedGold: sellValue,
-      targetLevel: level,
-      action: 'SELL',
-      chance: null,
-      scroll: null,
-      scrollCost: 0
-    });
-  }
-  for (let level = maxLevel - 1; level >= currentLevel; level -= 1) {
-    const nextLevel = level + 1;
-    const chance = progressionProbability(gameData, meta, nextLevel, false);
-    const scroll = scrollBuyCost(gameData, meta, level, false);
-    const next = values.get(nextLevel);
-    const sale = direct.get(level);
-    if (chance == null || scroll.cost == null || next == null || sale == null) continue;
-    const upgradeExpected = chance * next.expectedGold - scroll.cost;
-    if (upgradeExpected > sale) {
-      values.set(level, {
-        expectedGold: upgradeExpected,
-        targetLevel: next.targetLevel,
-        action: 'UPGRADE',
-        chance,
-        scroll: scroll.name,
-        scrollCost: scroll.cost
-      });
-    }
-  }
-  const choice = values.get(currentLevel) || {};
-  const directSellGold = direct.get(currentLevel);
-  return {
-    modeled: directSellGold != null,
-    family: 'UPGRADE',
-    action: choice.action || 'SELL',
-    item: name,
-    currentLevel,
-    targetLevel: choice.targetLevel == null ? currentLevel : choice.targetLevel,
-    expectedGold: finite(choice.expectedGold, directSellGold),
-    directSellGold,
-    expectedGain: finite(choice.expectedGold, directSellGold) - finite(directSellGold, 0),
-    nextChance: choice.chance == null ? null : choice.chance,
-    scroll: choice.scroll || null,
-    scrollCost: finite(choice.scrollCost, 0),
-    model: 'NPC_SELL_EXPECTED_VALUE_V1'
-  };
-}
-
-function evaluateCompoundEconomics(options = {}) {
-  const gameData = options.gameData || {};
-  const name = String(options.itemName || '');
-  const meta = gameData.items && gameData.items[name];
-  const currentLevel = levelOf(options.currentLevel);
-  const same = Math.max(0, Math.floor(finite(options.sameCount, 0)));
-  const maxLevel = Math.max(currentLevel, Math.min(10, Math.floor(finite(options.maxLevel, currentLevel))));
-  const directOne = itemNpcSellValue(gameData, name, currentLevel, 1);
-  if (!meta || !meta.compound || currentLevel >= maxLevel || directOne == null) {
-    return { modeled: directOne != null, family: 'COMPOUND', action: 'SELL', item: name, currentLevel, targetLevel: currentLevel, directSellGold: directOne, expectedGold: directOne, expectedGain: 0, sameCount: same, model: 'NPC_SELL_EXPECTED_VALUE_V1' };
-  }
-  const nextLevel = currentLevel + 1;
-  const chance = progressionProbability(gameData, meta, nextLevel, true);
-  const scroll = scrollBuyCost(gameData, meta, currentLevel, true);
-  const nextSell = itemNpcSellValue(gameData, name, nextLevel, 1);
-  if (chance == null || scroll.cost == null || nextSell == null) {
-    return { modeled: false, family: 'COMPOUND', action: 'SELL', item: name, currentLevel, targetLevel: currentLevel, directSellGold: directOne, expectedGold: directOne, expectedGain: 0, sameCount: same, model: 'NPC_SELL_EXPECTED_VALUE_V1' };
-  }
-  const directSet = directOne * 3;
-  const compoundExpected = chance * nextSell - scroll.cost;
-  const profitable = compoundExpected > directSet;
-  return {
-    modeled: true,
-    family: 'COMPOUND',
-    action: profitable ? (same >= 3 ? 'COMPOUND' : 'ACCUMULATE') : 'SELL',
-    item: name,
-    currentLevel,
-    targetLevel: profitable ? nextLevel : currentLevel,
-    expectedGold: profitable ? compoundExpected : directSet,
-    directSellGold: directSet,
-    expectedGain: compoundExpected - directSet,
-    nextChance: chance,
-    scroll: scroll.name,
-    scrollCost: scroll.cost,
-    sameCount: same,
-    model: 'NPC_SELL_EXPECTED_VALUE_V1'
-  };
-}
-
-function evaluateItemEconomics(options = {}) {
-  const gameData = options.gameData || {};
-  const meta = gameData.items && gameData.items[String(options.itemName || '')];
-  if (meta && meta.compound) return evaluateCompoundEconomics(options);
-  if (meta && meta.upgrade) return evaluateUpgradeEconomics(options);
-  const directSellGold = itemNpcSellValue(gameData, String(options.itemName || ''), levelOf(options.currentLevel), 1);
-  return {
-    modeled: directSellGold != null,
-    family: 'NONE',
-    action: 'SELL',
-    item: String(options.itemName || ''),
-    currentLevel: levelOf(options.currentLevel),
-    targetLevel: levelOf(options.currentLevel),
-    expectedGold: directSellGold,
-    directSellGold,
-    expectedGain: 0,
-    model: 'NPC_SELL_EXPECTED_VALUE_V1'
-  };
-}
-
-function itemEconomyCatalog(gameData, name, maxLevel = 10) {
-  const meta = gameData && gameData.items && gameData.items[name];
-  if (!meta || typeof meta !== 'object') return null;
-  const limit = Math.max(0, Math.min(12, Math.floor(finite(maxLevel, 10))));
-  const sellValues = [];
-  for (let level = 0; level <= limit; level += 1) {
-    const value = itemNpcSellValue(gameData, name, level, 1);
-    if (value == null) break;
-    sellValues.push({ level, value });
-    if (!meta.upgrade && !meta.compound) break;
-  }
-  const chances = [];
-  const compound = !!meta.compound;
-  if (meta.upgrade || compound) {
-    for (let nextLevel = 1; nextLevel <= limit; nextLevel += 1) {
-      const chance = progressionProbability(gameData, meta, nextLevel, compound);
-      if (chance == null) break;
-      chances.push({ level: nextLevel, chance });
-    }
-  }
-  return {
-    baseGold: finite(meta.g),
-    npcSellValues: sellValues,
-    progression: meta.compound ? 'COMPOUND' : meta.upgrade ? 'UPGRADE' : null,
-    baseChances: chances,
-    grades: Array.isArray(meta.grades) ? meta.grades.slice(0, 6) : [],
-    itemGrade: finite(meta.igrade, 0),
-    model: 'AL_ATLAS_GAME_DATA_V1'
-  };
-}
-
-module.exports = {
-  DEFAULT_UPGRADE_CHANCES,
-  DEFAULT_COMPOUND_CHANCES,
-  progressionProbability,
-  scrollName,
-  scrollBuyCost,
-  itemNpcSellValue,
-  evaluateUpgradeEconomics,
-  evaluateCompoundEconomics,
-  evaluateItemEconomics,
-  itemEconomyCatalog
-};
 
 },
 "src/reliability/alpha27-merchant-autonomy.js": function(require,module,exports){
