@@ -173,6 +173,28 @@ Assert(typeof(CdpAlBotV6Client).GetMethods().Any(method =>
     && method.GetParameters().Length == 3
     && method.GetParameters()[0].ParameterType == typeof(string)), "V6_CHARACTER_SCOPED_ACK_API");
 
+var parseCdpJsonMethod = typeof(CdpAlBotV6Client).GetMethod(
+    "ParseCdpJson",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+Assert(parseCdpJsonMethod is not null, "V6_CDP_JSON_PARSE_HELPER");
+var validCdpPayload = System.Text.Encoding.UTF8.GetBytes("""{"id":1,"result":{}}""");
+using (var validCdpDocument = (JsonDocument)parseCdpJsonMethod!.Invoke(null, [validCdpPayload])!)
+{
+    Assert(validCdpDocument.RootElement.GetProperty("id").GetInt32() == 1, "V6_CDP_VALID_JSON_ACCEPTED");
+}
+try
+{
+    var invalidCdpPayload = System.Text.Encoding.UTF8.GetBytes("/not-json");
+    parseCdpJsonMethod!.Invoke(null, [invalidCdpPayload]);
+    Assert(false, "V6_CDP_INVALID_JSON_MUST_FAIL_CLOSED");
+}
+catch (System.Reflection.TargetInvocationException error)
+{
+    Assert(error.InnerException is InvalidOperationException, "V6_CDP_INVALID_JSON_WRAPPED");
+    Assert(error.InnerException!.Message.StartsWith("CDP_FRAME_INVALID_JSON:", StringComparison.Ordinal),
+        "V6_CDP_INVALID_JSON_CLASSIFIED");
+}
+
 using (var multiCharacterSnapshot = JsonDocument.Parse("""{"character":{"name":"My_Ranger1"}}"""))
 {
     Assert(CdpAlBotV6Client.ReadCharacterName(multiCharacterSnapshot.RootElement) == "My_Ranger1",
