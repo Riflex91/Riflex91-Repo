@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>AioBotLinuxBridge</AssemblyName>
+    <RootNamespace>AioBotLinuxBridge</RootNamespace>
+    <InvariantGlobalization>false</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../windows-bridge/CdpAlBotV6Client.cs" Link="Shared/CdpAlBotV6Client.cs" />
+    <Compile Include="../windows-bridge/CdpWebDashboardConfigurator.cs" Link="Shared/CdpWebDashboardConfigurator.cs" />
+    <Compile Include="../windows-bridge/SupabaseTelemetrySink.cs" Link="Shared/SupabaseTelemetrySink.cs" />
+    <Compile Include="../windows-bridge/SupabaseSignalControlClient.cs" Link="Shared/SupabaseSignalControlClient.cs" />
+    <Compile Include="../windows-bridge/CloudflareV6DashboardSink.cs" Link="Shared/CloudflareV6DashboardSink.cs" />
+    <Compile Include="../windows-bridge/BackblazeV6ArchiveSink.cs" Link="Shared/BackblazeV6ArchiveSink.cs" />
+    <Compile Include="../windows-bridge/LocalProblemDiagnosticsArchive.cs" Link="Shared/LocalProblemDiagnosticsArchive.cs" />
+    <Compile Include="../windows-bridge/SupabaseProblemDiagnosticsMirror.cs" Link="Shared/SupabaseProblemDiagnosticsMirror.cs" />
+    <Compile Include="../windows-bridge/TelemetryBridgeService.cs" Link="Shared/TelemetryBridgeService.cs" />
+    <Compile Include="../windows-bridge/GitArbeitskopie.cs" Link="Shared/GitArbeitskopie.cs" />
+    <Compile Include="../windows-bridge/GitHubAnmeldung.cs" Link="Shared/GitHubAnmeldung.cs" />
+    <Compile Include="../windows-bridge/WebQuellenEntdecker.cs" Link="Shared/WebQuellenEntdecker.cs" />
+    <Compile Include="../windows-bridge/WissenswaechterDienst.cs" Link="Shared/WissenswaechterDienst.cs" />
+    <Compile Include="../windows-bridge/LiveWissensImportDienst.cs" Link="Shared/LiveWissensImportDienst.cs" />
+  </ItemGroup>
+</Project>
