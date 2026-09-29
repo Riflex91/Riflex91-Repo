@@ -115,7 +115,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## economy
 
-**13 Dateien · 4722 Zeilen**
+**14 Dateien · 4983 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -126,9 +126,10 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/economy/controlled-merchant-executor.js` | 599 |
 | `src/economy/controlled-merchant-space-recovery-hardened.js` | 159 |
 | `src/economy/controlled-merchant-space-recovery.js` | 420 |
-| `src/economy/gear-progression.js` | 644 |
+| `src/economy/gear-progression.js` | 751 |
 | `src/economy/inventory-ledger.js` | 488 |
 | `src/economy/item-economic-evaluator.js` | 281 |
+| `src/economy/item-intelligence.js` | 154 |
 | `src/economy/merchant-space-recovery-journal.js` | 400 |
 | `src/economy/sell-safety.js` | 134 |
 | `src/economy/transaction-engine.js` | 424 |
@@ -224,7 +225,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## party
 
-**39 Dateien · 11090 Zeilen**
+**39 Dateien · 11107 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -262,7 +263,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/party/performance-store.js` | 51 |
 | `src/party/probabilistic-farm-time.js` | 173 |
 | `src/party/production-material-acquisition.js` | 737 |
-| `src/party/team-combat-cohesion-hotfix-base.js` | 926 |
+| `src/party/team-combat-cohesion-hotfix-base.js` | 943 |
 | `src/party/team-combat-cohesion-hotfix.js` | 251 |
 | `src/party/telemetry-bridge.js` | 202 |
 | `src/party/transition-controller-base.js` | 390 |
@@ -278,7 +279,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 
 ## reliability
 
-**50 Dateien · 17713 Zeilen**
+**50 Dateien · 17750 Zeilen**
 
 | Datei | Zeilen |
 | --- | ---: |
@@ -296,7 +297,7 @@ Alle erkannten JavaScript-/TypeScript-Dateien unter `src/` werden nach ihrem ers
 | `src/reliability/alpha26-cloud-update-logistics-ui-hotfix.js` | 302 |
 | `src/reliability/alpha27-atomic-constants.js` | 12 |
 | `src/reliability/alpha27-atomic-core.js` | 50 |
-| `src/reliability/alpha27-atomic-economy.js` | 502 |
+| `src/reliability/alpha27-atomic-economy.js` | 539 |
 | `src/reliability/alpha27-atomic-ledger.js` | 297 |
 | `src/reliability/alpha27-atomic-service.js` | 393 |
 | `src/reliability/alpha27-atomic-transaction-engine.js` | 179 |
