@@ -165,6 +165,15 @@ jobs:
       - name: Verify public Adventure Land HD extension preview
         working-directory: Adventure Land HD
         run: node tools/verify-public-extension.mjs --dist "/tmp/alhd-public-dist"
+      - name: Dry-run S3-compatible public asset publishing
+        working-directory: Adventure Land HD
+        run: |
+          node tools/publish-public-assets-s3.mjs \
+            --dir "/tmp/alhd-public-dist/cdn" \
+            --endpoint "https://s3.example.invalid" \
+            --bucket "alhd-ci" \
+            --prefix "preview/${{ github.sha }}" \
+            --dry-run
       - name: Upload public Adventure Land HD distribution preview
         uses: actions/upload-artifact@v4
         with:

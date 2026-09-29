@@ -71,6 +71,12 @@ async function upload(file){
   const target=new URL(endpoint.toString().replace(/\/$/,"")+uri);
   const cacheControl="public,max-age=31536000,immutable";
   const type=contentType(file);
+
+  if(dryRun){
+    console.log("DRY_RUN",key,body.length,payloadHash,target.toString());
+    return;
+  }
+
   const canonicalHeaders=[
     "cache-control:"+cacheControl,
     "content-type:"+type,
@@ -84,11 +90,6 @@ async function upload(file){
   const stringToSign=["AWS4-HMAC-SHA256",amzDate,scope,sha256(canonicalRequest)].join("\n");
   const signature=hmac(signingKey(dateStamp),stringToSign,"hex");
   const authorization="AWS4-HMAC-SHA256 Credential="+accessKey+"/"+scope+", SignedHeaders="+signedHeaders+", Signature="+signature;
-
-  if(dryRun){
-    console.log("DRY_RUN",key,body.length,payloadHash);
-    return;
-  }
 
   const response=await fetch(target,{
     method:"PUT",
