@@ -59,34 +59,49 @@
   }
 
   var mode = requestedMode();
-  var stats = { applied: 0, paths: [], reason: null };
+  var stats = { applied: 0, available: 0, paths: [], missing: [], reason: null };
   var manifest = root && root.__ALHD_MANIFEST__;
   var gameData = root && root.G;
+  var lookup = manifest && manifest.schemaVersion === 1 ? makeLookup(manifest) : Object.create(null);
+  var availablePaths = Object.keys(lookup).sort();
+  stats.available = availablePaths.length;
 
   if (mode === "ORIGINAL") {
     stats.reason = "ORIGINAL_MODE";
   } else if (!gameData || typeof gameData !== "object") {
     stats.reason = "G_UNAVAILABLE";
+    stats.missing = availablePaths.slice();
   } else if (!manifest || manifest.schemaVersion !== 1) {
     stats.reason = "MANIFEST_UNAVAILABLE";
   } else {
-    var lookup = makeLookup(manifest);
     applyFamily(gameData.sprites, lookup, stats);
     applyFamily(gameData.animations, lookup, stats);
     applyFamily(gameData.tilesets, lookup, stats);
     applyFamily(gameData.imagesets, lookup, stats);
     stats.paths = Array.from(new Set(stats.paths)).sort();
+    var appliedPaths = new Set(stats.paths);
+    stats.missing = availablePaths.filter(function (sourcePath) { return !appliedPaths.has(sourcePath); });
     stats.reason = "READY";
   }
 
   root.ALHD = Object.freeze({
-    version: "0.3.1",
+    version: "0.3.2",
     mode: mode,
     applied: stats.applied,
+    available: stats.available,
     paths: Object.freeze(stats.paths.slice()),
+    missing: Object.freeze(stats.missing.slice()),
     reason: stats.reason,
     status: function () {
-      return { version: this.version, mode: this.mode, applied: this.applied, paths: this.paths.slice(), reason: this.reason };
+      return {
+        version: this.version,
+        mode: this.mode,
+        applied: this.applied,
+        available: this.available,
+        paths: this.paths.slice(),
+        missing: this.missing.slice(),
+        reason: this.reason
+      };
     }
   });
 })(typeof window !== "undefined" ? window : globalThis);
