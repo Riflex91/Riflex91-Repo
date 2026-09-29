@@ -655,7 +655,7 @@ public sealed class CdpAlBotV6Client
     const roots = [];
     const seen = new Set();
     const visit = candidate => {
-      if (!candidate || roots.length >= 64) return;
+      if (!candidate || roots.length >= 96) return;
       try {
         if (seen.has(candidate)) return;
         seen.add(candidate);
@@ -664,30 +664,29 @@ public sealed class CdpAlBotV6Client
       roots.push(candidate);
       try { if (candidate.parent && candidate.parent !== candidate) visit(candidate.parent); } catch {}
       try { if (candidate.top && candidate.top !== candidate) visit(candidate.top); } catch {}
+
+      // Adventure Land keeps secondary characters in iframe[data-name] windows.
+      // Prioritize those character roots before generic frames so unrelated page
+      // frames cannot consume the bounded traversal budget first.
+      try {
+        const doc = candidate.document;
+        const characterFrames = doc && doc.querySelectorAll
+          ? doc.querySelectorAll('iframe[data-name]')
+          : [];
+        for (let i = 0; i < characterFrames.length && i < 16; i += 1) {
+          const frame = characterFrames[i];
+          if (frame && frame.contentWindow) visit(frame.contentWindow);
+        }
+      } catch {}
+
       try {
         const frames = candidate.frames;
-        for (let i = 0; frames && i < frames.length && i < 32; i += 1) visit(frames[i]);
+        for (let i = 0; frames && i < frames.length && i < 48; i += 1) visit(frames[i]);
       } catch {}
     };
     visit(globalThis);
 
-    const candidates = [];
-    const candidateSet = new Set();
-    const pushCandidate = candidate => {
-      if (!candidate || candidateSet.has(candidate)) return;
-      candidateSet.add(candidate);
-      candidates.push(candidate);
-    };
-    for (const candidateRoot of roots) {
-      try { if (candidateRoot.ALBot) pushCandidate(candidateRoot.ALBot); } catch {}
-      try {
-        const shared = candidateRoot.__ALBOT_SHARED_RUNTIME__;
-        const runner = shared && shared.runnerRoot;
-        if (runner && runner.ALBot) pushCandidate(runner.ALBot);
-      } catch {}
-    }
-
-    const validBridgeApis = requiredMethod => candidates.filter(candidate => {
+    const isValidBridgeCandidate = (candidate, requiredMethod) => {
       try {
         const bridge = candidate && candidate.bridge;
         const identity = bridge && typeof bridge.identity === 'function' ? bridge.identity() : null;
@@ -700,13 +699,119 @@ public sealed class CdpAlBotV6Client
           && identity.acceptsLegacyGenerations === false
           && typeof bridge[requiredMethod] === 'function';
       } catch { return false; }
-    });
+    };
 
+    const candidatesFromRoots = candidateRoots => {
+      const rows = [];
+      const rowSet = new Set();
+      const pushCandidate = candidate => {
+        if (!candidate || rowSet.has(candidate)) return;
+        rowSet.add(candidate);
+        rows.push(candidate);
+      };
+      for (const candidateRoot of candidateRoots) {
+        try { if (candidateRoot.ALBot) pushCandidate(candidateRoot.ALBot); } catch {}
+        try {
+          const shared = candidateRoot.__ALBOT_SHARED_RUNTIME__;
+          const runner = shared && shared.runnerRoot;
+          if (runner && runner.ALBot) pushCandidate(runner.ALBot);
+        } catch {}
+      }
+      return rows;
+    };
+
+    const candidates = candidatesFromRoots(roots);
+    const validBridgeApis = requiredMethod =>
+      candidates.filter(candidate => isValidBridgeCandidate(candidate, requiredMethod));
     const findBridgeApi = requiredMethod => validBridgeApis(requiredMethod)[0] || null;
+
+    const characterNameOfRoot = candidateRoot => {
+      try {
+        const row = candidateRoot && candidateRoot.character;
+        return String(row && row.name || '').trim();
+      } catch { return ''; }
+    };
+
+    const findAdventureLandCharacterRoot = requestedCharacter => {
+      const wanted = String(requestedCharacter || '').trim().toLowerCase();
+      if (!wanted) return null;
+
+      // Prefer an exact character window over a runner proxy.
+      for (const candidateRoot of roots) {
+        try {
+          const doc = candidateRoot.document;
+          const frames = doc && doc.querySelectorAll
+            ? doc.querySelectorAll('iframe[data-name]')
+            : [];
+          for (let i = 0; i < frames.length && i < 32; i += 1) {
+            const frame = frames[i];
+            const declared = String(frame && frame.dataset && frame.dataset.name || '').trim().toLowerCase();
+            const windowRoot = frame && frame.contentWindow;
+            if (!windowRoot) continue;
+            void windowRoot.location.href;
+            const actual = characterNameOfRoot(windowRoot).toLowerCase();
+            if (actual === wanted || (!actual && declared === wanted)) return windowRoot;
+          }
+        } catch {}
+      }
+
+      for (const candidateRoot of roots) {
+        if (characterNameOfRoot(candidateRoot).toLowerCase() === wanted)
+          return candidateRoot;
+      }
+      return null;
+    };
+
+    const collectCharacterScopeRoots = seed => {
+      const scoped = [];
+      const scopedSeen = new Set();
+      const walk = candidate => {
+        if (!candidate || scoped.length >= 32) return;
+        try {
+          if (scopedSeen.has(candidate)) return;
+          scopedSeen.add(candidate);
+          void candidate.location.href;
+        } catch { return; }
+        scoped.push(candidate);
+        try {
+          const frames = candidate.frames;
+          for (let i = 0; frames && i < frames.length && i < 24; i += 1) {
+            const frame = frames[i];
+            // A nested iframe carrying data-name is another Adventure Land
+            // character and must not leak into this character's scoped lookup.
+            try {
+              const element = frame && frame.frameElement;
+              if (element && element.dataset && element.dataset.name) continue;
+            } catch {}
+            walk(frame);
+          }
+        } catch {}
+      };
+      walk(seed);
+      return scoped;
+    };
 
     const findBridgeApiForCharacter = (requiredMethod, requestedCharacter) => {
       const wanted = String(requestedCharacter || '').trim().toLowerCase();
       if (!wanted) return null;
+
+      const characterRoot = findAdventureLandCharacterRoot(requestedCharacter);
+      if (characterRoot) {
+        const scopedCandidates = candidatesFromRoots(collectCharacterScopeRoots(characterRoot));
+        for (const candidate of scopedCandidates) {
+          try {
+            if (!isValidBridgeCandidate(candidate, requiredMethod)) continue;
+            const bridge = candidate.bridge;
+            if (typeof bridge.snapshot !== 'function') continue;
+            const snapshot = bridge.snapshot({ deep: false });
+            const name = snapshot && snapshot.character && snapshot.character.name;
+            if (String(name || '').trim().toLowerCase() === wanted) return candidate;
+          } catch {}
+        }
+      }
+
+      // Keep the generic lookup as a compatibility path for layouts without
+      // Adventure Land's named character iframes.
       for (const candidate of validBridgeApis(requiredMethod)) {
         try {
           const bridge = candidate && candidate.bridge;
@@ -724,17 +829,61 @@ public sealed class CdpAlBotV6Client
         "(() => {\n"
         + BridgeResolverSource
         + """
-const rows = [];
-const seenCharacters = new Set();
+const roster = new Map();
+const addRosterName = (name, state, source) => {
+  const clean = String(name || '').trim();
+  if (!clean) return;
+  const key = clean.toLowerCase();
+  if (!roster.has(key)) roster.set(key, {
+    character: clean,
+    state: String(state || ''),
+    source: String(source || '')
+  });
+};
+
+// Adventure Land's own liveness API is the authoritative way to enumerate
+// same-account runner names, including child characters whose V6 bridge lives
+// in a nested runner iframe.
+for (const candidateRoot of roots) {
+  try {
+    const fn = candidateRoot && candidateRoot.get_active_characters;
+    if (typeof fn === 'function') {
+      const active = fn.call(candidateRoot);
+      if (active && typeof active === 'object') {
+        for (const [name, state] of Object.entries(active))
+          addRosterName(name, state, 'get_active_characters');
+      }
+    }
+  } catch {}
+  try {
+    const name = characterNameOfRoot(candidateRoot);
+    if (name) addRosterName(name, 'visible', 'character');
+  } catch {}
+}
+
+// Preserve compatibility with layouts where the bridge is visible even when
+// get_active_characters() is unavailable.
 for (const api of validBridgeApis('snapshot')) {
   try {
     const snapshot = api.bridge.snapshot({ deep: false });
-    const name = String(snapshot && snapshot.character && snapshot.character.name || '').trim();
-    if (!name) continue;
-    const key = name.toLowerCase();
-    if (seenCharacters.has(key)) continue;
-    seenCharacters.add(key);
-    rows.push({ character: name });
+    const name = snapshot && snapshot.character && snapshot.character.name;
+    if (name) addRosterName(name, 'bridge', 'bridge');
+  } catch {}
+}
+
+const rows = [];
+for (const row of roster.values()) {
+  const api = findBridgeApiForCharacter('snapshot', row.character);
+  if (!api) continue;
+  try {
+    const snapshot = api.bridge.snapshot({ deep: false });
+    const actual = String(snapshot && snapshot.character && snapshot.character.name || '').trim();
+    if (!actual || actual.toLowerCase() !== row.character.toLowerCase()) continue;
+    rows.push({
+      character: actual,
+      state: row.state,
+      source: row.source
+    });
   } catch {}
 }
 return rows;
