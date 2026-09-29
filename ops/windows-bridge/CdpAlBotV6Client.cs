@@ -77,6 +77,7 @@ public sealed class CdpAlBotV6Client
 
         var reads = new List<DebugReadResult>();
         var seenCharacters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var probeDiagnostics = new List<string>();
 
         foreach (var target in await FindTargetsAsync(cancellationToken))
         {
@@ -93,7 +94,10 @@ public sealed class CdpAlBotV6Client
                             || !ReadBoolean(probe, "valid", false)
                             || !probe.TryGetProperty("identity", out var identity)
                             || !IsV6Identity(identity))
+                        {
+                            AddProbeDiagnostic(probeDiagnostics, target.Url, contextId, probe);
                             continue;
+                        }
 
                         var snapshot = await EvaluateAsync(
                             socket,
@@ -149,23 +153,31 @@ public sealed class CdpAlBotV6Client
                             ReadBoolean(eventBatch, "hasMore", false),
                             target.Url));
                     }
-                    catch (InvalidOperationException)
+                    catch (InvalidOperationException error)
                     {
                         // A single stale/non-bot execution context must not hide the
                         // remaining live V6 characters in the same browser page.
+                        AddProbeDiagnostic(probeDiagnostics, target.Url, contextId, error.Message);
                     }
                 }
             }
-            catch (WebSocketException)
+            catch (WebSocketException error)
             {
+                AddProbeDiagnostic(probeDiagnostics, target.Url, null, "WS:" + error.Message);
             }
-            catch (InvalidOperationException)
+            catch (InvalidOperationException error)
             {
+                AddProbeDiagnostic(probeDiagnostics, target.Url, null, error.Message);
             }
         }
 
         if (reads.Count == 0)
-            throw new InvalidOperationException("ALBOT_V6_BRIDGE_UNAVAILABLE");
+        {
+            var detail = probeDiagnostics.Count == 0
+                ? "NO_PROBE_RESULTS"
+                : string.Join("|", probeDiagnostics.Take(6));
+            throw new InvalidOperationException("ALBOT_V6_BRIDGE_UNAVAILABLE:" + Bounded(detail));
+        }
 
         return reads
             .OrderBy(read => ReadCharacterName(read.Snapshot), StringComparer.OrdinalIgnoreCase)
@@ -602,11 +614,132 @@ public sealed class CdpAlBotV6Client
     private static readonly string ProbeExpression =
         "(() => {\n"
         + BridgeResolverSource
-        + "\nconst api = findBridgeApi('identity');\n"
-        + "if (!api) return { valid: false, identity: null };\n"
-        + "try { return { valid: true, identity: api.bridge.identity() }; }\n"
-        + "catch { return { valid: false, identity: null }; }\n"
-        + "})()";
+        + """
+const summarize = candidate => {
+  try {
+    const bridge = candidate && candidate.bridge;
+    let identity = null;
+    try { identity = bridge && typeof bridge.identity === 'function' ? bridge.identity() : null; } catch {}
+    return {
+      product: candidate && candidate.product || null,
+      version: candidate && candidate.version || null,
+      hasBridge: !!bridge,
+      identity: identity ? {
+        product: identity.product || null,
+        generation: Number(identity.generation) || 0,
+        bridgeProtocol: identity.bridgeProtocol || null,
+        transportOnly: identity.transportOnly === true,
+        gameplayActionAuthority: identity.gameplayActionAuthority === true,
+        acceptsLegacyGenerations: identity.acceptsLegacyGenerations === true
+      } : null
+    };
+  } catch {
+    return { product: null, version: null, hasBridge: false, identity: null };
+  }
+};
+const diagnostics = {
+  rootCount: roots.length,
+  candidateCount: candidates.length,
+  directAlBotCount: roots.filter(root => {
+    try { return !!root.ALBot; } catch { return false; }
+  }).length,
+  sharedRuntimeCount: roots.filter(root => {
+    try { return !!root.__ALBOT_SHARED_RUNTIME__; } catch { return false; }
+  }).length,
+  runnerRootCount: roots.filter(root => {
+    try {
+      const shared = root.__ALBOT_SHARED_RUNTIME__;
+      return !!(shared && shared.runnerRoot);
+    } catch { return false; }
+  }).length,
+  candidates: candidates.slice(0, 4).map(summarize)
+};
+const api = findBridgeApi('identity');
+if (!api) return { valid: false, identity: null, diagnostics };
+try { return { valid: true, identity: api.bridge.identity(), diagnostics }; }
+catch { return { valid: false, identity: null, diagnostics }; }
+})()
+""";
+
+    private static void AddProbeDiagnostic(
+        List<string> diagnostics,
+        string targetUrl,
+        int? contextId,
+        JsonElement probe)
+    {
+        if (diagnostics.Count >= 12) return;
+        var label = TargetLabel(targetUrl);
+        var context = contextId is null ? "ctx?" : "ctx" + contextId.Value;
+        if (probe.ValueKind != JsonValueKind.Object
+            || !probe.TryGetProperty("diagnostics", out var detail)
+            || detail.ValueKind != JsonValueKind.Object)
+        {
+            diagnostics.Add(label + ":" + context + ":NO_DIAG");
+            return;
+        }
+
+        var roots = ReadInt64(detail, "rootCount", 0);
+        var candidates = ReadInt64(detail, "candidateCount", 0);
+        var direct = ReadInt64(detail, "directAlBotCount", 0);
+        var shared = ReadInt64(detail, "sharedRuntimeCount", 0);
+        var runner = ReadInt64(detail, "runnerRootCount", 0);
+        var candidateSummary = "none";
+
+        if (detail.TryGetProperty("candidates", out var rows)
+            && rows.ValueKind == JsonValueKind.Array
+            && rows.GetArrayLength() > 0)
+        {
+            var first = rows[0];
+            var version = ReadString(first, "version") ?? "?";
+            var hasBridge = ReadBoolean(first, "hasBridge", false);
+            var protocol = "?";
+            var generation = 0L;
+            if (first.TryGetProperty("identity", out var identity)
+                && identity.ValueKind == JsonValueKind.Object)
+            {
+                protocol = ReadString(identity, "bridgeProtocol") ?? "?";
+                generation = ReadInt64(identity, "generation", 0);
+            }
+            candidateSummary = "v=" + Bounded(version)
+                + ",bridge=" + (hasBridge ? "1" : "0")
+                + ",g=" + generation
+                + ",p=" + Bounded(protocol);
+        }
+
+        diagnostics.Add(
+            label + ":" + context
+            + ":r" + roots
+            + "/a" + candidates
+            + "/d" + direct
+            + "/s" + shared
+            + "/rr" + runner
+            + ":" + candidateSummary);
+    }
+
+    private static void AddProbeDiagnostic(
+        List<string> diagnostics,
+        string targetUrl,
+        int? contextId,
+        string? error)
+    {
+        if (diagnostics.Count >= 12) return;
+        var label = TargetLabel(targetUrl);
+        var context = contextId is null ? "ctx?" : "ctx" + contextId.Value;
+        diagnostics.Add(label + ":" + context + ":" + Bounded(error));
+    }
+
+    private static string TargetLabel(string targetUrl)
+    {
+        if (Uri.TryCreate(targetUrl, UriKind.Absolute, out var uri))
+        {
+            var parts = uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries);
+            var characterIndex = Array.FindIndex(parts, value =>
+                string.Equals(value, "character", StringComparison.OrdinalIgnoreCase));
+            if (characterIndex >= 0 && characterIndex + 1 < parts.Length)
+                return Bounded(Uri.UnescapeDataString(parts[characterIndex + 1]));
+        }
+        return "target";
+    }
 
     private static long ReadInt64(JsonElement value, string property, long fallback)
     {
