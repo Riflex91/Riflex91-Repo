@@ -100,10 +100,23 @@ Assert(CdpAlBotV6Client.EventsType == "ALBOT_V6_DEBUG_EVENTS", "V6_BRIDGE_EVENTS
 Assert(CdpAlBotV6Client.AckType == "ALBOT_V6_TELEMETRY_ACK", "V6_BRIDGE_ACK_TYPE");
 Assert(CdpAlBotV6Client.DashboardVisualType == "ALBOT_V6_DASHBOARD_VISUAL", "V6_DASHBOARD_VISUAL_TYPE");
 Assert(CdpAlBotV6Client.DashboardTerrainMaxChars <= 400_000, "V6_DASHBOARD_TERRAIN_BUDGET_BOUNDED");
+Assert(CdpAlBotV6Client.ExecutionContextDrainMilliseconds >= 100
+    && CdpAlBotV6Client.ExecutionContextDrainMilliseconds <= 1000,
+    "V6_CDP_EXECUTION_CONTEXT_DRAIN_BOUNDED");
 Assert(CdpAlBotV6Client.AdaptiveEventLimits(200).SequenceEqual([200, 24, 12, 6, 3, 1]),
     "V6_OVERSIZE_EVENT_RETRY_LADDER");
 Assert(CdpAlBotV6Client.AdaptiveEventLimits(12).SequenceEqual([12, 6, 3, 1]),
     "V6_OVERSIZE_EVENT_RETRY_SMALL_LADDER");
+var v6LocalProbeExpression = CdpAlBotV6Client.BuildLocalProbeExpression();
+Assert(v6LocalProbeExpression.Contains("globalThis.ALBot", StringComparison.Ordinal),
+    "V6_LOCAL_PROBE_CHECKS_CURRENT_CONTEXT_ALBOT");
+Assert(v6LocalProbeExpression.Contains("__ALBOT_SHARED_RUNTIME__", StringComparison.Ordinal),
+    "V6_LOCAL_PROBE_CHECKS_CURRENT_CONTEXT_SHARED_RUNTIME");
+Assert(!v6LocalProbeExpression.Contains("candidate.frames", StringComparison.Ordinal),
+    "V6_LOCAL_PROBE_DOES_NOT_ROUTE_THROUGH_SIBLING_FRAMES");
+Assert(!v6LocalProbeExpression.Contains("findAdventureLandCharacterRoot", StringComparison.Ordinal),
+    "V6_LOCAL_PROBE_DOES_NOT_ROUTE_BY_CROSS_FRAME_CHARACTER_LOOKUP");
+
 var v6ProbeExpression = CdpAlBotV6Client.BuildProbeExpression();
 Assert(v6ProbeExpression.Contains("__ALBOT_SHARED_RUNTIME__", StringComparison.Ordinal),
     "V6_PROBE_USES_SHARED_RUNTIME_RUNNER");
@@ -177,6 +190,10 @@ Assert(v6DashboardVisualExpression.Contains("mapBounds", StringComparison.Ordina
     && v6DashboardVisualExpression.Contains("mapVisual", StringComparison.Ordinal)
     && v6DashboardVisualExpression.Contains("sprite", StringComparison.Ordinal),
     "V6_DASHBOARD_VISUAL_PRESERVES_V3_MAP_CONTRACT");
+Assert(!v6DashboardVisualExpression.Contains("mapDef.monsters", StringComparison.Ordinal),
+    "V6_DASHBOARD_VISUAL_OMITS_ENEMY_SPAWN_AREAS");
+Assert(!v6DashboardVisualExpression.Contains("spawns:", StringComparison.Ordinal),
+    "V6_DASHBOARD_VISUAL_HAS_NO_SPAWN_OVERLAY_PAYLOAD");
 var v6DashboardVisualNoTerrainExpression = CdpAlBotV6Client.BuildDashboardVisualExpression("My_Rogue", includeTerrain: false);
 Assert(v6DashboardVisualNoTerrainExpression.Contains("const includeTerrain = false", StringComparison.Ordinal),
     "V6_DASHBOARD_VISUAL_SUPPORTS_PER_MAP_TERRAIN_DEDUP");
