@@ -200,6 +200,15 @@ Assert(v6DashboardVisualNoTerrainExpression.Contains("const includeTerrain = fal
 Assert(CdpAlBotV6Client.IsSupportedTargetType("page"), "V6_CDP_PAGE_TARGET_SUPPORTED");
 Assert(CdpAlBotV6Client.IsSupportedTargetType("iframe"), "V6_CDP_IFRAME_TARGET_SUPPORTED");
 Assert(!CdpAlBotV6Client.IsSupportedTargetType("service_worker"), "V6_CDP_FOREIGN_TARGET_TYPE_REJECTED");
+Assert(CdpAlBotV6Client.CharacterNameFromTargetUrl(
+    "https://adventure.land/character/My_Merchant/in/EU/II/") == "My_Merchant",
+    "V6_CDP_TARGET_CHARACTER_PARSED");
+Assert(CdpAlBotV6Client.CharacterNameFromTargetUrl(
+    "https://adventure.land/character/My%20Merchant/in/EU/II/") == "My Merchant",
+    "V6_CDP_TARGET_CHARACTER_URL_DECODED");
+Assert(CdpAlBotV6Client.CharacterNameFromTargetUrl(
+    "https://adventure.land/runner") is null,
+    "V6_CDP_NON_CHARACTER_TARGET_HAS_NO_CHARACTER");
 
 var namedSnapshotBuilder = typeof(CdpAlBotV6Client).GetMethods(
         System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
@@ -276,7 +285,7 @@ using (var dashboardVisualDoc = JsonDocument.Parse("""
   "character": "My_Merchant",
   "available": true,
   "mapBounds": { "minX": -1800, "minY": -1200, "maxX": 1800, "maxY": 1200 },
-  "mapVisual": { "npcs": [], "doors": [], "spawns": [] },
+  "mapVisual": { "npcs": [], "doors": [] },
   "terrain": { "map": "main", "encoding": "base36-all-v2", "t": [], "pc": "", "gc": [], "ac": "", "s": {} },
   "sprite": { "skin": "merchant", "file": "/images/pack.png", "columns": 8, "rows": 8, "column": 1, "row": 2 }
 }
