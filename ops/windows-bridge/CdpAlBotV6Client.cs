@@ -17,6 +17,7 @@ public sealed class CdpAlBotV6Client
     public const string AckType = "ALBOT_V6_TELEMETRY_ACK";
     public const string DashboardVisualType = "ALBOT_V6_DASHBOARD_VISUAL";
     public const int CdpCommandTimeoutSeconds = 12;
+    public const int ExecutionContextDrainMilliseconds = 250;
     public const int DashboardTerrainMaxChars = 400_000;
 
     private readonly HttpClient _httpClient;
@@ -97,156 +98,138 @@ public sealed class CdpAlBotV6Client
                 {
                     try
                     {
-                        var probe = await EvaluateAsync(socket, ProbeExpression, contextId, cancellationToken);
-                        if (probe.ValueKind != JsonValueKind.Object
-                            || !ReadBoolean(probe, "valid", false)
-                            || !probe.TryGetProperty("identity", out var identity)
-                            || !IsV6Identity(identity))
-                        {
-                            AddProbeDiagnostic(probeDiagnostics, target.Url, contextId, probe);
-                            continue;
-                        }
-
-                        var catalog = await EvaluateAsync(
+                        // Read only the bridge owned by this execution context. Cross-frame
+                        // discovery is useful for roster/diagnostics, but routing telemetry
+                        // through a sibling frame can collapse several characters onto the
+                        // same runtime. Local contexts keep snapshot/events/ACK character-exact.
+                        var localProbe = await EvaluateAsync(
                             socket,
-                            CharacterCatalogExpression,
+                            LocalProbeExpression,
                             contextId,
                             cancellationToken);
-                        if (catalog.ValueKind != JsonValueKind.Array || catalog.GetArrayLength() == 0)
-                        {
-                            AddProbeDiagnostic(probeDiagnostics, target.Url, contextId, "CHARACTER_CATALOG_EMPTY");
+                        if (localProbe.ValueKind != JsonValueKind.Object
+                            || !ReadBoolean(localProbe, "valid", false)
+                            || !localProbe.TryGetProperty("identity", out var localIdentity)
+                            || !IsV6Identity(localIdentity))
                             continue;
-                        }
 
-                        foreach (var catalogRow in catalog.EnumerateArray())
+                        try
                         {
-                            var characterName = ReadString(catalogRow, "character")?.Trim();
-                            if (string.IsNullOrWhiteSpace(characterName))
-                                continue;
-
-                            rosterCharacters.Add(characterName);
-                            if (!ReadBoolean(catalogRow, "bridgeAvailable", false))
+                            var catalog = await EvaluateAsync(
+                                socket,
+                                CharacterCatalogExpression,
+                                contextId,
+                                cancellationToken);
+                            if (catalog.ValueKind == JsonValueKind.Array)
                             {
-                                AddProbeDiagnostic(
-                                    probeDiagnostics,
-                                    target.Url,
-                                    contextId,
-                                    "ACTIVE_CHARACTER_BRIDGE_MISSING:"
-                                    + Bounded(characterName)
-                                    + ":"
-                                    + Bounded(ReadString(catalogRow, "state")));
-                                continue;
-                            }
-
-                            if (seenCharacters.Contains(characterName))
-                                continue;
-
-                            try
-                            {
-                                var snapshot = await EvaluateAsync(
-                                    socket,
-                                    BuildSnapshotExpression(includeDeepDiagnostics, characterName),
-                                    contextId,
-                                    cancellationToken);
-                                if (!IsV6Snapshot(snapshot))
-                                    throw new InvalidOperationException("ALBOT_V6_SNAPSHOT_INVALID");
-
-                                var resolvedCharacterName = ReadCharacterName(snapshot);
-                                if (!string.Equals(
-                                        resolvedCharacterName,
-                                        characterName,
-                                        StringComparison.OrdinalIgnoreCase))
-                                    throw new InvalidOperationException(
-                                        "ALBOT_V6_CHARACTER_SELECTION_MISMATCH:"
-                                        + Bounded(characterName)
-                                        + "!="
-                                        + Bounded(resolvedCharacterName));
-
-                                JsonElement? dashboardVisual = null;
-                                try
+                                foreach (var catalogRow in catalog.EnumerateArray())
                                 {
-                                    var mapId = ReadCharacterMap(snapshot);
-                                    var includeTerrain = !string.IsNullOrWhiteSpace(mapId)
-                                        && !terrainMaps.Contains(mapId);
-                                    var visual = await EvaluateAsync(
-                                        socket,
-                                        BuildDashboardVisualExpression(characterName, includeTerrain),
-                                        contextId,
-                                        cancellationToken);
-                                    if (IsDashboardVisual(visual))
-                                    {
-                                        dashboardVisual = visual.Clone();
-                                        if (includeTerrain
-                                            && !string.IsNullOrWhiteSpace(mapId)
-                                            && HasUsableDashboardTerrain(visual))
-                                            terrainMaps.Add(mapId);
-                                    }
+                                    var rosterName = ReadString(catalogRow, "character")?.Trim();
+                                    if (!string.IsNullOrWhiteSpace(rosterName))
+                                        rosterCharacters.Add(rosterName);
                                 }
-                                catch (InvalidOperationException error)
-                                {
-                                    // Dashboard visuals are observational only. Missing/large
-                                    // map metadata must never hide a live character.
-                                    AddProbeDiagnostic(
-                                        probeDiagnostics,
-                                        target.Url,
-                                        contextId,
-                                        Bounded(characterName) + ":DASHBOARD_VISUAL:" + error.Message);
-                                }
-
-                                var afterSeq = Math.Max(0, afterSeqForCharacter(characterName));
-                                var eventBatch = await EvaluateEventsAdaptiveAsync(
-                                    socket,
-                                    characterName,
-                                    afterSeq,
-                                    eventLimit,
-                                    contextId,
-                                    cancellationToken);
-                                if (!IsV6EventBatch(eventBatch))
-                                    throw new InvalidOperationException("ALBOT_V6_EVENTS_INVALID");
-
-                                JsonElement events;
-                                if (eventBatch.TryGetProperty("events", out var eventsNode)
-                                    && eventsNode.ValueKind == JsonValueKind.Array)
-                                    events = eventsNode.Clone();
-                                else
-                                {
-                                    using var empty = JsonDocument.Parse("[]");
-                                    events = empty.RootElement.Clone();
-                                }
-
-                                var requestedAfterSeq = ReadInt64(eventBatch, "requestedAfterSeq", afterSeq);
-                                var effectiveAfterSeq = ReadInt64(eventBatch, "effectiveAfterSeq", requestedAfterSeq);
-                                var lastCapturedSeq = ReadInt64(eventBatch, "lastCapturedSeq", 0);
-                                var maxSeq = effectiveAfterSeq;
-                                foreach (var row in events.EnumerateArray())
-                                {
-                                    if (row.ValueKind == JsonValueKind.Object
-                                        && row.TryGetProperty("seq", out var seqNode)
-                                        && seqNode.TryGetInt64(out var seq))
-                                        maxSeq = Math.Max(maxSeq, seq);
-                                }
-
-                                reads.Add(new DebugReadResult(
-                                    snapshot.Clone(),
-                                    events,
-                                    requestedAfterSeq,
-                                    effectiveAfterSeq,
-                                    maxSeq,
-                                    lastCapturedSeq,
-                                    ReadBoolean(eventBatch, "hasMore", false),
-                                    target.Url,
-                                    dashboardVisual));
-                                seenCharacters.Add(characterName);
-                            }
-                            catch (InvalidOperationException error)
-                            {
-                                AddProbeDiagnostic(
-                                    probeDiagnostics,
-                                    target.Url,
-                                    contextId,
-                                    Bounded(characterName) + ":" + error.Message);
                             }
                         }
+                        catch (InvalidOperationException error)
+                        {
+                            AddProbeDiagnostic(
+                                probeDiagnostics,
+                                target.Url,
+                                contextId,
+                                "ROSTER:" + error.Message);
+                        }
+
+                        var snapshot = await EvaluateAsync(
+                            socket,
+                            BuildSnapshotExpression(includeDeepDiagnostics),
+                            contextId,
+                            cancellationToken);
+                        if (!IsV6Snapshot(snapshot))
+                            throw new InvalidOperationException("ALBOT_V6_SNAPSHOT_INVALID");
+
+                        var characterName = ReadCharacterName(snapshot);
+                        if (string.IsNullOrWhiteSpace(characterName))
+                            throw new InvalidOperationException("ALBOT_V6_CHARACTER_NAME_MISSING");
+
+                        rosterCharacters.Add(characterName);
+                        if (seenCharacters.Contains(characterName))
+                            continue;
+
+                        JsonElement? dashboardVisual = null;
+                        try
+                        {
+                            var mapId = ReadCharacterMap(snapshot);
+                            var includeTerrain = !string.IsNullOrWhiteSpace(mapId)
+                                && !terrainMaps.Contains(mapId);
+                            var visual = await EvaluateAsync(
+                                socket,
+                                BuildDashboardVisualExpression(characterName, includeTerrain),
+                                contextId,
+                                cancellationToken);
+                            if (IsDashboardVisual(visual))
+                            {
+                                dashboardVisual = visual.Clone();
+                                if (includeTerrain
+                                    && !string.IsNullOrWhiteSpace(mapId)
+                                    && HasUsableDashboardTerrain(visual))
+                                    terrainMaps.Add(mapId);
+                            }
+                        }
+                        catch (InvalidOperationException error)
+                        {
+                            // Dashboard visuals are observational only. Missing/large
+                            // map metadata must never hide a live character.
+                            AddProbeDiagnostic(
+                                probeDiagnostics,
+                                target.Url,
+                                contextId,
+                                Bounded(characterName) + ":DASHBOARD_VISUAL:" + error.Message);
+                        }
+
+                        var afterSeq = Math.Max(0, afterSeqForCharacter(characterName));
+                        var eventBatch = await EvaluateLocalEventsAdaptiveAsync(
+                            socket,
+                            characterName,
+                            afterSeq,
+                            eventLimit,
+                            contextId,
+                            cancellationToken);
+                        if (!IsV6EventBatch(eventBatch))
+                            throw new InvalidOperationException("ALBOT_V6_EVENTS_INVALID");
+
+                        JsonElement events;
+                        if (eventBatch.TryGetProperty("events", out var eventsNode)
+                            && eventsNode.ValueKind == JsonValueKind.Array)
+                            events = eventsNode.Clone();
+                        else
+                        {
+                            using var empty = JsonDocument.Parse("[]");
+                            events = empty.RootElement.Clone();
+                        }
+
+                        var requestedAfterSeq = ReadInt64(eventBatch, "requestedAfterSeq", afterSeq);
+                        var effectiveAfterSeq = ReadInt64(eventBatch, "effectiveAfterSeq", requestedAfterSeq);
+                        var lastCapturedSeq = ReadInt64(eventBatch, "lastCapturedSeq", 0);
+                        var maxSeq = effectiveAfterSeq;
+                        foreach (var row in events.EnumerateArray())
+                        {
+                            if (row.ValueKind == JsonValueKind.Object
+                                && row.TryGetProperty("seq", out var seqNode)
+                                && seqNode.TryGetInt64(out var seq))
+                                maxSeq = Math.Max(maxSeq, seq);
+                        }
+
+                        reads.Add(new DebugReadResult(
+                            snapshot.Clone(),
+                            events,
+                            requestedAfterSeq,
+                            effectiveAfterSeq,
+                            maxSeq,
+                            lastCapturedSeq,
+                            ReadBoolean(eventBatch, "hasMore", false),
+                            target.Url,
+                            dashboardVisual));
+                        seenCharacters.Add(characterName);
                     }
                     catch (InvalidOperationException error)
                     {
@@ -284,7 +267,7 @@ public sealed class CdpAlBotV6Client
         if (reads.Count == 0)
         {
             var detail = probeDiagnostics.Count == 0
-                ? "NO_PROBE_RESULTS"
+                ? "NO_LOCAL_V6_CONTEXTS"
                 : string.Join("|", probeDiagnostics
                     .GroupBy(row => row.Split(':', 2)[0], StringComparer.OrdinalIgnoreCase)
                     .Select(group => group.FirstOrDefault(row =>
@@ -320,16 +303,35 @@ public sealed class CdpAlBotV6Client
                 {
                     try
                     {
-                        var probe = await EvaluateAsync(socket, ProbeExpression, contextId, cancellationToken);
-                        if (probe.ValueKind != JsonValueKind.Object
-                            || !ReadBoolean(probe, "valid", false)
-                            || !probe.TryGetProperty("identity", out var identity)
+                        var localProbe = await EvaluateAsync(
+                            socket,
+                            LocalProbeExpression,
+                            contextId,
+                            cancellationToken);
+                        if (localProbe.ValueKind != JsonValueKind.Object
+                            || !ReadBoolean(localProbe, "valid", false)
+                            || !localProbe.TryGetProperty("identity", out var identity)
                             || !IsV6Identity(identity))
                             continue;
 
+                        if (!string.IsNullOrWhiteSpace(characterName))
+                        {
+                            var snapshot = await EvaluateAsync(
+                                socket,
+                                BuildSnapshotExpression(deep: false),
+                                contextId,
+                                cancellationToken);
+                            var currentCharacter = ReadCharacterName(snapshot);
+                            if (!string.Equals(
+                                    currentCharacter,
+                                    characterName,
+                                    StringComparison.OrdinalIgnoreCase))
+                                continue;
+                        }
+
                         var value = await EvaluateAsync(
                             socket,
-                            BuildAcknowledgeExpression(maxSeq, characterName),
+                            BuildAcknowledgeExpression(maxSeq),
                             contextId,
                             cancellationToken);
                         if (value.ValueKind != JsonValueKind.Object
@@ -407,6 +409,8 @@ public sealed class CdpAlBotV6Client
     }
 
     public static string BuildProbeExpression() => ProbeExpression;
+
+    public static string BuildLocalProbeExpression() => LocalProbeExpression;
 
     public static string? ReadCharacterName(JsonElement snapshot)
     {
@@ -501,30 +505,62 @@ public sealed class CdpAlBotV6Client
             await socket.SendAsync(command, WebSocketMessageType.Text, true, token);
 
             var contexts = new List<int>();
+            var responseSeen = false;
             while (true)
             {
-                var message = await ReceiveJsonAsync(socket, id, token);
+                JsonDocument? message;
+                if (!responseSeen)
+                {
+                    message = await ReceiveJsonAsync(socket, id, token);
+                }
+                else
+                {
+                    using var drainCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                    drainCts.CancelAfter(TimeSpan.FromMilliseconds(ExecutionContextDrainMilliseconds));
+                    try
+                    {
+                        message = await ReceiveJsonAsync(socket, id, drainCts.Token);
+                    }
+                    catch (OperationCanceledException) when (
+                        !token.IsCancellationRequested
+                        && !cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                }
+
                 if (message is null) continue;
                 using (message)
                 {
                     var root = message.RootElement;
-                if (root.ValueKind == JsonValueKind.Object
-                    && root.TryGetProperty("method", out var methodNode)
-                    && string.Equals(methodNode.GetString(), "Runtime.executionContextCreated", StringComparison.Ordinal)
-                    && root.TryGetProperty("params", out var paramsNode)
-                    && paramsNode.TryGetProperty("context", out var contextNode)
-                    && TryGetExecutionContextId(contextNode, out var contextId))
-                    contexts.Add(contextId);
+                    if (root.ValueKind == JsonValueKind.Object
+                        && root.TryGetProperty("method", out var methodNode)
+                        && string.Equals(
+                            methodNode.GetString(),
+                            "Runtime.executionContextCreated",
+                            StringComparison.Ordinal)
+                        && root.TryGetProperty("params", out var paramsNode)
+                        && paramsNode.TryGetProperty("context", out var contextNode)
+                        && TryGetExecutionContextId(contextNode, out var contextId))
+                        contexts.Add(contextId);
 
-                if (!root.TryGetProperty("id", out var idNode)
-                    || !idNode.TryGetInt32(out var responseId)
-                    || responseId != id)
-                    continue;
+                    if (!root.TryGetProperty("id", out var idNode)
+                        || !idNode.TryGetInt32(out var responseId)
+                        || responseId != id)
+                        continue;
+
                     if (root.TryGetProperty("error", out var error))
-                        throw new InvalidOperationException("CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
-                    break;
+                        throw new InvalidOperationException(
+                            "CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
+
+                    // CDP may emit some existing executionContextCreated events just
+                    // after the Runtime.enable response. Keep draining until a short
+                    // quiet period so nested Adventure Land character/runner contexts
+                    // are not missed nondeterministically.
+                    responseSeen = true;
                 }
             }
+
             return contexts.Distinct().ToArray();
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -1116,7 +1152,7 @@ const mapBounds = geometry && finite(geometry.min_x) && finite(geometry.min_y)
       maxY: Number(character.y || character.real_y || 0) + 1200
     };
 
-const mapVisual = { npcs: [], doors: [], spawns: [] };
+const mapVisual = { npcs: [], doors: [] };
 try {
   for (const raw of (Array.isArray(mapDef.npcs) ? mapDef.npcs : []).slice(0, 80)) {
     const id = Array.isArray(raw) ? raw[0] : raw && raw.id;
@@ -1133,21 +1169,6 @@ try {
     const to = Array.isArray(raw) ? raw[4] : raw && (raw.map || raw.to);
     if (finite(x) && finite(y))
       mapVisual.doors.push({ x: Number(x), y: Number(y), to: boundedText(to, 40) });
-  }
-} catch {}
-try {
-  for (const monster of (Array.isArray(mapDef.monsters) ? mapDef.monsters : []).slice(0, 50)) {
-    if (!monster) continue;
-    const boundary = monster.boundary || monster.boundaries || null;
-    if (Array.isArray(boundary) && boundary.length >= 4 && boundary.slice(0, 4).every(finite)) {
-      mapVisual.spawns.push({
-        type: boundedText(monster.type, 40),
-        x1: Number(boundary[0]),
-        y1: Number(boundary[1]),
-        x2: Number(boundary[2]),
-        y2: Number(boundary[3])
-      });
-    }
   }
 } catch {}
 
@@ -1311,6 +1332,39 @@ return {
         return values;
     }
 
+    private async Task<JsonElement> EvaluateLocalEventsAdaptiveAsync(
+        ClientWebSocket socket,
+        string characterName,
+        long afterSeq,
+        int eventLimit,
+        int contextId,
+        CancellationToken cancellationToken)
+    {
+        InvalidOperationException? oversized = null;
+        foreach (var limit in AdaptiveEventLimits(eventLimit))
+        {
+            try
+            {
+                return await EvaluateAsync(
+                    socket,
+                    BuildEventsExpression(characterName: null, afterSeq, limit),
+                    contextId,
+                    cancellationToken);
+            }
+            catch (InvalidOperationException error) when (
+                error.Message.StartsWith("CDP_RESPONSE_TOO_LARGE", StringComparison.Ordinal))
+            {
+                oversized = error;
+            }
+        }
+
+        throw new InvalidOperationException(
+            "ALBOT_V6_EVENTS_TOO_LARGE:"
+            + Bounded(characterName)
+            + ":"
+            + (oversized?.Message ?? "CDP_RESPONSE_TOO_LARGE"));
+    }
+
     private async Task<JsonElement> EvaluateEventsAdaptiveAsync(
         ClientWebSocket socket,
         string characterName,
@@ -1379,6 +1433,54 @@ return {
             + "return api.bridge.acknowledgeTelemetry(" + bounded + ");\n"
             + "})()";
     }
+
+    private static readonly string LocalProbeExpression =
+        """
+(() => {
+  const candidates = [];
+  const seen = new Set();
+  const add = candidate => {
+    if (!candidate || seen.has(candidate)) return;
+    seen.add(candidate);
+    candidates.push(candidate);
+  };
+
+  try { add(globalThis.ALBot); } catch {}
+  try {
+    const shared = globalThis.__ALBOT_SHARED_RUNTIME__;
+    const runner = shared && shared.runnerRoot;
+    if (runner) add(runner.ALBot);
+  } catch {}
+
+  const api = candidates.find(candidate => {
+    try {
+      const bridge = candidate && candidate.bridge;
+      const identity = bridge && typeof bridge.identity === 'function' ? bridge.identity() : null;
+      return !!identity
+        && identity.product === 'AL Bot'
+        && Number(identity.generation) === 6
+        && identity.bridgeProtocol === 'albot-v6-bridge-v1'
+        && identity.transportOnly === true
+        && identity.gameplayActionAuthority === false
+        && identity.acceptsLegacyGenerations === false
+        && typeof bridge.snapshot === 'function'
+        && typeof bridge.events === 'function'
+        && typeof bridge.acknowledgeTelemetry === 'function';
+    } catch { return false; }
+  }) || null;
+
+  if (!api) return { valid: false, identity: null, candidateCount: candidates.length };
+  try {
+    return {
+      valid: true,
+      identity: api.bridge.identity(),
+      candidateCount: candidates.length
+    };
+  } catch {
+    return { valid: false, identity: null, candidateCount: candidates.length };
+  }
+})()
+""";
 
     private static readonly string ProbeExpression =
         "(() => {\n"
