@@ -134,6 +134,28 @@ using (var legacyIdentityDocument = JsonDocument.Parse("""
 {
     Assert(!CdpAlBotV6Client.IsV6Identity(legacyIdentityDocument.RootElement), "LEGACY_IDENTITY_REJECTED");
 }
+Assert(typeof(CdpAlBotV6Client).GetMethods().Any(method => method.Name == "ReadAllAsync"), "V6_MULTI_CHARACTER_READ_API");
+Assert(typeof(CdpAlBotV6Client).GetMethods().Any(method =>
+    method.Name == "AcknowledgeThroughAsync"
+    && method.GetParameters().Length == 3
+    && method.GetParameters()[0].ParameterType == typeof(string)), "V6_CHARACTER_SCOPED_ACK_API");
+
+using (var multiCharacterSnapshot = JsonDocument.Parse("""{"character":{"name":"My_Ranger1"}}"""))
+{
+    Assert(CdpAlBotV6Client.ReadCharacterName(multiCharacterSnapshot.RootElement) == "My_Ranger1",
+        "V6_SNAPSHOT_CHARACTER_NAME");
+}
+
+var perCharacterState = new BridgeState(999);
+Assert(perCharacterState.GetLastEventSeq("My_Ranger1") == 0,
+    "V6_LEGACY_GLOBAL_CURSOR_MUST_NOT_SKIP_NEW_CHARACTER_DATA");
+perCharacterState = perCharacterState.WithCharacterSeq("My_Ranger1", 12);
+perCharacterState = perCharacterState.WithCharacterSeq("My_Priest", 34);
+Assert(perCharacterState.GetLastEventSeq("My_Ranger1") == 12, "V6_RANGER_CURSOR_INDEPENDENT");
+Assert(perCharacterState.GetLastEventSeq("my_priest") == 34, "V6_PRIEST_CURSOR_CASE_INSENSITIVE");
+Assert(perCharacterState.GetLastEventSeq("My_Merchant") == 0, "V6_NEW_CHARACTER_CURSOR_STARTS_ZERO");
+Assert(perCharacterState.LastEventSeq == 999, "V6_AGGREGATE_CURSOR_REMAINS_MONOTONIC");
+
 Assert(defaults.WebDashboardEnabled, "WEB_DASHBOARD_PROFILE_SYNC_DEFAULT_ON");
 Assert(defaults.WebDashboardBaseUrl.StartsWith("https://", StringComparison.Ordinal), "WEB_DASHBOARD_MUST_DEFAULT_HTTPS");
 Assert(defaults.WebDashboardAccount == "default", "WEB_DASHBOARD_ACCOUNT_DEFAULT");
