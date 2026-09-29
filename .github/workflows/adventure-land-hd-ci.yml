@@ -195,9 +195,23 @@ jobs:
         shell: powershell
         run: |
           Add-Content -LiteralPath ".upstream-adventureland\main.js" -Value ([Environment]::NewLine + "// alhd windows ci sentinel")
+          Add-Content -LiteralPath ".upstream-adventureland\htmls\index.html" -Value ([Environment]::NewLine + "<!-- alhd windows ci index sentinel -->")
           Set-Content -LiteralPath ".upstream-adventureland\.alhd-ci-preserve.txt" -Value "preserve"
           $hash = (Get-FileHash -LiteralPath ".upstream-adventureland\main.js" -Algorithm SHA256).Hash
           "ALHD_SENTINEL_HASH=$hash" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Check-only mode must not modify dirty checkout
+        shell: cmd
+        run: |
+          call "Adventure Land HD\tools\windows\Prepare-Mainland-Staged-Overlay.cmd" -UpstreamPath "%GITHUB_WORKSPACE%\.upstream-adventureland" -CheckOnly
+      - name: Verify check-only left real checkout untouched
+        shell: powershell
+        run: |
+          $hash = (Get-FileHash -LiteralPath ".upstream-adventureland\main.js" -Algorithm SHA256).Hash
+          if ($hash -ne $env:ALHD_SENTINEL_HASH) { throw "Check-only changed the dirty main.js sentinel." }
+          $index = Get-Content -LiteralPath ".upstream-adventureland\htmls\index.html" -Raw
+          if (-not $index.Contains("<!-- alhd windows ci index sentinel -->")) { throw "Check-only removed the dirty index sentinel." }
+          if (-not (Test-Path -LiteralPath ".upstream-adventureland\.alhd-ci-preserve.txt")) { throw "Check-only removed the untracked sentinel." }
+          if (Test-Path -LiteralPath ".upstream-adventureland\js\adventure-land-hd-manifest.js") { throw "Check-only materialized runtime files into the real checkout." }
       - name: Run Windows Mainland staged updater against dirty checkout
         shell: cmd
         run: |
@@ -211,6 +225,10 @@ jobs:
           $status = (git -C .upstream-adventureland status --porcelain) -join [Environment]::NewLine
           if ($status -notmatch "main\.js") { throw "Pre-existing tracked dirty state disappeared." }
           if ($status -notmatch "\.alhd-ci-preserve\.txt") { throw "Pre-existing untracked state disappeared." }
+          $index = Get-Content -LiteralPath ".upstream-adventureland\htmls\index.html" -Raw
+          if (-not $index.Contains("<!-- alhd windows ci index sentinel -->")) { throw "Updater removed the pre-existing index sentinel." }
+          if (([regex]::Matches($index,'adventure-land-hd-manifest\.js\?alhdv=')).Count -ne 1) { throw "Expected exactly one ALHD manifest script tag after update." }
+          if (([regex]::Matches($index,'adventure-land-hd-bootstrap\.js')).Count -ne 1) { throw "Expected exactly one ALHD bootstrap script tag after update." }
           $assetCount = @(Get-ChildItem -LiteralPath ".upstream-adventureland\images\alhd" -File -Recurse).Count
           if ($assetCount -lt 48) { throw "Expected at least 48 materialized ALHD files, found $assetCount." }
           $runtimeManifest = Get-Content -LiteralPath ".upstream-adventureland\js\adventure-land-hd-manifest.js" -Raw
