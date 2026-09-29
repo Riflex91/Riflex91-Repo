@@ -297,8 +297,41 @@ public sealed record BridgeConfig
     };
 }
 
-public sealed record BridgeState(long LastEventSeq = 0)
+public sealed record BridgeState(
+    long LastEventSeq = 0,
+    Dictionary<string, long>? CharacterEventSeqs = null)
 {
+    public long GetLastEventSeq(string? character)
+    {
+        if (string.IsNullOrWhiteSpace(character) || CharacterEventSeqs is null) return 0;
+        foreach (var row in CharacterEventSeqs)
+        {
+            if (string.Equals(row.Key, character, StringComparison.OrdinalIgnoreCase))
+                return Math.Max(0, row.Value);
+        }
+        // The old global cursor belonged to whichever character the bridge happened
+        // to read first. Reusing it for a newly discovered character could skip data,
+        // so unknown characters intentionally start at zero.
+        return 0;
+    }
+
+    public BridgeState WithCharacterSeq(string character, long lastEventSeq)
+    {
+        if (string.IsNullOrWhiteSpace(character))
+            throw new ArgumentException("CHARACTER_REQUIRED", nameof(character));
+
+        var next = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        if (CharacterEventSeqs is not null)
+        {
+            foreach (var row in CharacterEventSeqs)
+                next[row.Key] = Math.Max(0, row.Value);
+        }
+
+        next[character.Trim()] = Math.Max(0, lastEventSeq);
+        var aggregate = Math.Max(LastEventSeq, next.Values.DefaultIfEmpty(0).Max());
+        return this with { LastEventSeq = aggregate, CharacterEventSeqs = next };
+    }
+
     public static async Task<BridgeState> LoadAsync(CancellationToken cancellationToken = default)
     {
         if (!File.Exists(BridgeConfig.StatePath)) return new BridgeState();

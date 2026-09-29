@@ -90,10 +90,10 @@ jobs:
           const ready = Array.isArray(rows) && rows.some(row => row && row.name === 'ALBOT_V6_WRITE_KEY');
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `ready=${ready}\n`);
           if (!ready) {
-            console.log('::warning::ALBOT_V6_WRITE_KEY is not configured on the Cloudflare Worker. V6 runtime writes will remain unavailable until the secret is set.');
-          } else {
-            console.log('ALBOT_V6_WRITE_KEY is configured.');
+            console.log('::error::ALBOT_V6_WRITE_KEY is not configured as a Cloudflare Worker secret. Refusing deployment because V6 runtime writes would be unavailable.');
+            process.exit(1);
           }
+          console.log('ALBOT_V6_WRITE_KEY is configured as a Worker secret.');
           NODE
           rm -f worker-secrets.json
       - name: Check R2 log bucket
