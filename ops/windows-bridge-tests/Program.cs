@@ -1084,11 +1084,11 @@ using (var oversizedSnapshotDocument = JsonDocument.Parse("""
 {
     var minimalSnapshot = minimalSnapshotMethod!.Invoke(null, [oversizedSnapshotDocument.RootElement])!;
     var minimalJson = JsonSerializer.Serialize(minimalSnapshot);
-    Assert(minimalJson.Contains(""bridgeProtocol":"albot-v6-bridge-v1"", StringComparison.Ordinal),
+    Assert(minimalJson.Contains("\"bridgeProtocol\":\"albot-v6-bridge-v1\"", StringComparison.Ordinal),
         "V6_SUPABASE_MINIMAL_SNAPSHOT_PRESERVES_IDENTITY");
-    Assert(minimalJson.Contains(""name":"My_Ranger1"", StringComparison.Ordinal),
+    Assert(minimalJson.Contains("\"name\":\"My_Ranger1\"", StringComparison.Ordinal),
         "V6_SUPABASE_MINIMAL_SNAPSHOT_PRESERVES_CHARACTER");
-    Assert(!minimalJson.Contains(""status"", StringComparison.Ordinal),
+    Assert(!minimalJson.Contains("\"status\"", StringComparison.Ordinal),
         "V6_SUPABASE_MINIMAL_SNAPSHOT_OMITS_HEAVY_STATUS");
 }
 Assert(SupabaseProblemDiagnosticsSink.IsWithinPayloadBudget(SupabaseProblemDiagnosticsSink.MaxPayloadBytes), "PROBLEM_MIRROR_BUDGET_BOUNDARY");
