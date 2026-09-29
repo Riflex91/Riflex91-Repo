@@ -45,6 +45,8 @@
 - [x] offizieller Client-Fail-Closed: geänderte G.*.file-Pfade werden nicht überschrieben und erscheinen in ALHD.status().missing
 - [x] reproduzierbarer Public-Distribution-Build: Chromium + Firefox + 48-Asset-CDN-Bundle + SHA-256-Inventar
 - [x] Public-Extension-Architektur: MV3 MAIN-world document_start auf offiziellen adventure.land-Seiten, strikt presentation-only
+- [x] optionales S3-kompatibles CDN-Publishing für R2/B2 plus Adventure-Land-CORS-Verifikation
+- [x] manueller Public-Release-Workflow: 48 Assets bauen/validieren, Chromium-/Firefox-ZIPs erzeugen und als Artifact ausgeben
 - [ ] Mainland Terrain/Tilesets vollständig auf HD umstellen
 - [x] Mainland NPC-/Monster-Produktionsscope gepinnt: 34 Entity-Sheets / 7 Cosmetics / 18 Character-Sheets / 9 Monster-Sheets; sicherer Start `jubchan@8x + 33×4x`
 - [ ] Mainland NPC-Sheets vollständig auf HD umstellen
