@@ -576,7 +576,7 @@ public sealed class CdpAlBotV6Client
     {
         var after = Math.Max(0, afterSeq);
         var boundedLimit = Math.Clamp(limit, 1, 200);
-        return $"""
+        return $$"""
         (() => {
       const roots = [];
       const seen = new Set();
@@ -630,7 +630,7 @@ public sealed class CdpAlBotV6Client
     private static string BuildAcknowledgeExpression(long maxSeq)
     {
         var bounded = Math.Max(0, maxSeq);
-        return $"""
+        return $$"""
         (() => {
       const roots = [];
       const seen = new Set();
