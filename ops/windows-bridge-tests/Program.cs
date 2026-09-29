@@ -123,6 +123,44 @@ Assert(v6ProbeExpression.Contains("version: candidate && candidate.version", Str
     "V6_PROBE_REPORTS_RUNTIME_VERSION");
 Assert(v6ProbeExpression.Contains("hasBridge: !!bridge", StringComparison.Ordinal),
     "V6_PROBE_REPORTS_BRIDGE_PRESENCE");
+Assert(v6ProbeExpression.Contains("candidateSet", StringComparison.Ordinal),
+    "V6_PROBE_DEDUPES_BRIDGE_CANDIDATES");
+Assert(v6ProbeExpression.Contains("findBridgeApiForCharacter", StringComparison.Ordinal),
+    "V6_PROBE_SUPPORTS_EXACT_CHARACTER_SELECTION");
+
+var v6CharacterCatalogExpression = CdpAlBotV6Client.BuildCharacterCatalogExpression();
+Assert(v6CharacterCatalogExpression.Contains("validBridgeApis('snapshot')", StringComparison.Ordinal),
+    "V6_CHARACTER_CATALOG_ENUMERATES_ALL_VALID_BRIDGES");
+Assert(v6CharacterCatalogExpression.Contains("seenCharacters", StringComparison.Ordinal),
+    "V6_CHARACTER_CATALOG_DEDUPES_CHARACTER_NAMES");
+Assert(v6CharacterCatalogExpression.Contains("rows.push({ character: name })", StringComparison.Ordinal),
+    "V6_CHARACTER_CATALOG_RETURNS_CHARACTER_NAMES");
+Assert(CdpAlBotV6Client.IsSupportedTargetType("page"), "V6_CDP_PAGE_TARGET_SUPPORTED");
+Assert(CdpAlBotV6Client.IsSupportedTargetType("iframe"), "V6_CDP_IFRAME_TARGET_SUPPORTED");
+Assert(!CdpAlBotV6Client.IsSupportedTargetType("service_worker"), "V6_CDP_FOREIGN_TARGET_TYPE_REJECTED");
+
+var namedSnapshotBuilder = typeof(CdpAlBotV6Client).GetMethods(
+        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+    .Single(method => method.Name == "BuildSnapshotExpression"
+        && method.GetParameters().Length == 2);
+var namedEventsBuilder = typeof(CdpAlBotV6Client).GetMethods(
+        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+    .Single(method => method.Name == "BuildEventsExpression"
+        && method.GetParameters().Length == 3);
+var namedAckBuilder = typeof(CdpAlBotV6Client).GetMethods(
+        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)
+    .Single(method => method.Name == "BuildAcknowledgeExpression"
+        && method.GetParameters().Length == 2);
+
+var namedSnapshotExpression = (string)namedSnapshotBuilder.Invoke(null, [false, "My_Mage"])!;
+var namedEventsExpression = (string)namedEventsBuilder.Invoke(null, ["My_Mage", 12L, 100])!;
+var namedAckExpression = (string)namedAckBuilder.Invoke(null, [34L, "My_Mage"])!;
+Assert(namedSnapshotExpression.Contains("findBridgeApiForCharacter('snapshot', \"My_Mage\")", StringComparison.Ordinal),
+    "V6_SNAPSHOT_SELECTS_EXACT_CHARACTER");
+Assert(namedEventsExpression.Contains("findBridgeApiForCharacter('events', \"My_Mage\")", StringComparison.Ordinal),
+    "V6_EVENTS_SELECT_EXACT_CHARACTER");
+Assert(namedAckExpression.Contains("findBridgeApiForCharacter('acknowledgeTelemetry', \"My_Mage\")", StringComparison.Ordinal),
+    "V6_ACK_SELECTS_EXACT_CHARACTER");
 
 var telemetryBoundedMethod = typeof(TelemetryBridgeService).GetMethod(
     "Bounded",
