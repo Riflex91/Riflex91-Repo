@@ -371,7 +371,7 @@ public sealed class CdpAlBotV6Client
         }
     }
 
-    private static bool TryGetExecutionContextId(JsonElement context, out int contextId)
+    private bool TryGetExecutionContextId(JsonElement context, out int contextId)
     {
         contextId = 0;
         if (context.ValueKind != JsonValueKind.Object
@@ -383,13 +383,21 @@ public sealed class CdpAlBotV6Client
         // FindTargetsAsync already restricts the CDP page target itself to the
         // configured Adventure Land origin. Adventure Land may execute CODE in
         // same-page sandbox/about:blank contexts whose CDP "origin" is empty or
-        // otherwise non-canonical, so filtering execution contexts by origin here
-        // can hide a valid ALBot.bridge.
-        //
-        // Safety remains fail-closed: candidate contexts are only probed for the
-        // bounded V6 identity and accepted only when product, generation, protocol
-        // and no-gameplay-authority flags match exactly.
-        return true;
+        // omitted, so those opaque contexts must remain eligible for the bounded
+        // V6 identity probe.
+        if (!context.TryGetProperty("origin", out var originNode)
+            || originNode.ValueKind != JsonValueKind.String)
+            return true;
+
+        var origin = originNode.GetString();
+        if (string.IsNullOrWhiteSpace(origin))
+            return true;
+
+        // Explicit foreign origins remain fail-closed. This prevents a cross-origin
+        // child frame from self-reporting a forged ALBot V6 identity and having its
+        // data forwarded with host credentials.
+        return Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+            && SameOrigin(uri, _allowedOrigin);
     }
 
     private async Task<JsonElement> EvaluateAsync(
