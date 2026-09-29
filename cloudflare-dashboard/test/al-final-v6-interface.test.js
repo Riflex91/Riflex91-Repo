@@ -52,7 +52,7 @@ test('AL Final V6 live interface keeps V6 transport and V3 map/sprite capabiliti
 
   assert.doesNotMatch(html, /v\.spawns/);
   assert.doesNotMatch(html, /class="spawn"/);
-  assert.doesNotMatch(html, /function render\(\)\{[^}]*fitMap\(\)\}/);
+  assert.ok(!html.includes('renderSelect();fitMap()'), 'live refresh must not reset map zoom');
   assert.doesNotMatch(html, /\/api\/v3\/runtime/);
   assert.doesNotMatch(html, /WRITE_KEY/);
   assert.doesNotMatch(html, /ADMIN_KEY/);
