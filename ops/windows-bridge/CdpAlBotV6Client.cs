@@ -483,7 +483,7 @@ public sealed class CdpAlBotV6Client
         var payload = stream.ToArray();
         if (messageType != WebSocketMessageType.Text)
             throw new InvalidOperationException(
-                "CDP_NON_TEXT_FRAME:" + String(messageType) + ":" + PayloadPreview(payload));
+                "CDP_NON_TEXT_FRAME:" + (messageType?.ToString() ?? "UNKNOWN") + ":" + PayloadPreview(payload));
 
         return ParseCdpJson(payload);
     }
