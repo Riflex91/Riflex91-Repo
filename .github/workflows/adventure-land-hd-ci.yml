@@ -64,6 +64,16 @@ jobs:
       - name: Verify complete Mainland visual scope
         working-directory: Adventure Land HD
         run: node tools/verify-main-map-scope.mjs --upstream "../.upstream-adventureland"
+      - name: Verify all 48 Mainland sources are runtime-reachable
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-runtime-coverage.mjs --upstream "../.upstream-adventureland" --report "/tmp/alhd-mainland-runtime-coverage.json"
+      - name: Upload Mainland runtime coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: alhd-mainland-runtime-coverage
+          path: /tmp/alhd-mainland-runtime-coverage.json
+          if-no-files-found: error
+          compression-level: 0
       - name: Verify Mainland terrain production contract
         working-directory: Adventure Land HD
         run: node tools/verify-mainland-terrain-plan.mjs --upstream "../.upstream-adventureland"
