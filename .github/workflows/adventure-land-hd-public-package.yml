@@ -1,0 +1,118 @@
+name: Adventure Land HD Public Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      asset_base_url:
+        description: "Public HTTPS base URL where the generated cdn/ tree will be served"
+        required: true
+        type: string
+      asset_prefix:
+        description: "S3/R2/B2 key prefix matching asset_base_url (only used when publish_assets=true)"
+        required: false
+        default: ""
+        type: string
+      version:
+        description: "Extension version (1-4 numeric components)"
+        required: true
+        default: "0.1.0"
+        type: string
+      build_label:
+        description: "Human-readable build label"
+        required: true
+        default: "public-preview"
+        type: string
+      publish_assets:
+        description: "Upload generated static images to configured S3-compatible storage"
+        required: true
+        default: false
+        type: boolean
+      verify_public_cdn:
+        description: "After upload, fetch sample images from asset_base_url and verify CORS/content"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Checkout pinned Adventure Land
+        shell: bash
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/kaansoral/adventureland_mongodb.git .upstream-adventureland
+          git -C .upstream-adventureland fetch --depth=1 origin 90052162eb3ebda36c893e1eb4af643913c8f984
+          git -C .upstream-adventureland checkout --detach 90052162eb3ebda36c893e1eb4af643913c8f984
+
+      - name: Build and validate complete Mainland staging set
+        working-directory: Adventure Land HD
+        run: |
+          node tools/prepare-mainland-staged-overlay.mjs \
+            --upstream "../.upstream-adventureland" \
+            --workspace "/tmp/alhd-public-stage" \
+            --check-only
+
+      - name: Build Chromium, Firefox and static CDN distribution
+        working-directory: Adventure Land HD
+        run: |
+          node tools/build-public-extension.mjs \
+            --manifest "/tmp/alhd-public-stage/hd-assets-mainland-staged.json" \
+            --hd-root "/tmp/alhd-public-stage/hd-assets" \
+            --asset-base-url "${{ inputs.asset_base_url }}" \
+            --output "/tmp/alhd-public-dist" \
+            --version "${{ inputs.version }}" \
+            --build-label "${{ inputs.build_label }}"
+
+      - name: Verify generated public distribution
+        working-directory: Adventure Land HD
+        run: node tools/verify-public-extension.mjs --dist "/tmp/alhd-public-dist"
+
+      - name: Package browser extensions
+        shell: bash
+        run: |
+          (cd /tmp/alhd-public-dist/chromium && zip -qr ../adventure-land-hd-chromium.zip .)
+          (cd /tmp/alhd-public-dist/firefox && zip -qr ../adventure-land-hd-firefox.zip .)
+          tar -C /tmp/alhd-public-dist/cdn -czf /tmp/alhd-public-dist/adventure-land-hd-cdn.tar.gz .
+
+      - name: Publish static images to S3-compatible storage
+        if: ${{ inputs.publish_assets }}
+        working-directory: Adventure Land HD
+        env:
+          ALHD_S3_ENDPOINT: ${{ secrets.ALHD_S3_ENDPOINT }}
+          ALHD_S3_BUCKET: ${{ secrets.ALHD_S3_BUCKET }}
+          ALHD_S3_REGION: ${{ secrets.ALHD_S3_REGION }}
+          ALHD_S3_ACCESS_KEY_ID: ${{ secrets.ALHD_S3_ACCESS_KEY_ID }}
+          ALHD_S3_SECRET_ACCESS_KEY: ${{ secrets.ALHD_S3_SECRET_ACCESS_KEY }}
+        run: |
+          node tools/publish-public-assets-s3.mjs \
+            --dir "/tmp/alhd-public-dist/cdn" \
+            --endpoint "$ALHD_S3_ENDPOINT" \
+            --bucket "$ALHD_S3_BUCKET" \
+            --region "${ALHD_S3_REGION:-auto}" \
+            --prefix "${{ inputs.asset_prefix }}"
+
+      - name: Verify public CDN from Adventure Land origin
+        if: ${{ inputs.verify_public_cdn }}
+        working-directory: Adventure Land HD
+        run: node tools/verify-public-cdn.mjs --cdn-manifest "/tmp/alhd-public-dist/cdn-manifest.json" --sample-count 5
+
+      - name: Upload installable public packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: adventure-land-hd-public-${{ inputs.version }}
+          path: |
+            /tmp/alhd-public-dist/adventure-land-hd-chromium.zip
+            /tmp/alhd-public-dist/adventure-land-hd-firefox.zip
+            /tmp/alhd-public-dist/adventure-land-hd-cdn.tar.gz
+            /tmp/alhd-public-dist/build-info.json
+            /tmp/alhd-public-dist/cdn-manifest.json
+          if-no-files-found: error
+          compression-level: 0

@@ -25,6 +25,10 @@
     "mainland:staged-manifest": "node tools/build-mainland-staged-manifest.mjs",
     "mainland:staged-overlay": "node tools/prepare-mainland-staged-overlay.mjs",
     "runtime:main:coverage": "node tools/verify-mainland-runtime-coverage.mjs",
-    "runtime:main:application": "node tools/verify-mainland-runtime-application.mjs"
+    "runtime:main:application": "node tools/verify-mainland-runtime-application.mjs",
+    "public:build": "node tools/build-public-extension.mjs",
+    "public:verify": "node tools/verify-public-extension.mjs",
+    "public:publish:s3": "node tools/publish-public-assets-s3.mjs",
+    "public:cdn:verify": "node tools/verify-public-cdn.mjs"
   }
 }

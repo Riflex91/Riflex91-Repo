@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Adventure Land HD",
+  "version": "0.1.0",
+  "description": "Presentation-only HD graphics for the official Adventure Land browser client.",
+  "minimum_chrome_version": "102",
+  "permissions": ["scripting"],
+  "host_permissions": [
+    "https://adventure.land/*",
+    "https://www.adventure.land/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://adventure.land/*",
+        "https://www.adventure.land/*"
+      ],
+      "js": ["page-manifest.js", "page-bootstrap.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    }
+  ],
+  "action": {
+    "default_title": "Adventure Land HD",
+    "default_popup": "popup.html"
+  }
+}
