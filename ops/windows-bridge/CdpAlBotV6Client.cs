@@ -84,7 +84,7 @@ public sealed class CdpAlBotV6Client
             try
             {
                 await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
-                foreach (var contextId in await CollectAllowedExecutionContextsAsync(socket, cancellationToken))
+                foreach (var contextId in await CollectTargetExecutionContextsAsync(socket, cancellationToken))
                 {
                     try
                     {
@@ -188,7 +188,7 @@ public sealed class CdpAlBotV6Client
             try
             {
                 await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
-                foreach (var contextId in await CollectAllowedExecutionContextsAsync(socket, cancellationToken))
+                foreach (var contextId in await CollectTargetExecutionContextsAsync(socket, cancellationToken))
                 {
                     try
                     {
@@ -287,7 +287,7 @@ public sealed class CdpAlBotV6Client
 
     private async Task<int?> FindV6ContextAsync(ClientWebSocket socket, CancellationToken cancellationToken)
     {
-        foreach (var contextId in await CollectAllowedExecutionContextsAsync(socket, cancellationToken))
+        foreach (var contextId in await CollectTargetExecutionContextsAsync(socket, cancellationToken))
         {
             try
             {
@@ -329,7 +329,7 @@ public sealed class CdpAlBotV6Client
         return matches;
     }
 
-    private async Task<IReadOnlyList<int>> CollectAllowedExecutionContextsAsync(
+    private async Task<IReadOnlyList<int>> CollectTargetExecutionContextsAsync(
         ClientWebSocket socket,
         CancellationToken cancellationToken)
     {
@@ -352,7 +352,7 @@ public sealed class CdpAlBotV6Client
                     && string.Equals(methodNode.GetString(), "Runtime.executionContextCreated", StringComparison.Ordinal)
                     && root.TryGetProperty("params", out var paramsNode)
                     && paramsNode.TryGetProperty("context", out var contextNode)
-                    && TryGetAllowedContextId(contextNode, out var contextId))
+                    && TryGetExecutionContextId(contextNode, out var contextId))
                     contexts.Add(contextId);
 
                 if (!root.TryGetProperty("id", out var idNode)
@@ -371,16 +371,25 @@ public sealed class CdpAlBotV6Client
         }
     }
 
-    private bool TryGetAllowedContextId(JsonElement context, out int contextId)
+    private static bool TryGetExecutionContextId(JsonElement context, out int contextId)
     {
         contextId = 0;
         if (context.ValueKind != JsonValueKind.Object
             || !context.TryGetProperty("id", out var idNode)
             || !idNode.TryGetInt32(out contextId)
-            || !context.TryGetProperty("origin", out var originNode))
+            || contextId <= 0)
             return false;
-        var origin = originNode.GetString();
-        return Uri.TryCreate(origin, UriKind.Absolute, out var uri) && SameOrigin(uri, _allowedOrigin);
+
+        // FindTargetsAsync already restricts the CDP page target itself to the
+        // configured Adventure Land origin. Adventure Land may execute CODE in
+        // same-page sandbox/about:blank contexts whose CDP "origin" is empty or
+        // otherwise non-canonical, so filtering execution contexts by origin here
+        // can hide a valid ALBot.bridge.
+        //
+        // Safety remains fail-closed: candidate contexts are only probed for the
+        // bounded V6 identity and accepted only when product, generation, protocol
+        // and no-gameplay-authority flags match exactly.
+        return true;
     }
 
     private async Task<JsonElement> EvaluateAsync(
