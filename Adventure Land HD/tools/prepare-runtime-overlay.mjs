@@ -8,10 +8,16 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const args=process.argv.slice(2);
 const val=flag=>{const i=args.indexOf(flag);return i>=0?args[i+1]:null;};
 const upstreamArg=val("--upstream");
+const manifestArg=val("--manifest");
+const hdRootArg=val("--hd-root");
 const checkOnly=args.includes("--check-only");
-if(!upstreamArg){console.error("Usage: node tools/prepare-runtime-overlay.mjs --upstream <checkout> [--check-only]");process.exit(2);}
+if(!upstreamArg){console.error("Usage: node tools/prepare-runtime-overlay.mjs --upstream <checkout> [--check-only] [--manifest <json>] [--hd-root <dir>]");process.exit(2);}
 
 const upstream=path.resolve(process.cwd(),upstreamArg);
+const manifestPath=manifestArg?path.resolve(process.cwd(),manifestArg):path.join(root,"manifests","hd-assets.json");
+const hdRoot=hdRootArg?path.resolve(process.cwd(),hdRootArg):path.join(root,"hd-assets");
+const customOverlay=Boolean(manifestArg||hdRootArg);
+if((manifestArg&&!hdRootArg)||(!manifestArg&&hdRootArg)) throw new Error("--manifest and --hd-root must be supplied together for a custom overlay.");
 const lock=JSON.parse(fs.readFileSync(path.join(root,"UPSTREAM.lock.json"),"utf8"));
 const head=execFileSync("git",["-C",upstream,"rev-parse","HEAD"],{encoding:"utf8"}).trim();
 if(head!==lock.commit) throw new Error("Wrong upstream commit: "+head);
@@ -40,10 +46,13 @@ if(checkOnly) process.exit(0);
 const dirtyBefore=execFileSync("git",["-C",upstream,"status","--porcelain"],{encoding:"utf8"}).trim();
 if(dirtyBefore) throw new Error("Upstream checkout must be clean before applying the HD overlay.");
 
-execFileSync(process.execPath,[path.join(root,"tools","materialize-generated-hd-assets.mjs"),"--upstream",upstream],{stdio:"inherit"});
+if(!customOverlay) execFileSync(process.execPath,[path.join(root,"tools","materialize-generated-hd-assets.mjs"),"--upstream",upstream],{stdio:"inherit"});
+else execFileSync(process.execPath,[path.join(root,"tools","validate-hd-assets.mjs"),"--upstream",upstream,"--manifest",manifestPath,"--hd-root",hdRoot],{stdio:"inherit"});
 
 const generatedManifest=path.join(root,"runtime",".generated-manifest.js");
-execFileSync(process.execPath,[path.join(root,"tools","build-runtime-manifest.mjs"),"--output",generatedManifest],{stdio:"inherit"});
+const buildManifestArgs=[path.join(root,"tools","build-runtime-manifest.mjs"),"--output",generatedManifest];
+if(customOverlay) buildManifestArgs.push("--manifest",manifestPath,"--hd-root",hdRoot);
+execFileSync(process.execPath,buildManifestArgs,{stdio:"inherit"});
 
 const manifestTarget=path.join(upstream,"js","adventure-land-hd-manifest.js");
 const bootstrapTarget=path.join(upstream,"js","adventure-land-hd-bootstrap.js");
@@ -55,14 +64,14 @@ fs.unlinkSync(generatedManifest);
 const injection=anchor+'\n\t\t<script src="/js/adventure-land-hd-manifest.js?alhdv='+manifestVersion+'"></script>\n\t\t<script src="/js/adventure-land-hd-bootstrap.js"></script>';
 fs.writeFileSync(indexPath,index.replace(anchor,injection),"utf8");
 
-const hdManifest=JSON.parse(fs.readFileSync(path.join(root,"manifests","hd-assets.json"),"utf8"));
+const hdManifest=JSON.parse(fs.readFileSync(manifestPath,"utf8"));
 for(const item of hdManifest.replacements||[]){
   if(item.state!=="active") continue;
-  const source=path.join(root,"hd-assets",...item.hdPath.split("/"));
+  const source=path.join(hdRoot,...item.hdPath.split("/"));
   if(!fs.existsSync(source)) throw new Error("Missing active HD file: "+item.hdPath);
   const target=path.join(upstream,"images","alhd",...item.hdPath.split("/"));
   fs.mkdirSync(path.dirname(target),{recursive:true});
   fs.copyFileSync(source,target);
 }
 
-console.log("Adventure Land HD presentation overlay applied to local pinned checkout.");
+console.log("Adventure Land HD presentation overlay applied to local pinned checkout.",customOverlay?"custom staged manifest":"repository active manifest");

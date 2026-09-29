@@ -5,7 +5,7 @@ on:
       - "Adventure Land HD/**"
       - ".github/workflows/adventure-land-hd-ci.yml"
   push:
-    branches: [main]
+    branches: [main, "chatgpt/alhd-dev-v2"]
     paths:
       - "Adventure Land HD/**"
       - ".github/workflows/adventure-land-hd-ci.yml"
@@ -22,6 +22,11 @@ jobs:
       - name: Verify inventory, bridge rules and runtime syntax
         working-directory: Adventure Land HD
         run: npm run check
+      - name: Parse Windows Mainland staged updater
+        working-directory: Adventure Land HD
+        shell: pwsh
+        run: |
+          [void][scriptblock]::Create((Get-Content "tools/windows/Prepare-Mainland-Staged-Overlay.ps1" -Raw))
       - name: Checkout pinned Adventure Land
         shell: bash
         run: |
@@ -59,9 +64,94 @@ jobs:
       - name: Verify complete Mainland visual scope
         working-directory: Adventure Land HD
         run: node tools/verify-main-map-scope.mjs --upstream "../.upstream-adventureland"
+      - name: Verify all 48 Mainland sources are runtime-reachable
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-runtime-coverage.mjs --upstream "../.upstream-adventureland" --report "/tmp/alhd-mainland-runtime-coverage.json"
+      - name: Upload Mainland runtime coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: alhd-mainland-runtime-coverage
+          path: /tmp/alhd-mainland-runtime-coverage.json
+          if-no-files-found: error
+          compression-level: 0
+      - name: Simulate full 48-source Mainland runtime application
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-runtime-application.mjs --upstream "../.upstream-adventureland" --report "/tmp/alhd-mainland-runtime-application.json"
+      - name: Upload Mainland runtime application report
+        uses: actions/upload-artifact@v4
+        with:
+          name: alhd-mainland-runtime-application
+          path: /tmp/alhd-mainland-runtime-application.json
+          if-no-files-found: error
+          compression-level: 0
       - name: Verify Mainland terrain production contract
         working-directory: Adventure Land HD
         run: node tools/verify-mainland-terrain-plan.mjs --upstream "../.upstream-adventureland"
+      - name: Verify Mainland terrain runtime memory profile
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-terrain-runtime-profile.mjs --upstream "../.upstream-adventureland"
+      - name: Build safe Mainland terrain candidate set
+        working-directory: Adventure Land HD
+        run: |
+          rm -rf /tmp/alhd-mainland-staged-assets
+          mkdir -p /tmp/alhd-mainland-staged-assets
+          node tools/build-mainland-terrain-candidates.mjs \
+            --upstream "../.upstream-adventureland" \
+            --output-dir "/tmp/alhd-mainland-staged-assets" \
+            --report "/tmp/alhd-mainland-terrain-report.json"
+      - name: Verify Mainland terrain candidate report
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-terrain-candidate-report.mjs --report "/tmp/alhd-mainland-terrain-report.json"
+      - name: Upload Mainland terrain candidate report
+        uses: actions/upload-artifact@v4
+        with:
+          name: alhd-mainland-terrain-report
+          path: /tmp/alhd-mainland-terrain-report.json
+          if-no-files-found: error
+          compression-level: 0
+      - name: Verify complete Mainland NPC and monster entity plan
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-entity-plan.mjs --upstream "../.upstream-adventureland"
+      - name: Build safe Mainland entity candidate set
+        working-directory: Adventure Land HD
+        run: |
+          mkdir -p /tmp/alhd-mainland-staged-assets
+          node tools/build-mainland-entity-candidates.mjs \
+            --upstream "../.upstream-adventureland" \
+            --output-dir "/tmp/alhd-mainland-staged-assets" \
+            --report "/tmp/alhd-mainland-entity-report.json"
+      - name: Verify Mainland entity candidate report
+        working-directory: Adventure Land HD
+        run: node tools/verify-mainland-entity-candidate-report.mjs --report "/tmp/alhd-mainland-entity-report.json"
+      - name: Upload Mainland entity candidate report
+        uses: actions/upload-artifact@v4
+        with:
+          name: alhd-mainland-entity-report
+          path: /tmp/alhd-mainland-entity-report.json
+          if-no-files-found: error
+          compression-level: 0
+      - name: Build verified Mainland terrain promotion
+        working-directory: Adventure Land HD
+        run: node tools/build-mainland-terrain-promotion.mjs --report "/tmp/alhd-mainland-terrain-report.json" --output "/tmp/alhd-mainland-terrain-promotion.json"
+      - name: Build verified Mainland entity promotion
+        working-directory: Adventure Land HD
+        run: node tools/build-mainland-entity-promotion.mjs --report "/tmp/alhd-mainland-entity-report.json" --output "/tmp/alhd-mainland-entity-promotion.json"
+      - name: Build complete Mainland staged HD manifest
+        working-directory: Adventure Land HD
+        run: node tools/build-mainland-staged-manifest.mjs --terrain-promotion "/tmp/alhd-mainland-terrain-promotion.json" --entity-promotion "/tmp/alhd-mainland-entity-promotion.json" --output "/tmp/alhd-mainland-staged-manifest.json"
+      - name: Validate complete Mainland staged HD manifest
+        working-directory: Adventure Land HD
+        run: node tools/validate-hd-assets.mjs --upstream "../.upstream-adventureland" --hd-root "/tmp/alhd-mainland-staged-assets" --manifest "/tmp/alhd-mainland-staged-manifest.json"
+      - name: Upload complete Mainland staged evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: alhd-mainland-staged-evidence
+          path: |
+            /tmp/alhd-mainland-terrain-promotion.json
+            /tmp/alhd-mainland-entity-promotion.json
+            /tmp/alhd-mainland-staged-manifest.json
+          if-no-files-found: error
+          compression-level: 0
       - name: Audit renderer compatibility contracts
         working-directory: Adventure Land HD
         run: node tools/analyze-contracts.mjs --upstream "../.upstream-adventureland" --check-only
@@ -87,3 +177,61 @@ jobs:
       - name: Verify materialized overlay and pilot bytes
         working-directory: Adventure Land HD
         run: node tools/verify-runtime-overlay.mjs --upstream "../.upstream-adventureland"
+  windows_staged_updater:
+    if: github.ref == 'refs/heads/chatgpt/alhd-dev-v2'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Checkout pinned Adventure Land for dirty-worktree test
+        shell: powershell
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/kaansoral/adventureland_mongodb.git .upstream-adventureland
+          git -C .upstream-adventureland fetch --depth=1 origin 90052162eb3ebda36c893e1eb4af643913c8f984
+          git -C .upstream-adventureland checkout --detach 90052162eb3ebda36c893e1eb4af643913c8f984
+      - name: Seed local dirty changes that must survive
+        shell: powershell
+        run: |
+          Add-Content -LiteralPath ".upstream-adventureland\main.js" -Value ([Environment]::NewLine + "// alhd windows ci sentinel")
+          Add-Content -LiteralPath ".upstream-adventureland\htmls\index.html" -Value ([Environment]::NewLine + "<!-- alhd windows ci index sentinel -->")
+          Set-Content -LiteralPath ".upstream-adventureland\.alhd-ci-preserve.txt" -Value "preserve"
+          $hash = (Get-FileHash -LiteralPath ".upstream-adventureland\main.js" -Algorithm SHA256).Hash
+          "ALHD_SENTINEL_HASH=$hash" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Check-only mode must not modify dirty checkout
+        shell: cmd
+        run: |
+          call "Adventure Land HD\tools\windows\Prepare-Mainland-Staged-Overlay.cmd" -UpstreamPath "%GITHUB_WORKSPACE%\.upstream-adventureland" -CheckOnly
+      - name: Verify check-only left real checkout untouched
+        shell: powershell
+        run: |
+          $hash = (Get-FileHash -LiteralPath ".upstream-adventureland\main.js" -Algorithm SHA256).Hash
+          if ($hash -ne $env:ALHD_SENTINEL_HASH) { throw "Check-only changed the dirty main.js sentinel." }
+          $index = Get-Content -LiteralPath ".upstream-adventureland\htmls\index.html" -Raw
+          if (-not $index.Contains("<!-- alhd windows ci index sentinel -->")) { throw "Check-only removed the dirty index sentinel." }
+          if (-not (Test-Path -LiteralPath ".upstream-adventureland\.alhd-ci-preserve.txt")) { throw "Check-only removed the untracked sentinel." }
+          if (Test-Path -LiteralPath ".upstream-adventureland\js\adventure-land-hd-manifest.js") { throw "Check-only materialized runtime files into the real checkout." }
+      - name: Run Windows Mainland staged updater against dirty checkout
+        shell: cmd
+        run: |
+          call "Adventure Land HD\tools\windows\Prepare-Mainland-Staged-Overlay.cmd" -UpstreamPath "%GITHUB_WORKSPACE%\.upstream-adventureland"
+      - name: Verify dirty changes and complete staged overlay survived together
+        shell: powershell
+        run: |
+          $hash = (Get-FileHash -LiteralPath ".upstream-adventureland\main.js" -Algorithm SHA256).Hash
+          if ($hash -ne $env:ALHD_SENTINEL_HASH) { throw "Updater changed the pre-existing dirty main.js sentinel." }
+          if (-not (Test-Path -LiteralPath ".upstream-adventureland\.alhd-ci-preserve.txt")) { throw "Updater removed the pre-existing untracked sentinel." }
+          $status = (git -C .upstream-adventureland status --porcelain) -join [Environment]::NewLine
+          if ($status -notmatch "main\.js") { throw "Pre-existing tracked dirty state disappeared." }
+          if ($status -notmatch "\.alhd-ci-preserve\.txt") { throw "Pre-existing untracked state disappeared." }
+          $index = Get-Content -LiteralPath ".upstream-adventureland\htmls\index.html" -Raw
+          if (-not $index.Contains("<!-- alhd windows ci index sentinel -->")) { throw "Updater removed the pre-existing index sentinel." }
+          if (([regex]::Matches($index,'adventure-land-hd-manifest\.js\?alhdv=')).Count -ne 1) { throw "Expected exactly one ALHD manifest script tag after update." }
+          if (([regex]::Matches($index,'adventure-land-hd-bootstrap\.js')).Count -ne 1) { throw "Expected exactly one ALHD bootstrap script tag after update." }
+          $assetCount = @(Get-ChildItem -LiteralPath ".upstream-adventureland\images\alhd" -File -Recurse).Count
+          if ($assetCount -lt 48) { throw "Expected at least 48 materialized ALHD files, found $assetCount." }
+          $runtimeManifest = Get-Content -LiteralPath ".upstream-adventureland\js\adventure-land-hd-manifest.js" -Raw
+          $activeCount = ([regex]::Matches($runtimeManifest,'"state": "active"')).Count
+          if ($activeCount -ne 48) { throw "Expected 48 active staged runtime entries, found $activeCount." }
+

@@ -1,0 +1,490 @@
+{
+  "schemaVersion": 1,
+  "upstreamCommit": "90052162eb3ebda36c893e1eb4af643913c8f984",
+  "mapId": "main",
+  "purpose": "Promotion contract for Mainland NPC, cosmetic and monster candidate sheets. Candidate-verified entries are evidence-pinned but remain inactive until an explicit promotion step.",
+  "entries": [
+    {
+      "group": "npc-cosmetic",
+      "sourcePath": "images/cosmetics/armors/mbody4.png",
+      "originalBlobSha": "87a2103ed70ef366bf68a65a8fdf52c21414391e",
+      "scale": 4,
+      "hdPath": "entities/cosmetics/armors/mbody4@4x.png",
+      "expectedPixels": {
+        "width": 1296,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "ae163a691328ccb9fa490ad7b4f53841e231e47e4ee011708aad5b71938fcb32",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-cosmetic",
+      "sourcePath": "images/cosmetics/beardo/beard1.png",
+      "originalBlobSha": "76308b24533eb0786853439d2163f3f5abce31a6",
+      "scale": 4,
+      "hdPath": "entities/cosmetics/beardo/beard1@4x.png",
+      "expectedPixels": {
+        "width": 4428,
+        "height": 480
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "2ca515f68428b5ff211c9d725bdd2158742b62bc2920ae519ce1ad644f55d974",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-cosmetic",
+      "sourcePath": "images/cosmetics/hairdo/hairdo4.png",
+      "originalBlobSha": "3dd9e1b732c7936d5a4c9048d66d2aaaca8d1cd0",
+      "scale": 4,
+      "hdPath": "entities/cosmetics/hairdo/hairdo4@4x.png",
+      "expectedPixels": {
+        "width": 2700,
+        "height": 480
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "96029a815b34eea839c9605ed667fce5bcc5a1c83300053f984d18a2c3246803",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-cosmetic",
+      "sourcePath": "images/cosmetics/hats/aniv2_anim.png",
+      "originalBlobSha": "9e7d4d951398a99770e289a1ba376e27bc50e2b9",
+      "scale": 4,
+      "hdPath": "entities/cosmetics/hats/aniv2_anim@4x.png",
+      "expectedPixels": {
+        "width": 648,
+        "height": 608
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "18cacb05f0c12633c6c79fd2811e30ccb516c9cc95920f9a9850f124ec3e9b3c",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-cosmetic",
+      "sourcePath": "images/cosmetics/hats/hats2.png",
+      "originalBlobSha": "50481f058ee6c3bc64cad945efcc76965922cc5d",
+      "scale": 4,
+      "hdPath": "entities/cosmetics/hats/hats2@4x.png",
+      "expectedPixels": {
+        "width": 2700,
+        "height": 480
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "014f17948a4f6dc58277efe2ff4c445d1b7babbb78ab018af10f02ae28588203",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-cosmetic",
+      "sourcePath": "images/cosmetics/makeup/malemakeup.png",
+      "originalBlobSha": "bb2fe28430995e22d080b3f7e679dcfd8dc0a320",
+      "scale": 4,
+      "hdPath": "entities/cosmetics/makeup/malemakeup@4x.png",
+      "expectedPixels": {
+        "width": 1512,
+        "height": 480
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "b39e0cf910691de5b6fe8d01f4d3b048dda06fe61d271fb4d52b7c56e67e81f4",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-cosmetic",
+      "sourcePath": "images/cosmetics/wings/backpacks.png",
+      "originalBlobSha": "9be8365e692c6f220a6fd6a99b123e44c5138f89",
+      "scale": 4,
+      "hdPath": "entities/cosmetics/wings/backpacks@4x.png",
+      "expectedPixels": {
+        "width": 740,
+        "height": 576
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "c6bd9b6605dd17f31f5fef624434dfd3ff978834b2f61c09237aff430995b3ef",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/all_characters/xxschar2.png",
+      "originalBlobSha": "b029807a1026038a6736444f1dcac2b60ee659a0",
+      "scale": 4,
+      "hdPath": "entities/all_characters/xxschar2@4x.png",
+      "expectedPixels": {
+        "width": 1296,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "7a616ed85189be952a7869181999ef79db3bb4071ddc521ae7d0ca20c907f8b6",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/animation1i.png",
+      "originalBlobSha": "4bedcc5ed686fce5a911a59b54b31e3ef62019ca",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/animation1i@4x.png",
+      "expectedPixels": {
+        "width": 2256,
+        "height": 1600
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "484793052f5d7d589f89adfea110cc3f70145034163702e6f2af1ec4f18ec7ed",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/animation2.png",
+      "originalBlobSha": "e36f9e985781564edfee6d9b818c070ed3c25be5",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/animation2@4x.png",
+      "expectedPixels": {
+        "width": 2256,
+        "height": 1600
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "07fe35ae8deb3a816fe5764c489b7518e8cf713115dd1979eaf3ea268e8599d4",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/animation3.png",
+      "originalBlobSha": "3733a7c807d8fd9f8ec4c2777c0b61fb86537e8e",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/animation3@4x.png",
+      "expectedPixels": {
+        "width": 2256,
+        "height": 1600
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "529e4056b8d6c58e2879558596fa80dffca12867dae0b682b6c6f2f6dbee4ed1",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/animationc.png",
+      "originalBlobSha": "667cc05aefadb9b6b23fe30112fa92c0d4d3e987",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/animationc@4x.png",
+      "expectedPixels": {
+        "width": 2256,
+        "height": 1600
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "94d02618666bb2a114e04e9e3d4dab2aeb8f267ac6286e297f454218750dcb4d",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/automatron2.png",
+      "originalBlobSha": "854d721a27887c13ffc7b075981a5070120fc6c5",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/automatron2@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "83d2962b14c5681454164cf38de2dffcb0aaabbb28c2f8ce98811d1190b82708",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/chara4.png",
+      "originalBlobSha": "9cc6c69e1c3b1a02f073f3b21343bd08ea728f2e",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/chara4@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "b22f219f2451fb8ecb67ee04fac4f031c2f1a870e705f517756da7f65acb405b",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/chara5.png",
+      "originalBlobSha": "b68edd7db742e08ef554a948ba2ff18d1a93e912",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/chara5@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "220c773a3162d533e6a003b47c13d1f10a82fcde3b18a89189dc489e6302c629",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/chara7.png",
+      "originalBlobSha": "965c0b66f6e8d6091a004167fb9cd3b60085be07",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/chara7@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "cd7699d3912420ca29a0076bc0448774ac7b338fc33f3e5b0ab4ca29636013a2",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/chara8.png",
+      "originalBlobSha": "186279e6a91b848123e93779868f9fe8dde68abd",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/chara8@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "d0213ddf54d26e02454d5721fe0c1a69577f456e09925d4807db09f6e51ef930",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/collection1.png",
+      "originalBlobSha": "57bb1354d298d0f4fc3c9929c5ea2a4eb17fec02",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/collection1@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "499edbad953c274066f4c470bfa690e3c70eaf46bdf371d0deb44736a38aa3cc",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/dwarf2.png",
+      "originalBlobSha": "258a9b2c61b0985cd006411fc8943c40c9313158",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/dwarf2@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "b4ac7be1248d53a6cf7998137d91bddd513cfe618ea2f151aae81bcb0ac5ea74",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/jubchan_1.png",
+      "originalBlobSha": "fc464d13e76b2cc61838afdfb483043b3e31f406",
+      "scale": 8,
+      "hdPath": "characters/jubchan_1@8x.png",
+      "expectedPixels": {
+        "width": 624,
+        "height": 1152
+      },
+      "state": "active",
+      "expectedSha256": "e7efd4565618b569b769629dee14144f2c892aeeade5a1fcdde8fb65af338e8f"
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/npc1.png",
+      "originalBlobSha": "0ab6acd3f6176c6c3652cbe7ba583f1ab3e7af96",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/npc1@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "86fc4fe56769fbaab2ccd0c470924f7273bc0b627ffde89724a67005224a0a14",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/npc5.png",
+      "originalBlobSha": "c59e010b03d4524fd18d075c0994495edb99c795",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/npc5@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "e3bc3f18eaab3be373b3ed7df2588b234f67cea22f7584012f24d683b4076596",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/npc6.png",
+      "originalBlobSha": "4098717a1d54fa4b2553847259c4918437dadcd8",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/npc6@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "815c89b8f10bb722421e9f14220bc9fb42a725dae1d46e88674775575d9bd403",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/sheet_winnersa.png",
+      "originalBlobSha": "c9769ccb57a3f98003772d36263404903bffff99",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/sheet_winnersa@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "6a564b56e41020ef830c30d7fbc0a95cc49c19953f68ad2d2fa30e714f18757a",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "npc-character",
+      "sourcePath": "images/tiles/characters/winners_jpa.png",
+      "originalBlobSha": "fa147dc7a59ffe803087c75b4c733431f180f74c",
+      "scale": 4,
+      "hdPath": "entities/tiles/characters/winners_jpa@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "c68d9c6ae10257f8a80d5d7bbc9bb4be69dcb499c897c27e767d2b80ae5a7c1e",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/animals1.png",
+      "originalBlobSha": "b10e83cd4105ba3fb2dc69adad1f91e9d5636755",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/animals1@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "9b6a9da64878b28ec2cf26cc588b98317aeac2b3b2c85a45aac06c43f2ffef82",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/birds1_modded.png",
+      "originalBlobSha": "437bf6773302da86daff548dc681e2e04943cc77",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/birds1_modded@4x.png",
+      "expectedPixels": {
+        "width": 2016,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "45876adc4c444fae64f83e03d446d802679b42c81a0f10e502a698a616f08ba9",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/custom1.png",
+      "originalBlobSha": "2f3b007ca5470cd371a43c5095dfdc938c94652c",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/custom1@4x.png",
+      "expectedPixels": {
+        "width": 2880,
+        "height": 2048
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "f297079935be7e3daa7b8103dda861afbd61aebf23e281ea097de9d0c6520e51",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/custom2.png",
+      "originalBlobSha": "e4e02faa97b8a80efe0f6c1a0c29a6079e1b8e3f",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/custom2@4x.png",
+      "expectedPixels": {
+        "width": 2880,
+        "height": 2048
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "ff98f6aeda65dfc3fb65cb4c8f8be872c1420312ea438a3ccd467ce6c9ac46a4",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/fairies.png",
+      "originalBlobSha": "f1f9db0d32b1a2b7abab0c99ac5e0aa2c0b58bb3",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/fairies@4x.png",
+      "expectedPixels": {
+        "width": 1248,
+        "height": 1152
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "7e1a9e275fe6a0b142efc03964768f30c0415b732257025ec24bddb5d9f061af",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/monster1.png",
+      "originalBlobSha": "163110fe59cc2b9e8b2e9bf12d5eeb5afe360afa",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/monster1@4x.png",
+      "expectedPixels": {
+        "width": 2880,
+        "height": 2048
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "0f66290636208420f09dba7d2fed174e8664200474988e76d624c6a2683dcbb6",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/monster2.png",
+      "originalBlobSha": "62a98ad5ae59203a942d9464a34e8abb2c3ea1fd",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/monster2@4x.png",
+      "expectedPixels": {
+        "width": 2880,
+        "height": 2048
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "130b5c3533f4bc74c7f22279d8e7bf85d61a03f0616da2fc1da07eb0c9a33259",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/monster_bird1.png",
+      "originalBlobSha": "54ed8b716109a055e6979a048470b8f5864d2446",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/monster_bird1@4x.png",
+      "expectedPixels": {
+        "width": 732,
+        "height": 912
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "36b9fba64e2b074d0e93b1a72ecb314743ded32a92768186951baa112e6e64b2",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    },
+    {
+      "group": "monster",
+      "sourcePath": "images/tiles/monsters/monster_phoenix.png",
+      "originalBlobSha": "68ea2d775d665c61e1f89426f04a241b22dd980a",
+      "scale": 4,
+      "hdPath": "entities/tiles/monsters/monster_phoenix@4x.png",
+      "expectedPixels": {
+        "width": 732,
+        "height": 912
+      },
+      "state": "candidate-verified",
+      "expectedSha256": "bad16fb9061466a46632dbfbdd45f51ea1a11f8ae3fde19947afc5f67e891bd4",
+      "scaleExceptionReason": "Global G.sprites preload budget: initial Mainland entity baseline uses 4x until live memory/performance evidence supports a higher scale."
+    }
+  ],
+  "candidateEvidence": {
+    "workflowRunId": 36308809900,
+    "jobId": 108590610508,
+    "headSha": "61e3d4f69deceb4bcb1772f670968f27416243db",
+    "conclusion": "success",
+    "source": "ALHD_ENTITY_CANDIDATE"
+  }
+}

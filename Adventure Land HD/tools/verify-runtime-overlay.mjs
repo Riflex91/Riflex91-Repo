@@ -8,13 +8,18 @@ const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"..");
 const args=process.argv.slice(2);
 const val=flag=>{const i=args.indexOf(flag);return i>=0?args[i+1]:null;};
 const upstreamArg=val("--upstream");
-if(!upstreamArg){console.error("Usage: node tools/verify-runtime-overlay.mjs --upstream <overlay-checkout>");process.exit(2);}
+const manifestArg=val("--manifest");
+const hdRootArg=val("--hd-root");
+if(!upstreamArg){console.error("Usage: node tools/verify-runtime-overlay.mjs --upstream <overlay-checkout> [--manifest <json>] [--hd-root <dir>]");process.exit(2);}
+if((manifestArg&&!hdRootArg)||(!manifestArg&&hdRootArg)) throw new Error("--manifest and --hd-root must be supplied together for a custom overlay.");
 
 const upstream=path.resolve(process.cwd(),upstreamArg);
+const manifestPath=manifestArg?path.resolve(process.cwd(),manifestArg):path.join(root,"manifests","hd-assets.json");
+const hdRoot=hdRootArg?path.resolve(process.cwd(),hdRootArg):path.join(root,"hd-assets");
 const indexPath=path.join(upstream,"htmls","index.html");
 const runtimeManifestPath=path.join(upstream,"js","adventure-land-hd-manifest.js");
 const bootstrapPath=path.join(upstream,"js","adventure-land-hd-bootstrap.js");
-const hdManifest=JSON.parse(fs.readFileSync(path.join(root,"manifests","hd-assets.json"),"utf8"));
+const hdManifest=JSON.parse(fs.readFileSync(manifestPath,"utf8"));
 
 const errors=[];
 for(const file of [indexPath,runtimeManifestPath,bootstrapPath]){
@@ -42,7 +47,7 @@ if(!errors.length){
   const sourcePaths=active.map(item=>normalizeAssetPath(item.sourcePath));
   if(new Set(sourcePaths).size!==sourcePaths.length) errors.push("active HD sourcePath values must be unique after normalization");
   for(const item of active){
-    const local=path.join(root,"hd-assets",...item.hdPath.split("/"));
+    const local=path.join(hdRoot,...item.hdPath.split("/"));
     const materialized=path.join(upstream,"images","alhd",...item.hdPath.split("/"));
     if(!fs.existsSync(materialized)){errors.push("active HD asset not materialized: "+item.hdPath);continue;}
     if(sha(local)!==sha(materialized)) errors.push("materialized asset differs: "+item.hdPath);
