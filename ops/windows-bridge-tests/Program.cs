@@ -145,6 +145,12 @@ Assert(v6CharacterCatalogExpression.Contains("findBridgeApiForCharacter('snapsho
     "V6_CHARACTER_CATALOG_ROUTES_EACH_ROSTER_CHARACTER_EXACTLY");
 Assert(v6CharacterCatalogExpression.Contains("source: row.source", StringComparison.Ordinal),
     "V6_CHARACTER_CATALOG_RETURNS_ROSTER_SOURCE_DIAGNOSTIC");
+Assert(v6CharacterCatalogExpression.Contains("bridgeAvailable: false", StringComparison.Ordinal),
+    "V6_CHARACTER_CATALOG_REPORTS_ACTIVE_CHARACTER_WITHOUT_BRIDGE");
+Assert(v6CharacterCatalogExpression.Contains("bridgeAvailable: true", StringComparison.Ordinal),
+    "V6_CHARACTER_CATALOG_REPORTS_ROUTABLE_CHARACTER");
+Assert(typeof(CdpAlBotV6Client).GetProperty("LastDiscoveryWarning") is not null,
+    "V6_DISCOVERY_WARNING_PUBLIC_STATUS");
 Assert(CdpAlBotV6Client.IsSupportedTargetType("page"), "V6_CDP_PAGE_TARGET_SUPPORTED");
 Assert(CdpAlBotV6Client.IsSupportedTargetType("iframe"), "V6_CDP_IFRAME_TARGET_SUPPORTED");
 Assert(!CdpAlBotV6Client.IsSupportedTargetType("service_worker"), "V6_CDP_FOREIGN_TARGET_TYPE_REJECTED");
