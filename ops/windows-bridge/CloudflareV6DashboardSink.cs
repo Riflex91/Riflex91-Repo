@@ -38,17 +38,23 @@ public sealed class CloudflareV6DashboardSink
         if (string.IsNullOrWhiteSpace(character))
             throw new InvalidOperationException("ALBOT_V6_DASHBOARD_CHARACTER_MISSING");
 
-        var bytes = Serialize(read, character, read.Snapshot, read.Events);
+        object snapshot = read.Snapshot;
+        object events = read.Events;
+        var bytes = Serialize(read, character, snapshot, events);
+
         if (bytes.Length > MaxPayloadBytes)
         {
-            var reduced = CreateReducedSnapshot(read.Snapshot);
-            bytes = Serialize(read, character, reduced, read.Events);
+            snapshot = CreateReducedSnapshot(read.Snapshot);
+            events = CreateCompactEvents(read.Events);
+            bytes = Serialize(read, character, snapshot, events);
         }
+
         if (bytes.Length > MaxPayloadBytes)
         {
-            using var empty = JsonDocument.Parse("[]");
-            bytes = Serialize(read, character, CreateReducedSnapshot(read.Snapshot), empty.RootElement);
+            snapshot = CreateCompactSnapshot(read.Snapshot);
+            bytes = Serialize(read, character, snapshot, events);
         }
+
         if (bytes.Length > MaxPayloadBytes)
             throw new InvalidOperationException($"ALBOT_V6_DASHBOARD_PAYLOAD_TOO_LARGE:{bytes.Length}");
 
@@ -79,7 +85,7 @@ public sealed class CloudflareV6DashboardSink
         DebugReadResult read,
         string character,
         object snapshot,
-        JsonElement events)
+        object events)
     {
         var payload = new
         {
@@ -139,6 +145,292 @@ public sealed class CloudflareV6DashboardSink
             CopyIfPresent(snapshot, reduced, "telemetry");
         }
         return reduced;
+    }
+
+    private static IReadOnlyList<object> CreateCompactEvents(JsonElement events)
+    {
+        var rows = new List<JsonElement>();
+        if (events.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var row in events.EnumerateArray())
+                if (row.ValueKind == JsonValueKind.Object)
+                    rows.Add(row.Clone());
+        }
+
+        var compact = new List<object>();
+        var start = Math.Max(0, rows.Count - 24);
+        for (var index = start; index < rows.Count; index++)
+        {
+            var row = rows[index];
+            var item = new Dictionary<string, object?>(StringComparer.Ordinal)
+            {
+                ["seq"] = ReadInt64(row, "seq"),
+                ["id"] = ReadBoundedString(row, "id", 160),
+                ["ts"] = ReadBoundedString(row, "ts", 80),
+                ["at"] = ReadInt64(row, "at"),
+                ["time"] = ReadBoundedString(row, "time", 80),
+                ["createdAt"] = ReadBoundedString(row, "createdAt", 80),
+                ["severity"] = ReadBoundedString(row, "severity", 20),
+                ["component"] = ReadBoundedString(row, "component", 80),
+                ["event"] = ReadBoundedString(row, "event", 120),
+                ["reason"] = ReadBoundedString(row, "reason", 300),
+                ["payloadCompacted"] = true
+            };
+
+            if (row.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object)
+            {
+                item["data"] = new Dictionary<string, object?>(StringComparer.Ordinal)
+                {
+                    ["component"] = ReadBoundedString(data, "component", 80),
+                    ["character"] = ReadBoundedString(data, "character", 160)
+                };
+            }
+
+            compact.Add(item);
+        }
+
+        return compact;
+    }
+
+    private static object CreateCompactSnapshot(JsonElement snapshot)
+    {
+        var compact = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["schemaVersion"] = 1,
+            ["type"] = CdpAlBotV6Client.SnapshotType,
+            ["diagnostics"] = new
+            {
+                omitted = true,
+                reason = "DASHBOARD_PAYLOAD_BUDGET_COMPACT"
+            }
+        };
+
+        if (snapshot.ValueKind != JsonValueKind.Object) return compact;
+
+        if (snapshot.TryGetProperty("identity", out var identity)
+            && identity.ValueKind == JsonValueKind.Object)
+        {
+            compact["identity"] = new Dictionary<string, object?>(StringComparer.Ordinal)
+            {
+                ["product"] = ReadBoundedString(identity, "product", 80),
+                ["generation"] = ReadInt64(identity, "generation"),
+                ["bridgeProtocol"] = ReadBoundedString(identity, "bridgeProtocol", 100),
+                ["runtimeVersion"] = ReadBoundedString(identity, "runtimeVersion", 160),
+                ["transportOnly"] = ReadBoolean(identity, "transportOnly"),
+                ["gameplayActionAuthority"] = ReadBoolean(identity, "gameplayActionAuthority"),
+                ["acceptsLegacyGenerations"] = ReadBoolean(identity, "acceptsLegacyGenerations")
+            };
+        }
+
+        CopyIfPresent(snapshot, compact, "observedAt");
+
+        if (snapshot.TryGetProperty("character", out var character)
+            && character.ValueKind == JsonValueKind.Object)
+        {
+            compact["character"] = new Dictionary<string, object?>(StringComparer.Ordinal)
+            {
+                ["name"] = ReadBoundedString(character, "name", 160),
+                ["ctype"] = ReadBoundedString(character, "ctype", 80),
+                ["type"] = ReadBoundedString(character, "type", 80),
+                ["level"] = ReadNumber(character, "level"),
+                ["hp"] = ReadNumber(character, "hp"),
+                ["max_hp"] = ReadNumber(character, "max_hp"),
+                ["maxHp"] = ReadNumber(character, "maxHp"),
+                ["mp"] = ReadNumber(character, "mp"),
+                ["max_mp"] = ReadNumber(character, "max_mp"),
+                ["maxMp"] = ReadNumber(character, "maxMp"),
+                ["gold"] = ReadNumber(character, "gold"),
+                ["map"] = ReadBoundedString(character, "map", 160),
+                ["x"] = ReadNumber(character, "x"),
+                ["y"] = ReadNumber(character, "y"),
+                ["real_x"] = ReadNumber(character, "real_x"),
+                ["real_y"] = ReadNumber(character, "real_y")
+            };
+        }
+
+        var task = ReadDashboardTask(snapshot);
+        if (!string.IsNullOrWhiteSpace(task)) compact["task"] = task;
+
+        compact["rates"] = new Dictionary<string, object?>(StringComparer.Ordinal)
+        {
+            ["xpPerHour"] = ReadDashboardRate(snapshot, "xpPerHour", "expPerHour"),
+            ["expPerHour"] = ReadDashboardRate(snapshot, "expPerHour", "xpPerHour"),
+            ["goldPerHour"] = ReadDashboardRate(snapshot, "goldPerHour")
+        };
+
+        var sprite = FindFirstObject(snapshot,
+            ["sprite"],
+            ["character", "sprite"],
+            ["telemetry", "sprite"]);
+        if (sprite is JsonElement spriteElement)
+        {
+            compact["sprite"] = new Dictionary<string, object?>(StringComparer.Ordinal)
+            {
+                ["file"] = ReadBoundedString(spriteElement, "file", 300),
+                ["columns"] = ReadNumber(spriteElement, "columns"),
+                ["rows"] = ReadNumber(spriteElement, "rows"),
+                ["column"] = ReadNumber(spriteElement, "column"),
+                ["row"] = ReadNumber(spriteElement, "row"),
+                ["x"] = ReadNumber(spriteElement, "x"),
+                ["y"] = ReadNumber(spriteElement, "y")
+            };
+        }
+
+        var mapBounds = FindFirstObject(snapshot,
+            ["mapBounds"],
+            ["character", "mapBounds"],
+            ["telemetry", "mapBounds"]);
+        if (mapBounds is JsonElement boundsElement)
+        {
+            compact["mapBounds"] = new Dictionary<string, object?>(StringComparer.Ordinal)
+            {
+                ["minX"] = ReadNumber(boundsElement, "minX"),
+                ["minY"] = ReadNumber(boundsElement, "minY"),
+                ["maxX"] = ReadNumber(boundsElement, "maxX"),
+                ["maxY"] = ReadNumber(boundsElement, "maxY")
+            };
+        }
+
+        return compact;
+    }
+
+    private static string? ReadDashboardTask(JsonElement snapshot)
+    {
+        string[][] paths =
+        [
+            ["task"],
+            ["status", "task"],
+            ["status", "currentTask"],
+            ["operations", "currentTask"],
+            ["farmer", "task"],
+            ["merchant", "task"],
+            ["telemetry", "task"],
+            ["brain", "currentTask"],
+            ["brain", "decision", "label"],
+            ["status", "mode"],
+            ["mode"]
+        ];
+
+        foreach (var path in paths)
+        {
+            if (!TryGetPath(snapshot, path, out var value)) continue;
+            if (value.ValueKind == JsonValueKind.String)
+                return Truncate(value.GetString(), 240);
+
+            if (value.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var property in new[] { "label", "name", "task", "code" })
+                {
+                    var text = ReadBoundedString(value, property, 240);
+                    if (!string.IsNullOrWhiteSpace(text)) return text;
+                }
+                return "Aktive Aufgabe";
+            }
+        }
+
+        return null;
+    }
+
+    private static double? ReadDashboardRate(JsonElement snapshot, params string[] names)
+    {
+        string[][] ratePaths =
+        [
+            ["telemetry", "performance", "current", "rates"],
+            ["performance", "current", "rates"],
+            ["telemetry", "rates"],
+            ["rates"]
+        ];
+
+        foreach (var path in ratePaths)
+        {
+            if (!TryGetPath(snapshot, path, out var rates) || rates.ValueKind != JsonValueKind.Object)
+                continue;
+            foreach (var name in names)
+            {
+                var value = ReadNumber(rates, name);
+                if (value is not null) return value;
+            }
+        }
+
+        foreach (var name in names)
+        {
+            var value = ReadNumber(snapshot, name);
+            if (value is not null) return value;
+        }
+
+        return null;
+    }
+
+    private static JsonElement? FindFirstObject(JsonElement source, params string[][] paths)
+    {
+        foreach (var path in paths)
+            if (TryGetPath(source, path, out var value) && value.ValueKind == JsonValueKind.Object)
+                return value.Clone();
+        return null;
+    }
+
+    private static bool TryGetPath(JsonElement source, IReadOnlyList<string> path, out JsonElement value)
+    {
+        value = source;
+        foreach (var segment in path)
+        {
+            if (value.ValueKind != JsonValueKind.Object
+                || !value.TryGetProperty(segment, out var next))
+                return false;
+            value = next;
+        }
+        return true;
+    }
+
+    private static string? ReadBoundedString(JsonElement source, string property, int max)
+    {
+        if (source.ValueKind != JsonValueKind.Object
+            || !source.TryGetProperty(property, out var value)
+            || value.ValueKind != JsonValueKind.String)
+            return null;
+        return Truncate(value.GetString(), max);
+    }
+
+    private static string? Truncate(string? text, int max)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= max) return text;
+        var length = max;
+        if (length > 0
+            && length < text.Length
+            && char.IsHighSurrogate(text[length - 1])
+            && char.IsLowSurrogate(text[length]))
+            length--;
+        return text[..length];
+    }
+
+    private static long? ReadInt64(JsonElement source, string property)
+    {
+        if (source.ValueKind == JsonValueKind.Object
+            && source.TryGetProperty(property, out var value)
+            && value.ValueKind == JsonValueKind.Number
+            && value.TryGetInt64(out var parsed))
+            return parsed;
+        return null;
+    }
+
+    private static double? ReadNumber(JsonElement source, string property)
+    {
+        if (source.ValueKind == JsonValueKind.Object
+            && source.TryGetProperty(property, out var value)
+            && value.ValueKind == JsonValueKind.Number
+            && value.TryGetDouble(out var parsed))
+            return parsed;
+        return null;
+    }
+
+    private static bool? ReadBoolean(JsonElement source, string property)
+    {
+        if (source.ValueKind != JsonValueKind.Object
+            || !source.TryGetProperty(property, out var value))
+            return null;
+        if (value.ValueKind == JsonValueKind.True) return true;
+        if (value.ValueKind == JsonValueKind.False) return false;
+        return null;
     }
 
     private static void CopyIfPresent(
