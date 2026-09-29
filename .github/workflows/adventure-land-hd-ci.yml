@@ -22,6 +22,11 @@ jobs:
       - name: Verify inventory, bridge rules and runtime syntax
         working-directory: Adventure Land HD
         run: npm run check
+      - name: Parse Windows Mainland staged updater
+        working-directory: Adventure Land HD
+        shell: pwsh
+        run: |
+          [void][scriptblock]::Create((Get-Content "tools/windows/Prepare-Mainland-Staged-Overlay.ps1" -Raw))
       - name: Checkout pinned Adventure Land
         shell: bash
         run: |
