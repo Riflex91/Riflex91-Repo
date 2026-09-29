@@ -157,3 +157,43 @@ jobs:
       - name: Verify materialized overlay and pilot bytes
         working-directory: Adventure Land HD
         run: node tools/verify-runtime-overlay.mjs --upstream "../.upstream-adventureland"
+  windows_staged_updater:
+    if: github.ref == 'refs/heads/chatgpt/alhd-dev-v2'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Checkout pinned Adventure Land for dirty-worktree test
+        shell: powershell
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/kaansoral/adventureland_mongodb.git .upstream-adventureland
+          git -C .upstream-adventureland fetch --depth=1 origin 90052162eb3ebda36c893e1eb4af643913c8f984
+          git -C .upstream-adventureland checkout --detach 90052162eb3ebda36c893e1eb4af643913c8f984
+      - name: Seed local dirty changes that must survive
+        shell: powershell
+        run: |
+          Add-Content -LiteralPath ".upstream-adventureland\main.js" -Value ([Environment]::NewLine + "// alhd windows ci sentinel")
+          Set-Content -LiteralPath ".upstream-adventureland\.alhd-ci-preserve.txt" -Value "preserve"
+          $hash = (Get-FileHash -LiteralPath ".upstream-adventureland\main.js" -Algorithm SHA256).Hash
+          "ALHD_SENTINEL_HASH=$hash" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Run Windows Mainland staged updater against dirty checkout
+        shell: cmd
+        run: |
+          call "Adventure Land HD\tools\windows\Prepare-Mainland-Staged-Overlay.cmd" -UpstreamPath "%GITHUB_WORKSPACE%\.upstream-adventureland"
+      - name: Verify dirty changes and complete staged overlay survived together
+        shell: powershell
+        run: |
+          $hash = (Get-FileHash -LiteralPath ".upstream-adventureland\main.js" -Algorithm SHA256).Hash
+          if ($hash -ne $env:ALHD_SENTINEL_HASH) { throw "Updater changed the pre-existing dirty main.js sentinel." }
+          if (-not (Test-Path -LiteralPath ".upstream-adventureland\.alhd-ci-preserve.txt")) { throw "Updater removed the pre-existing untracked sentinel." }
+          $status = (git -C .upstream-adventureland status --porcelain) -join [Environment]::NewLine
+          if ($status -notmatch "main\.js") { throw "Pre-existing tracked dirty state disappeared." }
+          if ($status -notmatch "\.alhd-ci-preserve\.txt") { throw "Pre-existing untracked state disappeared." }
+          $assetCount = @(Get-ChildItem -LiteralPath ".upstream-adventureland\images\alhd" -File -Recurse).Count
+          if ($assetCount -lt 48) { throw "Expected at least 48 materialized ALHD files, found $assetCount." }
+          $runtimeManifest = Get-Content -LiteralPath ".upstream-adventureland\js\adventure-land-hd-manifest.js" -Raw
+          $activeCount = ([regex]::Matches($runtimeManifest,'"state": "active"')).Count
+          if ($activeCount -ne 48) { throw "Expected 48 active staged runtime entries, found $activeCount." }
+
