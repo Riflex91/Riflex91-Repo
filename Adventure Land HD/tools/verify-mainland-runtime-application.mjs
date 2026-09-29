@@ -56,7 +56,7 @@ for(const entry of activationEntries){
   bySource.set(sourcePath,runtimeEntry);
   manifestEntries.push(runtimeEntry);
 }
-manifestEntries.sort((a,b)=>a.sourcePath.localeCompare(b.sourcePath));
+manifestEntries.sort((a,b)=>a.sourcePath<b.sourcePath?-1:a.sourcePath>b.sourcePath?1:0);
 
 const scopeSources=(scope.sourceFiles||[]).map(normalizeAssetPath).filter(Boolean).sort();
 if(manifestEntries.length!==48) errors.push("runtime simulation manifest must contain exactly 48 entries");
