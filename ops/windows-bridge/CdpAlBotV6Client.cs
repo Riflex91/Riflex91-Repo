@@ -167,14 +167,20 @@ public sealed class CdpAlBotV6Client
                                 {
                                     var mapId = ReadCharacterMap(snapshot);
                                     var includeTerrain = !string.IsNullOrWhiteSpace(mapId)
-                                        && terrainMaps.Add(mapId);
+                                        && !terrainMaps.Contains(mapId);
                                     var visual = await EvaluateAsync(
                                         socket,
                                         BuildDashboardVisualExpression(characterName, includeTerrain),
                                         contextId,
                                         cancellationToken);
                                     if (IsDashboardVisual(visual))
+                                    {
                                         dashboardVisual = visual.Clone();
+                                        if (includeTerrain
+                                            && !string.IsNullOrWhiteSpace(mapId)
+                                            && HasUsableDashboardTerrain(visual))
+                                            terrainMaps.Add(mapId);
+                                    }
                                 }
                                 catch (InvalidOperationException error)
                                 {
@@ -362,6 +368,18 @@ public sealed class CdpAlBotV6Client
         || string.Equals(targetType, "iframe", StringComparison.OrdinalIgnoreCase);
 
     public static string BuildCharacterCatalogExpression() => CharacterCatalogExpression;
+
+    private static bool HasUsableDashboardTerrain(JsonElement value)
+    {
+        if (value.ValueKind != JsonValueKind.Object
+            || !value.TryGetProperty("terrain", out var terrain)
+            || terrain.ValueKind != JsonValueKind.Object
+            || ReadBoolean(terrain, "omitted", false)
+            || !terrain.TryGetProperty("t", out var tiles)
+            || tiles.ValueKind != JsonValueKind.Array)
+            return false;
+        return tiles.GetArrayLength() > 0;
+    }
 
     private static bool IsDashboardVisual(JsonElement value) =>
         value.ValueKind == JsonValueKind.Object
