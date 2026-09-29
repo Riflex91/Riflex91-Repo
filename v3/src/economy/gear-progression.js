@@ -1,8 +1,15 @@
 'use strict';
 
+const {
+  contextualWeights,
+  roleProfile,
+  buildProgressionCurve,
+  selectDynamicTarget
+} = require('./item-intelligence');
+
 const GEAR_PROGRESSION_SCHEMA_VERSION = 1;
-const GEAR_PROGRESSION_MODE = 'shadow-planning-only';
-const FARMER_UPGRADE_MAX_LEVEL = 5;
+const GEAR_PROGRESSION_MODE = 'future-gear-intelligence-v2';
+const FARMER_UPGRADE_MAX_LEVEL = 7;
 const ECONOMIC_UPGRADE_FALLBACK_LEVEL = 3;
 
 const CLASS_WEIGHTS = Object.freeze({
@@ -89,8 +96,9 @@ function effectiveStats(meta, level) {
   return out;
 }
 
-function scoreItem(meta, level, ctype) {
-  const weights = CLASS_WEIGHTS[String(ctype || '').toLowerCase()] || DEFAULT_WEIGHTS;
+function scoreItem(meta, level, ctype, character = null) {
+  const baseWeights = CLASS_WEIGHTS[String(ctype || '').toLowerCase()] || DEFAULT_WEIGHTS;
+  const { weights } = contextualWeights(baseWeights, character);
   const stats = effectiveStats(meta, level);
   let total = 0;
   let survival = 0;
@@ -198,19 +206,26 @@ class GearProgressionEvaluator {
     const equipped = character && character.gear && character.gear[slot];
     if (!equipped || !equipped.name) return { name: null, level: 0, score: { total: 0, survival: 0, stats: {} } };
     const meta = gameData && gameData.items && gameData.items[equipped.name];
-    return { name: equipped.name, level: levelOf(equipped), score: scoreItem(meta, levelOf(equipped), character.ctype) };
+    return { name: equipped.name, level: levelOf(equipped), score: scoreItem(meta, levelOf(equipped), character.ctype, character) };
   }
 
-  _firstMeaningful(meta, observedLevel, currentScore, ctype, probeMaxLevel = this.maxProbeLevel) {
+  _progressionDecision(meta, observedLevel, currentScore, character, gameData, probeMaxLevel = this.maxProbeLevel) {
     const start = Math.max(0, observedLevel);
     const boundedProbeMax = Math.max(start, Math.min(this.maxProbeLevel, Math.max(0, Math.floor(finite(probeMaxLevel, this.maxProbeLevel)))));
-    const max = meta && (meta.upgrade || meta.compound) ? boundedProbeMax : start;
-    for (let level = start; level <= max; level += 1) {
-      const score = scoreItem(meta, level, ctype);
-      const delta = scoreImprovement(currentScore, score, ctype, this.minImprovementRatio);
-      if (delta.meaningful) return { level, score, delta };
-    }
-    return null;
+    const curve = buildProgressionCurve({
+      meta,
+      observedLevel: start,
+      maxLevel: boundedProbeMax,
+      currentScore,
+      ctype: character && character.ctype,
+      character,
+      gameData,
+      minImprovementRatio: this.minImprovementRatio,
+      scoreAtLevel: scoreItem,
+      scoreImprovement
+    });
+    const decision = selectDynamicTarget(curve, start);
+    return decision ? { ...decision, curve } : null;
   }
 
   futureProtectionFor(character, index, name, level) {
@@ -318,41 +333,37 @@ class GearProgressionEvaluator {
           const current = this._currentItem(character, slot, gameData);
           const observedLevel = levelOf(candidate.item);
           const isFarmerTarget = String(character.ctype || '').toLowerCase() !== 'merchant';
-          // Keep the Farmer's safe baseline goal bounded at +5. Mutation
-          // execution is still stepwise and risk-gated one level at a time.
+          // Probe the complete safe future curve. The selected target is no
+          // longer a fixed +5: it is the level with the best risk-adjusted gear
+          // value for this exact character/role, while execution still mutates
+          // only one level and re-evaluates afterwards.
           const probeMaxLevel = isFarmerTarget && candidate.meta.upgrade
             ? Math.min(this.maxProbeLevel, FARMER_UPGRADE_MAX_LEVEL)
             : this.maxProbeLevel;
-          const meaningful = this._firstMeaningful(candidate.meta, observedLevel, current.score, character.ctype, probeMaxLevel);
-          if (!meaningful) continue;
+          const progression = this._progressionDecision(candidate.meta, observedLevel, current.score, character, gameData, probeMaxLevel);
+          if (!progression) continue;
+          const meaningful = progression.target;
+          const firstMeaningful = progression.firstMeaningful;
 
-          // Score the item exactly as it exists now as well as the first future
-          // level that would be meaningful. This lets the mutation risk gate ask
-          // the same question at +0, +1, +5, +8, ...: "is the safe item already
-          // useful to the party, and is another roll worth risking it?"
-          const observedScore = scoreItem(candidate.meta, observedLevel, character.ctype);
+          const observedScore = scoreItem(candidate.meta, observedLevel, character.ctype, character);
           const observedDelta = scoreImprovement(current.score, observedScore, character.ctype, this.minImprovementRatio);
           const improvement = meaningful.delta ? meaningful.delta.improvement : meaningful.score.total - current.score.total;
           const survivalImprovement = meaningful.delta ? meaningful.delta.survivalImprovement : meaningful.score.survival - current.score.survival;
           const speedImprovement = meaningful.delta ? meaningful.delta.speedImprovement : finite(meaningful.score.stats && meaningful.score.stats.speed, 0) - finite(current.score.stats && current.score.stats.speed, 0);
 
-          // The goal is the stable Farmer baseline (+5), while execution remains
-          // one mutation at a time. Keeping those concepts separate lets the
-          // risk gate re-evaluate every +level without shrinking the actual goal.
-          const projectedFarmerUpgrade = isFarmerTarget
-            && !!candidate.meta.upgrade
-            && observedLevel < FARMER_UPGRADE_MAX_LEVEL
-            && meaningful.level <= FARMER_UPGRADE_MAX_LEVEL;
-          const progressionTargetLevel = projectedFarmerUpgrade
-            ? FARMER_UPGRADE_MAX_LEVEL
-            : meaningful.level;
-          const nextMutationLevel = projectedFarmerUpgrade
+          const progressionTargetLevel = meaningful.level;
+          const nextMutationLevel = progressionTargetLevel > observedLevel
             ? Math.min(progressionTargetLevel, observedLevel + 1)
-            : meaningful.level;
+            : observedLevel;
           const row = {
             slot,
             current,
             meaningful,
+            firstMeaningful,
+            progressionCurve: progression.curve,
+            targetSelectionReason: progression.reason,
+            targetEvidenceComplete: progression.evidenceComplete,
+            roleProfile: roleProfile(character),
             observedScore,
             observedDelta,
             observedMeaningful: observedDelta.meaningful === true,
@@ -360,7 +371,9 @@ class GearProgressionEvaluator {
             survivalImprovement,
             speedImprovement,
             progressionTargetLevel,
-            nextMutationLevel
+            nextMutationLevel,
+            cumulativeSuccessChance: meaningful.cumulativeSuccessChance,
+            riskAdjustedUtility: meaningful.riskAdjustedUtility
           };
           if (progressionTargetLevel > observedLevel
             && Number.isInteger(Number(candidate.item.index))) {
@@ -373,7 +386,21 @@ class GearProgressionEvaluator {
               observedLevel,
               targetLevel: progressionTargetLevel,
               nextMutationLevel: row.nextMutationLevel,
-              firstMeaningfulLevel: meaningful.level,
+              firstMeaningfulLevel: row.firstMeaningful.level,
+              targetSelectionReason: row.targetSelectionReason,
+              targetEvidenceComplete: row.targetEvidenceComplete,
+              roleProfile: row.roleProfile,
+              cumulativeSuccessChance: row.cumulativeSuccessChance,
+              riskAdjustedUtility: row.riskAdjustedUtility,
+              progressionCurve: row.progressionCurve.slice(0, 16).map((curveRow) => ({
+                level: curveRow.level,
+                meaningful: curveRow.meaningful,
+                stepChance: curveRow.stepChance,
+                cumulativeSuccessChance: curveRow.cumulativeSuccessChance,
+                improvement: finite(curveRow.delta && curveRow.delta.improvement, 0),
+                survivalImprovement: finite(curveRow.delta && curveRow.delta.survivalImprovement, 0),
+                riskAdjustedUtility: curveRow.riskAdjustedUtility
+              })),
               targetCharacter: character.name,
               targetSlot: slot,
               targetOffline,
@@ -381,7 +408,10 @@ class GearProgressionEvaluator {
               lastTargetPartyAt: targetOffline ? finite(character.lastPartyAt, null) : null,
               improvement,
               survivalImprovement,
-              upgradeLifecycle: candidate.meta.upgrade && projectedFarmerUpgrade ? 'FARMER_POTENTIAL_TO_PLUS5' : null,
+              upgradeLifecycle: candidate.meta.upgrade && isFarmerTarget
+                ? (progressionTargetLevel === 5 ? 'FARMER_POTENTIAL_TO_PLUS5' : 'FARMER_DYNAMIC_GEAR_TARGET')
+                : null,
+              dynamicTargetPolicy: candidate.meta.upgrade && isFarmerTarget ? 'RISK_ADJUSTED_FUTURE_GEAR' : null,
               observedMeaningful: row.observedMeaningful,
               observedImprovement: finite(row.observedDelta && row.observedDelta.improvement, 0),
               observedSurvivalImprovement: finite(row.observedDelta && row.observedDelta.survivalImprovement, 0),
@@ -428,8 +458,22 @@ class GearProgressionEvaluator {
           observedImprovement: finite(best.observedDelta && best.observedDelta.improvement, 0),
           observedSurvivalImprovement: finite(best.observedDelta && best.observedDelta.survivalImprovement, 0),
           observedSpeedImprovement: finite(best.observedDelta && best.observedDelta.speedImprovement, 0),
-          firstMeaningfulLevel: best.meaningful.level,
+          firstMeaningfulLevel: best.firstMeaningful.level,
           nextMutationLevel: best.nextMutationLevel,
+          roleProfile: best.roleProfile,
+          targetSelectionReason: best.targetSelectionReason,
+          targetEvidenceComplete: best.targetEvidenceComplete,
+          cumulativeSuccessChance: best.cumulativeSuccessChance,
+          riskAdjustedUtility: best.riskAdjustedUtility,
+          progressionCurve: best.progressionCurve.slice(0, 16).map((curveRow) => ({
+            level: curveRow.level,
+            meaningful: curveRow.meaningful,
+            stepChance: curveRow.stepChance,
+            cumulativeSuccessChance: curveRow.cumulativeSuccessChance,
+            improvement: finite(curveRow.delta && curveRow.delta.improvement, 0),
+            survivalImprovement: finite(curveRow.delta && curveRow.delta.survivalImprovement, 0),
+            riskAdjustedUtility: curveRow.riskAdjustedUtility
+          })),
           improvement: best.improvement,
           survivalImprovement: best.survivalImprovement,
           speedImprovement: best.speedImprovement,
@@ -608,7 +652,7 @@ class GearProgressionEvaluator {
       actionAuthority: false,
       directGameplayActionAccess: false,
       destructiveActionsEnabled: false,
-      defaultProgressionMode: 'sustainable',
+      defaultProgressionMode: 'role-aware-risk-adjusted-future-gear',
       capacity: this.capacity,
       maxProbeLevel: this.maxProbeLevel,
       minImprovementRatio: this.minImprovementRatio,
@@ -616,8 +660,11 @@ class GearProgressionEvaluator {
       futureFarmerProtectedItems: this.futureFarmerProtection.size,
       futureFarmerEvaluatedItems: this.futureFarmerEvaluation.size,
       futureProtectionMode: 'STEPWISE_MUTATION_RISK_MANAGED_TO_MAX_PROBE_LEVEL',
-      farmerUpgradeProgression: 'ONE_LEVEL_THEN_REEVALUATE',
-      farmerUpgradePotentialMaxLevel: this.maxProbeLevel,
+      farmerUpgradeProgression: 'DYNAMIC_TARGET_ONE_LEVEL_THEN_REEVALUATE',
+      farmerUpgradePotentialMaxLevel: Math.min(this.maxProbeLevel, FARMER_UPGRADE_MAX_LEVEL),
+      roleAwareGearScoring: true,
+      fullFutureProgressionCurve: true,
+      dynamicRiskAdjustedTargetSelection: true,
       economicUpgradeFallbackLevel: ECONOMIC_UPGRADE_FALLBACK_LEVEL,
       processedGearSellRequiresExplicitFutureSafety: true,
       rememberedOfflinePartyGearPlanning: true,

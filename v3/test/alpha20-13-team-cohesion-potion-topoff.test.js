@@ -654,3 +654,29 @@ test('team kiting radius is smaller and a kite move cannot break formation', () 
   assert.equal(result.reason, 'TEAM_COHESION_KITE_LIMIT');
   assert.equal(hotfix.status().stats.kiteCohesionBlocks, 1);
 });
+
+
+test('targetless follower closes the observed pairwise cohesion gap before waiting for leader target', () => {
+  const { runtime, snap, hotfix, commands } = makeTeamRuntime({
+    localName: 'My_Ranger3',
+    localOverrides: { x: -92, y: -24 },
+    partyOverrides: {
+      My_Ranger1: { ...rawParty().My_Ranger1, x: -236, y: -68, target: null },
+      My_Ranger2: { ...rawParty().My_Ranger2, x: -239, y: -111, target: null },
+      My_Ranger3: { ...rawParty().My_Ranger3, x: -92, y: -24, target: null }
+    },
+    entities: [monster('m1')]
+  });
+  runtime.lastSnapshot = snap;
+
+  const before = hotfix._team(snap);
+  assert.ok(before.maxPairDistance > hotfix.cohesionRadius);
+  assert.equal(before.cohesive, false);
+
+  const selected = runtime.farmer._selectTarget(context(runtime, snap, commands));
+  assert.equal(selected, null);
+  assert.ok(commands.some((row) => row.action === 'move'));
+  assert.equal(hotfix.lastDecision.action, 'FORMATION_FOLLOW');
+  assert.equal(hotfix.lastDecision.reason, 'WAITING_FOR_TEAM_LEADER_TARGET');
+  assert.equal(hotfix.lastDecision.formationReason, 'WAITING_FOR_TEAM_COHESION_BEFORE_LEADER_TARGET');
+});

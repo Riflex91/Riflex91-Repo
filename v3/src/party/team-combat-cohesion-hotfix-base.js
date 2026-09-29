@@ -495,11 +495,28 @@ class TeamCombatCohesionHotfix {
         if (!team.leaderTargetId) {
           if (typeof this.farmer._setLogicalTeamTarget === 'function') this.farmer._setLogicalTeamTarget(null);
           this.stats.soloTargetBlocks += 1;
+
+          // Target authority belongs to the leader, but formation authority does
+          // not have to wait for a target. When the team is not cohesive, a
+          // follower with no leader target must still close formation; otherwise
+          // the leader waits for cohesion while the follower waits for a leader
+          // target and both sides deadlock.
+          let formationDecision = null;
+          if (!team.cohesive) {
+            this._followLeader(context, team, 'WAITING_FOR_TEAM_COHESION_BEFORE_LEADER_TARGET');
+            if (this.lastDecision && String(this.lastDecision.action || '').startsWith('FORMATION_')) {
+              formationDecision = { ...this.lastDecision };
+            }
+          }
+
           this.lastDecision = {
+            ...(formationDecision || {}),
             at: this.now(),
-            action: 'TARGET_HOLD',
+            action: formationDecision ? formationDecision.action : 'TARGET_HOLD',
             reason: 'WAITING_FOR_TEAM_LEADER_TARGET',
-            leaderName: team.leaderName
+            formationReason: formationDecision && formationDecision.reason || null,
+            leaderName: team.leaderName,
+            maxPairDistance: Number.isFinite(team.maxPairDistance) ? team.maxPairDistance : null
           };
           return null;
         }
