@@ -136,6 +136,7 @@ public sealed class CdpAlBotV6Client
                     socket,
                     BuildDashboardVisualExpression(characterName, includeTerrain),
                     contextId,
+                    sessionId,
                     cancellationToken);
                 if (IsDashboardVisual(visual))
                 {
@@ -464,6 +465,47 @@ public sealed class CdpAlBotV6Client
         string.Equals(targetType, "page", StringComparison.OrdinalIgnoreCase)
         || string.Equals(targetType, "iframe", StringComparison.OrdinalIgnoreCase);
 
+    public static bool IsTrustedAttachedIframeDescriptor(
+        string? targetType,
+        string? targetUrl,
+        string? parentId,
+        string? parentFrameId,
+        string allowedOrigin,
+        IEnumerable<string> trustedParentIds)
+    {
+        if (!string.Equals(targetType, "iframe", StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(parentId)
+            || string.IsNullOrWhiteSpace(allowedOrigin))
+            return false;
+
+        var trusted = new HashSet<string>(
+            trustedParentIds ?? Array.Empty<string>(),
+            StringComparer.Ordinal);
+        if (!trusted.Contains(parentId.Trim()))
+            return false;
+
+        if (!Uri.TryCreate(allowedOrigin, UriKind.Absolute, out var allowed))
+            return false;
+
+        var raw = (targetUrl ?? string.Empty).Trim();
+        if (Uri.TryCreate(raw, UriKind.Absolute, out var targetUri)
+            && SameOrigin(targetUri, allowed))
+            return true;
+
+        if (raw.StartsWith("blob:", StringComparison.OrdinalIgnoreCase)
+            && Uri.TryCreate(raw[5..], UriKind.Absolute, out var blobOrigin)
+            && SameOrigin(blobOrigin, allowed))
+            return true;
+
+        if ((string.Equals(raw, "about:blank", StringComparison.OrdinalIgnoreCase)
+             || string.Equals(raw, "about:srcdoc", StringComparison.OrdinalIgnoreCase)
+             || raw.Length == 0)
+            && !string.IsNullOrWhiteSpace(parentFrameId))
+            return true;
+
+        return false;
+    }
+
     public static IReadOnlyList<string> MergeCharacterCandidates(
         string? targetCharacter,
         IEnumerable<string?> catalogCharacters)
@@ -602,6 +644,242 @@ public sealed class CdpAlBotV6Client
         if (matches.Count == 0)
             throw new InvalidOperationException("ADVENTURE_LAND_CDP_TARGET_NOT_FOUND");
         return matches;
+    }
+
+    private async Task<JsonElement> SendCommandForResultAsync(
+        ClientWebSocket socket,
+        string method,
+        object? parameters,
+        string? sessionId,
+        CancellationToken cancellationToken)
+    {
+        using var commandCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        commandCts.CancelAfter(TimeSpan.FromSeconds(CdpCommandTimeoutSeconds));
+        var token = commandCts.Token;
+        var id = Interlocked.Increment(ref _nextCommandId);
+        var payload = new Dictionary<string, object?>
+        {
+            ["id"] = id,
+            ["method"] = method,
+            ["params"] = parameters ?? new { }
+        };
+        if (!string.IsNullOrWhiteSpace(sessionId))
+            payload["sessionId"] = sessionId;
+
+        await socket.SendAsync(
+            JsonSerializer.SerializeToUtf8Bytes(payload),
+            WebSocketMessageType.Text,
+            true,
+            token);
+
+        try
+        {
+            while (true)
+            {
+                var message = await ReceiveJsonAsync(socket, id, token);
+                if (message is null) continue;
+                using (message)
+                {
+                    var root = message.RootElement;
+                    if (!root.TryGetProperty("id", out var idNode)
+                        || !idNode.TryGetInt32(out var responseId)
+                        || responseId != id
+                        || !SessionMatches(root, sessionId))
+                        continue;
+                    if (root.TryGetProperty("error", out var error))
+                        throw new InvalidOperationException(
+                            "CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
+                    if (!root.TryGetProperty("result", out var result))
+                        throw new InvalidOperationException("CDP_RESULT_MISSING");
+                    return result.Clone();
+                }
+            }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new InvalidOperationException("CDP_COMMAND_TIMEOUT");
+        }
+    }
+
+    private async Task<IReadOnlyList<AttachedExecutionContext>> DiscoverAttachedIframeContextsAsync(
+        ClientWebSocket socket,
+        Target rootTarget,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(rootTarget.Id))
+            return Array.Empty<AttachedExecutionContext>();
+
+        var result = await SendCommandForResultAsync(
+            socket,
+            "Target.getTargets",
+            new { },
+            sessionId: null,
+            cancellationToken);
+        if (!result.TryGetProperty("targetInfos", out var infosNode)
+            || infosNode.ValueKind != JsonValueKind.Array)
+            return Array.Empty<AttachedExecutionContext>();
+
+        var infos = new List<AttachedTargetInfo>();
+        foreach (var row in infosNode.EnumerateArray())
+        {
+            if (row.ValueKind != JsonValueKind.Object)
+                continue;
+            var targetId = ReadString(row, "targetId")?.Trim();
+            if (string.IsNullOrWhiteSpace(targetId))
+                continue;
+            infos.Add(new AttachedTargetInfo(
+                targetId,
+                ReadString(row, "type") ?? string.Empty,
+                ReadString(row, "url") ?? string.Empty,
+                ReadString(row, "parentId"),
+                ReadString(row, "parentFrameId")));
+        }
+
+        var trustedIds = new HashSet<string>(StringComparer.Ordinal) { rootTarget.Id };
+        var trustedChildren = new List<AttachedTargetInfo>();
+        var changed = true;
+        while (changed)
+        {
+            changed = false;
+            foreach (var info in infos)
+            {
+                if (trustedIds.Contains(info.TargetId))
+                    continue;
+                if (!IsTrustedAttachedIframeDescriptor(
+                        info.Type,
+                        info.Url,
+                        info.ParentId,
+                        info.ParentFrameId,
+                        _allowedOrigin.GetLeftPart(UriPartial.Authority),
+                        trustedIds))
+                    continue;
+                trustedIds.Add(info.TargetId);
+                trustedChildren.Add(info);
+                changed = true;
+            }
+        }
+
+        var contexts = new List<AttachedExecutionContext>();
+        foreach (var child in trustedChildren)
+        {
+            try
+            {
+                var attach = await SendCommandForResultAsync(
+                    socket,
+                    "Target.attachToTarget",
+                    new { targetId = child.TargetId, flatten = true },
+                    sessionId: null,
+                    cancellationToken);
+                var sessionId = ReadString(attach, "sessionId")?.Trim();
+                if (string.IsNullOrWhiteSpace(sessionId))
+                    continue;
+
+                foreach (var contextId in await EnableRuntimeAndCollectContextsAsync(
+                             socket,
+                             sessionId,
+                             cancellationToken))
+                    contexts.Add(new AttachedExecutionContext(contextId, sessionId, child.TargetId));
+            }
+            catch (InvalidOperationException)
+            {
+            }
+        }
+
+        return contexts
+            .DistinctBy(row => (row.SessionId, row.ContextId))
+            .ToArray();
+    }
+
+    private async Task<IReadOnlyList<int>> EnableRuntimeAndCollectContextsAsync(
+        ClientWebSocket socket,
+        string sessionId,
+        CancellationToken cancellationToken)
+    {
+        using var commandCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        commandCts.CancelAfter(TimeSpan.FromSeconds(CdpCommandTimeoutSeconds));
+        var token = commandCts.Token;
+        var contexts = new List<int>();
+
+        async Task WaitForResponseAsync(int expectedId)
+        {
+            while (true)
+            {
+                var message = await ReceiveJsonAsync(socket, expectedId, token);
+                if (message is null) continue;
+                using (message)
+                {
+                    var root = message.RootElement;
+                    if (SessionMatches(root, sessionId)
+                        && root.TryGetProperty("method", out var methodNode)
+                        && string.Equals(
+                            methodNode.GetString(),
+                            "Runtime.executionContextCreated",
+                            StringComparison.Ordinal)
+                        && root.TryGetProperty("params", out var paramsNode)
+                        && paramsNode.TryGetProperty("context", out var contextNode)
+                        && TryGetExecutionContextId(contextNode, out var contextId))
+                        contexts.Add(contextId);
+
+                    if (!root.TryGetProperty("id", out var idNode)
+                        || !idNode.TryGetInt32(out var responseId)
+                        || responseId != expectedId
+                        || !SessionMatches(root, sessionId))
+                        continue;
+
+                    if (root.TryGetProperty("error", out var error))
+                        throw new InvalidOperationException(
+                            "CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
+                    return;
+                }
+            }
+        }
+
+        try
+        {
+            var enableId = Interlocked.Increment(ref _nextCommandId);
+            var enablePayload = new Dictionary<string, object?>
+            {
+                ["id"] = enableId,
+                ["method"] = "Runtime.enable",
+                ["sessionId"] = sessionId
+            };
+            await socket.SendAsync(
+                JsonSerializer.SerializeToUtf8Bytes(enablePayload),
+                WebSocketMessageType.Text,
+                true,
+                token);
+            await WaitForResponseAsync(enableId);
+
+            // A no-op evaluation is a per-session ordering barrier. Any existing
+            // executionContextCreated notifications caused by Runtime.enable must be
+            // observed before the barrier response.
+            var barrierId = Interlocked.Increment(ref _nextCommandId);
+            var barrierPayload = new Dictionary<string, object?>
+            {
+                ["id"] = barrierId,
+                ["method"] = "Runtime.evaluate",
+                ["params"] = new
+                {
+                    expression = "0",
+                    returnByValue = true,
+                    awaitPromise = false,
+                    userGesture = false
+                },
+                ["sessionId"] = sessionId
+            };
+            await socket.SendAsync(
+                JsonSerializer.SerializeToUtf8Bytes(barrierPayload),
+                WebSocketMessageType.Text,
+                true,
+                token);
+            await WaitForResponseAsync(barrierId);
+
+            return contexts.Distinct().ToArray();
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new InvalidOperationException("CDP_COMMAND_TIMEOUT");
+        }
     }
 
     private async Task<IReadOnlyList<int>> CollectTargetExecutionContextsAsync(
@@ -1844,8 +2122,21 @@ catch { return { valid: false, identity: null, diagnostics }; }
         return text.Length <= 320 ? text : text[..320];
     }
 
+    private sealed record AttachedTargetInfo(
+        string TargetId,
+        string Type,
+        string Url,
+        string? ParentId,
+        string? ParentFrameId);
+
+    private sealed record AttachedExecutionContext(
+        int ContextId,
+        string SessionId,
+        string TargetId);
+
     private sealed record Target
     {
+        public string Id { get; init; } = string.Empty;
         public string Type { get; init; } = string.Empty;
         public string Url { get; init; } = string.Empty;
         public string WebSocketDebuggerUrl { get; init; } = string.Empty;
