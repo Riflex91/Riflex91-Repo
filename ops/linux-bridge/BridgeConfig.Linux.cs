@@ -131,6 +131,7 @@ public sealed record BridgeConfig
         if (PollIntervalSeconds is < 2 or > 60) throw new InvalidOperationException("POLL_INTERVAL_INVALID");
         if (SupabaseStatusIntervalSeconds != 60) throw new InvalidOperationException("SUPABASE_STATUS_INTERVAL_MUST_BE_60_SECONDS");
         if (MaxBackoffSeconds < PollIntervalSeconds || MaxBackoffSeconds > 3600) throw new InvalidOperationException("MAX_BACKOFF_INVALID");
+        if (SelfUpdateIntervalSeconds is < 30 or > 3600) throw new InvalidOperationException("SELF_UPDATE_INTERVAL_INVALID");
         if (EventLimit is < 1 or > 200) throw new InvalidOperationException("EVENT_LIMIT_INVALID");
         if (WatchdogIntervalSeconds is < 5 or > 60) throw new InvalidOperationException("WATCHDOG_INTERVAL_INVALID");
         if (WatchdogFailuresBeforeReload < 1 || WatchdogFailuresBeforeRestart <= WatchdogFailuresBeforeReload || WatchdogFailuresBeforeRestart > 20)
