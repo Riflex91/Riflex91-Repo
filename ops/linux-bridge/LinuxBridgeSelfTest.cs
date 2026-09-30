@@ -50,6 +50,16 @@ public static class LinuxBridgeSelfTest
         catch (InvalidOperationException) { blocked = true; }
         Assert(blocked, "BACKBLAZE_ENDPOINT_PINNED");
 
+        blocked = false;
+        try { (config with { SelfUpdateIntervalSeconds = 0 }).Validate(); }
+        catch (InvalidOperationException) { blocked = true; }
+        Assert(blocked, "SELF_UPDATE_INTERVAL_ZERO_BLOCKED");
+
+        blocked = false;
+        try { (config with { SelfUpdateIntervalSeconds = 5 }).Validate(); }
+        catch (InvalidOperationException) { blocked = true; }
+        Assert(blocked, "SELF_UPDATE_INTERVAL_TOO_SMALL_BLOCKED");
+
         using var http = new HttpClient();
         await using (var disabledWatchdog = new LinuxWatchdogSupervisor(
             http,
