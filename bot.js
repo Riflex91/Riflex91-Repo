@@ -9,8 +9,8 @@
   var P = parent;
   var D = P.document;
   var GD = (typeof G !== 'undefined' ? G : (P.G || {}));
-  var VERSION = '2.14.38';
-  var BUILD = '2026-09-11';
+  var VERSION = '2.14.39';
+  var BUILD = '2026-09-30';
   var REPORT_PROTOCOL = 6;
   var HEADLESS = !!(P.__AIO_HEADLESS__ || P.__AIO_HEADLESS_MODE__ || P.caracAL || P.no_graphics);
   var clock = function () { return Date.now(); };
@@ -2188,7 +2188,7 @@
   // ---------------------------------------------------------------------------
   // 2.8.2 Merchant controls, inventory UX, explainability and regression safety
   // ---------------------------------------------------------------------------
-  var FEATURE_CONTRACT = ["character-info","inventory-window","party-manager","farm-mode","bestiary-items","skill-manager","merchant-director","merchant-stand","meters","web-dashboard","audit-logs","settings","headless","auto-update","config-preservation","fast-travel","task-reason","aio-brain","cloud-state-sync","farmer-auto-equip","merchant-explorer","inventory-pressure-guard","gui-window-toggle","self-training-brain","teacher-student-learning","experience-replay","prioritized-replay","brain-dashboard","champion-challenger","brain-auto-rollback","brain-life-visualization","brain-diary","brain-diary-cloud-sync","brain-diary-dashboard","brain-quality-monitor","brain-overconfidence-guard","brain-drift-quarantine","adaptive-learning-control","brain-research-bridge","research-prompt-profiles","research-secret-redaction","research-dashboard","merchant-bank-warehouse","merchant-active-discovery","merchant-gathering","merchant-discovery-safety","brain-world-model","brain-safe-experiments","brain-planner","brain-explainability","brain-module-permissions","dashboard-game-sprites","merchant-bank-cleanup-confirmation","brain-teaching-hints","dashboard-terrain-tiles","dashboard-learning-feed","merchant-performance-budget","merchant-performance-telemetry","dashboard-terrain-pass-through","dashboard-vector-map-fallback","cloud-unconfigured-idle","merchant-bank-progress-lease","merchant-bank-sync-diagnostics","config-stable-mirror","config-update-namespace-recovery","merchant-compound-flight-guard","merchant-bank-unlock-affordability","merchant-audit-memory-cap","config-newest-valid-source","merchant-economic-action-flight-guard","merchant-bank-retrieve-travel-lease","merchant-vendor-range-guard","merchant-exchange-route-flight-lock","merchant-loot-flight-gate","merchant-capacity-blocked-state","config-control-write-dedupe","merchant-phase-profiler","merchant-route-owner","merchant-capacity-hard-state","merchant-exchange-capacity-gate","merchant-progress-loop-breaker","merchant-bank-state-backoff","merchant-presale-economics","merchant-state-hash-cache","merchant-phase-residual-profile","teacher-availability-circuit-breaker","research-window-telemetry","research-window-integrity","teacher-error-classification","teacher-quota-circuit-breaker","merchant-diagnostic-completeness","learning-observability","update-contract-static-manifest","update-failure-backoff","teacher-quota-persistence","release-identity-telemetry","cloudflare-auto-deploy-ready","merchant-unified-auto-economy","merchant-central-item-policy","merchant-economic-compound-guard","merchant-bank-withdraw-sell-state-machine","merchant-bank-store-no-progress-quarantine","merchant-proactive-buff-service","farmer-buff-renewal-request","dashboard-always-vector-terrain-fallback","group-class-buff-assignment","group-buff-request-confirmation","catalog-monster-item-detail-windows","catalog-live-drop-tables","merchant-orthogonal-item-permissions","farmer-projected-gear-upgrade-override","dashboard-adventure-land-tile-images","update-contract-dynamic-push-parser","bestiary-item-policy-authority","merchant-capacity-relief-v2","merchant-bank-explicit-target","farmer-self-service-eta","farmer-self-service-failsafe","farmer-self-service-lease","brain-source-separation","permission-menu-auto-close","transactional-economic-slot-reresolution","sell-transaction-confirmation","merchant-capacity-watchdog-v2","farmer-merchant-order-self-service","dashboard-transport-fallback","cloud-state-fetch-backoff","teacher-daily-quota-4006","recipe-analysis-throttle","update-contract-static-runtime-closure","update-contract-array-registration-parser","update-fetch-cache-bust","update-auto-singleflight"];
+  var FEATURE_CONTRACT = ["character-info","inventory-window","party-manager","farm-mode","bestiary-items","skill-manager","merchant-director","merchant-stand","meters","web-dashboard","audit-logs","settings","headless","auto-update","config-preservation","fast-travel","task-reason","aio-brain","cloud-state-sync","farmer-auto-equip","merchant-explorer","inventory-pressure-guard","gui-window-toggle","self-training-brain","teacher-student-learning","experience-replay","prioritized-replay","brain-dashboard","champion-challenger","brain-auto-rollback","brain-life-visualization","brain-diary","brain-diary-cloud-sync","brain-diary-dashboard","brain-quality-monitor","brain-overconfidence-guard","brain-drift-quarantine","adaptive-learning-control","brain-research-bridge","research-prompt-profiles","research-secret-redaction","research-dashboard","merchant-bank-warehouse","merchant-active-discovery","merchant-gathering","merchant-discovery-safety","brain-world-model","brain-safe-experiments","brain-planner","brain-explainability","brain-module-permissions","dashboard-game-sprites","merchant-bank-cleanup-confirmation","brain-teaching-hints","dashboard-terrain-tiles","dashboard-learning-feed","merchant-performance-budget","merchant-performance-telemetry","dashboard-terrain-pass-through","dashboard-vector-map-fallback","cloud-unconfigured-idle","merchant-bank-progress-lease","merchant-bank-sync-diagnostics","config-stable-mirror","config-update-namespace-recovery","merchant-compound-flight-guard","merchant-bank-unlock-affordability","merchant-audit-memory-cap","config-newest-valid-source","merchant-economic-action-flight-guard","merchant-bank-retrieve-travel-lease","merchant-vendor-range-guard","merchant-exchange-route-flight-lock","merchant-loot-flight-gate","merchant-capacity-blocked-state","config-control-write-dedupe","merchant-phase-profiler","merchant-route-owner","merchant-capacity-hard-state","merchant-exchange-capacity-gate","merchant-progress-loop-breaker","merchant-bank-state-backoff","merchant-presale-economics","merchant-state-hash-cache","merchant-phase-residual-profile","teacher-availability-circuit-breaker","research-window-telemetry","research-window-integrity","teacher-error-classification","teacher-quota-circuit-breaker","merchant-diagnostic-completeness","learning-observability","update-contract-static-manifest","update-failure-backoff","teacher-quota-persistence","release-identity-telemetry","cloudflare-auto-deploy-ready","merchant-unified-auto-economy","merchant-central-item-policy","merchant-economic-compound-guard","merchant-bank-withdraw-sell-state-machine","merchant-bank-store-no-progress-quarantine","merchant-proactive-buff-service","farmer-buff-renewal-request","dashboard-always-vector-terrain-fallback","group-class-buff-assignment","group-buff-request-confirmation","catalog-monster-item-detail-windows","catalog-live-drop-tables","merchant-orthogonal-item-permissions","farmer-projected-gear-upgrade-override","dashboard-adventure-land-tile-images","update-contract-dynamic-push-parser","bestiary-item-policy-authority","merchant-capacity-relief-v2","merchant-bank-explicit-target","farmer-self-service-eta","farmer-self-service-failsafe","farmer-self-service-lease","brain-source-separation","permission-menu-auto-close","transactional-economic-slot-reresolution","sell-transaction-confirmation","merchant-capacity-watchdog-v2","farmer-merchant-order-self-service","dashboard-transport-fallback","cloud-state-fetch-backoff","teacher-daily-quota-4006","recipe-analysis-throttle","update-contract-static-runtime-closure","update-contract-array-registration-parser","update-fetch-cache-bust","update-auto-singleflight","v6-windows-bridge-transport"];
   S.skillFilter = read('skillFilter:' + me, 'usable') === 'all' ? 'all' : 'usable';
   S.inventoryContext = null;
   S.auditSeq = Number(read('auditSeq:' + me, 0)) || 0;
@@ -2884,7 +2884,7 @@
   function tick(){if(S.disposed)return;try{flushAuditQueue();rotateLogSegment();if(clock()>(S.times.pruneLogs||0)){S.times.pruneLogs=clock()+3600000;pruneOldLogs();}if(clock()>(S.times.stateAudit||0)){S.times.stateAudit=clock()+(character.ctype==='merchant'?2000:1000);v273UpdateSessionRates();stateAuditTick();}v280LearningTick();v290CloudSyncTick(false);v290BrainTick('periodic',false);if(clock()>(S.times.report||0)){S.times.report=clock()+650;publishReport();}syncAutoRoster(false);partyReconcileTick();v280FarmAdaptationTick();dashboardPublishTick(false);updateCheckTick(false);v277DiagnosticTick();if(!S.running){S.status='Pausiert';S.mode='Pause';return;}if(C.roster.indexOf(me)<0){S.status=C.language==='de'?'Warte auf automatische Gruppenauswahl':'Waiting for automatic roster selection';S.mode=C.language==='de'?'Gruppenerkennung':'Group detection';return;}if(connectionTick()||deathTick())return;if(character.s&&(character.s.stunned||character.s.frozen)){S.status='Handlungsunfähig';S.mode='Warten';return;}sustainTick();if(supportTick())return;if(typeof loot==='function'&&clock()>(S.times.loot||0)&&!v21418MerchantLootBlocked()&&!(character.ctype==='merchant'&&String(character.map||'').indexOf('bank')===0)){var lootCadence=character.ctype==='merchant'?(S.moveInFlight||character.moving?2600:1600):900;S.times.loot=clock()+lootCadence;action('Loot einsammeln',function(){return v21418GuardedLoot();},'loot-action',800);}if(character.ctype==='merchant')merchantTick();else{v277FarmerSupplySignalTick();if(farmerElixirTransferTick())return;if(farmerLootTransferTick())return;farmerTick();}v281TranslateState();if(typeof set_message==='function'&&clock()>(S.times.message||0)){S.times.message=clock()+1800;try{set_message('AIO '+VERSION+' · '+S.mode);}catch(e){}}}catch(e){audit('tick_error','Steuerungsfehler: '+reason(e),null,'error');}}
   function pause(value){S.running=value==null?!S.running:!!value;write('run:'+me,S.running);audit('run_state',S.running?'Bot gestartet':'Bot pausiert');renderAll(true);}
   function dispose() {
-    if(S.disposed)return;S.disposed=true;try{clearInterval(timer);}catch(e){}try{clearInterval(uiTimer);}catch(e){}flushAuditQueue();write('report:'+me,Object.assign(report(),{active:false}));
+    if(S.disposed)return;S.disposed=true;try{if(P.ALBot===S.v6BridgeFacade21439)delete P.ALBot;}catch(e){}try{if(globalThis.ALBot===S.v6BridgeFacade21439)delete globalThis.ALBot;}catch(e){}try{clearInterval(timer);}catch(e){}try{clearInterval(uiTimer);}catch(e){}flushAuditQueue();write('report:'+me,Object.assign(report(),{active:false}));
     try{if(character.remove)charEventIds.forEach(function(id){character.remove(id);});}catch(e){}
     try{if(on_cm===receive27)on_cm=oldCM;}catch(e){} // compatibility; receive27 may not exist in old runners
     try{on_party_invite=oldInvite;on_party_request=oldRequest;}catch(e){}
@@ -6191,5 +6191,248 @@
   };
 
   audit('feature_contract','2.14.38 Explizite Merchant-Bankslots + EXP/Gold-Fallback + Farmer-Selbstservice bei Merchant-Ausfall + Simple-Dashboard-Write geprüft',{serviceOrder:V21432_SERVICE_ORDER,fallbackWeights:{xp:68,gold:32},brainPolicyChanged:false});
+
+
+  /* v2.14.39 V6 Windows Bridge transport adapter START */
+  // Host-only observability contract. This surface intentionally exposes no gameplay commands.
+  var V21439_V6_EVENT_CAP=1600;
+  var v21439V6Seen=typeof WeakSet==='function'?new WeakSet():null;
+  var v21439V6FallbackSeen=[];
+  var v21439V6Transport={
+    seq:Math.max(Number(read('v6TransportSeq:'+me,0))||0,clock()*1000),
+    acknowledged:0,
+    dropped:0,
+    events:[]
+  };
+
+  function v21439V6Identity(){
+    return {
+      product:'AL Bot',
+      generation:6,
+      bridgeProtocol:'albot-v6-bridge-v1',
+      runtimeVersion:VERSION,
+      transportOnly:true,
+      gameplayActionAuthority:false,
+      acceptsLegacyGenerations:false,
+      legacy:false
+    };
+  }
+
+  function v21439V6Sanitize(value,depth,key){
+    depth=Number(depth)||0;
+    key=String(key||'');
+    if(/(?:write.?key|token|secret|authorization|password|application.?key|credential)/i.test(key))
+      return '[REDACTED]';
+    if(value==null)return value;
+    var type=typeof value;
+    if(type==='string')return value.length>800?value.slice(0,800)+'…':value;
+    if(type==='number')return isFinite(value)?value:null;
+    if(type==='boolean')return value;
+    if(type==='bigint')return String(value);
+    if(type==='function'||type==='symbol'||type==='undefined')return undefined;
+    if(depth>=4)return '[DEPTH_LIMIT]';
+    if(Array.isArray(value)){
+      var arr=[];
+      for(var i=0;i<value.length&&i<32;i++){
+        var av=v21439V6Sanitize(value[i],depth+1,String(i));
+        if(av!==undefined)arr.push(av);
+      }
+      return arr;
+    }
+    if(type==='object'){
+      var out={},keys=[];
+      try{keys=Object.keys(value).slice(0,64);}catch(e){return '[UNREADABLE]';}
+      for(var j=0;j<keys.length;j++){
+        var k=keys[j],v;
+        try{v=v21439V6Sanitize(value[k],depth+1,k);}catch(e){v='[UNREADABLE]';}
+        if(v!==undefined)out[k]=v;
+      }
+      return out;
+    }
+    return String(value).slice(0,800);
+  }
+
+  function v21439V6WasSeen(row){
+    if(!row||typeof row!=='object')return true;
+    if(v21439V6Seen){
+      if(v21439V6Seen.has(row))return true;
+      v21439V6Seen.add(row);
+      return false;
+    }
+    if(v21439V6FallbackSeen.indexOf(row)>=0)return true;
+    v21439V6FallbackSeen.push(row);
+    if(v21439V6FallbackSeen.length>V21439_V6_EVENT_CAP*2)
+      v21439V6FallbackSeen.splice(0,V21439_V6_EVENT_CAP);
+    return false;
+  }
+
+  function v21439V6SyncEvents(){
+    var rows=Array.isArray(S.auditRecent)?S.auditRecent:[];
+    var changed=false;
+    for(var i=0;i<rows.length;i++){
+      var row=rows[i];
+      if(v21439V6WasSeen(row))continue;
+      var kind=String(row.kind||'event');
+      var ev={
+        seq:++v21439V6Transport.seq,
+        at:Number(row.at)||clock(),
+        iso:String(row.iso||''),
+        character:String(row.char||me),
+        level:String(row.level||'info'),
+        severity:String(row.level||'info').toUpperCase(),
+        component:kind.split('_')[0]||'runtime',
+        event:kind,
+        reason:String(row.message||'').slice(0,800),
+        data:v21439V6Sanitize(row.data,0,kind+':'+String(row.message||''))
+      };
+      v21439V6Transport.events.push(ev);
+      changed=true;
+    }
+    if(v21439V6Transport.events.length>V21439_V6_EVENT_CAP){
+      var remove=v21439V6Transport.events.length-V21439_V6_EVENT_CAP;
+      v21439V6Transport.events.splice(0,remove);
+      v21439V6Transport.dropped+=remove;
+      changed=true;
+    }
+    if(changed){
+      try{write('v6TransportSeq:'+me,v21439V6Transport.seq);}catch(e){}
+    }
+    return v21439V6Transport.events;
+  }
+
+  function v21439V6Snapshot(options){
+    v21439V6SyncEvents();
+    var now=clock(),p={};
+    try{p=pos(character)||{};}catch(e){}
+    var realm=null,party=null,role='';
+    try{realm=currentRealm();}catch(e){}
+    try{party=v21439V6Sanitize(partyState(),0,'party');}catch(e){}
+    try{role=String(roleForName(me)||'');}catch(e){}
+    var snapshot={
+      schemaVersion:1,
+      type:'ALBOT_V6_DEBUG_SNAPSHOT',
+      identity:v21439V6Identity(),
+      observedAt:now,
+      heartbeat:{at:now},
+      character:{
+        name:me,
+        ctype:String(character.ctype||''),
+        role:role,
+        level:Number(character.level)||0,
+        hp:Number(character.hp)||0,
+        max_hp:Number(character.max_hp)||0,
+        mp:Number(character.mp)||0,
+        max_mp:Number(character.max_mp)||0,
+        xp:Number(character.xp)||0,
+        gold:Number(character.gold)||0,
+        map:String(character.map||''),
+        x:Number(p.x)||0,
+        y:Number(p.y)||0,
+        moving:!!character.moving,
+        rip:!!character.rip,
+        target:S.target||null
+      },
+      status:{
+        currentTask:String(S.status||'').slice(0,500),
+        taskCode:String(S.mode||'').slice(0,120),
+        mode:String(S.mode||'').slice(0,120),
+        active:!!S.running,
+        disposed:!!S.disposed,
+        lastAction:String(S.lastAction||'').slice(0,200),
+        lastActionAt:Number(S.lastActionAt)||0,
+        lastXpAt:Number(S.lastXPAt)||0,
+        lastKillAt:Number(S.lastKillAt)||0,
+        lastMoveAt:Number(S.lastMoveAt)||0
+      },
+      realm:v21439V6Sanitize(realm,0,'realm'),
+      party:party,
+      telemetry:{
+        reportProtocol:6,
+        lastCapturedSeq:v21439V6Transport.seq,
+        lastAcknowledgedSeq:v21439V6Transport.acknowledged,
+        buffered:v21439V6Transport.events.length,
+        dropped:v21439V6Transport.dropped,
+        dashboardTransport:String(S.dashboardTransport||'').slice(0,120)
+      },
+      update:{
+        current:VERSION,
+        latest:String(S.update&&S.update.latest||VERSION).slice(0,40),
+        available:!!(S.update&&S.update.available),
+        checking:!!(S.update&&S.update.checking),
+        applying:!!(S.update&&S.update.applying),
+        checkedAt:Number(S.update&&S.update.checkedAt)||0,
+        error:String(S.update&&S.update.error||'').slice(0,500)
+      }
+    };
+    if(options&&options.deep){
+      try{snapshot.diagnostics={state:v21439V6Sanitize(stateSnapshot(),0,'state'),recentEvents:v21439V6Transport.events.slice(-24)};}catch(e){}
+    }
+    return snapshot;
+  }
+
+  function v21439V6Events(afterSeq,limit){
+    v21439V6SyncEvents();
+    var requested=Math.max(0,Number(afterSeq)||0);
+    var bounded=Math.max(1,Math.min(200,Number(limit)||100));
+    var last=v21439V6Transport.seq;
+    var oldest=v21439V6Transport.events.length?v21439V6Transport.events[0].seq:last+1;
+    var effective=requested;
+    if(requested>last)effective=last;
+    else if(v21439V6Transport.events.length&&requested<oldest-1)effective=oldest-1;
+    var available=v21439V6Transport.events.filter(function(row){return Number(row.seq)>effective;});
+    return {
+      schemaVersion:1,
+      type:'ALBOT_V6_DEBUG_EVENTS',
+      identity:v21439V6Identity(),
+      requestedAfterSeq:requested,
+      effectiveAfterSeq:effective,
+      lastCapturedSeq:last,
+      hasMore:available.length>bounded,
+      events:available.slice(0,bounded)
+    };
+  }
+
+  function v21439V6PeekTelemetry(limit){
+    v21439V6SyncEvents();
+    var bounded=Math.max(1,Math.min(200,Number(limit)||100));
+    return v21439V6Transport.events.slice(-bounded);
+  }
+
+  function v21439V6AcknowledgeTelemetry(maxSeq){
+    v21439V6SyncEvents();
+    var bounded=Math.max(0,Math.min(v21439V6Transport.seq,Number(maxSeq)||0));
+    var before=v21439V6Transport.events.length;
+    v21439V6Transport.events=v21439V6Transport.events.filter(function(row){return Number(row.seq)>bounded;});
+    var acknowledged=before-v21439V6Transport.events.length;
+    v21439V6Transport.acknowledged=Math.max(v21439V6Transport.acknowledged,bounded);
+    return {
+      schemaVersion:1,
+      type:'ALBOT_V6_TELEMETRY_ACK',
+      supported:true,
+      acknowledged:acknowledged,
+      remaining:v21439V6Transport.events.length,
+      lastAcknowledgedSeq:v21439V6Transport.acknowledged,
+      lastCapturedSeq:v21439V6Transport.seq,
+      dropped:v21439V6Transport.dropped
+    };
+  }
+
+  var v21439V6Facade=Object.freeze({
+    product:'AL Bot',
+    version:VERSION,
+    bridge:Object.freeze({
+      identity:v21439V6Identity,
+      snapshot:v21439V6Snapshot,
+      events:v21439V6Events,
+      peekTelemetry:v21439V6PeekTelemetry,
+      acknowledgeTelemetry:v21439V6AcknowledgeTelemetry
+    })
+  });
+  S.v6BridgeFacade21439=v21439V6Facade;
+  try{P.ALBot=v21439V6Facade;}catch(e){}
+  try{globalThis.ALBot=v21439V6Facade;}catch(e){}
+  v21439V6SyncEvents();
+  audit('v6_bridge_ready','V6 Windows-Bridge-Transport bereit',{protocol:'albot-v6-bridge-v1',transportOnly:true,gameplayActionAuthority:false});
+  /* v2.14.39 V6 Windows Bridge transport adapter END */
 
 })();
