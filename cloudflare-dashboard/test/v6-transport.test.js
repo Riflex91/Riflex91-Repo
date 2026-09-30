@@ -5,7 +5,8 @@ import freeTierWorker from '../src/worker-free-tier.js';
 import {
   GENERATION,
   PROTOCOL,
-  RUNTIME_STATUS_VISIBLE_MS,
+  RUNTIME_STATUS_RETAIN_MS,
+  RUNTIME_STATUS_MAX_ROWS,
   ensureV6Schema,
   handleV6Request,
   legacyTransportBlocked
@@ -118,8 +119,42 @@ test('V6 transport bootstraps its D1 tables through the Worker binding', async (
   assert.equal(DB.calls.length, countAfterFirst);
 });
 
-test('V6 overview only exposes recent runtime rows', async () => {
+test('V6 overview keeps known characters visible and derives offline state from age', async () => {
+  const receivedAt = Date.now() - 10 * 60 * 1000;
   const DB = fakeDb();
+  const originalPrepare = DB.prepare.bind(DB);
+  DB.prepare = sql => {
+    const statement = originalPrepare(sql);
+    if (/FROM v6_runtime_status/.test(String(sql || ''))) {
+      statement.all = async function() {
+        DB.calls.push({ kind: 'all', sql, args: this.args });
+        return {
+          results: [{
+            character: 'My_Merchant',
+            bot_id: 'albot-v6-main',
+            protocol: PROTOCOL,
+            payload: JSON.stringify({
+              schemaVersion: 1,
+              type: 'ALBOT_V6_DEBUG_SNAPSHOT',
+              identity: {
+                product: 'AL Bot',
+                generation: GENERATION,
+                bridgeProtocol: PROTOCOL,
+                runtimeVersion: '2.14.39',
+                transportOnly: true,
+                gameplayActionAuthority: false,
+                acceptsLegacyGenerations: false
+              },
+              character: { name: 'My_Merchant', ctype: 'merchant', map: 'main', x: 0, y: 0 }
+            }),
+            received_at: receivedAt
+          }]
+        };
+      };
+    }
+    return statement;
+  };
+
   const response = await handleV6Request(
     new Request('https://dashboard.test/api/v6/overview?account=default', {
       headers: { 'x-aio-read-key': 'read-secret' }
@@ -127,16 +162,26 @@ test('V6 overview only exposes recent runtime rows', async () => {
     { DB, READ_KEY: 'read-secret' }
   );
   assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.equal(payload.characters.length, 1);
+  assert.equal(payload.characters[0].character, 'My_Merchant');
+  assert.equal(payload.characters[0].connectionState, 'offline');
+  assert.ok(payload.characters[0].ageSeconds >= 590);
+
   const runtimeRead = DB.calls.find(row =>
     row.kind === 'all'
     && /FROM v6_runtime_status/.test(String(row.sql || '')));
   assert.ok(runtimeRead);
   assert.match(runtimeRead.sql, /received_at>=\?/);
-  assert.equal(runtimeRead.args.length, 2);
+  assert.match(runtimeRead.sql, /ORDER BY received_at DESC LIMIT \?/);
+  assert.equal(runtimeRead.args.length, 3);
+  assert.equal(runtimeRead.args[0], 'default');
   const cutoffAge = Date.now() - Number(runtimeRead.args[1]);
-  assert.ok(cutoffAge >= RUNTIME_STATUS_VISIBLE_MS - 5000);
-  assert.ok(cutoffAge <= RUNTIME_STATUS_VISIBLE_MS + 5000);
-  assert.equal(RUNTIME_STATUS_VISIBLE_MS, 5 * 60 * 1000);
+  assert.ok(cutoffAge >= RUNTIME_STATUS_RETAIN_MS - 5000);
+  assert.ok(cutoffAge <= RUNTIME_STATUS_RETAIN_MS + 5000);
+  assert.equal(runtimeRead.args[2], RUNTIME_STATUS_MAX_ROWS);
+  assert.equal(RUNTIME_STATUS_RETAIN_MS, 30 * 24 * 60 * 60 * 1000);
+  assert.equal(RUNTIME_STATUS_MAX_ROWS, 64);
 });
 
 test('V6 runtime endpoint requires the generation-locked bridge identity and dedicated secret', async () => {
@@ -156,6 +201,10 @@ test('V6 runtime endpoint requires the generation-locked bridge identity and ded
   assert.ok(retention);
   assert.match(retention.sql, /WHERE event_at<\?/);
   assert.equal(retention.args.length, 1);
+  const statusRetention = DB.calls.find(row => row.kind === 'run' && String(row.sql || '').includes('DELETE FROM v6_runtime_status'));
+  assert.ok(statusRetention);
+  assert.match(statusRetention.sql, /WHERE received_at<\?/);
+  assert.equal(statusRetention.args.length, 1);
 
   const wrongGeneration = await handleV6Request(v6Request({
     headers: { 'x-albot-generation': '5' }

@@ -2,7 +2,8 @@ const GENERATION = 6;
 const PROTOCOL = 'albot-v6-bridge-v1';
 const RUNTIME_PUSH_TYPE = 'ALBOT_V6_RUNTIME_PUSH';
 const RUNTIME_MIN_WRITE_MS = 15_000;
-const RUNTIME_STATUS_VISIBLE_MS = 5 * 60 * 1000;
+const RUNTIME_STATUS_RETAIN_MS = 30 * 24 * 60 * 60 * 1000;
+const RUNTIME_STATUS_MAX_ROWS = 64;
 const EVENT_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 const EVENT_BATCH_MAX = 24;
 const MAX_BODY_BYTES = 512 * 1024;
@@ -290,6 +291,9 @@ async function handleRuntime(request, env) {
       await env.DB.prepare('DELETE FROM v6_runtime_events WHERE event_at<?')
         .bind(now - EVENT_RETENTION_MS)
         .run();
+      await env.DB.prepare('DELETE FROM v6_runtime_status WHERE received_at<?')
+        .bind(now - RUNTIME_STATUS_RETAIN_MS)
+        .run();
     } catch (_) {}
   }
 
@@ -317,11 +321,13 @@ async function handleOverview(request, env) {
   const now = Date.now();
 
   const [runtimeRows, settingsRow] = await Promise.all([
+    // Keep known characters visible after they go offline, but bound the
+    // historical roster so renamed/test identities cannot grow forever.
     env.DB.prepare(
       'SELECT character,bot_id,protocol,payload,received_at FROM v6_runtime_status '
-      + 'WHERE account=? AND received_at>=? ORDER BY character'
+      + 'WHERE account=? AND received_at>=? ORDER BY received_at DESC LIMIT ?'
     )
-      .bind(account, now - RUNTIME_STATUS_VISIBLE_MS)
+      .bind(account, now - RUNTIME_STATUS_RETAIN_MS, RUNTIME_STATUS_MAX_ROWS)
       .all(),
     env.DB.prepare('SELECT schema_version,revision,updated_at FROM v3_control_settings WHERE account=?')
       .bind(account)
@@ -422,7 +428,8 @@ export {
   PROTOCOL,
   RUNTIME_PUSH_TYPE,
   RUNTIME_MIN_WRITE_MS,
-  RUNTIME_STATUS_VISIBLE_MS,
+  RUNTIME_STATUS_RETAIN_MS,
+  RUNTIME_STATUS_MAX_ROWS,
   EVENT_BATCH_MAX,
   ensureV6Schema,
   legacyTransportBlocked,
