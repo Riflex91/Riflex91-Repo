@@ -2,7 +2,6 @@ const GENERATION = 6;
 const PROTOCOL = 'albot-v6-bridge-v1';
 const RUNTIME_PUSH_TYPE = 'ALBOT_V6_RUNTIME_PUSH';
 const RUNTIME_MIN_WRITE_MS = 15_000;
-const RUNTIME_STATUS_VISIBLE_MS = 5 * 60 * 1000;
 const EVENT_RETENTION_MS = 14 * 24 * 60 * 60 * 1000;
 const EVENT_BATCH_MAX = 24;
 const MAX_BODY_BYTES = 512 * 1024;
@@ -317,11 +316,14 @@ async function handleOverview(request, env) {
   const now = Date.now();
 
   const [runtimeRows, settingsRow] = await Promise.all([
+    // Keep every known character visible. Freshness is represented by
+    // connectionState below; stale/offline characters must not disappear from
+    // the dashboard merely because their telemetry has stopped.
     env.DB.prepare(
       'SELECT character,bot_id,protocol,payload,received_at FROM v6_runtime_status '
-      + 'WHERE account=? AND received_at>=? ORDER BY character'
+      + 'WHERE account=? ORDER BY character'
     )
-      .bind(account, now - RUNTIME_STATUS_VISIBLE_MS)
+      .bind(account)
       .all(),
     env.DB.prepare('SELECT schema_version,revision,updated_at FROM v3_control_settings WHERE account=?')
       .bind(account)
@@ -422,7 +424,6 @@ export {
   PROTOCOL,
   RUNTIME_PUSH_TYPE,
   RUNTIME_MIN_WRITE_MS,
-  RUNTIME_STATUS_VISIBLE_MS,
   EVENT_BATCH_MAX,
   ensureV6Schema,
   legacyTransportBlocked,
