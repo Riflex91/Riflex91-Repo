@@ -10,24 +10,22 @@ test('V6 dashboard root and /al-final stay byte-identical', () => {
   assert.match(root, /\/api\/v6\/overview/);
 });
 
-test('V6 dashboard keeps stale characters visible with an offline age', () => {
-  assert.match(root, /ageSeconds:N\(r\.ageSeconds,999999\)/);
-  assert.match(root, /c\.state==='offline'\?' · '\+A\(c\.ageSeconds\)/);
+test('V6 dashboard renders live characters only', () => {
+  assert.match(root, /\.map\(normalize\)\.filter\(c=>c\.state==='live'\)/);
+  assert.doesNotMatch(root, /c\.state==='offline'\?' · '\+A\(c\.ageSeconds\)/);
 });
 
-test('offline rows do not inflate live activity totals', () => {
-  assert.match(root, /active=rows\.filter\(c=>c\.state!=='offline'\)/);
-  assert.match(root, /active\.reduce\(\(a,c\)=>a\+c\.rates\.xpPerHour,0\)/);
-  assert.match(root, /active\.reduce\(\(a,c\)=>a\+c\.rates\.goldPerHour,0\)/);
-  assert.match(root, /new Set\(active\.map\(c=>c\.map\)\.filter\(Boolean\)\)\.size/);
-});
-
-test('V6 terrain uses high-DPI smoothing without changing sprite pixel art', () => {
+test('V6 terrain uses high-DPI smoothing without grid overlays or seams', () => {
   assert.match(root, /#terrainCanvas\{image-rendering:auto\}/);
   assert.doesNotMatch(root, /#terrainCanvas\{image-rendering:pixelated\}/);
   assert.match(root, /Math\.min\(3,devicePixelRatio\|\|1\)/);
   assert.match(root, /ctx\.imageSmoothingEnabled=true/);
   assert.match(root, /ctx\.imageSmoothingQuality='high'/);
+  assert.match(root, /Math\.floor\(\(x-view\.x\)\*sx\)/);
+  assert.match(root, /Math\.ceil\(\(x\+tw-view\.x\)\*sx\)/);
+  assert.doesNotMatch(root, /terrain-wall/);
+  assert.doesNotMatch(root, /Adventure-Land-Terrain · hochauflösend geglättet/);
+  assert.doesNotMatch(root, /class="hint"/);
   assert.match(root, /\.gamesprite\{[^}]*image-rendering:pixelated/);
   assert.match(root, /\.gamesprite img\{[^}]*image-rendering:pixelated/);
 });
