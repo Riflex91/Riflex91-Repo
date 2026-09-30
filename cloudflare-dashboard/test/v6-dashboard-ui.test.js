@@ -15,6 +15,13 @@ test('V6 dashboard keeps stale characters visible with an offline age', () => {
   assert.match(root, /c\.state==='offline'\?' · '\+A\(c\.ageSeconds\)/);
 });
 
+test('offline rows do not inflate live activity totals', () => {
+  assert.match(root, /active=rows\.filter\(c=>c\.state!=='offline'\)/);
+  assert.match(root, /active\.reduce\(\(a,c\)=>a\+c\.rates\.xpPerHour,0\)/);
+  assert.match(root, /active\.reduce\(\(a,c\)=>a\+c\.rates\.goldPerHour,0\)/);
+  assert.match(root, /new Set\(active\.map\(c=>c\.map\)\.filter\(Boolean\)\)\.size/);
+});
+
 test('V6 terrain uses high-DPI smoothing without changing sprite pixel art', () => {
   assert.match(root, /#terrainCanvas\{image-rendering:auto\}/);
   assert.doesNotMatch(root, /#terrainCanvas\{image-rendering:pixelated\}/);
