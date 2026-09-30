@@ -505,6 +505,39 @@ using (var sameOriginContextDocument = JsonDocument.Parse("""{"id":44,"origin":"
     var accepted = (bool)executionContextCandidateMethod!.Invoke(executionContextClient, invokeArgs)!;
     Assert(accepted, "V6_ADVENTURE_LAND_CONTEXT_ACCEPTED_FOR_IDENTITY_PROBE");
 }
+using (var opaqueSandboxContextDocument = JsonDocument.Parse("""
+{"id":46,"origin":"null","auxData":{"isDefault":true,"type":"default","frameId":"FRAME-MERCHANT"}}
+"""))
+{
+    object?[] invokeArgs = [opaqueSandboxContextDocument.RootElement, 0];
+    var accepted = (bool)executionContextCandidateMethod!.Invoke(executionContextClient, invokeArgs)!;
+    Assert(accepted, "V6_SANDBOX_CONTEXT_WITH_NULL_ORIGIN_ACCEPTED_FOR_DEFAULT_FRAME");
+    Assert((int)invokeArgs[1]! == 46, "V6_NULL_ORIGIN_CONTEXT_ID_PRESERVED");
+}
+using (var opaqueSchemeContextDocument = JsonDocument.Parse("""
+{"id":47,"origin":"://","auxData":{"isDefault":true,"type":"default","frameId":"FRAME-RANGER2"}}
+"""))
+{
+    object?[] invokeArgs = [opaqueSchemeContextDocument.RootElement, 0];
+    var accepted = (bool)executionContextCandidateMethod!.Invoke(executionContextClient, invokeArgs)!;
+    Assert(accepted, "V6_SANDBOX_CONTEXT_WITH_OPAQUE_SCHEME_ACCEPTED_FOR_DEFAULT_FRAME");
+}
+using (var opaqueIsolatedContextDocument = JsonDocument.Parse("""
+{"id":48,"origin":"null","auxData":{"isDefault":false,"type":"isolated","frameId":"FRAME-FOREIGN"}}
+"""))
+{
+    object?[] invokeArgs = [opaqueIsolatedContextDocument.RootElement, 0];
+    var accepted = (bool)executionContextCandidateMethod!.Invoke(executionContextClient, invokeArgs)!;
+    Assert(!accepted, "V6_OPAQUE_ISOLATED_WORLD_REJECTED");
+}
+using (var opaqueContextWithoutFrameDocument = JsonDocument.Parse("""
+{"id":49,"origin":"null","auxData":{"isDefault":true,"type":"default"}}
+"""))
+{
+    object?[] invokeArgs = [opaqueContextWithoutFrameDocument.RootElement, 0];
+    var accepted = (bool)executionContextCandidateMethod!.Invoke(executionContextClient, invokeArgs)!;
+    Assert(!accepted, "V6_OPAQUE_CONTEXT_WITHOUT_FRAME_ID_REJECTED");
+}
 using (var foreignOriginContextDocument = JsonDocument.Parse("""{"id":45,"origin":"https://example.invalid"}"""))
 {
     object?[] invokeArgs = [foreignOriginContextDocument.RootElement, 0];
