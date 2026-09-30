@@ -163,35 +163,94 @@ public sealed record BridgeConfig
         || string.Equals(host, "::1", StringComparison.Ordinal);
 }
 
-public sealed record BridgeState(long LastEventSeq = 0)
+public sealed record BridgeState(
+    long LastEventSeq = 0,
+    Dictionary<string, long>? CharacterEventSeqs = null)
 {
+    public long GetLastEventSeq(string? character)
+    {
+        if (string.IsNullOrWhiteSpace(character) || CharacterEventSeqs is null)
+            return 0;
+
+        foreach (var row in CharacterEventSeqs)
+        {
+            if (string.Equals(row.Key, character, StringComparison.OrdinalIgnoreCase))
+                return Math.Max(0, row.Value);
+        }
+
+        return 0;
+    }
+
+    public BridgeState WithCharacterSeq(string character, long lastEventSeq)
+    {
+        if (string.IsNullOrWhiteSpace(character))
+            throw new ArgumentException("CHARACTER_REQUIRED", nameof(character));
+
+        var next = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        if (CharacterEventSeqs is not null)
+        {
+            foreach (var row in CharacterEventSeqs)
+                next[row.Key] = Math.Max(0, row.Value);
+        }
+
+        next[character.Trim()] = Math.Max(0, lastEventSeq);
+        var aggregate = Math.Max(LastEventSeq, next.Values.DefaultIfEmpty(0).Max());
+        return this with { LastEventSeq = aggregate, CharacterEventSeqs = next };
+    }
+
     public static async Task<BridgeState> LoadAsync(CancellationToken cancellationToken = default)
     {
+        if (!File.Exists(BridgeConfig.BridgeStatePath))
+            return new BridgeState();
+
         try
         {
-            if (!File.Exists(BridgeConfig.BridgeStatePath)) return new BridgeState();
             await using var stream = File.OpenRead(BridgeConfig.BridgeStatePath);
-            return await JsonSerializer.DeserializeAsync<BridgeState>(stream, BridgeConfig.JsonOptions, cancellationToken) ?? new BridgeState();
+            return await JsonSerializer.DeserializeAsync<BridgeState>(
+                stream,
+                BridgeConfig.JsonOptions,
+                cancellationToken) ?? new BridgeState();
         }
-        catch { return new BridgeState(); }
+        catch (Exception error)
+        {
+            throw new InvalidOperationException("BRIDGE_STATE_CORRUPT", error);
+        }
     }
 
     public async Task SaveAsync(CancellationToken cancellationToken = default)
     {
         Directory.CreateDirectory(BridgeConfig.StateDirectory);
         var temp = BridgeConfig.BridgeStatePath + ".tmp";
-        await File.WriteAllTextAsync(temp, JsonSerializer.Serialize(this, BridgeConfig.JsonOptions), cancellationToken);
+        await File.WriteAllTextAsync(
+            temp,
+            JsonSerializer.Serialize(this, BridgeConfig.JsonOptions),
+            cancellationToken);
         File.Move(temp, BridgeConfig.BridgeStatePath, true);
     }
 }
 
-public sealed record DebugReadResult(JsonElement Snapshot, JsonElement Events, long RequestedAfterSeq, long EffectiveAfterSeq, long MaxSeq, long LastCapturedSeq, bool HasMoreEvents, string TargetUrl)
+public sealed record DebugReadResult(
+    JsonElement Snapshot,
+    JsonElement Events,
+    long RequestedAfterSeq,
+    long EffectiveAfterSeq,
+    long MaxSeq,
+    long LastCapturedSeq,
+    bool HasMoreEvents,
+    string TargetUrl,
+    JsonElement? DashboardVisual = null)
 {
     public int EventCount => Events.ValueKind == JsonValueKind.Array ? Events.GetArrayLength() : 0;
     public bool CursorWasReset => EffectiveAfterSeq != RequestedAfterSeq;
 }
 
-public sealed record TelemetryAckResult(bool Supported, int Acknowledged, int Remaining, long LastAcknowledgedSeq, long LastCapturedSeq, int Dropped)
+public sealed record TelemetryAckResult(
+    bool Supported,
+    int Acknowledged,
+    int Remaining,
+    long LastAcknowledgedSeq,
+    long LastCapturedSeq,
+    int Dropped)
 {
     public static TelemetryAckResult Empty { get; } = new(false, 0, 0, 0, 0, 0);
 }
