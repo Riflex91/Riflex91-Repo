@@ -10,25 +10,33 @@ Two independent layers are used. systemd supervises the Linux Bridge process wit
 
 Recovery is staged: start the browser if CDP is absent; require a valid V6 snapshot/identity; after repeated bot/CDP failures send Page.reload; after further failures restart only the browser launched with the dedicated bridge profile; and apply a persistent browser-start budget of four starts per ten minutes followed by a 15 minute circuit breaker.
 
+The systemd keepalive runs on its own 10-second loop and remains active even if the application-level browser watchdog is disabled. Managed-browser start/stop/restart operations share one process-wide async gate so telemetry and recovery cannot race the profile, CDP port, PID file or restart budget. Generic-host shutdown and updater/watchdog disposal are idempotent.
+
 Supabase, Cloudflare and Backblaze outages are observational and are not treated as browser/bot crashes. Character movement is not used as liveness. When the V6 snapshot exposes a heartbeat timestamp, freshness is checked; otherwise successful bounded CDP/V6 snapshot execution is the liveness proof.
 
-## Supervisor hardening
+## Local control surface
 
-The systemd keepalive runs on its own 10-second loop and is independent of browser/CDP recovery. Long browser startup or recovery operations therefore cannot starve WatchdogSec=45. READY/watchdog notifications also remain active when the application-level browser watchdog is disabled.
+The loopback-only page at http://127.0.0.1:18741 provides the Windows Bridge-equivalent operational controls:
 
-All managed-browser start/stop/restart operations share one process-wide asynchronous gate. Telemetry and the recovery supervisor cannot race browser profile/port startup, PID persistence or restart-budget writes.
+- browser restart and live watchdog state;
+- telemetry on/off and secure telemetry token;
+- ChatGPT signal control;
+- Cloudflare dashboard on/off plus secure write key;
+- Backblaze B2 V6 on/off, secure credentials and host-side PUT+HEAD self-test;
+- GitHub fine-grained PAT creation link, Git Credential Manager status/login/logout;
+- knowledge watcher on/off and manual run;
+- live knowledge path configuration;
+- Linux storage/free-space/SSD probe;
+- Linux Bridge readiness report;
+- self-update state and technical status.
 
-Generic-host shutdown and watchdog/updater disposal are idempotent.
-
-## Local UI
-
-The bridge serves a loopback-only page at http://127.0.0.1:18741. Mutating calls require an in-memory per-process admin token and a custom header. No CORS policy is enabled. Secrets are never returned by the API.
+Mutating calls require an in-memory per-process admin token. No CORS policy is enabled. Secrets are never returned by the API.
 
 ## Secrets
 
 Persistent secrets use Linux Secret Service through secret-tool: telemetry-token-v6, web-dashboard-write-key-v6, backblaze-key-id-v6 and backblaze-application-key-v6. Install libsecret-tools and run a Secret Service such as GNOME Keyring or KWallet Secret Service. Environment variables remain supported for unattended deployments. There is no plaintext secret fallback in settings.json.
 
-If secret-tool is not installed, the bridge can still start for browser/watchdog/status operation and can use environment-provided secrets. Persisting new secrets through the local UI remains fail-closed until Linux Secret Service is available.
+If secret-tool is not installed, browser/watchdog/status operation can still start and environment-provided secrets still work. Persisting new secrets through the local UI remains fail-closed until Linux Secret Service is available.
 
 ## Browser
 
@@ -36,7 +44,9 @@ Supported discovery order is Brave, Google Chrome, Chromium and Microsoft Edge. 
 
 ## Knowledge watcher
 
-The constrained Windows implementation is shared: repository scope remains v5/wissensbasis/**, no force push, main is not locally merged/rebased into the knowledge branch, hourly cadence, optional live knowledge import and the Git Credential Manager PAT flow. Linux live import defaults off until an absolute Linux path is intentionally configured.
+The constrained Windows implementation is shared: repository scope remains v5/wissensbasis/**, no force push, main is not locally merged/rebased into the knowledge branch, hourly cadence, optional live knowledge import and the Git Credential Manager fine-grained PAT flow.
+
+The Linux live-knowledge path is an absolute filesystem path. The storage probe checks free-space reserve and, when findmnt/lsblk can resolve the backing block device, whether the storage is non-rotational. Live import defaults off until a Linux path is intentionally configured.
 
 ## Self-update
 
