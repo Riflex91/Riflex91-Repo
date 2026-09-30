@@ -257,6 +257,48 @@ public sealed class CdpAlBotV6Client
                     }
                 }
 
+                // Same-process frames are covered by Runtime.enable above. Chromium
+                // may isolate secondary Adventure Land characters as OOPIF targets,
+                // which require a flattened child CDP session.
+                var attachedContexts = await DiscoverAttachedIframeContextsAsync(
+                    socket,
+                    target,
+                    cancellationToken);
+
+                foreach (var attached in attachedContexts)
+                {
+                    try
+                    {
+                        var catalog = await EvaluateAsync(
+                            socket,
+                            CharacterCatalogExpression,
+                            attached.ContextId,
+                            attached.SessionId,
+                            cancellationToken);
+                        if (catalog.ValueKind != JsonValueKind.Array)
+                            continue;
+
+                        foreach (var row in catalog.EnumerateArray())
+                        {
+                            if (row.ValueKind != JsonValueKind.Object)
+                                continue;
+                            var name = ReadString(row, "character")?.Trim();
+                            if (string.IsNullOrWhiteSpace(name))
+                                continue;
+                            catalogCharacters.Add(name);
+                            rosterCharacters.Add(name);
+                        }
+                    }
+                    catch (InvalidOperationException error)
+                    {
+                        AddProbeDiagnostic(
+                            probeDiagnostics,
+                            target.Url,
+                            attached.ContextId,
+                            "OOPIF_CHARACTER_CATALOG:" + error.Message);
+                    }
+                }
+
                 var candidates = MergeCharacterCandidates(targetCharacter, catalogCharacters);
                 if (candidates.Count > 0)
                 {
@@ -294,6 +336,37 @@ public sealed class CdpAlBotV6Client
                         }
 
                         if (!characterResolved)
+                        {
+                            foreach (var attached in attachedContexts)
+                            {
+                                try
+                                {
+                                    if (!await TryReadCharacterAsync(
+                                            socket,
+                                            attached.ContextId,
+                                            candidateCharacter,
+                                            target.Url,
+                                            attached.SessionId))
+                                        continue;
+                                    characterResolved = true;
+                                    targetResolved = true;
+                                    break;
+                                }
+                                catch (InvalidOperationException error)
+                                {
+                                    AddProbeDiagnostic(
+                                        probeDiagnostics,
+                                        target.Url,
+                                        attached.ContextId,
+                                        "OOPIF:"
+                                        + Bounded(candidateCharacter)
+                                        + ":"
+                                        + error.Message);
+                                }
+                            }
+                        }
+
+                        if (!characterResolved)
                             AddProbeDiagnostic(
                                 probeDiagnostics,
                                 target.Url,
@@ -321,6 +394,33 @@ public sealed class CdpAlBotV6Client
                         catch (InvalidOperationException error)
                         {
                             AddProbeDiagnostic(probeDiagnostics, target.Url, contextId, error.Message);
+                        }
+                    }
+
+                    if (!targetResolved)
+                    {
+                        foreach (var attached in attachedContexts)
+                        {
+                            try
+                            {
+                                if (!await TryReadCharacterAsync(
+                                        socket,
+                                        attached.ContextId,
+                                        requestedCharacter: null,
+                                        target.Url,
+                                        attached.SessionId))
+                                    continue;
+                                targetResolved = true;
+                                break;
+                            }
+                            catch (InvalidOperationException error)
+                            {
+                                AddProbeDiagnostic(
+                                    probeDiagnostics,
+                                    target.Url,
+                                    attached.ContextId,
+                                    "OOPIF:" + error.Message);
+                            }
                         }
                     }
                 }
