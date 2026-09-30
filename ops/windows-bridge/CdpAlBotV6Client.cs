@@ -495,7 +495,8 @@ public sealed class CdpAlBotV6Client
                     cancellationToken);
                 using var socket = new ClientWebSocket();
                 await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
-                foreach (var contextId in contextIds)
+
+                async Task<TelemetryAckResult?> TryAckContextAsync(int contextId, string? sessionId)
                 {
                     try
                     {
@@ -503,12 +504,13 @@ public sealed class CdpAlBotV6Client
                             socket,
                             ProbeExpression,
                             contextId,
+                            sessionId,
                             cancellationToken);
                         if (probe.ValueKind != JsonValueKind.Object
                             || !ReadBoolean(probe, "valid", false)
                             || !probe.TryGetProperty("identity", out var identity)
                             || !IsV6Identity(identity))
-                            continue;
+                            return null;
 
                         if (!string.IsNullOrWhiteSpace(characterName))
                         {
@@ -516,19 +518,21 @@ public sealed class CdpAlBotV6Client
                                 socket,
                                 BuildSnapshotExpression(deep: false, characterName: characterName),
                                 contextId,
+                                sessionId,
                                 cancellationToken);
                             var currentCharacter = ReadCharacterName(snapshot);
                             if (!string.Equals(
                                     currentCharacter,
                                     characterName,
                                     StringComparison.OrdinalIgnoreCase))
-                                continue;
+                                return null;
                         }
 
                         var value = await EvaluateAsync(
                             socket,
                             BuildAcknowledgeExpression(maxSeq, characterName),
                             contextId,
+                            sessionId,
                             cancellationToken);
                         if (value.ValueKind != JsonValueKind.Object
                             || !string.Equals(ReadString(value, "type"), AckType, StringComparison.Ordinal))
@@ -544,7 +548,25 @@ public sealed class CdpAlBotV6Client
                     }
                     catch (InvalidOperationException)
                     {
+                        return null;
                     }
+                }
+
+                foreach (var contextId in contextIds)
+                {
+                    var ack = await TryAckContextAsync(contextId, sessionId: null);
+                    if (ack is not null)
+                        return ack;
+                }
+
+                foreach (var attached in await DiscoverAttachedIframeContextsAsync(
+                             socket,
+                             target,
+                             cancellationToken))
+                {
+                    var ack = await TryAckContextAsync(attached.ContextId, attached.SessionId);
+                    if (ack is not null)
+                        return ack;
                 }
             }
             catch (WebSocketException)
