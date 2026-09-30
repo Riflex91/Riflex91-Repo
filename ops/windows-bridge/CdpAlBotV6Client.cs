@@ -695,11 +695,11 @@ public sealed class CdpAlBotV6Client
             || contextId <= 0)
             return false;
 
-        // FindTargetsAsync already restricts the CDP page target itself to the
-        // configured Adventure Land origin. Adventure Land may execute CODE in
-        // same-page sandbox/about:blank contexts whose CDP "origin" is empty or
-        // omitted, so those opaque contexts must remain eligible for the bounded
-        // V6 identity probe.
+        // FindTargetsAsync already restricts the CDP target itself to the configured
+        // Adventure Land origin. Adventure Land runs secondary CODE characters in
+        // sandboxed frames. Chromium can report those default-frame execution
+        // contexts with an empty/omitted origin or with the literal opaque origin
+        // "null" / "://".
         if (!context.TryGetProperty("origin", out var originNode)
             || originNode.ValueKind != JsonValueKind.String)
             return true;
@@ -708,11 +708,38 @@ public sealed class CdpAlBotV6Client
         if (string.IsNullOrWhiteSpace(origin))
             return true;
 
+        if (string.Equals(origin, "null", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(origin, "://", StringComparison.Ordinal))
+            return IsTrustedOpaqueFrameContext(context);
+
         // Explicit foreign origins remain fail-closed. This prevents a cross-origin
         // child frame from self-reporting a forged ALBot V6 identity and having its
         // data forwarded with host credentials.
         return Uri.TryCreate(origin, UriKind.Absolute, out var uri)
             && SameOrigin(uri, _allowedOrigin);
+    }
+
+    private static bool IsTrustedOpaqueFrameContext(JsonElement context)
+    {
+        if (!context.TryGetProperty("auxData", out var auxData)
+            || auxData.ValueKind != JsonValueKind.Object)
+            return false;
+
+        if (!auxData.TryGetProperty("isDefault", out var isDefaultNode)
+            || isDefaultNode.ValueKind is not JsonValueKind.True)
+            return false;
+
+        if (!auxData.TryGetProperty("frameId", out var frameIdNode)
+            || frameIdNode.ValueKind != JsonValueKind.String
+            || string.IsNullOrWhiteSpace(frameIdNode.GetString()))
+            return false;
+
+        if (auxData.TryGetProperty("type", out var typeNode)
+            && typeNode.ValueKind == JsonValueKind.String
+            && !string.Equals(typeNode.GetString(), "default", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        return true;
     }
 
     private async Task<JsonElement> EvaluateAsync(
