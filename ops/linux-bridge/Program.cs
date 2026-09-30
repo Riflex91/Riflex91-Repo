@@ -257,7 +257,7 @@ body{font-family:system-ui,sans-serif;background:#0d1117;color:#e6edf3;margin:0}
 <div class="card"><h3>Cloudflare Dashboard</h3><div id="dashboard">lädt…</div><button onclick="toggleCfg('dashboard',true)">Dashboard AN</button><button onclick="toggleCfg('dashboard',false)">AUS</button></div>
 <div class="card"><h3>Backblaze B2 V6</h3><div id="backblaze">lädt…</div><button onclick="toggleCfg('backblaze',true)">Archiv AN</button><button onclick="toggleCfg('backblaze',false)">AUS</button><button onclick="act('/api/actions/backblaze-test')">V6 Verbindung testen</button></div>
 <div class="card"><h3>GitHub & Wissenswächter</h3><div id="github">lädt…</div><a class="btn" href="__TOKEN_URL__" target="_blank" rel="noreferrer">Fine-grained PAT erstellen</a><button onclick="githubAct('login')">Token anmelden</button><button onclick="githubAct('logout')">Abmelden</button><button onclick="githubAct('status')">Status</button><br><button onclick="toggleCfg('knowledge',true)">Wissenswächter AN</button><button onclick="toggleCfg('knowledge',false)">AUS</button><button onclick="act('/api/actions/knowledge-run')">Jetzt aktualisieren</button></div>
-<div class="card"><h3>Live-Wissensdatenbank</h3><div id="knowledge">lädt…</div><input id="livePath" placeholder="/mnt/adventureland/wissensdatenbank"><button onclick="savePath()">Pfad speichern</button><button onclick="detail('/api/actions/storage-probe','Datenträgerprüfung')">Datenträger prüfen</button></div>
+<div class="card"><h3>Live-Wissensdatenbank</h3><div id="knowledge">lädt…</div><input id="livePath" placeholder="/mnt/adventureland/wissensdatenbank"><button onclick="savePath()">Pfad speichern</button><button onclick="showDetail('/api/actions/storage-probe','Datenträgerprüfung')">Datenträger prüfen</button></div>
 </div>
 
 <div class="card"><h3>Sichere Zugangsdaten</h3><p class="muted">Linux Secret Service/libsecret; keine Secrets in settings.json.</p>
@@ -267,7 +267,7 @@ body{font-family:system-ui,sans-serif;background:#0d1117;color:#e6edf3;margin:0}
 </div>
 
 <div class="grid">
-<div class="card"><h3>Readiness</h3><button onclick="detail('/api/actions/readiness','Linux Readiness')">Readiness-Test</button><pre id="detail">Noch nicht ausgeführt.</pre></div>
+<div class="card"><h3>Readiness</h3><button onclick="showDetail('/api/actions/readiness','Linux Readiness')">Readiness-Test</button><pre id="detailOutput">Noch nicht ausgeführt.</pre></div>
 <div class="card"><h3>Technischer Status</h3><pre id="raw">lädt…</pre></div>
 </div>
 
@@ -277,12 +277,12 @@ async function req(url,opt={}){if(!T)throw new Error('Admin-Token erforderlich')
 async function authenticate(){const candidate=adminToken.value.trim();if(!candidate){alert('Admin-Token eingeben');return}const previous=T;T=candidate;try{await refresh();sessionStorage.setItem('aioAdminToken',T);adminToken.value='';authState.textContent='ENTSPERRT'}catch(e){T=previous;alert(e.message)}}
 function lockUi(){T='';sessionStorage.removeItem('aioAdminToken');authState.textContent='GESPERRT';raw.textContent='Admin-Token erforderlich.'}
 async function refresh(){if(!T){authState.textContent='GESPERRT';raw.textContent='Admin-Token erforderlich.';return}let s=await req('/api/status');authState.textContent='ENTSPERRT';raw.textContent=JSON.stringify(s,null,2);watchdog.textContent=s.watchdog.state+' · Browser '+s.watchdog.browser+' · Bot '+s.watchdog.bot;telemetry.textContent=(s.telemetry?.state||'nicht aktiv')+' · '+(s.telemetryEnabled?'AN':'AUS')+' · Token '+(s.telemetryTokenConfigured?'OK':'FEHLT');dashboard.textContent=(s.webDashboardEnabled?'AN':'AUS')+' · Key '+(s.dashboardKeyConfigured?'OK':'FEHLT');backblaze.textContent=(s.backblazeEnabled?'AN':'AUS')+' · Zugangsdaten '+(s.backblazeCredentialsConfigured?'OK':'FEHLEN');github.textContent=s.github?.angemeldet?('ANGEMELDET · '+(s.github.konto||'')):(s.github?.verfuegbar?'NICHT ANGEMELDET':'GCM NICHT VERFÜGBAR');knowledge.textContent=(s.knowledgeEnabled?'AN':'AUS')+' · '+(s.knowledge?.zustand||'wartet');if(document.activeElement!==livePath)livePath.value=s.liveKnowledgePath||''}
-async function act(url){try{let x=await req(url,{method:'POST',body:'{}'});detail.textContent=JSON.stringify(x,null,2);await refresh()}catch(e){alert(e.message)}}
-async function detail(url,title){try{let x=await req(url,{method:'POST',body:'{}'});document.getElementById('detail').textContent=title+'\n'+JSON.stringify(x,null,2);await refresh()}catch(e){alert(e.message)}}
+async function act(url){try{let x=await req(url,{method:'POST',body:'{}'});document.getElementById('detailOutput').textContent=JSON.stringify(x,null,2);await refresh()}catch(e){alert(e.message)}}
+async function showDetail(url,title){try{let x=await req(url,{method:'POST',body:'{}'});document.getElementById('detailOutput').textContent=title+'\n'+JSON.stringify(x,null,2);await refresh()}catch(e){alert(e.message)}}
 async function signal(enabled){try{await req('/api/signal',{method:'POST',body:JSON.stringify({enabled})});await refresh()}catch(e){alert(e.message)}}
 async function toggleCfg(name,enabled){try{await req('/api/config/'+name,{method:'POST',body:JSON.stringify({enabled})});await refresh()}catch(e){alert(e.message)}}
-async function githubAct(action){try{let x=await req('/api/github/'+action,{method:'POST',body:'{}'});detail.textContent='GitHub '+action+'\n'+JSON.stringify(x,null,2);await refresh()}catch(e){alert(e.message)}}
-async function savePath(){try{let x=await req('/api/config/live-path',{method:'POST',body:JSON.stringify({value:livePath.value})});detail.textContent=JSON.stringify(x,null,2);await refresh()}catch(e){alert(e.message)}}
+async function githubAct(action){try{let x=await req('/api/github/'+action,{method:'POST',body:'{}'});document.getElementById('detailOutput').textContent='GitHub '+action+'\n'+JSON.stringify(x,null,2);await refresh()}catch(e){alert(e.message)}}
+async function savePath(){try{let x=await req('/api/config/live-path',{method:'POST',body:JSON.stringify({value:livePath.value})});document.getElementById('detailOutput').textContent=JSON.stringify(x,null,2);await refresh()}catch(e){alert(e.message)}}
 async function saveValue(name,id){try{await req('/api/secrets/'+name,{method:'POST',body:JSON.stringify({value:document.getElementById(id).value})});document.getElementById(id).value='';await refresh()}catch(e){alert(e.message)}}
 async function saveB2(){try{await req('/api/secrets/backblaze',{method:'POST',body:JSON.stringify({keyId:b2id.value,applicationKey:b2key.value})});b2id.value='';b2key.value='';await refresh()}catch(e){alert(e.message)}}
 async function delSecret(name){try{await req('/api/secrets/'+name,{method:'DELETE'});await refresh()}catch(e){alert(e.message)}}
