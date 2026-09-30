@@ -6279,10 +6279,11 @@
         iso:String(row.iso||''),
         character:String(row.char||me),
         level:String(row.level||'info'),
+        severity:String(row.level||'info').toUpperCase(),
         component:kind.split('_')[0]||'runtime',
         event:kind,
         reason:String(row.message||'').slice(0,800),
-        data:v21439V6Sanitize(row.data,0,'data')
+        data:v21439V6Sanitize(row.data,0,kind+':'+String(row.message||''))
       };
       v21439V6Transport.events.push(ev);
       changed=true;
