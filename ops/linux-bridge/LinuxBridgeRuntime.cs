@@ -159,44 +159,76 @@ public sealed class LinuxBridgeRuntime : IHostedService, IAsyncDisposable
 
     public async Task SetTelemetryEnabledAsync(bool enabled, CancellationToken cancellationToken)
     {
-        if (enabled && !SecureTokenStore.IsValidToken(_telemetryToken))
-            throw new InvalidOperationException("TELEMETRY_TOKEN_REQUIRED");
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            if (enabled && !SecureTokenStore.IsValidToken(_telemetryToken))
+                throw new InvalidOperationException("TELEMETRY_TOKEN_REQUIRED");
 
-        var next = _config with { TelemetryEnabled = enabled };
-        next.Validate();
-        await next.SaveAsync(cancellationToken);
-        _config = next;
-        await RestartTelemetryAsync(cancellationToken);
+            var next = _config with { TelemetryEnabled = enabled };
+            next.Validate();
+            await next.SaveAsync(cancellationToken);
+            _config = next;
+            await RestartTelemetryUnsafeAsync(cancellationToken);
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task SetDashboardEnabledAsync(bool enabled, CancellationToken cancellationToken)
     {
-        var next = _config with { WebDashboardEnabled = enabled };
-        next.Validate();
-        await next.SaveAsync(cancellationToken);
-        _config = next;
-        await RestartTelemetryAsync(cancellationToken);
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            var next = _config with { WebDashboardEnabled = enabled };
+            next.Validate();
+            await next.SaveAsync(cancellationToken);
+            _config = next;
+            await RestartTelemetryUnsafeAsync(cancellationToken);
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task SetBackblazeEnabledAsync(bool enabled, CancellationToken cancellationToken)
     {
-        if (enabled && _backblazeCredentials is not { IsValid: true })
-            throw new InvalidOperationException("BACKBLAZE_CREDENTIALS_REQUIRED");
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            if (enabled && _backblazeCredentials is not { IsValid: true })
+                throw new InvalidOperationException("BACKBLAZE_CREDENTIALS_REQUIRED");
 
-        var next = _config with { BackblazeEnabled = enabled };
-        next.Validate();
-        await next.SaveAsync(cancellationToken);
-        _config = next;
-        await RestartTelemetryAsync(cancellationToken);
+            var next = _config with { BackblazeEnabled = enabled };
+            next.Validate();
+            await next.SaveAsync(cancellationToken);
+            _config = next;
+            await RestartTelemetryUnsafeAsync(cancellationToken);
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task SetKnowledgeEnabledAsync(bool enabled, CancellationToken cancellationToken)
     {
-        var next = _config with { WissenswaechterAktiv = enabled };
-        next.Validate();
-        await next.SaveAsync(cancellationToken);
-        _config = next;
-        await RestartKnowledgeAsync(cancellationToken);
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            var next = _config with { WissenswaechterAktiv = enabled };
+            next.Validate();
+            await next.SaveAsync(cancellationToken);
+            _config = next;
+            await RestartKnowledgeUnsafeAsync(cancellationToken);
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task<string> SetLiveKnowledgePathAsync(
@@ -204,16 +236,24 @@ public sealed class LinuxBridgeRuntime : IHostedService, IAsyncDisposable
         CancellationToken cancellationToken)
     {
         var normalized = BridgeConfig.NormalisiereLiveWissenspfad(path);
-        var next = _config with
+        await _gate.WaitAsync(cancellationToken);
+        try
         {
-            LiveWissensimportAktiv = true,
-            LiveWissensdatenbankPfad = normalized
-        };
-        next.Validate();
-        await next.SaveAsync(cancellationToken);
-        _config = next;
-        await RestartKnowledgeAsync(cancellationToken);
-        return normalized;
+            var next = _config with
+            {
+                LiveWissensimportAktiv = true,
+                LiveWissensdatenbankPfad = normalized
+            };
+            next.Validate();
+            await next.SaveAsync(cancellationToken);
+            _config = next;
+            await RestartKnowledgeUnsafeAsync(cancellationToken);
+            return normalized;
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task<GitHubAnmeldeStatus> GetGitHubStatusAsync(
@@ -268,22 +308,39 @@ public sealed class LinuxBridgeRuntime : IHostedService, IAsyncDisposable
 
     public async Task SaveTelemetryTokenAsync(string value, CancellationToken cancellationToken)
     {
-        if (!SecureTokenStore.IsValidToken(value))
-            throw new InvalidOperationException("TELEMETRY_TOKEN_INVALID");
-        await _secrets.SaveAsync("telemetry-token-v6", value.Trim(), cancellationToken);
-        await RestartTelemetryAsync(cancellationToken);
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            if (!SecureTokenStore.IsValidToken(value))
+                throw new InvalidOperationException("TELEMETRY_TOKEN_INVALID");
+            await _secrets.SaveAsync("telemetry-token-v6", value.Trim(), cancellationToken);
+            await RestartTelemetryUnsafeAsync(cancellationToken);
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task SaveDashboardKeyAsync(string value, CancellationToken cancellationToken)
     {
-        if (!SecureDashboardWriteKeyStore.IsValidWriteKey(value))
-            throw new InvalidOperationException("WEB_DASHBOARD_WRITE_KEY_INVALID");
-        await _secrets.SaveAsync("web-dashboard-write-key-v6", value.Trim(), cancellationToken);
-        var next = _config with { WebDashboardEnabled = true };
-        next.Validate();
-        await next.SaveAsync(cancellationToken);
-        _config = next;
-        await RestartTelemetryAsync(cancellationToken);
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            if (!SecureDashboardWriteKeyStore.IsValidWriteKey(value))
+                throw new InvalidOperationException("WEB_DASHBOARD_WRITE_KEY_INVALID");
+
+            await _secrets.SaveAsync("web-dashboard-write-key-v6", value.Trim(), cancellationToken);
+            var next = _config with { WebDashboardEnabled = true };
+            next.Validate();
+            await next.SaveAsync(cancellationToken);
+            _config = next;
+            await RestartTelemetryUnsafeAsync(cancellationToken);
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task SaveBackblazeAsync(
@@ -291,50 +348,66 @@ public sealed class LinuxBridgeRuntime : IHostedService, IAsyncDisposable
         string applicationKey,
         CancellationToken cancellationToken)
     {
-        if (!SecureBackblazeCredentialStore.IsValidKeyId(keyId)
-            || !SecureBackblazeCredentialStore.IsValidApplicationKey(applicationKey))
+        await _gate.WaitAsync(cancellationToken);
+        try
         {
-            throw new InvalidOperationException("BACKBLAZE_CREDENTIALS_INVALID");
+            if (!SecureBackblazeCredentialStore.IsValidKeyId(keyId)
+                || !SecureBackblazeCredentialStore.IsValidApplicationKey(applicationKey))
+            {
+                throw new InvalidOperationException("BACKBLAZE_CREDENTIALS_INVALID");
+            }
+
+            await _secrets.SaveAsync("backblaze-key-id-v6", keyId.Trim(), cancellationToken);
+            await _secrets.SaveAsync(
+                "backblaze-application-key-v6",
+                applicationKey.Trim(),
+                cancellationToken);
+
+            var next = _config with { BackblazeEnabled = true };
+            next.Validate();
+            await next.SaveAsync(cancellationToken);
+            _config = next;
+            await RestartTelemetryUnsafeAsync(cancellationToken);
         }
-
-        await _secrets.SaveAsync("backblaze-key-id-v6", keyId.Trim(), cancellationToken);
-        await _secrets.SaveAsync(
-            "backblaze-application-key-v6",
-            applicationKey.Trim(),
-            cancellationToken);
-
-        var next = _config with { BackblazeEnabled = true };
-        next.Validate();
-        await next.SaveAsync(cancellationToken);
-        _config = next;
-        await RestartTelemetryAsync(cancellationToken);
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task DeleteSecretAsync(string logicalName, CancellationToken cancellationToken)
     {
-        var next = _config;
-        switch (logicalName)
+        await _gate.WaitAsync(cancellationToken);
+        try
         {
-            case "telemetry":
-                await _secrets.DeleteAsync("telemetry-token-v6", cancellationToken);
-                next = next with { TelemetryEnabled = false };
-                break;
-            case "dashboard":
-                await _secrets.DeleteAsync("web-dashboard-write-key-v6", cancellationToken);
-                break;
-            case "backblaze":
-                await _secrets.DeleteAsync("backblaze-key-id-v6", cancellationToken);
-                await _secrets.DeleteAsync("backblaze-application-key-v6", cancellationToken);
-                next = next with { BackblazeEnabled = false };
-                break;
-            default:
-                throw new InvalidOperationException("SECRET_NAME_INVALID");
-        }
+            var next = _config;
+            switch (logicalName)
+            {
+                case "telemetry":
+                    await _secrets.DeleteAsync("telemetry-token-v6", cancellationToken);
+                    next = next with { TelemetryEnabled = false };
+                    break;
+                case "dashboard":
+                    await _secrets.DeleteAsync("web-dashboard-write-key-v6", cancellationToken);
+                    break;
+                case "backblaze":
+                    await _secrets.DeleteAsync("backblaze-key-id-v6", cancellationToken);
+                    await _secrets.DeleteAsync("backblaze-application-key-v6", cancellationToken);
+                    next = next with { BackblazeEnabled = false };
+                    break;
+                default:
+                    throw new InvalidOperationException("SECRET_NAME_INVALID");
+            }
 
-        next.Validate();
-        await next.SaveAsync(cancellationToken);
-        _config = next;
-        await RestartTelemetryAsync(cancellationToken);
+            next.Validate();
+            await next.SaveAsync(cancellationToken);
+            _config = next;
+            await RestartTelemetryUnsafeAsync(cancellationToken);
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     private async Task RestartTelemetryAsync(CancellationToken cancellationToken)
@@ -342,14 +415,7 @@ public sealed class LinuxBridgeRuntime : IHostedService, IAsyncDisposable
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            if (_telemetry is not null)
-            {
-                await _telemetry.StopAsync();
-                await _telemetry.DisposeAsync();
-                _telemetry = null;
-            }
-            await ReloadSecretsAsync(cancellationToken);
-            await StartTelemetryUnsafeAsync(cancellationToken);
+            await RestartTelemetryUnsafeAsync(cancellationToken);
         }
         finally
         {
@@ -357,19 +423,36 @@ public sealed class LinuxBridgeRuntime : IHostedService, IAsyncDisposable
         }
     }
 
+    private async Task RestartTelemetryUnsafeAsync(CancellationToken cancellationToken)
+    {
+        if (_telemetry is not null)
+        {
+            await _telemetry.StopAsync();
+            await _telemetry.DisposeAsync();
+            _telemetry = null;
+        }
+        await ReloadSecretsAsync(cancellationToken);
+        await StartTelemetryUnsafeAsync(cancellationToken);
+    }
+
     private async Task RestartKnowledgeAsync(CancellationToken cancellationToken)
     {
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            await StopKnowledgeUnsafeAsync();
-            _githubStatus = await _github.LiesStatusAsync(cancellationToken);
-            await StartKnowledgeIfReadyUnsafeAsync(cancellationToken);
+            await RestartKnowledgeUnsafeAsync(cancellationToken);
         }
         finally
         {
             _gate.Release();
         }
+    }
+
+    private async Task RestartKnowledgeUnsafeAsync(CancellationToken cancellationToken)
+    {
+        await StopKnowledgeUnsafeAsync();
+        _githubStatus = await _github.LiesStatusAsync(cancellationToken);
+        await StartKnowledgeIfReadyUnsafeAsync(cancellationToken);
     }
 
     private async Task StopKnowledgeAsync()
