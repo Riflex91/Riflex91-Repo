@@ -7,6 +7,7 @@ namespace AioBotWindowsBridge;
 public sealed record BridgeConfig
 {
     public const int CurrentConfigVersion = 1;
+    public const string V6AllowedOrigin = "https://adventure.land";
     public const string V6TelemetryIngestUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-debug-ingest";
     public const string V6SignalControlUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-signal-control";
     public const string V6TelemetryTokenEnvironmentVariable = "ALBOT_V6_TELEMETRY_TOKEN";
@@ -18,7 +19,7 @@ public sealed record BridgeConfig
 
     public int ConfigVersion { get; init; } = CurrentConfigVersion;
     public string CdpEndpoint { get; init; } = "http://127.0.0.1:9222";
-    public string AllowedOrigin { get; init; } = "https://adventure.land";
+    public string AllowedOrigin { get; init; } = V6AllowedOrigin;
     public string TelemetryIngestUrl { get; init; } = V6TelemetryIngestUrl;
     public string SignalControlUrl { get; init; } = V6SignalControlUrl;
     public string TelemetryTokenEnvironmentVariable { get; init; } = V6TelemetryTokenEnvironmentVariable;
@@ -93,7 +94,8 @@ public sealed record BridgeConfig
         var cdp = RequireUri(CdpEndpoint, "CDP_ENDPOINT_INVALID");
         if (cdp.Scheme != Uri.UriSchemeHttp || !IsLoopback(cdp.Host)) throw new InvalidOperationException("CDP_ENDPOINT_MUST_BE_LOOPBACK_HTTP");
         var origin = RequireUri(AllowedOrigin, "ALLOWED_ORIGIN_INVALID");
-        if (origin.Scheme != Uri.UriSchemeHttps || origin.Host.Length == 0) throw new InvalidOperationException("ALLOWED_ORIGIN_MUST_BE_HTTPS");
+        if (!string.Equals(origin.GetLeftPart(UriPartial.Authority), V6AllowedOrigin, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("V6_ALLOWED_ORIGIN_REQUIRED");
         RequireHttps(TelemetryIngestUrl, "TELEMETRY_HTTPS_REQUIRED");
         RequireHttps(SignalControlUrl, "SIGNAL_CONTROL_HTTPS_REQUIRED");
         RequireHttps(WebDashboardBaseUrl, "WEB_DASHBOARD_HTTPS_REQUIRED");
