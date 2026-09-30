@@ -228,6 +228,62 @@ Assert(v6DashboardVisualNoTerrainExpression.Contains("const includeTerrain = fal
 Assert(CdpAlBotV6Client.IsSupportedTargetType("page"), "V6_CDP_PAGE_TARGET_SUPPORTED");
 Assert(CdpAlBotV6Client.IsSupportedTargetType("iframe"), "V6_CDP_IFRAME_TARGET_SUPPORTED");
 Assert(!CdpAlBotV6Client.IsSupportedTargetType("service_worker"), "V6_CDP_FOREIGN_TARGET_TYPE_REJECTED");
+Assert(CdpAlBotV6Client.IsTrustedAttachedIframeDescriptor(
+        "iframe",
+        "https://adventure.land/character/My_Merchant/in/EU/II/",
+        "ROOT",
+        "FRAME-MERCHANT",
+        "https://adventure.land",
+        new[] { "ROOT" }),
+    "V6_OOPIF_SAME_ORIGIN_CHILD_ACCEPTED");
+Assert(CdpAlBotV6Client.IsTrustedAttachedIframeDescriptor(
+        "iframe",
+        "about:blank",
+        "ROOT",
+        "FRAME-RANGER",
+        "https://adventure.land",
+        new[] { "ROOT" }),
+    "V6_OOPIF_OPAQUE_CHILD_WITH_FRAME_ACCEPTED");
+Assert(CdpAlBotV6Client.IsTrustedAttachedIframeDescriptor(
+        "iframe",
+        "blob:https://adventure.land/runner",
+        "ROOT",
+        "FRAME-ROGUE",
+        "https://adventure.land",
+        new[] { "ROOT" }),
+    "V6_OOPIF_SAME_ORIGIN_BLOB_ACCEPTED");
+Assert(!CdpAlBotV6Client.IsTrustedAttachedIframeDescriptor(
+        "iframe",
+        "https://example.com/foreign",
+        "ROOT",
+        "FRAME-FOREIGN",
+        "https://adventure.land",
+        new[] { "ROOT" }),
+    "V6_OOPIF_FOREIGN_ORIGIN_REJECTED");
+Assert(!CdpAlBotV6Client.IsTrustedAttachedIframeDescriptor(
+        "iframe",
+        "about:blank",
+        "OTHER",
+        "FRAME-FOREIGN",
+        "https://adventure.land",
+        new[] { "ROOT" }),
+    "V6_OOPIF_UNTRUSTED_PARENT_REJECTED");
+Assert(!CdpAlBotV6Client.IsTrustedAttachedIframeDescriptor(
+        "iframe",
+        "about:blank",
+        "ROOT",
+        null,
+        "https://adventure.land",
+        new[] { "ROOT" }),
+    "V6_OOPIF_OPAQUE_CHILD_WITHOUT_FRAME_REJECTED");
+Assert(!CdpAlBotV6Client.IsTrustedAttachedIframeDescriptor(
+        "service_worker",
+        "https://adventure.land/sw.js",
+        "ROOT",
+        "FRAME-SW",
+        "https://adventure.land",
+        new[] { "ROOT" }),
+    "V6_OOPIF_NON_IFRAME_REJECTED");
 Assert(CdpAlBotV6Client.CharacterNameFromTargetUrl(
     "https://adventure.land/character/My_Merchant/in/EU/II/") == "My_Merchant",
     "V6_CDP_TARGET_CHARACTER_PARSED");
