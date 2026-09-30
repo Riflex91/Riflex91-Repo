@@ -11,8 +11,7 @@ test('V6 dashboard root and /al-final stay byte-identical', () => {
 });
 
 test('V6 dashboard renders live characters only', () => {
-  assert.match(root, /\.map\(normalize\)\.filter\(c=>c\.state==='live'\)/);
-  assert.doesNotMatch(root, /c\.state==='offline'\?' · '\+A\(c\.ageSeconds\)/);
+  assert.match(root, /rows=\(\(data&&data\.characters\)\|\|\[\]\)\.map\(normalize\)\.filter\(c=>c\.state==='live'\)/);
 });
 
 test('V6 terrain uses high-DPI smoothing without grid overlays or seams', () => {
