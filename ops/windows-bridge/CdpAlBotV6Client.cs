@@ -95,12 +95,14 @@ public sealed class CdpAlBotV6Client
             ClientWebSocket socket,
             int contextId,
             string? requestedCharacter,
-            string targetUrl)
+            string targetUrl,
+            string? sessionId = null)
         {
             var snapshot = await EvaluateAsync(
                 socket,
                 BuildSnapshotExpression(includeDeepDiagnostics, requestedCharacter),
                 contextId,
+                sessionId,
                 cancellationToken);
             if (!IsV6Snapshot(snapshot))
                 throw new InvalidOperationException("ALBOT_V6_SNAPSHOT_INVALID");
@@ -160,6 +162,7 @@ public sealed class CdpAlBotV6Client
                 afterSeq,
                 eventLimit,
                 contextId,
+                sessionId,
                 cancellationToken);
             if (!IsV6EventBatch(eventBatch))
                 throw new InvalidOperationException("ALBOT_V6_EVENTS_INVALID");
@@ -742,10 +745,18 @@ public sealed class CdpAlBotV6Client
         return true;
     }
 
+    private Task<JsonElement> EvaluateAsync(
+        ClientWebSocket socket,
+        string expression,
+        int contextId,
+        CancellationToken cancellationToken) =>
+        EvaluateAsync(socket, expression, contextId, sessionId: null, cancellationToken);
+
     private async Task<JsonElement> EvaluateAsync(
         ClientWebSocket socket,
         string expression,
         int contextId,
+        string? sessionId,
         CancellationToken cancellationToken)
     {
         using var commandCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -754,11 +765,11 @@ public sealed class CdpAlBotV6Client
         try
         {
             var id = Interlocked.Increment(ref _nextCommandId);
-            var command = JsonSerializer.SerializeToUtf8Bytes(new
+            var payload = new Dictionary<string, object?>
             {
-                id,
-                method = "Runtime.evaluate",
-                @params = new
+                ["id"] = id,
+                ["method"] = "Runtime.evaluate",
+                ["params"] = new
                 {
                     expression,
                     contextId,
@@ -766,7 +777,11 @@ public sealed class CdpAlBotV6Client
                     awaitPromise = true,
                     userGesture = false
                 }
-            });
+            };
+            if (!string.IsNullOrWhiteSpace(sessionId))
+                payload["sessionId"] = sessionId;
+
+            var command = JsonSerializer.SerializeToUtf8Bytes(payload);
             await socket.SendAsync(command, WebSocketMessageType.Text, true, token);
             while (true)
             {
@@ -778,6 +793,8 @@ public sealed class CdpAlBotV6Client
                     if (!root.TryGetProperty("id", out var idNode)
                         || !idNode.TryGetInt32(out var responseId)
                         || responseId != id)
+                        continue;
+                    if (!SessionMatches(root, sessionId))
                         continue;
                     if (root.TryGetProperty("error", out var error))
                         throw new InvalidOperationException("CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
@@ -795,6 +812,16 @@ public sealed class CdpAlBotV6Client
         {
             throw new InvalidOperationException("CDP_COMMAND_TIMEOUT");
         }
+    }
+
+    private static bool SessionMatches(JsonElement message, string? expectedSessionId)
+    {
+        var actual = message.ValueKind == JsonValueKind.Object
+            && message.TryGetProperty("sessionId", out var sessionNode)
+            && sessionNode.ValueKind == JsonValueKind.String
+                ? sessionNode.GetString()
+                : null;
+        return string.Equals(actual, expectedSessionId, StringComparison.Ordinal);
     }
 
     private const int MaxCdpMessageBytes = 1024 * 1024;
@@ -1509,12 +1536,29 @@ return {
             + (oversized?.Message ?? "CDP_RESPONSE_TOO_LARGE"));
     }
 
+    private Task<JsonElement> EvaluateEventsAdaptiveAsync(
+        ClientWebSocket socket,
+        string characterName,
+        long afterSeq,
+        int eventLimit,
+        int contextId,
+        CancellationToken cancellationToken) =>
+        EvaluateEventsAdaptiveAsync(
+            socket,
+            characterName,
+            afterSeq,
+            eventLimit,
+            contextId,
+            sessionId: null,
+            cancellationToken);
+
     private async Task<JsonElement> EvaluateEventsAdaptiveAsync(
         ClientWebSocket socket,
         string characterName,
         long afterSeq,
         int eventLimit,
         int contextId,
+        string? sessionId,
         CancellationToken cancellationToken)
     {
         InvalidOperationException? oversized = null;
@@ -1526,6 +1570,7 @@ return {
                     socket,
                     BuildEventsExpression(characterName, afterSeq, limit),
                     contextId,
+                    sessionId,
                     cancellationToken);
             }
             catch (InvalidOperationException error) when (
