@@ -587,26 +587,17 @@ public sealed class CdpAlBotV6Client
         string.Equals(targetType, "page", StringComparison.OrdinalIgnoreCase)
         || string.Equals(targetType, "iframe", StringComparison.OrdinalIgnoreCase);
 
-    public static bool IsTrustedAttachedIframeDescriptor(
+    public static bool IsTrustedAutoAttachedIframeDescriptor(
         string? targetType,
         string? targetUrl,
-        string? parentId,
-        string? parentFrameId,
-        string allowedOrigin,
-        IEnumerable<string> trustedParentIds)
+        string allowedOrigin)
     {
+        // This descriptor comes from Target.attachedToTarget emitted by a parent
+        // session that was itself already trusted. The event relationship is the
+        // ancestry proof; TargetInfo does not expose parentId/parentFrameId.
         if (!string.Equals(targetType, "iframe", StringComparison.OrdinalIgnoreCase)
-            || string.IsNullOrWhiteSpace(parentId)
-            || string.IsNullOrWhiteSpace(allowedOrigin))
-            return false;
-
-        var trusted = new HashSet<string>(
-            trustedParentIds ?? Array.Empty<string>(),
-            StringComparer.Ordinal);
-        if (!trusted.Contains(parentId.Trim()))
-            return false;
-
-        if (!Uri.TryCreate(allowedOrigin, UriKind.Absolute, out var allowed))
+            || string.IsNullOrWhiteSpace(allowedOrigin)
+            || !Uri.TryCreate(allowedOrigin, UriKind.Absolute, out var allowed))
             return false;
 
         var raw = (targetUrl ?? string.Empty).Trim();
@@ -619,13 +610,12 @@ public sealed class CdpAlBotV6Client
             && SameOrigin(blobOrigin, allowed))
             return true;
 
-        if ((string.Equals(raw, "about:blank", StringComparison.OrdinalIgnoreCase)
-             || string.Equals(raw, "about:srcdoc", StringComparison.OrdinalIgnoreCase)
-             || raw.Length == 0)
-            && !string.IsNullOrWhiteSpace(parentFrameId))
-            return true;
-
-        return false;
+        // about:blank/srcdoc and an initially empty OOPIF URL inherit their origin
+        // from the already trusted parent frame. Exact V6 identity + character
+        // matching is still required before any data is forwarded.
+        return string.Equals(raw, "about:blank", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(raw, "about:srcdoc", StringComparison.OrdinalIgnoreCase)
+            || raw.Length == 0;
     }
 
     public static IReadOnlyList<string> MergeCharacterCandidates(
@@ -823,6 +813,10 @@ public sealed class CdpAlBotV6Client
         }
     }
 
+    private const int MaxAttachedIframeDepth = 4;
+    private const int MaxAttachedIframeSessions = 32;
+    private const int AutoAttachDrainMilliseconds = 200;
+
     private async Task<IReadOnlyList<AttachedExecutionContext>> DiscoverAttachedIframeContextsAsync(
         ClientWebSocket socket,
         Target rootTarget,
@@ -831,85 +825,218 @@ public sealed class CdpAlBotV6Client
         if (string.IsNullOrWhiteSpace(rootTarget.Id))
             return Array.Empty<AttachedExecutionContext>();
 
-        var result = await SendCommandForResultAsync(
-            socket,
-            "Target.getTargets",
-            new { },
-            sessionId: null,
-            cancellationToken);
-        if (!result.TryGetProperty("targetInfos", out var infosNode)
-            || infosNode.ValueKind != JsonValueKind.Array)
-            return Array.Empty<AttachedExecutionContext>();
-
-        var infos = new List<AttachedTargetInfo>();
-        foreach (var row in infosNode.EnumerateArray())
-        {
-            if (row.ValueKind != JsonValueKind.Object)
-                continue;
-            var targetId = ReadString(row, "targetId")?.Trim();
-            if (string.IsNullOrWhiteSpace(targetId))
-                continue;
-            infos.Add(new AttachedTargetInfo(
-                targetId,
-                ReadString(row, "type") ?? string.Empty,
-                ReadString(row, "url") ?? string.Empty,
-                ReadString(row, "parentId"),
-                ReadString(row, "parentFrameId")));
-        }
-
-        var trustedIds = new HashSet<string>(StringComparer.Ordinal) { rootTarget.Id };
-        var trustedChildren = new List<AttachedTargetInfo>();
-        var changed = true;
-        while (changed)
-        {
-            changed = false;
-            foreach (var info in infos)
-            {
-                if (trustedIds.Contains(info.TargetId))
-                    continue;
-                if (!IsTrustedAttachedIframeDescriptor(
-                        info.Type,
-                        info.Url,
-                        info.ParentId,
-                        info.ParentFrameId,
-                        _allowedOrigin.GetLeftPart(UriPartial.Authority),
-                        trustedIds))
-                    continue;
-                trustedIds.Add(info.TargetId);
-                trustedChildren.Add(info);
-                changed = true;
-            }
-        }
-
+        // Target.getTargets does not expose iframe parent ancestry. Instead, enable
+        // auto-attach on the already trusted Adventure Land page target and consume
+        // the real Target.attachedToTarget events emitted by that parent session.
+        // Repeating this on each trusted child session gives us bounded descendant
+        // OOPIF discovery without inventing relationships from TargetInfo fields.
         var contexts = new List<AttachedExecutionContext>();
-        foreach (var child in trustedChildren)
+        var seenSessions = new HashSet<string>(StringComparer.Ordinal);
+        var parents = new Queue<(string? SessionId, int Depth)>();
+        parents.Enqueue((null, 0));
+
+        while (parents.Count > 0 && seenSessions.Count < MaxAttachedIframeSessions)
         {
+            var (parentSessionId, depth) = parents.Dequeue();
+            IReadOnlyList<AutoAttachedTargetInfo> children;
             try
             {
-                var attach = await SendCommandForResultAsync(
+                children = await EnableAutoAttachAndCollectChildrenAsync(
                     socket,
-                    "Target.attachToTarget",
-                    new { targetId = child.TargetId, flatten = true },
-                    sessionId: null,
+                    parentSessionId,
                     cancellationToken);
-                var sessionId = ReadString(attach, "sessionId")?.Trim();
-                if (string.IsNullOrWhiteSpace(sessionId))
-                    continue;
-
-                foreach (var contextId in await EnableRuntimeAndCollectContextsAsync(
-                             socket,
-                             sessionId,
-                             cancellationToken))
-                    contexts.Add(new AttachedExecutionContext(contextId, sessionId, child.TargetId));
             }
             catch (InvalidOperationException)
             {
+                continue;
+            }
+
+            foreach (var child in children)
+            {
+                if (seenSessions.Count >= MaxAttachedIframeSessions)
+                    break;
+                if (!IsTrustedAutoAttachedIframeDescriptor(
+                        child.Type,
+                        child.Url,
+                        _allowedOrigin.GetLeftPart(UriPartial.Authority)))
+                    continue;
+                if (!seenSessions.Add(child.SessionId))
+                    continue;
+
+                try
+                {
+                    foreach (var contextId in await EnableRuntimeAndCollectContextsAsync(
+                                 socket,
+                                 child.SessionId,
+                                 cancellationToken))
+                    {
+                        contexts.Add(new AttachedExecutionContext(
+                            contextId,
+                            child.SessionId,
+                            child.TargetId));
+                    }
+
+                    if (depth + 1 < MaxAttachedIframeDepth)
+                        parents.Enqueue((child.SessionId, depth + 1));
+                }
+                catch (InvalidOperationException)
+                {
+                }
             }
         }
 
         return contexts
             .DistinctBy(row => (row.SessionId, row.ContextId))
             .ToArray();
+    }
+
+    private async Task<IReadOnlyList<AutoAttachedTargetInfo>> EnableAutoAttachAndCollectChildrenAsync(
+        ClientWebSocket socket,
+        string? parentSessionId,
+        CancellationToken cancellationToken)
+    {
+        using var commandCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        commandCts.CancelAfter(TimeSpan.FromSeconds(CdpCommandTimeoutSeconds));
+        var token = commandCts.Token;
+        var children = new List<AutoAttachedTargetInfo>();
+
+        void CaptureAttachedTarget(JsonElement root)
+        {
+            if (!SessionMatches(root, parentSessionId)
+                || !root.TryGetProperty("method", out var methodNode)
+                || !string.Equals(
+                    methodNode.GetString(),
+                    "Target.attachedToTarget",
+                    StringComparison.Ordinal)
+                || !root.TryGetProperty("params", out var paramsNode)
+                || paramsNode.ValueKind != JsonValueKind.Object)
+                return;
+
+            var childSessionId = ReadString(paramsNode, "sessionId")?.Trim();
+            if (string.IsNullOrWhiteSpace(childSessionId)
+                || !paramsNode.TryGetProperty("targetInfo", out var targetInfo)
+                || targetInfo.ValueKind != JsonValueKind.Object)
+                return;
+
+            var targetId = ReadString(targetInfo, "targetId")?.Trim();
+            if (string.IsNullOrWhiteSpace(targetId))
+                return;
+
+            children.Add(new AutoAttachedTargetInfo(
+                childSessionId,
+                targetId,
+                ReadString(targetInfo, "type") ?? string.Empty,
+                ReadString(targetInfo, "url") ?? string.Empty));
+        }
+
+        async Task WaitForResponseAsync(int expectedId, bool drainAfterResponse)
+        {
+            var responseSeen = false;
+            while (true)
+            {
+                JsonDocument? message;
+                if (!responseSeen || !drainAfterResponse)
+                {
+                    message = await ReceiveJsonAsync(socket, expectedId, token);
+                }
+                else
+                {
+                    using var drainCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                    drainCts.CancelAfter(TimeSpan.FromMilliseconds(AutoAttachDrainMilliseconds));
+                    try
+                    {
+                        message = await ReceiveJsonAsync(socket, expectedId, drainCts.Token);
+                    }
+                    catch (OperationCanceledException) when (
+                        !token.IsCancellationRequested
+                        && !cancellationToken.IsCancellationRequested)
+                    {
+                        break;
+                    }
+                }
+
+                if (message is null)
+                    continue;
+
+                using (message)
+                {
+                    var root = message.RootElement;
+                    CaptureAttachedTarget(root);
+
+                    if (!root.TryGetProperty("id", out var idNode)
+                        || !idNode.TryGetInt32(out var responseId)
+                        || responseId != expectedId
+                        || !SessionMatches(root, parentSessionId))
+                        continue;
+
+                    if (root.TryGetProperty("error", out var error))
+                        throw new InvalidOperationException(
+                            "CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
+
+                    responseSeen = true;
+                    if (!drainAfterResponse)
+                        return;
+                }
+            }
+        }
+
+        async Task SendAsync(int id, string method, object? parameters)
+        {
+            var payload = new Dictionary<string, object?>
+            {
+                ["id"] = id,
+                ["method"] = method
+            };
+            if (parameters is not null)
+                payload["params"] = parameters;
+            if (!string.IsNullOrWhiteSpace(parentSessionId))
+                payload["sessionId"] = parentSessionId;
+
+            await socket.SendAsync(
+                JsonSerializer.SerializeToUtf8Bytes(payload),
+                WebSocketMessageType.Text,
+                true,
+                token);
+        }
+
+        try
+        {
+            var autoAttachId = Interlocked.Increment(ref _nextCommandId);
+            await SendAsync(
+                autoAttachId,
+                "Target.setAutoAttach",
+                new
+                {
+                    autoAttach = true,
+                    waitForDebuggerOnStart = false,
+                    flatten = true
+                });
+            await WaitForResponseAsync(autoAttachId, drainAfterResponse: false);
+
+            // Same-session ordering barrier: existing child-target notifications
+            // caused by setAutoAttach are consumed before we leave this parent.
+            var barrierId = Interlocked.Increment(ref _nextCommandId);
+            await SendAsync(
+                barrierId,
+                "Runtime.evaluate",
+                new
+                {
+                    expression = "0",
+                    returnByValue = true,
+                    awaitPromise = false,
+                    userGesture = false
+                });
+            await WaitForResponseAsync(barrierId, drainAfterResponse: true);
+
+            return children
+                .GroupBy(row => row.SessionId, StringComparer.Ordinal)
+                .Select(group => group.Last())
+                .ToArray();
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new InvalidOperationException("CDP_COMMAND_TIMEOUT");
+        }
     }
 
     private async Task<IReadOnlyList<int>> EnableRuntimeAndCollectContextsAsync(
@@ -2244,12 +2371,11 @@ catch { return { valid: false, identity: null, diagnostics }; }
         return text.Length <= 320 ? text : text[..320];
     }
 
-    private sealed record AttachedTargetInfo(
+    private sealed record AutoAttachedTargetInfo(
+        string SessionId,
         string TargetId,
         string Type,
-        string Url,
-        string? ParentId,
-        string? ParentFrameId);
+        string Url);
 
     private sealed record AttachedExecutionContext(
         int ContextId,
