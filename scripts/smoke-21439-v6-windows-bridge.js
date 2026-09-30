@@ -157,9 +157,18 @@ S.auditRecent.push({
   iso: new Date(now).toISOString(),
   char: "My_Merchant",
   kind: "combat_attack",
-  level: "info",
+  level: "error",
   message: "attack",
   data: { target: "goo", token: "must-not-leak" }
+});
+S.auditRecent.push({
+  at: ++now,
+  iso: new Date(now).toISOString(),
+  char: "My_Merchant",
+  kind: "config_change",
+  level: "info",
+  message: "webDashboardWriteKey changed",
+  data: { from: "old-secret-value", to: "new-secret-value" }
 });
 
 const batch = bridge.events(0, 200);
@@ -168,6 +177,12 @@ assert(batch.events.length >= 1, "events must be exported");
 const combat = batch.events.find(row => row.event === "combat_attack");
 assert(combat, "new audit event must be visible");
 assert.strictEqual(combat.data.token, "[REDACTED]", "event secrets must be redacted");
+assert.strictEqual(combat.severity, "ERROR", "V6 event severity must use the host contract field");
+const secretConfigChange = batch.events.find(row => row.event === "config_change");
+assert(secretConfigChange, "config change audit event must be visible");
+assert.strictEqual(secretConfigChange.data, "[REDACTED]", "secret config changes must redact generic from/to fields");
+assert(!JSON.stringify(secretConfigChange).includes("old-secret-value"), "old secret must never leave the browser");
+assert(!JSON.stringify(secretConfigChange).includes("new-secret-value"), "new secret must never leave the browser");
 assert(batch.lastCapturedSeq >= combat.seq, "event sequence must be monotonic");
 
 const ack = bridge.acknowledgeTelemetry(batch.lastCapturedSeq);
