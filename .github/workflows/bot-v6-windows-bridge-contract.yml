@@ -1,0 +1,37 @@
+name: bot-v6-windows-bridge-contract
+
+on:
+  push:
+    paths:
+      - 'bot.js'
+      - 'version.json'
+      - 'ops/windows-bridge/CdpAlBotV6Client.cs'
+      - 'scripts/smoke-21439-v6-windows-bridge.js'
+      - '.github/workflows/bot-v6-windows-bridge-contract.yml'
+  pull_request:
+    paths:
+      - 'bot.js'
+      - 'version.json'
+      - 'ops/windows-bridge/CdpAlBotV6Client.cs'
+      - 'scripts/smoke-21439-v6-windows-bridge.js'
+      - '.github/workflows/bot-v6-windows-bridge-contract.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  contract-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Bot syntax
+        run: node --check bot.js
+      - name: Contract smoke
+        run: node scripts/smoke-21439-v6-windows-bridge.js
+      - name: Diff check
+        run: git diff --check
