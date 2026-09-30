@@ -91,6 +91,115 @@ public sealed class CdpAlBotV6Client
         var probeDiagnostics = new List<string>();
         _lastDiscoveryWarning = null;
 
+        async Task<bool> TryReadCharacterAsync(
+            ClientWebSocket socket,
+            int contextId,
+            string? requestedCharacter,
+            string targetUrl)
+        {
+            var snapshot = await EvaluateAsync(
+                socket,
+                BuildSnapshotExpression(includeDeepDiagnostics, requestedCharacter),
+                contextId,
+                cancellationToken);
+            if (!IsV6Snapshot(snapshot))
+                throw new InvalidOperationException("ALBOT_V6_SNAPSHOT_INVALID");
+
+            var characterName = ReadCharacterName(snapshot);
+            if (string.IsNullOrWhiteSpace(characterName))
+                throw new InvalidOperationException("ALBOT_V6_CHARACTER_NAME_MISSING");
+
+            if (!string.IsNullOrWhiteSpace(requestedCharacter)
+                && !string.Equals(
+                    characterName,
+                    requestedCharacter,
+                    StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException(
+                    "ALBOT_V6_REQUESTED_CHARACTER_MISMATCH:"
+                    + Bounded(requestedCharacter)
+                    + "!="
+                    + Bounded(characterName));
+
+            rosterCharacters.Add(characterName);
+            if (seenCharacters.Contains(characterName))
+                return true;
+
+            JsonElement? dashboardVisual = null;
+            try
+            {
+                var mapId = ReadCharacterMap(snapshot);
+                var includeTerrain = !string.IsNullOrWhiteSpace(mapId)
+                    && !terrainMaps.Contains(mapId);
+                var visual = await EvaluateAsync(
+                    socket,
+                    BuildDashboardVisualExpression(characterName, includeTerrain),
+                    contextId,
+                    cancellationToken);
+                if (IsDashboardVisual(visual))
+                {
+                    dashboardVisual = visual.Clone();
+                    if (includeTerrain
+                        && !string.IsNullOrWhiteSpace(mapId)
+                        && HasUsableDashboardTerrain(visual))
+                        terrainMaps.Add(mapId);
+                }
+            }
+            catch (InvalidOperationException error)
+            {
+                AddProbeDiagnostic(
+                    probeDiagnostics,
+                    targetUrl,
+                    contextId,
+                    Bounded(characterName) + ":DASHBOARD_VISUAL:" + error.Message);
+            }
+
+            var afterSeq = Math.Max(0, afterSeqForCharacter(characterName));
+            var eventBatch = await EvaluateEventsAdaptiveAsync(
+                socket,
+                characterName,
+                afterSeq,
+                eventLimit,
+                contextId,
+                cancellationToken);
+            if (!IsV6EventBatch(eventBatch))
+                throw new InvalidOperationException("ALBOT_V6_EVENTS_INVALID");
+
+            JsonElement events;
+            if (eventBatch.TryGetProperty("events", out var eventsNode)
+                && eventsNode.ValueKind == JsonValueKind.Array)
+                events = eventsNode.Clone();
+            else
+            {
+                using var empty = JsonDocument.Parse("[]");
+                events = empty.RootElement.Clone();
+            }
+
+            var requestedAfterSeq = ReadInt64(eventBatch, "requestedAfterSeq", afterSeq);
+            var effectiveAfterSeq = ReadInt64(eventBatch, "effectiveAfterSeq", requestedAfterSeq);
+            var lastCapturedSeq = ReadInt64(eventBatch, "lastCapturedSeq", 0);
+            var maxSeq = effectiveAfterSeq;
+            foreach (var row in events.EnumerateArray())
+            {
+                if (row.ValueKind == JsonValueKind.Object
+                    && row.TryGetProperty("seq", out var seqNode)
+                    && seqNode.TryGetInt64(out var seq))
+                    maxSeq = Math.Max(maxSeq, seq);
+            }
+
+            reads.Add(new DebugReadResult(
+                snapshot.Clone(),
+                events,
+                requestedAfterSeq,
+                effectiveAfterSeq,
+                maxSeq,
+                lastCapturedSeq,
+                ReadBoolean(eventBatch, "hasMore", false),
+                targetUrl,
+                dashboardVisual));
+            seenCharacters.Add(characterName);
+            return true;
+        }
+
         foreach (var target in await FindTargetsAsync(cancellationToken))
         {
             var targetCharacter = CharacterNameFromTargetUrl(target.Url);
@@ -105,136 +214,110 @@ public sealed class CdpAlBotV6Client
                     cancellationToken);
                 using var socket = new ClientWebSocket();
                 await socket.ConnectAsync(new Uri(target.WebSocketDebuggerUrl), cancellationToken);
+
+                // Discover every active Adventure Land character reachable from this
+                // target before reading snapshots. AL Final exposes secondary runners
+                // through iframe[data-name] / get_active_characters(), so the target URL
+                // is only a hint and must never be treated as the full character roster.
+                var catalogCharacters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var contextId in contextIds)
                 {
                     try
                     {
-                        // A browser target already identifies its Adventure Land character in
-                        // /character/<name>/... . Use that target identity as the routing key,
-                        // then allow the bounded same-target frame resolver to find the V6 bridge.
-                        // This avoids both failure modes seen live: local-only probing can miss
-                        // nested runner bridges, while account-wide cross-frame enumeration can
-                        // accidentally collapse several characters onto one runtime.
-                        var probe = await EvaluateAsync(
+                        var catalog = await EvaluateAsync(
                             socket,
-                            ProbeExpression,
+                            CharacterCatalogExpression,
                             contextId,
                             cancellationToken);
-                        if (probe.ValueKind != JsonValueKind.Object
-                            || !ReadBoolean(probe, "valid", false)
-                            || !probe.TryGetProperty("identity", out var identity)
-                            || !IsV6Identity(identity))
-                        {
-                            AddProbeDiagnostic(probeDiagnostics, target.Url, contextId, probe);
+                        if (catalog.ValueKind != JsonValueKind.Array)
                             continue;
-                        }
 
-                        var snapshot = await EvaluateAsync(
-                            socket,
-                            BuildSnapshotExpression(includeDeepDiagnostics, targetCharacter),
-                            contextId,
-                            cancellationToken);
-                        if (!IsV6Snapshot(snapshot))
-                            throw new InvalidOperationException("ALBOT_V6_SNAPSHOT_INVALID");
-
-                        var characterName = ReadCharacterName(snapshot);
-                        if (string.IsNullOrWhiteSpace(characterName))
-                            throw new InvalidOperationException("ALBOT_V6_CHARACTER_NAME_MISSING");
-
-                        if (!string.IsNullOrWhiteSpace(targetCharacter)
-                            && !string.Equals(
-                                characterName,
-                                targetCharacter,
-                                StringComparison.OrdinalIgnoreCase))
-                            throw new InvalidOperationException(
-                                "ALBOT_V6_TARGET_CHARACTER_MISMATCH:"
-                                + Bounded(targetCharacter)
-                                + "!="
-                                + Bounded(characterName));
-
-                        rosterCharacters.Add(characterName);
-                        targetResolved = true;
-                        if (seenCharacters.Contains(characterName))
-                            break;
-
-                        JsonElement? dashboardVisual = null;
-                        try
+                        foreach (var row in catalog.EnumerateArray())
                         {
-                            var mapId = ReadCharacterMap(snapshot);
-                            var includeTerrain = !string.IsNullOrWhiteSpace(mapId)
-                                && !terrainMaps.Contains(mapId);
-                            var visual = await EvaluateAsync(
-                                socket,
-                                BuildDashboardVisualExpression(characterName, includeTerrain),
-                                contextId,
-                                cancellationToken);
-                            if (IsDashboardVisual(visual))
-                            {
-                                dashboardVisual = visual.Clone();
-                                if (includeTerrain
-                                    && !string.IsNullOrWhiteSpace(mapId)
-                                    && HasUsableDashboardTerrain(visual))
-                                    terrainMaps.Add(mapId);
-                            }
+                            if (row.ValueKind != JsonValueKind.Object)
+                                continue;
+                            var name = ReadString(row, "character")?.Trim();
+                            if (string.IsNullOrWhiteSpace(name))
+                                continue;
+                            catalogCharacters.Add(name);
+                            rosterCharacters.Add(name);
                         }
-                        catch (InvalidOperationException error)
-                        {
-                            AddProbeDiagnostic(
-                                probeDiagnostics,
-                                target.Url,
-                                contextId,
-                                Bounded(characterName) + ":DASHBOARD_VISUAL:" + error.Message);
-                        }
-
-                        var afterSeq = Math.Max(0, afterSeqForCharacter(characterName));
-                        var eventBatch = await EvaluateEventsAdaptiveAsync(
-                            socket,
-                            characterName,
-                            afterSeq,
-                            eventLimit,
-                            contextId,
-                            cancellationToken);
-                        if (!IsV6EventBatch(eventBatch))
-                            throw new InvalidOperationException("ALBOT_V6_EVENTS_INVALID");
-
-                        JsonElement events;
-                        if (eventBatch.TryGetProperty("events", out var eventsNode)
-                            && eventsNode.ValueKind == JsonValueKind.Array)
-                            events = eventsNode.Clone();
-                        else
-                        {
-                            using var empty = JsonDocument.Parse("[]");
-                            events = empty.RootElement.Clone();
-                        }
-
-                        var requestedAfterSeq = ReadInt64(eventBatch, "requestedAfterSeq", afterSeq);
-                        var effectiveAfterSeq = ReadInt64(eventBatch, "effectiveAfterSeq", requestedAfterSeq);
-                        var lastCapturedSeq = ReadInt64(eventBatch, "lastCapturedSeq", 0);
-                        var maxSeq = effectiveAfterSeq;
-                        foreach (var row in events.EnumerateArray())
-                        {
-                            if (row.ValueKind == JsonValueKind.Object
-                                && row.TryGetProperty("seq", out var seqNode)
-                                && seqNode.TryGetInt64(out var seq))
-                                maxSeq = Math.Max(maxSeq, seq);
-                        }
-
-                        reads.Add(new DebugReadResult(
-                            snapshot.Clone(),
-                            events,
-                            requestedAfterSeq,
-                            effectiveAfterSeq,
-                            maxSeq,
-                            lastCapturedSeq,
-                            ReadBoolean(eventBatch, "hasMore", false),
-                            target.Url,
-                            dashboardVisual));
-                        seenCharacters.Add(characterName);
-                        break;
                     }
                     catch (InvalidOperationException error)
                     {
-                        AddProbeDiagnostic(probeDiagnostics, target.Url, contextId, error.Message);
+                        AddProbeDiagnostic(
+                            probeDiagnostics,
+                            target.Url,
+                            contextId,
+                            "CHARACTER_CATALOG:" + error.Message);
+                    }
+                }
+
+                var candidates = MergeCharacterCandidates(targetCharacter, catalogCharacters);
+                if (candidates.Count > 0)
+                {
+                    foreach (var candidateCharacter in candidates)
+                    {
+                        if (seenCharacters.Contains(candidateCharacter))
+                        {
+                            targetResolved = true;
+                            continue;
+                        }
+
+                        var characterResolved = false;
+                        foreach (var contextId in contextIds)
+                        {
+                            try
+                            {
+                                if (!await TryReadCharacterAsync(
+                                        socket,
+                                        contextId,
+                                        candidateCharacter,
+                                        target.Url))
+                                    continue;
+                                characterResolved = true;
+                                targetResolved = true;
+                                break;
+                            }
+                            catch (InvalidOperationException error)
+                            {
+                                AddProbeDiagnostic(
+                                    probeDiagnostics,
+                                    target.Url,
+                                    contextId,
+                                    Bounded(candidateCharacter) + ":" + error.Message);
+                            }
+                        }
+
+                        if (!characterResolved)
+                            AddProbeDiagnostic(
+                                probeDiagnostics,
+                                target.Url,
+                                null,
+                                "CHARACTER_BRIDGE_MISSING:" + Bounded(candidateCharacter));
+                    }
+                }
+                else
+                {
+                    // Compatibility fallback for layouts where Adventure Land's roster
+                    // API is unavailable but one V6 bridge is still directly reachable.
+                    foreach (var contextId in contextIds)
+                    {
+                        try
+                        {
+                            if (!await TryReadCharacterAsync(
+                                    socket,
+                                    contextId,
+                                    requestedCharacter: null,
+                                    target.Url))
+                                continue;
+                            targetResolved = true;
+                            break;
+                        }
+                        catch (InvalidOperationException error)
+                        {
+                            AddProbeDiagnostic(probeDiagnostics, target.Url, contextId, error.Message);
+                        }
                     }
                 }
             }
@@ -301,15 +384,6 @@ public sealed class CdpAlBotV6Client
 
         foreach (var target in await FindTargetsAsync(cancellationToken))
         {
-            var targetCharacter = CharacterNameFromTargetUrl(target.Url);
-            if (!string.IsNullOrWhiteSpace(characterName)
-                && !string.IsNullOrWhiteSpace(targetCharacter)
-                && !string.Equals(
-                    characterName,
-                    targetCharacter,
-                    StringComparison.OrdinalIgnoreCase))
-                continue;
-
             try
             {
                 var contextIds = await CollectTargetExecutionContextsAsync(
@@ -386,6 +460,21 @@ public sealed class CdpAlBotV6Client
     public static bool IsSupportedTargetType(string? targetType) =>
         string.Equals(targetType, "page", StringComparison.OrdinalIgnoreCase)
         || string.Equals(targetType, "iframe", StringComparison.OrdinalIgnoreCase);
+
+    public static IReadOnlyList<string> MergeCharacterCandidates(
+        string? targetCharacter,
+        IEnumerable<string?> catalogCharacters)
+    {
+        var rows = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(targetCharacter))
+            rows.Add(targetCharacter.Trim());
+        foreach (var candidate in catalogCharacters ?? Array.Empty<string?>())
+        {
+            if (!string.IsNullOrWhiteSpace(candidate))
+                rows.Add(candidate.Trim());
+        }
+        return rows.OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToArray();
+    }
 
     public static string BuildCharacterCatalogExpression() => CharacterCatalogExpression;
 

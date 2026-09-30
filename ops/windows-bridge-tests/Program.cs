@@ -187,6 +187,18 @@ Assert(v6CharacterCatalogExpression.Contains("bridgeAvailable: true", StringComp
 Assert(typeof(CdpAlBotV6Client).GetProperty("LastDiscoveryWarning") is not null,
     "V6_DISCOVERY_WARNING_PUBLIC_STATUS");
 
+var mergedCharacterCandidates = CdpAlBotV6Client.MergeCharacterCandidates(
+    "FarmerA",
+    new string?[] { "My_Merchant", "FarmerA", "FarmerB", "my_merchant", null, " " });
+Assert(mergedCharacterCandidates.SequenceEqual(
+        new[] { "FarmerA", "FarmerB", "My_Merchant" },
+        StringComparer.OrdinalIgnoreCase),
+    "V6_LIVE_DISCOVERY_MERGES_TARGET_AND_CATALOG_CHARACTERS");
+Assert(CdpAlBotV6Client.MergeCharacterCandidates(
+        null,
+        new string?[] { "My_Merchant" }).Single() == "My_Merchant",
+    "V6_LIVE_DISCOVERY_SUPPORTS_SECONDARY_CHARACTER_WITHOUT_TARGET_URL_IDENTITY");
+
 var v6DashboardVisualExpression = CdpAlBotV6Client.BuildDashboardVisualExpression("My_Merchant", includeTerrain: true);
 Assert(v6DashboardVisualExpression.Contains("findAdventureLandCharacterRoot", StringComparison.Ordinal),
     "V6_DASHBOARD_VISUAL_SCOPES_EXACT_CHARACTER");
