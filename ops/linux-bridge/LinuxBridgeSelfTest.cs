@@ -31,6 +31,11 @@ public static class LinuxBridgeSelfTest
         Assert(blocked, "REMOTE_CDP_BLOCKED");
 
         blocked = false;
+        try { (config with { AllowedOrigin = "https://example.com" }).Validate(); }
+        catch (InvalidOperationException) { blocked = true; }
+        Assert(blocked, "ADVENTURE_LAND_ORIGIN_PINNED");
+
+        blocked = false;
         try { (config with { TelemetryIngestUrl = "https://example.com/ingest" }).Validate(); }
         catch (InvalidOperationException) { blocked = true; }
         Assert(blocked, "TELEMETRY_ENDPOINT_PINNED");
