@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace AioBotWindowsBridge;
 
@@ -8,14 +9,19 @@ public sealed record BridgeConfig
     public const int CurrentConfigVersion = 1;
     public const string V6TelemetryIngestUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-debug-ingest";
     public const string V6SignalControlUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-signal-control";
-    public const string DefaultDashboardUrl = "https://aio-bot-dashboard.hansijuergenlul.workers.dev";
+    public const string V6TelemetryTokenEnvironmentVariable = "ALBOT_V6_TELEMETRY_TOKEN";
+    public const string V6DashboardBaseUrl = "https://aio-bot-dashboard.hansijuergenlul.workers.dev";
+    public const string V6DashboardWriteKeyEnvironmentVariable = "ALBOT_V6_WEB_DASHBOARD_WRITE_KEY";
+    public const string V6BackblazeKeyIdEnvironmentVariable = "ALBOT_V6_BACKBLAZE_KEY_ID";
+    public const string V6BackblazeApplicationKeyEnvironmentVariable = "ALBOT_V6_BACKBLAZE_APPLICATION_KEY";
+    public const string DefaultDashboardUrl = V6DashboardBaseUrl;
 
     public int ConfigVersion { get; init; } = CurrentConfigVersion;
     public string CdpEndpoint { get; init; } = "http://127.0.0.1:9222";
     public string AllowedOrigin { get; init; } = "https://adventure.land";
     public string TelemetryIngestUrl { get; init; } = V6TelemetryIngestUrl;
     public string SignalControlUrl { get; init; } = V6SignalControlUrl;
-    public string TelemetryTokenEnvironmentVariable { get; init; } = "ALBOT_V6_TELEMETRY_TOKEN";
+    public string TelemetryTokenEnvironmentVariable { get; init; } = V6TelemetryTokenEnvironmentVariable;
     public string BotId { get; init; } = "albot-v6-main";
     public bool TelemetryEnabled { get; init; } = false;
     public bool AutoStartBrowser { get; init; } = true;
@@ -49,14 +55,14 @@ public sealed record BridgeConfig
     public bool WebDashboardEnabled { get; init; } = true;
     public string WebDashboardBaseUrl { get; init; } = DefaultDashboardUrl;
     public string WebDashboardAccount { get; init; } = "default";
-    public string WebDashboardWriteKeyEnvironmentVariable { get; init; } = "ALBOT_V6_WEB_DASHBOARD_WRITE_KEY";
+    public string WebDashboardWriteKeyEnvironmentVariable { get; init; } = V6DashboardWriteKeyEnvironmentVariable;
     public bool BackblazeEnabled { get; init; } = true;
     public string BackblazeEndpoint { get; init; } = "https://s3.eu-central-003.backblazeb2.com";
     public string BackblazeRegion { get; init; } = "eu-central-003";
     public string BackblazeBucket { get; init; } = "al-aio-bot";
     public string BackblazePrefix { get; init; } = "v6";
-    public string BackblazeKeyIdEnvironmentVariable { get; init; } = "ALBOT_V6_BACKBLAZE_KEY_ID";
-    public string BackblazeApplicationKeyEnvironmentVariable { get; init; } = "ALBOT_V6_BACKBLAZE_APPLICATION_KEY";
+    public string BackblazeKeyIdEnvironmentVariable { get; init; } = V6BackblazeKeyIdEnvironmentVariable;
+    public string BackblazeApplicationKeyEnvironmentVariable { get; init; } = V6BackblazeApplicationKeyEnvironmentVariable;
 
     public static string ConfigDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".config", "aio-bot-linux-bridge");
     public static string LocalAppDirectory => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local", "share", "aio-bot-linux-bridge");
@@ -71,6 +77,7 @@ public sealed record BridgeConfig
     public static string BrowserPidPath => Path.Combine(StateDirectory, "browser.pid");
     public static string BrowserStartBudgetPath => Path.Combine(StateDirectory, "browser-start-budget.json");
     public static string SelfUpdateStatusPath => Path.Combine(StateDirectory, "self-update-status.json");
+    public static string AdminTokenPath => Path.Combine(StateDirectory, "admin-token");
 
     public static JsonSerializerOptions JsonOptions { get; } = new()
     {
@@ -90,9 +97,37 @@ public sealed record BridgeConfig
         RequireHttps(TelemetryIngestUrl, "TELEMETRY_HTTPS_REQUIRED");
         RequireHttps(SignalControlUrl, "SIGNAL_CONTROL_HTTPS_REQUIRED");
         RequireHttps(WebDashboardBaseUrl, "WEB_DASHBOARD_HTTPS_REQUIRED");
-        RequireHttps(BackblazeEndpoint, "BACKBLAZE_ENDPOINT_INVALID");
-        if (!string.Equals(BackblazePrefix.Trim('/'), "v6", StringComparison.Ordinal)) throw new InvalidOperationException("V6_BACKBLAZE_PREFIX_REQUIRED");
-        if (PollIntervalSeconds is < 1 or > 60) throw new InvalidOperationException("POLL_INTERVAL_INVALID");
+
+        if (!string.Equals(TelemetryIngestUrl.TrimEnd('/'), V6TelemetryIngestUrl, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("V6_TELEMETRY_ENDPOINT_REQUIRED");
+        if (!string.Equals(SignalControlUrl.TrimEnd('/'), V6SignalControlUrl, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("V6_SIGNAL_ENDPOINT_REQUIRED");
+        if (!string.Equals(WebDashboardBaseUrl.TrimEnd('/'), V6DashboardBaseUrl, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("V6_DASHBOARD_ENDPOINT_REQUIRED");
+        if (!string.Equals(TelemetryTokenEnvironmentVariable, V6TelemetryTokenEnvironmentVariable, StringComparison.Ordinal))
+            throw new InvalidOperationException("V6_TELEMETRY_TOKEN_ENV_REQUIRED");
+        if (!string.Equals(WebDashboardWriteKeyEnvironmentVariable, V6DashboardWriteKeyEnvironmentVariable, StringComparison.Ordinal))
+            throw new InvalidOperationException("V6_DASHBOARD_WRITE_KEY_ENV_REQUIRED");
+        if (!string.Equals(BackblazeKeyIdEnvironmentVariable, V6BackblazeKeyIdEnvironmentVariable, StringComparison.Ordinal))
+            throw new InvalidOperationException("V6_BACKBLAZE_KEY_ID_ENV_REQUIRED");
+        if (!string.Equals(BackblazeApplicationKeyEnvironmentVariable, V6BackblazeApplicationKeyEnvironmentVariable, StringComparison.Ordinal))
+            throw new InvalidOperationException("V6_BACKBLAZE_APPLICATION_KEY_ENV_REQUIRED");
+
+        if (string.Equals(BotId, "pi-main", StringComparison.OrdinalIgnoreCase)
+            || !BotId.StartsWith("albot-v6-", StringComparison.OrdinalIgnoreCase)
+            || BotId.Length > 128)
+            throw new InvalidOperationException("V6_BOT_ID_REQUIRED");
+        if (string.IsNullOrWhiteSpace(WebDashboardAccount) || WebDashboardAccount.Length > 100)
+            throw new InvalidOperationException("WEB_DASHBOARD_ACCOUNT_INVALID");
+
+        if (!string.Equals(PreferredBrowser, "Brave", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(PreferredBrowser, "Edge", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(PreferredBrowser, "Chrome", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(PreferredBrowser, "Chromium", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("PREFERRED_BROWSER_INVALID");
+
+        if (PollIntervalSeconds is < 2 or > 60) throw new InvalidOperationException("POLL_INTERVAL_INVALID");
+        if (SupabaseStatusIntervalSeconds != 60) throw new InvalidOperationException("SUPABASE_STATUS_INTERVAL_MUST_BE_60_SECONDS");
         if (MaxBackoffSeconds < PollIntervalSeconds || MaxBackoffSeconds > 3600) throw new InvalidOperationException("MAX_BACKOFF_INVALID");
         if (EventLimit is < 1 or > 200) throw new InvalidOperationException("EVENT_LIMIT_INVALID");
         if (WatchdogIntervalSeconds is < 5 or > 60) throw new InvalidOperationException("WATCHDOG_INTERVAL_INVALID");
@@ -100,8 +135,23 @@ public sealed record BridgeConfig
             throw new InvalidOperationException("WATCHDOG_FAILURE_THRESHOLDS_INVALID");
         if (BrowserMaxStartsPerWindow is < 1 or > 20 || BrowserStartWindowMinutes is < 1 or > 120)
             throw new InvalidOperationException("BROWSER_START_BUDGET_INVALID");
-        if (WissenswaechterIntervallMinuten != 60) throw new InvalidOperationException("WISSENSWAECHTER_INTERVALL_MUSS_60_MINUTEN_SEIN");
+
+        if (WissenswaechterIntervallMinuten != 60)
+            throw new InvalidOperationException("WISSENSWAECHTER_INTERVALL_MUSS_60_MINUTEN_SEIN");
+        if (WissenswaechterMaxQuellenProLauf is < 1 or > 500)
+            throw new InvalidOperationException("WISSENSWAECHTER_QUELLENLIMIT_UNGUELTIG");
+        if (WissenswaechterMaxKandidaten is < 50 or > 5000)
+            throw new InvalidOperationException("WISSENSWAECHTER_KANDIDATENLIMIT_UNGUELTIG");
+
         if (LiveWissensimportAktiv) _ = NormalisiereLiveWissenspfad(LiveWissensdatenbankPfad);
+        if (LiveWissensMaxDateienProLauf is < 1 or > 20000)
+            throw new InvalidOperationException("LIVE_WISSEN_DATEILIMIT_UNGUELTIG");
+        if (LiveWissensMaxDateiBytes is < 16 * 1024 or > 5 * 1024 * 1024)
+            throw new InvalidOperationException("LIVE_WISSEN_DATEIGROESSE_UNGUELTIG");
+        if (LiveWissensMaxGesamtBytesProLauf is < 1024 * 1024 or > 512L * 1024 * 1024)
+            throw new InvalidOperationException("LIVE_WISSEN_GESAMTGROESSE_UNGUELTIG");
+
+        ValidateBackblaze();
     }
 
     public static async Task<BridgeConfig> LoadAsync(CancellationToken cancellationToken = default)
@@ -134,6 +184,37 @@ public sealed record BridgeConfig
         var temp = SettingsPath + ".tmp";
         await File.WriteAllTextAsync(temp, JsonSerializer.Serialize(this, JsonOptions), cancellationToken);
         File.Move(temp, SettingsPath, true);
+    }
+
+    private void ValidateBackblaze()
+    {
+        if (string.IsNullOrWhiteSpace(BackblazeRegion)
+            || BackblazeRegion.Length > 64
+            || !Regex.IsMatch(BackblazeRegion, "^[a-z0-9-]+$", RegexOptions.CultureInvariant))
+            throw new InvalidOperationException("BACKBLAZE_REGION_INVALID");
+
+        if (!Uri.TryCreate(BackblazeEndpoint, UriKind.Absolute, out var endpoint)
+            || endpoint.Scheme != Uri.UriSchemeHttps
+            || !string.IsNullOrEmpty(endpoint.UserInfo)
+            || !string.IsNullOrEmpty(endpoint.Query)
+            || !string.IsNullOrEmpty(endpoint.Fragment)
+            || (endpoint.AbsolutePath != "/" && endpoint.AbsolutePath.Length != 0)
+            || !string.Equals(endpoint.Host, $"s3.{BackblazeRegion}.backblazeb2.com", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("BACKBLAZE_ENDPOINT_INVALID");
+
+        if (string.IsNullOrWhiteSpace(BackblazeBucket)
+            || BackblazeBucket.Length is < 6 or > 63
+            || !Regex.IsMatch(BackblazeBucket, "^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])$", RegexOptions.CultureInvariant)
+            || BackblazeBucket.Contains("..", StringComparison.Ordinal)
+            || System.Net.IPAddress.TryParse(BackblazeBucket, out _))
+            throw new InvalidOperationException("BACKBLAZE_BUCKET_INVALID");
+
+        if (BackblazePrefix.Length > 512
+            || BackblazePrefix.Any(char.IsControl)
+            || BackblazePrefix.Replace('\\', '/').Split('/', StringSplitOptions.RemoveEmptyEntries).Any(part => part == ".."))
+            throw new InvalidOperationException("BACKBLAZE_PREFIX_INVALID");
+        if (!string.Equals(BackblazePrefix.Trim('/'), "v6", StringComparison.Ordinal))
+            throw new InvalidOperationException("V6_BACKBLAZE_PREFIX_REQUIRED");
     }
 
     public static string NormalisiereLiveWissenspfad(string? value)

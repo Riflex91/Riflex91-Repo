@@ -7,6 +7,12 @@ if (args.Contains("--self-test", StringComparer.Ordinal))
     return;
 }
 
+if (args.Contains("--print-admin-token", StringComparer.Ordinal))
+{
+    Console.WriteLine(LinuxAdminTokenStore.LoadOrCreate());
+    return;
+}
+
 var config = await BridgeConfig.LoadAsync();
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://127.0.0.1:18741");
@@ -26,21 +32,23 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
-app.MapGet("/", (LinuxBridgeRuntime runtime) =>
+app.MapGet("/", () =>
     Results.Content(
-        BuildPage(runtime.AdminToken, GitHubAnmeldung.TokenVorlageUrl),
+        BuildPage(GitHubAnmeldung.TokenVorlageUrl),
         "text/html; charset=utf-8"));
 
 app.MapGet("/health", (LinuxBridgeRuntime runtime) =>
 {
-    var snapshot = runtime.Snapshot();
-    var healthy = snapshot.Watchdog.State is
-        "HEALTHY" or "STARTING" or "RECOVERING" or "DISABLED";
-    return Results.Json(new { ok = healthy, snapshot }, statusCode: healthy ? 200 : 503);
+    var state = runtime.Snapshot().Watchdog.State;
+    var healthy = state is "HEALTHY" or "STARTING" or "RECOVERING" or "DISABLED";
+    return Results.Json(new { ok = healthy, state }, statusCode: healthy ? 200 : 503);
 });
 
-app.MapGet("/api/status", (LinuxBridgeRuntime runtime) =>
-    Results.Json(runtime.Snapshot()));
+app.MapGet("/api/status", (HttpContext ctx, LinuxBridgeRuntime runtime) =>
+{
+    RequireAdmin(ctx, runtime);
+    return Results.Json(runtime.Snapshot());
+});
 
 app.MapPost("/api/actions/browser-restart", async (
     HttpContext ctx,
@@ -235,11 +243,13 @@ static void RequireAdmin(HttpContext ctx, LinuxBridgeRuntime runtime)
     }
 }
 
-static string BuildPage(string adminToken, string tokenTemplateUrl) => """
+static string BuildPage(string tokenTemplateUrl) => """
 <!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AIO Bot Linux Bridge</title><style>
 body{font-family:system-ui,sans-serif;background:#0d1117;color:#e6edf3;margin:0}main{max-width:1180px;margin:auto;padding:24px}h1{margin-bottom:4px}.muted{color:#8b949e}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:20px 0}.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px}button,input,a.btn{background:#21262d;color:#e6edf3;border:1px solid #30363d;border-radius:7px;padding:9px;margin:4px 2px;text-decoration:none;display:inline-block}input{width:min(92%,460px)}pre{white-space:pre-wrap;word-break:break-word;background:#010409;padding:12px;border-radius:8px;max-height:430px;overflow:auto}.ok{color:#3fb950}.warn{color:#d29922}
 </style></head><body><main><h1>AIO Bot Linux Bridge</h1><div class="muted">V6 Transport · 24/7 Watchdog · systemd · Secret Service</div>
+
+<div class="card"><h3>Lokale Administration</h3><p class="muted">Der Admin-Token wird nicht über HTTP ausgeliefert. Lokal anzeigen mit <code>AioBotLinuxBridge --print-admin-token</code>.</p><input id="adminToken" type="password" placeholder="Admin-Token"><button onclick="authenticate()">Entsperren</button><button onclick="lockUi()">Sperren</button><span id="authState" class="muted">GESPERRT</span></div>
 
 <div class="grid">
 <div class="card"><h3>Watchdog & Browser</h3><div id="watchdog">lädt…</div><button onclick="act('/api/actions/browser-restart')">Browser neu starten</button></div>
@@ -262,9 +272,11 @@ body{font-family:system-ui,sans-serif;background:#0d1117;color:#e6edf3;margin:0}
 </div>
 
 <script>
-const T='__ADMIN_TOKEN__';
-async function req(url,opt={}){opt.headers={...(opt.headers||{}),'X-Aio-Admin-Token':T,'Content-Type':'application/json'};let r=await fetch(url,opt);if(!r.ok)throw new Error(await r.text());return r.headers.get('content-type')?.includes('json')?r.json():r.text()}
-async function refresh(){let s=await fetch('/api/status').then(r=>r.json());raw.textContent=JSON.stringify(s,null,2);watchdog.textContent=s.watchdog.state+' · Browser '+s.watchdog.browser+' · Bot '+s.watchdog.bot;telemetry.textContent=(s.telemetry?.state||'nicht aktiv')+' · '+(s.telemetryEnabled?'AN':'AUS')+' · Token '+(s.telemetryTokenConfigured?'OK':'FEHLT');dashboard.textContent=(s.webDashboardEnabled?'AN':'AUS')+' · Key '+(s.dashboardKeyConfigured?'OK':'FEHLT');backblaze.textContent=(s.backblazeEnabled?'AN':'AUS')+' · Zugangsdaten '+(s.backblazeCredentialsConfigured?'OK':'FEHLEN');github.textContent=s.github?.angemeldet?('ANGEMELDET · '+(s.github.konto||'')):(s.github?.verfuegbar?'NICHT ANGEMELDET':'GCM NICHT VERFÜGBAR');knowledge.textContent=(s.knowledgeEnabled?'AN':'AUS')+' · '+(s.knowledge?.zustand||'wartet');if(document.activeElement!==livePath)livePath.value=s.liveKnowledgePath||''}
+let T=sessionStorage.getItem('aioAdminToken')||'';
+async function req(url,opt={}){if(!T)throw new Error('Admin-Token erforderlich');opt.headers={...(opt.headers||{}),'X-Aio-Admin-Token':T,'Content-Type':'application/json'};let r=await fetch(url,opt);if(!r.ok)throw new Error(await r.text());return r.headers.get('content-type')?.includes('json')?r.json():r.text()}
+async function authenticate(){const candidate=adminToken.value.trim();if(!candidate){alert('Admin-Token eingeben');return}const previous=T;T=candidate;try{await refresh();sessionStorage.setItem('aioAdminToken',T);adminToken.value='';authState.textContent='ENTSPERRT'}catch(e){T=previous;alert(e.message)}}
+function lockUi(){T='';sessionStorage.removeItem('aioAdminToken');authState.textContent='GESPERRT';raw.textContent='Admin-Token erforderlich.'}
+async function refresh(){if(!T){authState.textContent='GESPERRT';raw.textContent='Admin-Token erforderlich.';return}let s=await req('/api/status');authState.textContent='ENTSPERRT';raw.textContent=JSON.stringify(s,null,2);watchdog.textContent=s.watchdog.state+' · Browser '+s.watchdog.browser+' · Bot '+s.watchdog.bot;telemetry.textContent=(s.telemetry?.state||'nicht aktiv')+' · '+(s.telemetryEnabled?'AN':'AUS')+' · Token '+(s.telemetryTokenConfigured?'OK':'FEHLT');dashboard.textContent=(s.webDashboardEnabled?'AN':'AUS')+' · Key '+(s.dashboardKeyConfigured?'OK':'FEHLT');backblaze.textContent=(s.backblazeEnabled?'AN':'AUS')+' · Zugangsdaten '+(s.backblazeCredentialsConfigured?'OK':'FEHLEN');github.textContent=s.github?.angemeldet?('ANGEMELDET · '+(s.github.konto||'')):(s.github?.verfuegbar?'NICHT ANGEMELDET':'GCM NICHT VERFÜGBAR');knowledge.textContent=(s.knowledgeEnabled?'AN':'AUS')+' · '+(s.knowledge?.zustand||'wartet');if(document.activeElement!==livePath)livePath.value=s.liveKnowledgePath||''}
 async function act(url){try{let x=await req(url,{method:'POST',body:'{}'});detail.textContent=JSON.stringify(x,null,2);await refresh()}catch(e){alert(e.message)}}
 async function detail(url,title){try{let x=await req(url,{method:'POST',body:'{}'});document.getElementById('detail').textContent=title+'\n'+JSON.stringify(x,null,2);await refresh()}catch(e){alert(e.message)}}
 async function signal(enabled){try{await req('/api/signal',{method:'POST',body:JSON.stringify({enabled})});await refresh()}catch(e){alert(e.message)}}
@@ -277,7 +289,6 @@ async function delSecret(name){try{await req('/api/secrets/'+name,{method:'DELET
 refresh();setInterval(refresh,5000);
 </script></main></body></html>
 """
-.Replace("__ADMIN_TOKEN__", adminToken, StringComparison.Ordinal)
 .Replace("__TOKEN_URL__", tokenTemplateUrl, StringComparison.Ordinal);
 
 public sealed record ValueRequest(string Value);

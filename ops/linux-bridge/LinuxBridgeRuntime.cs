@@ -49,8 +49,7 @@ public sealed class LinuxBridgeRuntime : IHostedService, IAsyncDisposable
     {
         _config = config;
         StartedAt = DateTimeOffset.UtcNow;
-        AdminToken = Convert.ToHexString(
-            System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
+        AdminToken = LinuxAdminTokenStore.LoadOrCreate();
     }
 
     public DateTimeOffset StartedAt { get; }

@@ -21,12 +21,29 @@ public static class LinuxBridgeSelfTest
         Assert(BrowserLauncher.BrowserPreferenceOrder("Brave").First() == "brave", "BRAVE_PREFERENCE");
         Assert(LinuxBridgeSelfUpdater.AssetUrl.Contains("linux-bridge-latest", StringComparison.Ordinal), "FIXED_UPDATE_CHANNEL");
         Assert(GitHubAnmeldung.Authentifizierungsmodus == "FINE_GRAINED_PAT", "GITHUB_PAT_MODE");
+        Assert(LinuxAdminTokenStore.IsValidToken(new string('a', 64)), "ADMIN_TOKEN_FORMAT");
+        Assert(!LinuxAdminTokenStore.IsValidToken("short"), "ADMIN_TOKEN_REJECT_SHORT");
         Assert(BridgeConfig.NormalisiereLiveWissenspfad("/mnt/adventureland/wissensdatenbank") == "/mnt/adventureland/wissensdatenbank", "LIVE_PATH_NORMALIZATION");
 
         var invalid = config with { CdpEndpoint = "http://192.168.1.2:9222" };
         var blocked = false;
         try { invalid.Validate(); } catch (InvalidOperationException) { blocked = true; }
         Assert(blocked, "REMOTE_CDP_BLOCKED");
+
+        blocked = false;
+        try { (config with { TelemetryIngestUrl = "https://example.com/ingest" }).Validate(); }
+        catch (InvalidOperationException) { blocked = true; }
+        Assert(blocked, "TELEMETRY_ENDPOINT_PINNED");
+
+        blocked = false;
+        try { (config with { WebDashboardBaseUrl = "https://example.com" }).Validate(); }
+        catch (InvalidOperationException) { blocked = true; }
+        Assert(blocked, "DASHBOARD_ENDPOINT_PINNED");
+
+        blocked = false;
+        try { (config with { BackblazeEndpoint = "https://example.com" }).Validate(); }
+        catch (InvalidOperationException) { blocked = true; }
+        Assert(blocked, "BACKBLAZE_ENDPOINT_PINNED");
 
         using var http = new HttpClient();
         await using (var disabledWatchdog = new LinuxWatchdogSupervisor(

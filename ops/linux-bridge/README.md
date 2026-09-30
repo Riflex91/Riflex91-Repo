@@ -30,7 +30,9 @@ The loopback-only page at http://127.0.0.1:18741 provides the Windows Bridge-equ
 - Linux Bridge readiness report;
 - self-update state and technical status.
 
-Mutating calls require an in-memory per-process admin token. No CORS policy is enabled. Secrets are never returned by the API.
+The HTTP page never receives the admin token from the service. A persistent random admin token is stored owner-only (0600) at ~/.local/state/aio-bot-linux-bridge/admin-token and can be displayed by the owning Unix user with AioBotLinuxBridge --print-admin-token. Enter it into the page to unlock the authenticated status and mutation API for that browser tab. /health remains deliberately minimal and unauthenticated. No CORS policy is enabled, and secrets are never returned by the API.
+
+Credential-bearing cloud destinations are fail-closed: Supabase ingest/signal and the Cloudflare V6 dashboard are pinned to the production endpoints. Backblaze requires the canonical s3.<region>.backblazeb2.com host. A modified settings.json therefore cannot redirect bearer/write credentials to an arbitrary HTTPS origin.
 
 ## Secrets
 

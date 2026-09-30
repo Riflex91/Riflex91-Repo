@@ -22,5 +22,6 @@ systemctl --user daemon-reload
 systemctl --user enable --now aio-bot-linux-bridge.service
 
 echo "Installed. Local UI: http://127.0.0.1:18741"
+echo "Admin token: $ROOT/AioBotLinuxBridge --print-admin-token"
 echo "Status: systemctl --user status aio-bot-linux-bridge.service"
 echo "Logs: journalctl --user -u aio-bot-linux-bridge.service -f"
