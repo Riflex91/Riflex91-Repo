@@ -5,6 +5,8 @@ import freeTierWorker from '../src/worker-free-tier.js';
 import {
   GENERATION,
   PROTOCOL,
+  RUNTIME_STATUS_RETAIN_MS,
+  RUNTIME_STATUS_MAX_ROWS,
   ensureV6Schema,
   handleV6Request,
   legacyTransportBlocked
@@ -170,9 +172,16 @@ test('V6 overview keeps known characters visible and derives offline state from 
     row.kind === 'all'
     && /FROM v6_runtime_status/.test(String(row.sql || '')));
   assert.ok(runtimeRead);
-  assert.doesNotMatch(runtimeRead.sql, /received_at>=\?/);
-  assert.equal(runtimeRead.args.length, 1);
+  assert.match(runtimeRead.sql, /received_at>=\?/);
+  assert.match(runtimeRead.sql, /ORDER BY received_at DESC LIMIT \?/);
+  assert.equal(runtimeRead.args.length, 3);
   assert.equal(runtimeRead.args[0], 'default');
+  const cutoffAge = Date.now() - Number(runtimeRead.args[1]);
+  assert.ok(cutoffAge >= RUNTIME_STATUS_RETAIN_MS - 5000);
+  assert.ok(cutoffAge <= RUNTIME_STATUS_RETAIN_MS + 5000);
+  assert.equal(runtimeRead.args[2], RUNTIME_STATUS_MAX_ROWS);
+  assert.equal(RUNTIME_STATUS_RETAIN_MS, 30 * 24 * 60 * 60 * 1000);
+  assert.equal(RUNTIME_STATUS_MAX_ROWS, 64);
 });
 
 test('V6 runtime endpoint requires the generation-locked bridge identity and dedicated secret', async () => {
@@ -192,6 +201,10 @@ test('V6 runtime endpoint requires the generation-locked bridge identity and ded
   assert.ok(retention);
   assert.match(retention.sql, /WHERE event_at<\?/);
   assert.equal(retention.args.length, 1);
+  const statusRetention = DB.calls.find(row => row.kind === 'run' && String(row.sql || '').includes('DELETE FROM v6_runtime_status'));
+  assert.ok(statusRetention);
+  assert.match(statusRetention.sql, /WHERE received_at<\?/);
+  assert.equal(statusRetention.args.length, 1);
 
   const wrongGeneration = await handleV6Request(v6Request({
     headers: { 'x-albot-generation': '5' }
