@@ -706,6 +706,42 @@ Assert(!CdpCharacterSupervisor.IsHealthyRuntimeComposition([
     ("My_Ranger3", "ranger", false)
 ]), "V6_SUPERVISOR_STOPPED_RUNTIME_UNHEALTHY");
 
+DebugReadResult RuntimeRead(string name, string ctype, bool running)
+{
+    var snapshotBytes = JsonSerializer.SerializeToUtf8Bytes(new
+    {
+        character = new { name, ctype },
+        status = new { running }
+    });
+    using var snapshot = JsonDocument.Parse(snapshotBytes);
+    using var events = JsonDocument.Parse("[]");
+    return new DebugReadResult(
+        snapshot.RootElement.Clone(),
+        events.RootElement.Clone(),
+        0, 0, 0, 0, false,
+        "https://adventure.land/character/" + name + "/in/EU/II/");
+}
+var healthyRuntimeReads = new[]
+{
+    RuntimeRead("My_Merchant", "merchant", true),
+    RuntimeRead("My_Priest", "priest", true),
+    RuntimeRead("My_Ranger2", "ranger", true),
+    RuntimeRead("My_Ranger3", "ranger", true)
+};
+Assert(TelemetryBridgeService.RuntimeCompositionWarning(healthyRuntimeReads) is null,
+    "V6_RUNTIME_GROUP_ONE_MERCHANT_THREE_FARMERS_HEALTHY");
+var incompleteRuntimeWarning = TelemetryBridgeService.RuntimeCompositionWarning([
+    RuntimeRead("My_Merchant", "merchant", true),
+    RuntimeRead("My_Priest", "priest", true),
+    RuntimeRead("My_Ranger2", "ranger", true),
+    RuntimeRead("My_Ranger3", "ranger", false)
+]);
+Assert(incompleteRuntimeWarning is not null
+    && incompleteRuntimeWarning.Contains("runtime=3/4", StringComparison.Ordinal)
+    && incompleteRuntimeWarning.Contains("merchant=1/1", StringComparison.Ordinal)
+    && incompleteRuntimeWarning.Contains("farmers=2/3", StringComparison.Ordinal),
+    "V6_RUNTIME_GROUP_WARNING_EXPOSES_RUNNING_COMPOSITION");
+
 var merchantNavigationBuilder = typeof(CdpCharacterSupervisor).GetMethod(
     "BuildMerchantNavigationExpression",
     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
