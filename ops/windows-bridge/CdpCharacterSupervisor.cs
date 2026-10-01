@@ -40,8 +40,13 @@ public sealed class CdpCharacterSupervisor
         "warrior", "paladin", "rogue", "ranger", "mage", "priest"
     };
 
+    private const int MaxRuntimeRepairAttempts = 2;
+    private static readonly TimeSpan RuntimeRepairCooldown = TimeSpan.FromSeconds(30);
+
     private readonly HttpClient _http;
     private readonly BridgeConfig _config;
+    private readonly Dictionary<string, RuntimeRepairAttempt> _runtimeRepairAttempts =
+        new(StringComparer.OrdinalIgnoreCase);
     private long _commandId;
 
     public CdpCharacterSupervisor(HttpClient http, BridgeConfig config)
@@ -80,6 +85,30 @@ public sealed class CdpCharacterSupervisor
             && unique.Count(row => row.Running && string.Equals(row.Ctype, "merchant", StringComparison.OrdinalIgnoreCase)) == ExpectedMerchantCount
             && unique.Count(row => row.Running && IsCombatClass(row.Ctype)) == ExpectedFarmerCount
             && unique.All(row => row.Running);
+    }
+
+    public static bool NeedsManagedV6RuntimeRepair(
+        string? lifecycleState,
+        bool isLocalCharacter,
+        bool v6RuntimeHealthy)
+    {
+        if (v6RuntimeHealthy || string.IsNullOrWhiteSpace(lifecycleState))
+            return false;
+
+        var state = lifecycleState.Trim();
+        if (!IsActiveState(state))
+            return false;
+        if (string.Equals(state, "starting", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(state, "loading", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (string.Equals(state, "self", StringComparison.OrdinalIgnoreCase))
+            return isLocalCharacter;
+
+        // Adventure Land's "code" state proves only that a CODE iframe is active.
+        // It does not prove that the managed ALFinal/V6 bundle is the code running
+        // inside that iframe. Likewise "active" proves only the character page.
+        return string.Equals(state, "code", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(state, "active", StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<CharacterSupervisorResult> EnsureAsync(
@@ -275,6 +304,153 @@ public sealed class CdpCharacterSupervisor
 
         return new CharacterSupervisorResult(
             "ROSTER_ACTIVE", merchant.Name, activeNames, managed, null, null);
+    }
+
+    public async Task<CharacterSupervisorResult> EnsureV6RuntimeCoverageAsync(
+        IReadOnlyCollection<string>? healthyRuntimeNames,
+        IReadOnlyCollection<string>? transientDesiredNames,
+        IReadOnlyCollection<string>? managedNames,
+        CancellationToken cancellationToken)
+    {
+        if (!_config.CharacterSupervisorEnabled)
+            return new CharacterSupervisorResult(
+                "DISABLED", null, Array.Empty<string>(), NormalizeNames(managedNames), null, null);
+
+        var target = await FindLifecycleTargetAsync(cancellationToken);
+        if (target is null)
+            return new CharacterSupervisorResult(
+                "WAITING_FOR_ADVENTURE_LAND_PAGE", null, Array.Empty<string>(),
+                NormalizeNames(managedNames), null, "ADVENTURE_LAND_PAGE_UNAVAILABLE");
+
+        LifecycleSnapshot snapshot;
+        try
+        {
+            var value = await EvaluateAsync(target.WebSocketDebuggerUrl, InspectExpression, cancellationToken);
+            snapshot = ParseSnapshot(value);
+        }
+        catch (Exception error) when (error is InvalidOperationException or WebSocketException or JsonException)
+        {
+            return new CharacterSupervisorResult(
+                "INSPECTION_FAILED", null, Array.Empty<string>(), NormalizeNames(managedNames),
+                null, Bound(error.Message));
+        }
+
+        var managed = NormalizeNames(managedNames);
+        var healthy = new HashSet<string>(
+            NormalizeNames(healthyRuntimeNames),
+            StringComparer.OrdinalIgnoreCase);
+        var transientDesired = NormalizeNames(transientDesiredNames);
+        var activeNames = snapshot.Active
+            .Where(row => IsActiveState(row.Value))
+            .Select(row => row.Key)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        foreach (var healthyName in healthy)
+            _runtimeRepairAttempts.Remove(healthyName);
+        foreach (var tracked in _runtimeRepairAttempts.Keys.ToArray())
+        {
+            if (!snapshot.Active.TryGetValue(tracked, out var trackedState)
+                || !IsActiveState(trackedState))
+                _runtimeRepairAttempts.Remove(tracked);
+        }
+
+        var merchant = snapshot.Characters
+            .Where(row => string.Equals(row.Ctype, "merchant", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+
+        var candidateNames = new List<string>();
+        if (merchant is not null)
+            candidateNames.Add(merchant.Name);
+
+        var provenOrSelected = managed.Count == ExpectedMerchantCount + ExpectedFarmerCount
+            ? managed
+            : transientDesired.Count == ExpectedMerchantCount + ExpectedFarmerCount
+                ? transientDesired
+                : Array.Empty<string>();
+        foreach (var name in provenOrSelected)
+        {
+            if (!candidateNames.Contains(name, StringComparer.OrdinalIgnoreCase))
+                candidateNames.Add(name);
+        }
+
+        var accountByName = snapshot.Characters.ToDictionary(row => row.Name, StringComparer.OrdinalIgnoreCase);
+        foreach (var name in candidateNames)
+        {
+            if (healthy.Contains(name)
+                || !accountByName.TryGetValue(name, out var row)
+                || !snapshot.Active.TryGetValue(name, out var state))
+                continue;
+
+            var isLocal = string.Equals(snapshot.LocalName, name, StringComparison.OrdinalIgnoreCase);
+            if (!NeedsManagedV6RuntimeRepair(state, isLocal, v6RuntimeHealthy: false))
+                continue;
+
+            var now = DateTimeOffset.UtcNow;
+            if (_runtimeRepairAttempts.TryGetValue(name, out var prior))
+            {
+                if (prior.Attempts >= MaxRuntimeRepairAttempts)
+                {
+                    return new CharacterSupervisorResult(
+                        "V6_RUNTIME_REPAIR_EXHAUSTED",
+                        merchant?.Name,
+                        activeNames,
+                        managed,
+                        name,
+                        "MISSING_MANAGED_V6_RUNTIME:attempts=" + prior.Attempts);
+                }
+
+                var elapsed = now - prior.LastAttemptAt;
+                if (elapsed < RuntimeRepairCooldown)
+                {
+                    var remaining = Math.Max(
+                        1,
+                        (int)Math.Ceiling((RuntimeRepairCooldown - elapsed).TotalSeconds));
+                    return new CharacterSupervisorResult(
+                        "V6_RUNTIME_REPAIR_COOLDOWN",
+                        merchant?.Name,
+                        activeNames,
+                        managed,
+                        name,
+                        "MISSING_MANAGED_V6_RUNTIME:retry_in=" + remaining + "s");
+                }
+            }
+
+            var restart = await EvaluateAsync(
+                target.WebSocketDebuggerUrl,
+                BuildForceRestartCodeExpression(row.Name, ResolveCodeSlot(row)),
+                cancellationToken);
+            if (!ReadAccepted(restart))
+            {
+                return new CharacterSupervisorResult(
+                    "V6_RUNTIME_REPAIR_BLOCKED",
+                    merchant?.Name,
+                    activeNames,
+                    managed,
+                    row.Name,
+                    ReadReason(restart) ?? ("V6_RUNTIME_RESTART_REJECTED:" + Bound(row.Name)));
+            }
+
+            var attempts = prior is null ? 1 : prior.Attempts + 1;
+            _runtimeRepairAttempts[row.Name] = new RuntimeRepairAttempt(attempts, now);
+            return new CharacterSupervisorResult(
+                "CHARACTER_CODE_RESTART_REQUESTED",
+                merchant?.Name,
+                activeNames,
+                managed,
+                row.Name,
+                "MISSING_MANAGED_V6_RUNTIME:attempt=" + attempts + "/" + MaxRuntimeRepairAttempts);
+        }
+
+        return new CharacterSupervisorResult(
+            "V6_RUNTIME_COVERAGE_OK",
+            merchant?.Name,
+            activeNames,
+            managed,
+            null,
+            null);
     }
 
     private string ResolveCodeSlot(CharacterLifecycleRow row) =>
@@ -512,6 +688,66 @@ public sealed class CdpCharacterSupervisor
             .Replace("__ALBOT_SLOT_JSON__", s, StringComparison.Ordinal);
     }
 
+    private static string BuildForceRestartCodeExpression(string name, string codeSlot)
+    {
+        var n = JsonSerializer.Serialize(name);
+        var s = JsonSerializer.Serialize(codeSlot);
+        const string template = """
+        (() => {
+          const name = __ALBOT_NAME_JSON__;
+          const slot = __ALBOT_SLOT_JSON__;
+          const root = globalThis;
+          const same = value => String(value || '').toLowerCase() === name.toLowerCase();
+
+          if (root.character && same(root.character.name)) {
+            let next;
+            try {
+              next = new URL(root.location.href);
+            } catch {
+              return { accepted: false, reason: 'LOCAL_CHARACTER_URL_INVALID' };
+            }
+            next.searchParams.set('code', slot);
+            root.setTimeout(() => root.location.assign(next.toString()), 0);
+            return { accepted: true, action: 'FORCE_RELOAD_LOCAL_MANAGED_V6', name, slot };
+          }
+
+          const frames = Array.from(root.document && root.document.querySelectorAll
+            ? root.document.querySelectorAll('iframe') : []);
+          const frame = frames.find(candidate => {
+            try {
+              const declared = candidate && candidate.dataset ? candidate.dataset.name : null;
+              const actual = candidate && candidate.contentWindow && candidate.contentWindow.character
+                ? candidate.contentWindow.character.name : null;
+              return same(actual || declared);
+            } catch {
+              return false;
+            }
+          });
+          if (!frame || !frame.contentWindow)
+            return { accepted: false, reason: 'CHARACTER_RUNNER_NOT_FOUND' };
+          try {
+            const href = frame.contentWindow.location && frame.contentWindow.location.href
+              ? frame.contentWindow.location.href
+              : frame.src;
+            const next = new URL(href, root.location.origin);
+            next.searchParams.set('no_html', 'true');
+            next.searchParams.set('is_bot', '1');
+            next.searchParams.set('code', slot);
+            root.setTimeout(() => { frame.src = next.toString(); }, 0);
+            return { accepted: true, action: 'FORCE_RELOAD_CHILD_MANAGED_V6', name, slot };
+          } catch (error) {
+            return {
+              accepted: false,
+              reason: String(error && error.message || error || 'V6_RUNTIME_RESTART_FAILED').slice(0, 180)
+            };
+          }
+        })()
+        """;
+        return template
+            .Replace("__ALBOT_NAME_JSON__", n, StringComparison.Ordinal)
+            .Replace("__ALBOT_SLOT_JSON__", s, StringComparison.Ordinal);
+    }
+
     private static string BuildStartCharacterExpression(string name, string codeSlot)
     {
         var n = JsonSerializer.Serialize(name);
@@ -618,6 +854,7 @@ public sealed class CdpCharacterSupervisor
     private static string Bound(string value) =>
         value.Length <= 240 ? value : value[..240];
 
+    private sealed record RuntimeRepairAttempt(int Attempts, DateTimeOffset LastAttemptAt);
     private sealed record LifecycleTarget(string Url, string WebSocketDebuggerUrl);
     private sealed record LifecycleSnapshot(
         IReadOnlyList<CharacterLifecycleRow> Characters,
