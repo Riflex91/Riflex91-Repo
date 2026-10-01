@@ -1,6 +1,6 @@
 # Block 8.6.9 – Freigabevorbereitung und Capability-Candidate
 
-Status: **Candidate-Pfad vorbereitet; operative Freigabestufen Offline → Schatten → kontrolliert live → Soak sind noch nicht vollstaendig nachgewiesen. Block 9 bleibt gesperrt.**
+Status: **Candidate-Pfad und alle operativen Freigabestufen Offline → Schatten → kontrolliert live → Soak sind fuer denselben immutable Candidate bestanden und kanonisch gebunden. Block 8.6 ist abgeschlossen; Block 9 ist freigegeben.**
 
 ## Ziel
 
@@ -306,19 +306,17 @@ Dadurch muss kein Commit seinen eigenen SHA enthalten.
 
 Erst danach darf ein manueller immutable Publish fuer diesen exakten Candidate erfolgen.
 
-## Noch offen nach diesem Vorbereitungs-PR
+## Vollstaendiger Freigabestand
 
-Nicht als bestanden behauptet werden:
+Fuer exakt denselben Candidate sind inzwischen sequenziell kanonisch bestanden:
 
-- finaler Candidate-Manifest-Nachweis,
-- immutable Deployment/HTTPS des 8.6-Candidates,
+- finaler Candidate-Manifest-/Offline-Replay-Nachweis,
+- immutable Deployment und oeffentliche HTTPS-Verifikation,
 - realer Schattenlauf,
-- realer kontrollierter Live-Lauf,
-- realer Soak.
+- bidirektionaler kontrollierter Live-Lauf,
+- bidirektionaler 10-Minuten-Soak.
 
-Bis diese Nachweise sequenziell vorliegen gilt:
-
-`block9Freigegeben=false`
+Der Soak-Nachweis steht in `BLOCK-8-6-9-SOAK-FREIGABE-NACHWEIS.json`. Damit gelten `adventureLandSoakVerified=true`, `block86Completed=true` und `block9Freigegeben=true`.
 
 ## Abnahme dieses Vorbereitungsstands
 
@@ -372,7 +370,7 @@ Es bindet exakt:
 
 Der Live-Knopf bleibt bis zu einem bestaetigten fehlerfreien Produktionsheartbeat und sendefreier Capability-Basis gesperrt. Danach ist genau ein Capability-One-Shot an den anderen Ranger moeglich. Soak wird in diesem Paket nicht freigegeben.
 
-Der reale kontrollierte Live-Nachweis ist inzwischen bidirektional bestanden und in `BLOCK-8-6-9-LIVE-FREIGABE-NACHWEIS.json` kanonisch gebunden. Als naechste Stufe folgt ausschliesslich der Soak.
+Der reale kontrollierte Live-Nachweis ist inzwischen bidirektional bestanden und in `BLOCK-8-6-9-LIVE-FREIGABE-NACHWEIS.json` kanonisch gebunden. Der anschliessende Soak wurde auf beiden Rangern gegen genau diese gebundene Live-Uebergabe ausgefuehrt.
 
 ## Source-locked 10-Minuten-Soakpaket
 
@@ -384,16 +382,10 @@ Das Paket bindet exakt Candidate, Schattennachweis und beide Live-Report-Hashes.
 
 Zur Schliessung der noch offenen Empfangsbeobachtung soll das Paket auf `My_Ranger1` und `My_Ranger2` parallel laufen. PASS verlangt zusaetzlich mindestens einen neu beobachteten akzeptierten Remote-Heartbeat pro Sitzung. Es erzeugt selbst keine neuen Capability-Sendungen.
 
-Der reale Soak bleibt bis zu zwei tatsaechlichen PASS-Berichten offen.
+Der reale Soak ist mit zwei tatsaechlichen PASS-Berichten bestanden und in `BLOCK-8-6-9-SOAK-FREIGABE-NACHWEIS.json` kanonisch gebunden. Beide Sitzungen liefen 600000 ms mit je 120 Samples, beobachteten jeweils mindestens einen neuen akzeptierten Remote-Heartbeat, erzeugten 0 Capability-Sendungen und bestaetigten Recovery-Replay ohne Heartbeat- oder Capability-Sendefehler.
 
 ## Naechster operativer Schritt
 
-Nach Merge dieses Paket-PRs:
+Block 8.6 ist nach dem kanonisch gebundenen Soak vollstaendig abgeschlossen. Der naechste Entwicklungsblock ist **Block 9** gemaess dem bestehenden V4-Fahrplan.
 
-1. auf beiden Rangern einen frischen Codekontext oeffnen,
-2. auf beiden `block8-6-soak-paket.js` starten,
-3. auf beiden den Soak-Preflight abwarten,
-4. auf beiden **3 · Soak starten** mit `BLOCK8-6-SOAK-STARTEN:block8-6-schatten-1789822653521` bestaetigen,
-5. beide Sitzungen mindestens 10 Minuten ungestoert laufen lassen,
-6. beide PASS-Gesamtberichte sichern,
-7. erst danach Soak-Evidenz kanonisieren und Block 8.6 / Block 9 freigeben.
+Die Freigabe von Block 9 erweitert keine bestehende Spielautoritaet rueckwirkend; neue Block-9-Autoritaet muss weiterhin ueber ihre eigenen Safety-, Replay- und Freigabegrenzen eingefuehrt werden.

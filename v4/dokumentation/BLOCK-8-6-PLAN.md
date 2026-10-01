@@ -1,8 +1,8 @@
 # Block 8.6 – Live Skill Catalog und Capability Truth
 
-Status: **Block 8.6 aktiv; 8.6.1 bis 8.6.8 implementiert; 8.6.9 Release-Candidate exakt gebunden, immutable deployed, öffentlich per HTTPS verifiziert, realer Schatten und kontrolliert live bestanden; Soak noch offen.**
+Status: **Block 8.6 abgeschlossen; 8.6.1 bis 8.6.9 implementiert und freigegeben. Release-Candidate, immutable Deployment/HTTPS, Offline/Replay, realer Schatten, kontrolliert live und 10-Minuten-Soak sind fuer denselben Candidate verifiziert. Block 9 ist freigegeben.**
 
-Naechster operativer Schritt: **8.6.9 – Soak mit der bestandenen Live-Uebergabe ueber mindestens 600000 ms ausfuehren**
+Naechster operativer Schritt: **Block 9 gemaess V4-Fahrplan beginnen**
 
 ## Ziel
 
@@ -211,7 +211,7 @@ Pflichtfaelle:
 
 Umsetzungsnachweis: `BLOCK-8-6-8-REPLAY-REGRESSION.md`.
 
-## 8.6.9 – Freigabe — **RELEASE-CANDIDATE DEPLOYED/HTTPS + SCHATTEN + LIVE VERIFIZIERT; SOAK OFFEN**
+## 8.6.9 – Freigabe — **ABGESCHLOSSEN – OFFLINE/REPLAY + DEPLOYMENT/HTTPS + SCHATTEN + LIVE + SOAK VERIFIZIERT**
 
 Block 8.6 folgt denselben Laufzeit-Gates wie Block 8.5:
 
@@ -241,7 +241,7 @@ Realer Schattennachweis: `BLOCK-8-6-9-SCHATTEN-FREIGABE-NACHWEIS.json`. Der Lauf
 
 Realer kontrollierter Live-Nachweis: `BLOCK-8-6-9-LIVE-FREIGABE-NACHWEIS.json`. Beide Ranger-Richtungen haben jeweils genau 1 Capability-One-Shot mit 1 Erfolg / 0 Fehlern sowie fehlerfreie Produktionsheartbeats bestaetigt.
 
-Noch nicht als bestanden markiert werden darf der Soak.
+Der reale bidirektionale 10-Minuten-Soak ist bestanden und in `BLOCK-8-6-9-SOAK-FREIGABE-NACHWEIS.json` kanonisch gebunden. Beide Ranger lieferten 120 Samples, fehlerfreie fortschreitende Heartbeats, jeweils mindestens einen neu beobachteten akzeptierten Remote-Heartbeat, 0 Capability-Sendungen im Soak und verifizierten Recovery-Replay. Damit sind `block86Completed=true` und `block9Freigegeben=true`.
 
 ## Folgeabhaengigkeiten
 
