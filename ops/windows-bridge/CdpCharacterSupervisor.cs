@@ -452,10 +452,10 @@ public sealed class CdpCharacterSupervisor
     {
         var n = JsonSerializer.Serialize(name);
         var s = JsonSerializer.Serialize(codeSlot);
-        return $"""
+        const string template = """
         (() => {
-          const name = {{n}};
-          const slot = {{s}};
+          const name = __ALBOT_NAME_JSON__;
+          const slot = __ALBOT_SLOT_JSON__;
           const root = globalThis;
           const same = value => String(value || '').toLowerCase() === name.toLowerCase();
 
@@ -507,6 +507,9 @@ public sealed class CdpCharacterSupervisor
           }
         })()
         """;
+        return template
+            .Replace("__ALBOT_NAME_JSON__", n, StringComparison.Ordinal)
+            .Replace("__ALBOT_SLOT_JSON__", s, StringComparison.Ordinal);
     }
 
     private static string BuildStartCharacterExpression(string name, string codeSlot)
