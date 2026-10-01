@@ -172,6 +172,26 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                         cancellationToken);
 
                     var compositionWarning = RuntimeCompositionWarning(reads);
+                    CharacterSupervisorResult? runtimeRepair = null;
+                    if (batchIndex == 0 && compositionWarning is not null)
+                    {
+                        var healthyRuntimeNames = reads
+                            .Where(read => CdpAlBotV6Client.IsRuntimeRunning(read.Snapshot))
+                            .Select(read => CdpAlBotV6Client.ReadCharacterName(read.Snapshot))
+                            .Where(name => !string.IsNullOrWhiteSpace(name))
+                            .Select(name => name!)
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                            .ToArray();
+                        var repairRoster = RuntimeRepairRoster(
+                            reads,
+                            state.GetManagedCharacterNames());
+                        runtimeRepair = await _characterSupervisor.EnsureV6RuntimeCoverageAsync(
+                            healthyRuntimeNames,
+                            repairRoster,
+                            state.GetManagedCharacterNames(),
+                            cancellationToken);
+                    }
                     if (batchIndex == 0 && compositionWarning is null)
                     {
                         var healthyNames = reads
@@ -260,7 +280,16 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                         lastSuccess,
                         state.LastEventSeq,
                         totalEventCount,
-                        CombineWarnings(_browser.LastDiscoveryWarning, compositionWarning),
+                        CombineWarnings(
+                            _browser.LastDiscoveryWarning,
+                            compositionWarning,
+                            runtimeRepair is not null
+                                && !string.Equals(
+                                    runtimeRepair.State,
+                                    "V6_RUNTIME_COVERAGE_OK",
+                                    StringComparison.Ordinal)
+                                ? CharacterSupervisorMessage(runtimeRepair)
+                                : null),
                         targetUrl,
                         dashboardState,
                         dashboardError,
@@ -553,6 +582,73 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         if (!string.IsNullOrWhiteSpace(result.Detail))
             parts.Add("detail=" + result.Detail);
         return string.Join(":", parts);
+    }
+
+    public static IReadOnlyList<string> RuntimeRepairRoster(
+        IEnumerable<DebugReadResult> reads,
+        IEnumerable<string>? managedNames)
+    {
+        var managed = (managedNames ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (managed.Length == CdpCharacterSupervisor.ExpectedMerchantCount
+            + CdpCharacterSupervisor.ExpectedFarmerCount)
+            return managed;
+
+        foreach (var read in reads ?? Array.Empty<DebugReadResult>())
+        {
+            var snapshot = read.Snapshot;
+            if (!CdpAlBotV6Client.IsRuntimeRunning(snapshot)
+                || !string.Equals(
+                    CdpAlBotV6Client.ReadCharacterType(snapshot),
+                    "merchant",
+                    StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var merchantName = CdpAlBotV6Client.ReadCharacterName(snapshot);
+            if (string.IsNullOrWhiteSpace(merchantName)
+                || !snapshot.TryGetProperty("status", out var status)
+                || status.ValueKind != JsonValueKind.Object
+                || !status.TryGetProperty("fullAutonomy", out var fullAutonomy)
+                || fullAutonomy.ValueKind != JsonValueKind.Object)
+                continue;
+
+            if (!fullAutonomy.TryGetProperty("enabled", out var enabled)
+                || enabled.ValueKind != JsonValueKind.True)
+                continue;
+            if (!fullAutonomy.TryGetProperty("desiredSource", out var source)
+                || source.ValueKind != JsonValueKind.String
+                || !string.Equals(
+                    source.GetString(),
+                    "merchant-authority",
+                    StringComparison.Ordinal))
+                continue;
+            if (!fullAutonomy.TryGetProperty("desiredCharacterNames", out var desired)
+                || desired.ValueKind != JsonValueKind.Array)
+                continue;
+
+            var names = desired.EnumerateArray()
+                .Where(node => node.ValueKind == JsonValueKind.String)
+                .Select(node => node.GetString()?.Trim())
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            if (names.Length != CdpCharacterSupervisor.ExpectedMerchantCount
+                    + CdpCharacterSupervisor.ExpectedFarmerCount
+                || !names.Contains(merchantName, StringComparer.OrdinalIgnoreCase))
+                continue;
+
+            // This is intentionally transient. The persistent managed roster is
+            // still learned only after four healthy V6 runtimes are observed.
+            return names;
+        }
+
+        return Array.Empty<string>();
     }
 
     public static string? RuntimeCompositionWarning(IEnumerable<DebugReadResult> reads)
