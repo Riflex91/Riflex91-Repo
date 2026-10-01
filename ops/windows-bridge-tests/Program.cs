@@ -776,6 +776,41 @@ Assert(!CdpCharacterSupervisor.IsCodeActiveState("self", true, false),
 Assert(CdpCharacterSupervisor.IsCombatClass("priest"), "V6_SUPERVISOR_PRIEST_IS_FARMER_CLASS");
 Assert(CdpCharacterSupervisor.IsCombatClass("ranger"), "V6_SUPERVISOR_RANGER_IS_FARMER_CLASS");
 Assert(!CdpCharacterSupervisor.IsCombatClass("merchant"), "V6_SUPERVISOR_MERCHANT_NOT_FARMER_CLASS");
+var inferredManagedRoster = CdpCharacterSupervisor.DeriveManagedRoster([
+    ("My_Merchant", "merchant", true),
+    ("My_Rogue", "rogue", true),
+    ("My_Ranger2", "ranger", true),
+    ("My_Ranger3", "ranger", true)
+]);
+Assert(inferredManagedRoster.SequenceEqual(
+    ["My_Merchant", "My_Ranger2", "My_Ranger3", "My_Rogue"],
+    StringComparer.OrdinalIgnoreCase),
+    "V6_SUPERVISOR_DERIVES_EXACT_ACTIVE_ONE_PLUS_THREE_ROSTER");
+Assert(CdpCharacterSupervisor.DeriveManagedRoster([
+    ("My_Merchant", "merchant", true),
+    ("My_Rogue", "rogue", true),
+    ("My_Ranger2", "ranger", true),
+    ("My_Ranger3", "ranger", true),
+    ("My_Priest", "priest", true)
+]).Count == 0,
+    "V6_SUPERVISOR_DOES_NOT_GUESS_WHEN_MORE_THAN_FOUR_PRESENT");
+Assert(CdpCharacterSupervisor.DeriveManagedRoster([
+    ("My_Merchant", "merchant", true),
+    ("My_Rogue", "rogue", true),
+    ("My_Ranger2", "ranger", true),
+    ("My_Ranger3", "ranger", false)
+]).Count == 0,
+    "V6_SUPERVISOR_DOES_NOT_LEARN_INCOMPLETE_ACTIVE_ROSTER");
+var recoveryNow = DateTimeOffset.UtcNow;
+Assert(!CdpCharacterSupervisor.RuntimeRecoveryCooldownElapsed(
+        recoveryNow - TimeSpan.FromSeconds(10),
+        recoveryNow),
+    "V6_RUNTIME_RECOVERY_COOLDOWN_BLOCKS_CHURN");
+Assert(CdpCharacterSupervisor.RuntimeRecoveryCooldownElapsed(
+        recoveryNow - TimeSpan.FromSeconds(CdpCharacterSupervisor.RuntimeRecoveryCooldownSeconds + 1),
+        recoveryNow),
+    "V6_RUNTIME_RECOVERY_COOLDOWN_EXPIRES");
+
 Assert(CdpCharacterSupervisor.IsHealthyRuntimeComposition([
     ("My_Merchant", "merchant", true),
     ("My_Priest", "priest", true),
@@ -851,10 +886,10 @@ Assert(characterStartExpression.Contains("start_character_runner", StringCompari
     "V6_SUPERVISOR_USES_OFFICIAL_CHARACTER_LIFECYCLE_API");
 Assert(!characterStartExpression.Contains("stop_character", StringComparison.Ordinal),
     "V6_SUPERVISOR_DOES_NOT_BLINDLY_STOP_ACTIVE_CHARACTERS");
-Assert(codeRestartExpression.Contains("code_active === true", StringComparison.Ordinal)
+Assert(!codeRestartExpression.Contains("CODE_ALREADY_ACTIVE", StringComparison.Ordinal)
     && codeRestartExpression.Contains("frame.src = next.toString()", StringComparison.Ordinal)
     && codeRestartExpression.Contains("root.location.assign(next.toString())", StringComparison.Ordinal),
-    "V6_SUPERVISOR_RESTARTS_CODE_LAYER_FOR_LOADED_LOCAL_OR_CHILD_CHARACTER");
+    "V6_SUPERVISOR_RUNTIME_EVIDENCE_CAN_FORCE_CODE_LAYER_RELOAD");
 Assert(codeRestartExpression.Contains("searchParams.set('code', slot)", StringComparison.Ordinal),
     "V6_SUPERVISOR_CODE_RESTART_PRESERVES_MANAGED_CODE_SLOT");
 Assert(!codeRestartExpression.Contains("stop_character", StringComparison.Ordinal),
