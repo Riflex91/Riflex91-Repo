@@ -815,7 +815,6 @@ public sealed class CdpAlBotV6Client
 
     private const int MaxAttachedIframeDepth = 4;
     private const int MaxAttachedIframeSessions = 32;
-    private const int AutoAttachDrainMilliseconds = 200;
 
     private async Task<IReadOnlyList<AttachedExecutionContext>> DiscoverAttachedIframeContextsAsync(
         ClientWebSocket socket,
@@ -929,32 +928,18 @@ public sealed class CdpAlBotV6Client
                 ReadString(targetInfo, "url") ?? string.Empty));
         }
 
-        async Task WaitForResponseAsync(int expectedId, bool drainAfterResponse)
+        async Task WaitForResponseAsync(int expectedId)
         {
-            var responseSeen = false;
             while (true)
             {
-                JsonDocument? message;
-                if (!responseSeen || !drainAfterResponse)
-                {
-                    message = await ReceiveJsonAsync(socket, expectedId, token);
-                }
-                else
-                {
-                    using var drainCts = CancellationTokenSource.CreateLinkedTokenSource(token);
-                    drainCts.CancelAfter(TimeSpan.FromMilliseconds(AutoAttachDrainMilliseconds));
-                    try
-                    {
-                        message = await ReceiveJsonAsync(socket, expectedId, drainCts.Token);
-                    }
-                    catch (OperationCanceledException) when (
-                        !token.IsCancellationRequested
-                        && !cancellationToken.IsCancellationRequested)
-                    {
-                        break;
-                    }
-                }
-
+                // Never cancel an in-flight receive on the socket that will later
+                // execute snapshot/event/ACK reads. ClientWebSocket treats receive
+                // cancellation as terminal and moves the connection to Aborted.
+                // Target.setAutoAttach plus the same-session Runtime.evaluate barrier
+                // gives us an ordered boundary: attachedToTarget events delivered
+                // before the barrier response are captured here without a quiet-period
+                // cancellation drain.
+                var message = await ReceiveJsonAsync(socket, expectedId, token);
                 if (message is null)
                     continue;
 
@@ -972,10 +957,7 @@ public sealed class CdpAlBotV6Client
                     if (root.TryGetProperty("error", out var error))
                         throw new InvalidOperationException(
                             "CDP_COMMAND_FAILED:" + Bounded(error.ToString()));
-
-                    responseSeen = true;
-                    if (!drainAfterResponse)
-                        return;
+                    return;
                 }
             }
         }
@@ -1011,7 +993,7 @@ public sealed class CdpAlBotV6Client
                     waitForDebuggerOnStart = false,
                     flatten = true
                 });
-            await WaitForResponseAsync(autoAttachId, drainAfterResponse: false);
+            await WaitForResponseAsync(autoAttachId);
 
             // Same-session ordering barrier: existing child-target notifications
             // caused by setAutoAttach are consumed before we leave this parent.
@@ -1026,7 +1008,7 @@ public sealed class CdpAlBotV6Client
                     awaitPromise = false,
                     userGesture = false
                 });
-            await WaitForResponseAsync(barrierId, drainAfterResponse: true);
+            await WaitForResponseAsync(barrierId);
 
             return children
                 .GroupBy(row => row.SessionId, StringComparer.Ordinal)
