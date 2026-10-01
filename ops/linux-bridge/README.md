@@ -1,0 +1,64 @@
+# AL Bot V6 Linux Bridge
+
+Linux host for the AL Bot V6 transport, cloud/archive paths, knowledge watcher and 24/7 recovery.
+
+The implementation reuses the production V6 transport sources from ops/windows-bridge for CDP, Supabase, Cloudflare, Backblaze, diagnostics and knowledge handling. Linux-specific code replaces the operating-system layer.
+
+## 24/7 supervision
+
+Two independent layers are used. systemd supervises the Linux Bridge process with Restart=always and WatchdogSec=45. LinuxWatchdogSupervisor separately checks the managed browser and the ALBot V6 CDP contract.
+
+Recovery is staged: start the browser if CDP is absent; require a valid V6 snapshot/identity; after repeated bot/CDP failures send Page.reload; after further failures restart only the browser launched with the dedicated bridge profile; and apply a persistent browser-start budget of four starts per ten minutes followed by a 15 minute circuit breaker.
+
+The systemd keepalive runs on its own 10-second loop and remains active even if the application-level browser watchdog is disabled. Managed-browser start/stop/restart operations share one process-wide async gate so telemetry and recovery cannot race the profile, CDP port, PID file or restart budget. Generic-host shutdown and updater/watchdog disposal are idempotent.
+
+Supabase, Cloudflare and Backblaze outages are observational and are not treated as browser/bot crashes. Character movement is not used as liveness. When the V6 snapshot exposes a heartbeat timestamp, freshness is checked; otherwise successful bounded CDP/V6 snapshot execution is the liveness proof.
+
+## Local control surface
+
+The loopback-only page at http://127.0.0.1:18741 provides the Windows Bridge-equivalent operational controls:
+
+- browser restart and live watchdog state;
+- telemetry on/off and secure telemetry token;
+- ChatGPT signal control;
+- Cloudflare dashboard on/off plus secure write key;
+- Backblaze B2 V6 on/off, secure credentials and host-side PUT+HEAD self-test;
+- GitHub fine-grained PAT creation link, Git Credential Manager status/login/logout;
+- knowledge watcher on/off and manual run;
+- live knowledge path configuration;
+- Linux storage/free-space/SSD probe;
+- Linux Bridge readiness report;
+- self-update state and technical status.
+
+The HTTP page never receives the admin token from the service. A persistent random admin token is stored owner-only (0600) at ~/.local/state/aio-bot-linux-bridge/admin-token and can be displayed by the owning Unix user with AioBotLinuxBridge --print-admin-token. Enter it into the page to unlock the authenticated status and mutation API for that browser tab. /health remains deliberately minimal and unauthenticated. No CORS policy is enabled, and secrets are never returned by the API.
+
+Credential-bearing cloud destinations are fail-closed: Supabase ingest/signal and the Cloudflare V6 dashboard are pinned to the production endpoints. Backblaze requires the canonical s3.<region>.backblazeb2.com host. A modified settings.json therefore cannot redirect bearer/write credentials to an arbitrary HTTPS origin.
+
+## Secrets
+
+Persistent secrets use Linux Secret Service through secret-tool: telemetry-token-v6, web-dashboard-write-key-v6, backblaze-key-id-v6 and backblaze-application-key-v6. Install libsecret-tools and run a Secret Service such as GNOME Keyring or KWallet Secret Service. Environment variables remain supported for unattended deployments. There is no plaintext secret fallback in settings.json.
+
+If secret-tool is not installed, browser/watchdog/status operation can still start and environment-provided secrets still work. Persisting new secrets through the local UI remains fail-closed until Linux Secret Service is available.
+
+## Browser
+
+Supported discovery order is Brave, Google Chrome, Chromium and Microsoft Edge. The browser uses a dedicated profile under ~/.local/share/aio-bot-linux-bridge/browser-profile and loopback CDP only. The watchdog only kills a PID after verifying /proc/<pid>/cmdline contains that exact profile path.
+
+## Knowledge watcher
+
+The constrained Windows implementation is shared: repository scope remains v5/wissensbasis/**, no force push, main is not locally merged/rebased into the knowledge branch, hourly cadence, optional live knowledge import and the Git Credential Manager fine-grained PAT flow.
+
+The Linux live-knowledge path is an absolute filesystem path. The storage probe checks free-space reserve and, when findmnt/lsblk can resolve the backing block device, whether the storage is non-rotational. Live import defaults off until a Linux path is intentionally configured.
+
+## Self-update
+
+The fixed channel is linux-bridge-latest. The manifest pins build number, source SHA, asset URL, size and SHA-256. A verified update replaces the running executable and exits with code 75; systemd starts the verified new binary. A .previous rollback copy is retained.
+
+## Build
+
+dotnet restore ops/linux-bridge/AioBotLinuxBridge.csproj
+dotnet build ops/linux-bridge/AioBotLinuxBridge.csproj -c Release
+dotnet run --project ops/linux-bridge/AioBotLinuxBridge.csproj -c Release --no-build -- --self-test
+dotnet publish ops/linux-bridge/AioBotLinuxBridge.csproj -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -o artifacts/linux-bridge
+
+Telemetry remains disabled by default until settings.json enables telemetryEnabled and a valid V6 telemetry token exists.
