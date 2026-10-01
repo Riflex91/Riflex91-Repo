@@ -30,6 +30,7 @@ class MainActivity : ComponentActivity() {
                 AioControlApp(vm)
                 Column(Modifier.align(Alignment.TopEnd).padding(top = 64.dp, end = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.End) {
                     SmallFloatingActionButton(onClick = { startActivity(Intent(this@MainActivity, AdventureLandSessionActivity::class.java)) }) { Text("AL") }
+                    SmallFloatingActionButton(onClick = { startActivity(Intent(this@MainActivity, HeadlessCharacterActivity::class.java)) }) { Text("4×") }
                     SmallFloatingActionButton(onClick = { vm.refreshOverview(); showMap = true }) { Text("⌖") }
                 }
             }
