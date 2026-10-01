@@ -278,85 +278,8 @@ Assert(!CdpAlBotV6Client.IsTrustedAutoAttachedIframeDescriptor(
         "not-a-valid-origin"),
     "V6_OOPIF_INVALID_ALLOWED_ORIGIN_REJECTED");
 
-// Modern Chromium TargetInfo exposes parentId/parentFrameId for iframe
-// targets. Existing Adventure Land character/runner OOPIFs must therefore be
-// recovered from the explicit target tree rather than depending only on fresh
-// Target.attachedToTarget events.
-var targetParents = new Dictionary<string, string?>(StringComparer.Ordinal)
-{
-    ["CHARACTER-OOPIF"] = "ROOT-PAGE",
-    ["RUNNER-OOPIF"] = "CHARACTER-OOPIF",
-    ["FOREIGN-OOPIF"] = "OTHER-PAGE",
-    ["CYCLE-A"] = "CYCLE-B",
-    ["CYCLE-B"] = "CYCLE-A"
-};
-Assert(CdpAlBotV6Client.TargetAncestryReachesRoot(
-        "CHARACTER-OOPIF", "ROOT-PAGE", targetParents),
-    "V6_EXISTING_OOPIF_DIRECT_CHILD_REACHES_TRUSTED_ROOT");
-Assert(CdpAlBotV6Client.TargetAncestryReachesRoot(
-        "RUNNER-OOPIF", "ROOT-PAGE", targetParents),
-    "V6_EXISTING_OOPIF_NESTED_RUNNER_REACHES_TRUSTED_ROOT");
-Assert(!CdpAlBotV6Client.TargetAncestryReachesRoot(
-        "FOREIGN-OOPIF", "ROOT-PAGE", targetParents),
-    "V6_EXISTING_OOPIF_FOREIGN_ANCESTRY_REJECTED");
-Assert(!CdpAlBotV6Client.TargetAncestryReachesRoot(
-        "CYCLE-A", "ROOT-PAGE", targetParents),
-    "V6_EXISTING_OOPIF_PARENT_CYCLE_FAILS_CLOSED");
-Assert(CdpAlBotV6Client.IsTrustedExistingIframeDescriptor(
-        "iframe",
-        "https://adventure.land/runner",
-        true,
-        "https://adventure.land"),
-    "V6_EXISTING_OOPIF_SAME_ORIGIN_RUNNER_ACCEPTED");
-Assert(CdpAlBotV6Client.IsTrustedExistingIframeDescriptor(
-        "iframe",
-        "about:blank",
-        true,
-        "https://adventure.land"),
-    "V6_EXISTING_OOPIF_INHERITED_URL_ACCEPTED_WITH_PROVEN_ANCESTRY");
-Assert(!CdpAlBotV6Client.IsTrustedExistingIframeDescriptor(
-        "iframe",
-        "about:blank",
-        false,
-        "https://adventure.land"),
-    "V6_EXISTING_OOPIF_INHERITED_URL_REQUIRES_PROVEN_ANCESTRY");
-Assert(!CdpAlBotV6Client.IsTrustedExistingIframeDescriptor(
-        "iframe",
-        "https://example.com/runner",
-        true,
-        "https://adventure.land"),
-    "V6_EXISTING_OOPIF_FOREIGN_ORIGIN_REJECTED");
-
-using (var targetInfoDoc = JsonDocument.Parse("""
-{
-  "targetInfos": [
-    {
-      "targetId": "CHARACTER-OOPIF",
-      "type": "iframe",
-      "url": "https://adventure.land/character/My_Merchant/in/EU/II/",
-      "parentId": "ROOT-PAGE",
-      "parentFrameId": "FRAME-1"
-    },
-    {
-      "targetId": "RUNNER-OOPIF",
-      "type": "iframe",
-      "url": "https://adventure.land/runner",
-      "parentId": "CHARACTER-OOPIF",
-      "parentFrameId": "FRAME-2"
-    }
-  ]
-}
-"""))
-{
-    var rows = targetInfoDoc.RootElement.GetProperty("targetInfos");
-    Assert(rows[0].GetProperty("parentId").GetString() == "ROOT-PAGE",
-        "V6_EXISTING_OOPIF_TARGETINFO_PARENT_ID_AVAILABLE");
-    Assert(rows[1].GetProperty("parentId").GetString() == "CHARACTER-OOPIF",
-        "V6_EXISTING_RUNNER_TARGETINFO_PARENT_ID_AVAILABLE");
-    Assert(rows[1].GetProperty("parentFrameId").GetString() == "FRAME-2",
-        "V6_EXISTING_RUNNER_TARGETINFO_PARENT_FRAME_ID_AVAILABLE");
-}
-
+// The ancestry proof comes from the parent-scoped Target.attachedToTarget event;
+// TargetInfo itself deliberately has no parentId/parentFrameId dependency.
 using (var autoAttachEventDoc = JsonDocument.Parse("""
 {
   "method": "Target.attachedToTarget",
@@ -374,7 +297,13 @@ using (var autoAttachEventDoc = JsonDocument.Parse("""
 {
     var root = autoAttachEventDoc.RootElement;
     Assert(root.GetProperty("params").GetProperty("sessionId").GetString() == "CHILD-SESSION",
-        "V6_OOPIF_AUTOATTACH_FALLBACK_EXPOSES_CHILD_SESSION");
+        "V6_OOPIF_REAL_CDP_EVENT_EXPOSES_CHILD_SESSION");
+    Assert(root.GetProperty("params").GetProperty("targetInfo").GetProperty("type").GetString() == "iframe",
+        "V6_OOPIF_REAL_CDP_EVENT_EXPOSES_IFRAME_TARGET");
+    Assert(!root.GetProperty("params").GetProperty("targetInfo").TryGetProperty("parentId", out _),
+        "V6_OOPIF_TEST_DOES_NOT_INVENT_TARGETINFO_PARENT_ID");
+    Assert(!root.GetProperty("params").GetProperty("targetInfo").TryGetProperty("parentFrameId", out _),
+        "V6_OOPIF_TEST_DOES_NOT_INVENT_TARGETINFO_PARENT_FRAME_ID");
 }
 Assert(CdpAlBotV6Client.CharacterNameFromTargetUrl(
     "https://adventure.land/character/My_Merchant/in/EU/II/") == "My_Merchant",
