@@ -29,6 +29,8 @@ public sealed class CdpCharacterSupervisor
 {
     public const int ExpectedMerchantCount = 1;
     public const int ExpectedFarmerCount = 3;
+    public const int RuntimeRecoveryMissThreshold = 2;
+    public const int RuntimeRecoveryCooldownSeconds = 45;
 
     private static readonly HashSet<string> PresentStates = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -42,6 +44,8 @@ public sealed class CdpCharacterSupervisor
 
     private readonly HttpClient _http;
     private readonly BridgeConfig _config;
+    private readonly Dictionary<string, int> _runtimeMissCounts = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, DateTimeOffset> _lastRuntimeRecoveryByName = new(StringComparer.OrdinalIgnoreCase);
     private long _commandId;
 
     public CdpCharacterSupervisor(HttpClient http, BridgeConfig config)
@@ -68,6 +72,35 @@ public sealed class CdpCharacterSupervisor
 
     public static bool IsCombatClass(string? value) =>
         !string.IsNullOrWhiteSpace(value) && CombatClasses.Contains(value.Trim());
+
+    public static IReadOnlyList<string> DeriveManagedRoster(
+        IEnumerable<(string Name, string Ctype, bool Present)> rows)
+    {
+        var present = (rows ?? Array.Empty<(string Name, string Ctype, bool Present)>())
+            .Where(row => row.Present && !string.IsNullOrWhiteSpace(row.Name))
+            .GroupBy(row => row.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .ToArray();
+        if (present.Length != ExpectedMerchantCount + ExpectedFarmerCount)
+            return Array.Empty<string>();
+        if (present.Count(row =>
+                string.Equals(row.Ctype, "merchant", StringComparison.OrdinalIgnoreCase))
+            != ExpectedMerchantCount)
+            return Array.Empty<string>();
+        if (present.Count(row => IsCombatClass(row.Ctype)) != ExpectedFarmerCount)
+            return Array.Empty<string>();
+
+        return present
+            .Select(row => row.Name.Trim())
+            .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    public static bool RuntimeRecoveryCooldownElapsed(
+        DateTimeOffset? lastRecoveryAt,
+        DateTimeOffset now) =>
+        !lastRecoveryAt.HasValue
+        || now - lastRecoveryAt.Value >= TimeSpan.FromSeconds(RuntimeRecoveryCooldownSeconds);
 
     public static bool IsHealthyRuntimeComposition(IEnumerable<(string Name, string Ctype, bool Running)> rows)
     {
@@ -130,6 +163,16 @@ public sealed class CdpCharacterSupervisor
             return new CharacterSupervisorResult(
                 "MERCHANT_ROSTER_AMBIGUOUS", null, activeNames, managed, null,
                 "EXPECTED_ONE_MERCHANT_FOUND_" + merchants.Length);
+
+        if (managed.Count != ExpectedMerchantCount + ExpectedFarmerCount)
+        {
+            var inferred = DeriveManagedRoster(snapshot.Characters.Select(row => (
+                row.Name,
+                row.Ctype,
+                snapshot.Active.TryGetValue(row.Name, out var state) && IsActiveState(state))));
+            if (inferred.Count == ExpectedMerchantCount + ExpectedFarmerCount)
+                managed = inferred;
+        }
 
         var merchant = merchants[0];
         var merchantPresent = snapshot.Active.TryGetValue(merchant.Name, out var merchantState)
@@ -275,6 +318,156 @@ public sealed class CdpCharacterSupervisor
 
         return new CharacterSupervisorResult(
             "ROSTER_ACTIVE", merchant.Name, activeNames, managed, null, null);
+    }
+
+    public async Task<CharacterSupervisorResult> RecoverMissingRuntimeAsync(
+        IReadOnlyCollection<string>? managedNames,
+        IReadOnlyCollection<string>? observedRuntimeNames,
+        CancellationToken cancellationToken)
+    {
+        var managed = NormalizeNames(managedNames);
+        if (!_config.CharacterSupervisorEnabled
+            || managed.Count != ExpectedMerchantCount + ExpectedFarmerCount)
+        {
+            return new CharacterSupervisorResult(
+                "RUNTIME_RECOVERY_SKIPPED", null, Array.Empty<string>(), managed, null,
+                "MANAGED_ROSTER_UNAVAILABLE");
+        }
+
+        var observed = new HashSet<string>(
+            NormalizeNames(observedRuntimeNames),
+            StringComparer.OrdinalIgnoreCase);
+        foreach (var name in managed)
+        {
+            if (observed.Contains(name))
+                _runtimeMissCounts.Remove(name);
+        }
+
+        var missing = managed
+            .Where(name => !observed.Contains(name))
+            .ToArray();
+        if (missing.Length == 0)
+            return new CharacterSupervisorResult(
+                "RUNTIME_ROSTER_HEALTHY", null, Array.Empty<string>(), managed, null, null);
+
+        foreach (var name in missing)
+            _runtimeMissCounts[name] = _runtimeMissCounts.TryGetValue(name, out var count)
+                ? Math.Min(count + 1, RuntimeRecoveryMissThreshold)
+                : 1;
+
+        var confirmedMissing = missing
+            .Where(name => _runtimeMissCounts.TryGetValue(name, out var count)
+                && count >= RuntimeRecoveryMissThreshold)
+            .ToArray();
+        if (confirmedMissing.Length == 0)
+            return new CharacterSupervisorResult(
+                "RUNTIME_RECOVERY_CONFIRMING", null, Array.Empty<string>(), managed, null,
+                "MISSING=" + string.Join(",", missing));
+
+        var target = await FindLifecycleTargetAsync(cancellationToken);
+        if (target is null)
+            return new CharacterSupervisorResult(
+                "RUNTIME_RECOVERY_BLOCKED", null, Array.Empty<string>(), managed, null,
+                "ADVENTURE_LAND_PAGE_UNAVAILABLE");
+
+        LifecycleSnapshot snapshot;
+        try
+        {
+            var value = await EvaluateAsync(
+                target.WebSocketDebuggerUrl,
+                InspectExpression,
+                cancellationToken);
+            snapshot = ParseSnapshot(value);
+        }
+        catch (Exception error) when (
+            error is InvalidOperationException or WebSocketException or JsonException)
+        {
+            return new CharacterSupervisorResult(
+                "RUNTIME_RECOVERY_BLOCKED", null, Array.Empty<string>(), managed, null,
+                Bound(error.Message));
+        }
+
+        var activeNames = snapshot.Active
+            .Where(row => IsActiveState(row.Value))
+            .Select(row => row.Key)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var accountByName = snapshot.Characters
+            .ToDictionary(row => row.Name, StringComparer.OrdinalIgnoreCase);
+        var merchantName = snapshot.Characters
+            .FirstOrDefault(row => string.Equals(
+                row.Ctype, "merchant", StringComparison.OrdinalIgnoreCase))?.Name;
+
+        var candidate = confirmedMissing
+            .OrderBy(name =>
+                accountByName.TryGetValue(name, out var row)
+                && string.Equals(row.Ctype, "merchant", StringComparison.OrdinalIgnoreCase)
+                    ? 0 : 1)
+            .ThenBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .First();
+
+        if (!accountByName.TryGetValue(candidate, out var character))
+            return new CharacterSupervisorResult(
+                "RUNTIME_RECOVERY_BLOCKED", merchantName, activeNames, managed, null,
+                "ACCOUNT_CHARACTER_MISSING:" + Bound(candidate));
+
+        if (snapshot.Active.TryGetValue(candidate, out var activeState)
+            && IsActiveState(activeState))
+        {
+            if (string.Equals(activeState, "starting", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(activeState, "loading", StringComparison.OrdinalIgnoreCase))
+            {
+                return new CharacterSupervisorResult(
+                    "RUNTIME_RECOVERY_WAITING", merchantName, activeNames, managed, null,
+                    "STATE=" + activeState + ":" + candidate);
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            _lastRuntimeRecoveryByName.TryGetValue(candidate, out var lastRecoveryAt);
+            if (!RuntimeRecoveryCooldownElapsed(
+                    lastRecoveryAt == default ? null : lastRecoveryAt,
+                    now))
+            {
+                return new CharacterSupervisorResult(
+                    "RUNTIME_RECOVERY_COOLDOWN", merchantName, activeNames, managed, null,
+                    "CHARACTER=" + candidate);
+            }
+
+            var restart = await EvaluateAsync(
+                target.WebSocketDebuggerUrl,
+                BuildRestartCodeExpression(candidate, ResolveCodeSlot(character)),
+                cancellationToken);
+            if (!ReadAccepted(restart))
+                return new CharacterSupervisorResult(
+                    "RUNTIME_RECOVERY_BLOCKED", merchantName, activeNames, managed, null,
+                    ReadReason(restart) ?? ("CODE_RESTART_REJECTED:" + Bound(candidate)));
+
+            _lastRuntimeRecoveryByName[candidate] = now;
+            _runtimeMissCounts[candidate] = 0;
+            return new CharacterSupervisorResult(
+                "CHARACTER_CODE_RESTART_REQUESTED", merchantName, activeNames, managed,
+                candidate, "V6_RUNTIME_MISSING");
+        }
+
+        if (character.Online)
+            return new CharacterSupervisorResult(
+                "RUNTIME_RECOVERY_BLOCKED", merchantName, activeNames, managed, null,
+                "CHARACTER_ONLINE_OUTSIDE_LOCAL_RUNNERS:" + Bound(candidate));
+
+        var start = await EvaluateAsync(
+            target.WebSocketDebuggerUrl,
+            BuildStartCharacterExpression(candidate, ResolveCodeSlot(character)),
+            cancellationToken);
+        if (!ReadAccepted(start))
+            return new CharacterSupervisorResult(
+                "RUNTIME_RECOVERY_BLOCKED", merchantName, activeNames, managed, null,
+                ReadReason(start) ?? ("START_REJECTED:" + Bound(candidate)));
+
+        _runtimeMissCounts[candidate] = 0;
+        return new CharacterSupervisorResult(
+            "CHARACTER_START_REQUESTED", merchantName, activeNames, managed,
+            candidate, "V6_RUNTIME_CHARACTER_MISSING");
     }
 
     private string ResolveCodeSlot(CharacterLifecycleRow row) =>
@@ -460,8 +653,6 @@ public sealed class CdpCharacterSupervisor
           const same = value => String(value || '').toLowerCase() === name.toLowerCase();
 
           if (root.character && same(root.character.name)) {
-            if (root.code_active === true)
-              return { accepted: true, action: 'CODE_ALREADY_ACTIVE', name };
             let next;
             try {
               next = new URL(root.location.href);
@@ -488,8 +679,6 @@ public sealed class CdpCharacterSupervisor
           if (!frame || !frame.contentWindow)
             return { accepted: false, reason: 'CHARACTER_RUNNER_NOT_FOUND' };
           try {
-            if (frame.contentWindow.code_active === true)
-              return { accepted: true, action: 'CODE_ALREADY_ACTIVE', name };
             const href = frame.contentWindow.location && frame.contentWindow.location.href
               ? frame.contentWindow.location.href
               : frame.src;
