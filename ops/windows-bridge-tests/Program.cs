@@ -785,18 +785,6 @@ Assert(!CdpCharacterSupervisor.NeedsManagedV6RuntimeRepair("self", false, false)
     "V6_SUPERVISOR_REMOTE_SELF_CANNOT_BE_REPAIRED_AS_LOCAL");
 Assert(!CdpCharacterSupervisor.NeedsManagedV6RuntimeRepair("loading", false, false),
     "V6_SUPERVISOR_LOADING_CHARACTER_IS_NOT_RESTARTED");
-Assert(CdpCharacterSupervisor.NeedsManagedV6RuntimeRepair("code", false, false),
-    "V6_SUPERVISOR_CODE_STATE_WITHOUT_V6_REQUIRES_MANAGED_RUNTIME_REPAIR");
-Assert(!CdpCharacterSupervisor.NeedsManagedV6RuntimeRepair("code", false, true),
-    "V6_SUPERVISOR_CODE_STATE_WITH_HEALTHY_V6_DOES_NOT_REPAIR");
-Assert(CdpCharacterSupervisor.NeedsManagedV6RuntimeRepair("active", false, false),
-    "V6_SUPERVISOR_LOADED_CHILD_WITHOUT_V6_REQUIRES_MANAGED_RUNTIME_REPAIR");
-Assert(CdpCharacterSupervisor.NeedsManagedV6RuntimeRepair("self", true, false),
-    "V6_SUPERVISOR_LOCAL_CHARACTER_WITHOUT_V6_REQUIRES_MANAGED_RUNTIME_REPAIR");
-Assert(!CdpCharacterSupervisor.NeedsManagedV6RuntimeRepair("self", false, false),
-    "V6_SUPERVISOR_REMOTE_SELF_CANNOT_BE_REPAIRED_AS_LOCAL");
-Assert(!CdpCharacterSupervisor.NeedsManagedV6RuntimeRepair("loading", false, false),
-    "V6_SUPERVISOR_LOADING_CHARACTER_IS_NOT_RESTARTED");
 Assert(CdpCharacterSupervisor.IsCombatClass("priest"), "V6_SUPERVISOR_PRIEST_IS_FARMER_CLASS");
 Assert(CdpCharacterSupervisor.IsCombatClass("ranger"), "V6_SUPERVISOR_RANGER_IS_FARMER_CLASS");
 Assert(!CdpCharacterSupervisor.IsCombatClass("merchant"), "V6_SUPERVISOR_MERCHANT_NOT_FARMER_CLASS");
@@ -918,74 +906,6 @@ Assert(persistedManagedRoster.SequenceEqual(
         StringComparer.OrdinalIgnoreCase),
     "V6_RUNTIME_REPAIR_PREFERS_ALREADY_PROVEN_PERSISTED_ROSTER");
 
-DebugReadResult MerchantAuthorityRuntimeRead(
-    string merchantName,
-    bool enabled,
-    string desiredSource,
-    string[] desiredNames)
-{
-    var snapshotBytes = JsonSerializer.SerializeToUtf8Bytes(new
-    {
-        character = new { name = merchantName, ctype = "merchant" },
-        status = new
-        {
-            running = true,
-            fullAutonomy = new
-            {
-                enabled,
-                desiredSource,
-                desiredCharacterNames = desiredNames
-            }
-        }
-    });
-    using var snapshot = JsonDocument.Parse(snapshotBytes);
-    using var events = JsonDocument.Parse("[]");
-    return new DebugReadResult(
-        snapshot.RootElement.Clone(),
-        events.RootElement.Clone(),
-        0, 0, 0, 0, false,
-        "https://adventure.land/character/" + merchantName + "/in/EU/II/");
-}
-
-var merchantSelectedRoster = TelemetryBridgeService.RuntimeRepairRoster(
-    [
-        MerchantAuthorityRuntimeRead(
-            "My_Merchant",
-            true,
-            "merchant-authority",
-            ["My_Merchant", "My_Priest", "My_Ranger2", "My_Ranger3"])
-    ],
-    Array.Empty<string>());
-Assert(merchantSelectedRoster.SequenceEqual(
-        new[] { "My_Merchant", "My_Priest", "My_Ranger2", "My_Ranger3" },
-        StringComparer.OrdinalIgnoreCase),
-    "V6_RUNTIME_REPAIR_USES_MERCHANT_AUTHORITY_SELECTION_WITHOUT_PERSISTING_GUESS");
-
-var nonAuthoritativeRoster = TelemetryBridgeService.RuntimeRepairRoster(
-    [
-        MerchantAuthorityRuntimeRead(
-            "My_Merchant",
-            true,
-            "bootstrap-hint",
-            ["My_Merchant", "My_Priest", "My_Ranger2", "My_Ranger3"])
-    ],
-    Array.Empty<string>());
-Assert(nonAuthoritativeRoster.Count == 0,
-    "V6_RUNTIME_REPAIR_REJECTS_NON_AUTHORITATIVE_TRANSIENT_ROSTER");
-
-var persistedManagedRoster = TelemetryBridgeService.RuntimeRepairRoster(
-    [
-        MerchantAuthorityRuntimeRead(
-            "My_Merchant",
-            true,
-            "merchant-authority",
-            ["My_Merchant", "My_Priest", "My_Ranger2", "My_Ranger3"])
-    ],
-    ["My_Merchant", "My_Warrior", "My_Rogue", "My_Mage"]);
-Assert(persistedManagedRoster.SequenceEqual(
-        new[] { "My_Mage", "My_Merchant", "My_Rogue", "My_Warrior" },
-        StringComparer.OrdinalIgnoreCase),
-    "V6_RUNTIME_REPAIR_PREFERS_ALREADY_PROVEN_PERSISTED_ROSTER");
 
 var merchantNavigationBuilder = typeof(CdpCharacterSupervisor).GetMethod(
     "BuildMerchantNavigationExpression",
@@ -999,21 +919,15 @@ var codeRestartBuilder = typeof(CdpCharacterSupervisor).GetMethod(
 var forceCodeRestartBuilder = typeof(CdpCharacterSupervisor).GetMethod(
     "BuildForceRestartCodeExpression",
     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-var forceCodeRestartBuilder = typeof(CdpCharacterSupervisor).GetMethod(
-    "BuildForceRestartCodeExpression",
-    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 Assert(merchantNavigationBuilder is not null, "V6_SUPERVISOR_MERCHANT_NAVIGATION_BUILDER");
 Assert(characterStartBuilder is not null, "V6_SUPERVISOR_CHARACTER_START_BUILDER");
 Assert(codeRestartBuilder is not null, "V6_SUPERVISOR_CODE_RESTART_BUILDER");
-Assert(forceCodeRestartBuilder is not null, "V6_SUPERVISOR_FORCE_V6_CODE_RESTART_BUILDER");
 Assert(forceCodeRestartBuilder is not null, "V6_SUPERVISOR_FORCE_V6_CODE_RESTART_BUILDER");
 var merchantNavigationExpression = (string)merchantNavigationBuilder!.Invoke(
     null, ["My_Merchant", "EU", "II", "AL Final Bot"])!;
 var characterStartExpression = (string)characterStartBuilder!.Invoke(
     null, ["My_Ranger2", "AL Final Bot"])!;
 var codeRestartExpression = (string)codeRestartBuilder!.Invoke(
-    null, ["My_Ranger2", "AL Final Bot"])!;
-var forceCodeRestartExpression = (string)forceCodeRestartBuilder!.Invoke(
     null, ["My_Ranger2", "AL Final Bot"])!;
 var forceCodeRestartExpression = (string)forceCodeRestartBuilder!.Invoke(
     null, ["My_Ranger2", "AL Final Bot"])!;
@@ -1033,12 +947,6 @@ Assert(codeRestartExpression.Contains("searchParams.set('code', slot)", StringCo
     "V6_SUPERVISOR_CODE_RESTART_PRESERVES_MANAGED_CODE_SLOT");
 Assert(!codeRestartExpression.Contains("stop_character", StringComparison.Ordinal),
     "V6_SUPERVISOR_CODE_RESTART_PRESERVES_CONNECTED_CHARACTER");
-Assert(forceCodeRestartExpression.Contains("FORCE_RELOAD_CHILD_MANAGED_V6", StringComparison.Ordinal)
-    && forceCodeRestartExpression.Contains("FORCE_RELOAD_LOCAL_MANAGED_V6", StringComparison.Ordinal),
-    "V6_SUPERVISOR_FORCE_RESTART_RELOADS_CODE_EVEN_WHEN_GENERIC_CODE_IS_ACTIVE");
-Assert(forceCodeRestartExpression.Contains("searchParams.set('code', slot)", StringComparison.Ordinal)
-    && !forceCodeRestartExpression.Contains("stop_character", StringComparison.Ordinal),
-    "V6_SUPERVISOR_FORCE_V6_REPAIR_USES_MANAGED_SLOT_WITHOUT_STOPPING_CHARACTER");
 Assert(forceCodeRestartExpression.Contains("FORCE_RELOAD_CHILD_MANAGED_V6", StringComparison.Ordinal)
     && forceCodeRestartExpression.Contains("FORCE_RELOAD_LOCAL_MANAGED_V6", StringComparison.Ordinal),
     "V6_SUPERVISOR_FORCE_RESTART_RELOADS_CODE_EVEN_WHEN_GENERIC_CODE_IS_ACTIVE");
