@@ -369,7 +369,9 @@ public sealed class CdpCharacterSupervisor
             + '/in/' + encodeURIComponent(region)
             + '/' + encodeURIComponent(identifier) + '/'
             + '?code=' + encodeURIComponent(slot);
-          globalThis.location.assign(path);
+          // Return the bounded acknowledgement before navigation tears down the
+          // execution context/CDP command response.
+          globalThis.setTimeout(() => globalThis.location.assign(path), 0);
           return { accepted: true, action: 'NAVIGATE_MERCHANT', name: String(owned.name), path };
         })()
         """;
