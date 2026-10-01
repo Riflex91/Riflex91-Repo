@@ -1,0 +1,5 @@
+ForeverDataMiner/bin/
+ForeverDataMiner/obj/
+ForeverDataMiner/publish/
+ForeverDataMiner/exports/
+*.fgds.zip
