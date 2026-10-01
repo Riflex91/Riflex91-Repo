@@ -1,0 +1,12 @@
+## Interface: 16001
+## Title: ForeverGuide Recorder
+## Notes: Build-aware quest and route evidence recorder for ForeverGuide development.
+## Author: Riflex91
+## Version: 0.4.0
+## SavedVariables: ForeverGuideRecorderDB
+
+Core.lua
+Profile.lua
+Inventory.lua
+QuestDialog.lua
+Recorder.lua

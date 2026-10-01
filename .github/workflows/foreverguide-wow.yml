@@ -1,0 +1,104 @@
+name: ForeverGuide WoW data pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "world of warcraft/**"
+      - ".github/workflows/foreverguide-wow.yml"
+  pull_request:
+    paths:
+      - "world of warcraft/**"
+      - ".github/workflows/foreverguide-wow.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  lua-syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Lua 5.1
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lua5.1
+
+      - name: Validate recorder Lua syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find "world of warcraft/ForeverGuideRecorder" -name '*.lua' -print0 | while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            luac5.1 -p "$file"
+          done
+
+      - name: Validate recorder TOC
+        shell: bash
+        run: |
+          grep -q '^## Interface: 16001$' "world of warcraft/ForeverGuideRecorder/ForeverGuideRecorder.toc"
+          grep -q '^## Version: 0.4.0$' "world of warcraft/ForeverGuideRecorder/ForeverGuideRecorder.toc"
+
+  build-and-package:
+    needs: lua-syntax
+    runs-on: windows-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build and self-test ForeverDataMiner
+        shell: pwsh
+        run: |
+          dotnet restore "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj"
+          dotnet build "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release --no-restore
+          dotnet run --project "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release --no-build -- selftest
+
+      - name: Publish Windows executable
+        shell: pwsh
+        run: |
+          dotnet publish "world of warcraft/ForeverDataMiner/ForeverDataMiner.csproj" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o "artifacts/ForeverDataMiner-win-x64"
+
+      - name: Validate FGDS schema
+        shell: pwsh
+        run: |
+          $schema = Get-Content "world of warcraft/schema/fgds.schema.json" -Raw | ConvertFrom-Json
+          if ($schema.title -ne "ForeverGuide Data Schema") { throw "Unexpected FGDS schema." }
+          if ($schema.properties.schemaVersion.const -ne "fgds-1.0") { throw "Unexpected FGDS version." }
+
+      - name: Package recorder addon
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force "artifacts/ForeverGuideRecorder" | Out-Null
+          Copy-Item "world of warcraft/ForeverGuideRecorder/*" "artifacts/ForeverGuideRecorder/" -Recurse
+
+      - name: Include schema and README with miner
+        shell: pwsh
+        run: |
+          Copy-Item "world of warcraft/schema/fgds.schema.json" "artifacts/ForeverDataMiner-win-x64/fgds.schema.json"
+          Copy-Item "world of warcraft/README.md" "artifacts/ForeverDataMiner-win-x64/README.md"
+
+      - name: Upload Windows miner
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForeverDataMiner-v0.5-diagnostics-win-x64
+          path: artifacts/ForeverDataMiner-win-x64/
+          if-no-files-found: error
+
+      - name: Upload recorder addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: ForeverGuideRecorder-v0.4
+          path: artifacts/ForeverGuideRecorder/
+          if-no-files-found: error
