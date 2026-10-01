@@ -129,6 +129,17 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 var supervisor = await _characterSupervisor.EnsureAsync(
                     state.GetManagedCharacterNames(),
                     cancellationToken);
+                if (supervisor.ManagedNames.Count
+                        == CdpCharacterSupervisor.ExpectedMerchantCount
+                            + CdpCharacterSupervisor.ExpectedFarmerCount
+                    && !supervisor.ManagedNames.SequenceEqual(
+                        state.GetManagedCharacterNames(),
+                        StringComparer.OrdinalIgnoreCase))
+                {
+                    state = state.WithManagedCharacterNames(supervisor.ManagedNames);
+                    await state.SaveAsync(cancellationToken);
+                }
+
                 if (supervisor.ActionRequested || SupervisorBlocksTelemetry(supervisor.State))
                 {
                     var supervisorState = supervisor.ActionRequested ? "RECOVERING" : "DEGRADED";
@@ -172,6 +183,54 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                         cancellationToken);
 
                     var compositionWarning = RuntimeCompositionWarning(reads);
+                    if (batchIndex == 0)
+                    {
+                        var observedRuntimeNames = reads
+                            .Select(read => CdpAlBotV6Client.ReadCharacterName(read.Snapshot))
+                            .Where(name => !string.IsNullOrWhiteSpace(name))
+                            .Select(name => name!)
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                            .ToArray();
+                        var managedNames = state.GetManagedCharacterNames();
+                        if (managedNames.Count
+                                == CdpCharacterSupervisor.ExpectedMerchantCount
+                                    + CdpCharacterSupervisor.ExpectedFarmerCount
+                            && managedNames.Any(name => !observedRuntimeNames.Contains(
+                                name,
+                                StringComparer.OrdinalIgnoreCase)))
+                        {
+                            var recovery = await _characterSupervisor.RecoverMissingRuntimeAsync(
+                                managedNames,
+                                observedRuntimeNames,
+                                cancellationToken);
+                            if (recovery.ActionRequested)
+                            {
+                                var recoveryStatus = new RuntimeBridgeStatus(
+                                    "RECOVERING",
+                                    true,
+                                    false,
+                                    attempt,
+                                    lastSuccess,
+                                    state.LastEventSeq,
+                                    0,
+                                    CharacterSupervisorMessage(recovery),
+                                    null,
+                                    dashboardState,
+                                    dashboardError,
+                                    backblazeState,
+                                    backblazeError);
+                                Publish(recoveryStatus);
+                                await SaveStatusAsync(recoveryStatus, cancellationToken);
+                                latestStatus = recoveryStatus;
+                                break;
+                            }
+                            compositionWarning = CombineWarnings(
+                                compositionWarning,
+                                CharacterSupervisorMessage(recovery));
+                        }
+                    }
+
                     if (batchIndex == 0 && compositionWarning is null)
                     {
                         var healthyNames = reads
