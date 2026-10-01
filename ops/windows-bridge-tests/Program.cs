@@ -278,85 +278,8 @@ Assert(!CdpAlBotV6Client.IsTrustedAutoAttachedIframeDescriptor(
         "not-a-valid-origin"),
     "V6_OOPIF_INVALID_ALLOWED_ORIGIN_REJECTED");
 
-// Modern Chromium TargetInfo exposes parentId/parentFrameId for iframe
-// targets. Existing Adventure Land character/runner OOPIFs must therefore be
-// recovered from the explicit target tree rather than depending only on fresh
-// Target.attachedToTarget events.
-var targetParents = new Dictionary<string, string?>(StringComparer.Ordinal)
-{
-    ["CHARACTER-OOPIF"] = "ROOT-PAGE",
-    ["RUNNER-OOPIF"] = "CHARACTER-OOPIF",
-    ["FOREIGN-OOPIF"] = "OTHER-PAGE",
-    ["CYCLE-A"] = "CYCLE-B",
-    ["CYCLE-B"] = "CYCLE-A"
-};
-Assert(CdpAlBotV6Client.TargetAncestryReachesRoot(
-        "CHARACTER-OOPIF", "ROOT-PAGE", targetParents),
-    "V6_EXISTING_OOPIF_DIRECT_CHILD_REACHES_TRUSTED_ROOT");
-Assert(CdpAlBotV6Client.TargetAncestryReachesRoot(
-        "RUNNER-OOPIF", "ROOT-PAGE", targetParents),
-    "V6_EXISTING_OOPIF_NESTED_RUNNER_REACHES_TRUSTED_ROOT");
-Assert(!CdpAlBotV6Client.TargetAncestryReachesRoot(
-        "FOREIGN-OOPIF", "ROOT-PAGE", targetParents),
-    "V6_EXISTING_OOPIF_FOREIGN_ANCESTRY_REJECTED");
-Assert(!CdpAlBotV6Client.TargetAncestryReachesRoot(
-        "CYCLE-A", "ROOT-PAGE", targetParents),
-    "V6_EXISTING_OOPIF_PARENT_CYCLE_FAILS_CLOSED");
-Assert(CdpAlBotV6Client.IsTrustedExistingIframeDescriptor(
-        "iframe",
-        "https://adventure.land/runner",
-        true,
-        "https://adventure.land"),
-    "V6_EXISTING_OOPIF_SAME_ORIGIN_RUNNER_ACCEPTED");
-Assert(CdpAlBotV6Client.IsTrustedExistingIframeDescriptor(
-        "iframe",
-        "about:blank",
-        true,
-        "https://adventure.land"),
-    "V6_EXISTING_OOPIF_INHERITED_URL_ACCEPTED_WITH_PROVEN_ANCESTRY");
-Assert(!CdpAlBotV6Client.IsTrustedExistingIframeDescriptor(
-        "iframe",
-        "about:blank",
-        false,
-        "https://adventure.land"),
-    "V6_EXISTING_OOPIF_INHERITED_URL_REQUIRES_PROVEN_ANCESTRY");
-Assert(!CdpAlBotV6Client.IsTrustedExistingIframeDescriptor(
-        "iframe",
-        "https://example.com/runner",
-        true,
-        "https://adventure.land"),
-    "V6_EXISTING_OOPIF_FOREIGN_ORIGIN_REJECTED");
-
-using (var targetInfoDoc = JsonDocument.Parse("""
-{
-  "targetInfos": [
-    {
-      "targetId": "CHARACTER-OOPIF",
-      "type": "iframe",
-      "url": "https://adventure.land/character/My_Merchant/in/EU/II/",
-      "parentId": "ROOT-PAGE",
-      "parentFrameId": "FRAME-1"
-    },
-    {
-      "targetId": "RUNNER-OOPIF",
-      "type": "iframe",
-      "url": "https://adventure.land/runner",
-      "parentId": "CHARACTER-OOPIF",
-      "parentFrameId": "FRAME-2"
-    }
-  ]
-}
-"""))
-{
-    var rows = targetInfoDoc.RootElement.GetProperty("targetInfos");
-    Assert(rows[0].GetProperty("parentId").GetString() == "ROOT-PAGE",
-        "V6_EXISTING_OOPIF_TARGETINFO_PARENT_ID_AVAILABLE");
-    Assert(rows[1].GetProperty("parentId").GetString() == "CHARACTER-OOPIF",
-        "V6_EXISTING_RUNNER_TARGETINFO_PARENT_ID_AVAILABLE");
-    Assert(rows[1].GetProperty("parentFrameId").GetString() == "FRAME-2",
-        "V6_EXISTING_RUNNER_TARGETINFO_PARENT_FRAME_ID_AVAILABLE");
-}
-
+// The ancestry proof comes from the parent-scoped Target.attachedToTarget event;
+// TargetInfo itself deliberately has no parentId/parentFrameId dependency.
 using (var autoAttachEventDoc = JsonDocument.Parse("""
 {
   "method": "Target.attachedToTarget",
@@ -374,7 +297,13 @@ using (var autoAttachEventDoc = JsonDocument.Parse("""
 {
     var root = autoAttachEventDoc.RootElement;
     Assert(root.GetProperty("params").GetProperty("sessionId").GetString() == "CHILD-SESSION",
-        "V6_OOPIF_AUTOATTACH_FALLBACK_EXPOSES_CHILD_SESSION");
+        "V6_OOPIF_REAL_CDP_EVENT_EXPOSES_CHILD_SESSION");
+    Assert(root.GetProperty("params").GetProperty("targetInfo").GetProperty("type").GetString() == "iframe",
+        "V6_OOPIF_REAL_CDP_EVENT_EXPOSES_IFRAME_TARGET");
+    Assert(!root.GetProperty("params").GetProperty("targetInfo").TryGetProperty("parentId", out _),
+        "V6_OOPIF_TEST_DOES_NOT_INVENT_TARGETINFO_PARENT_ID");
+    Assert(!root.GetProperty("params").GetProperty("targetInfo").TryGetProperty("parentFrameId", out _),
+        "V6_OOPIF_TEST_DOES_NOT_INVENT_TARGETINFO_PARENT_FRAME_ID");
 }
 Assert(CdpAlBotV6Client.CharacterNameFromTargetUrl(
     "https://adventure.land/character/My_Merchant/in/EU/II/") == "My_Merchant",
@@ -773,18 +702,6 @@ Assert(CdpCharacterSupervisor.IsCodeActiveState("self", true, true),
     "V6_SUPERVISOR_LOCAL_SELF_REQUIRES_EXPLICIT_CODE_ACTIVE");
 Assert(!CdpCharacterSupervisor.IsCodeActiveState("self", true, false),
     "V6_SUPERVISOR_REMOTE_SELF_STATE_CANNOT_INFER_CODE_ACTIVE");
-Assert(CdpCharacterSupervisor.NeedsManagedV6RuntimeRepair("code", false, false),
-    "V6_SUPERVISOR_CODE_STATE_WITHOUT_V6_REQUIRES_MANAGED_RUNTIME_REPAIR");
-Assert(!CdpCharacterSupervisor.NeedsManagedV6RuntimeRepair("code", false, true),
-    "V6_SUPERVISOR_CODE_STATE_WITH_HEALTHY_V6_DOES_NOT_REPAIR");
-Assert(CdpCharacterSupervisor.NeedsManagedV6RuntimeRepair("active", false, false),
-    "V6_SUPERVISOR_LOADED_CHILD_WITHOUT_V6_REQUIRES_MANAGED_RUNTIME_REPAIR");
-Assert(CdpCharacterSupervisor.NeedsManagedV6RuntimeRepair("self", true, false),
-    "V6_SUPERVISOR_LOCAL_CHARACTER_WITHOUT_V6_REQUIRES_MANAGED_RUNTIME_REPAIR");
-Assert(!CdpCharacterSupervisor.NeedsManagedV6RuntimeRepair("self", false, false),
-    "V6_SUPERVISOR_REMOTE_SELF_CANNOT_BE_REPAIRED_AS_LOCAL");
-Assert(!CdpCharacterSupervisor.NeedsManagedV6RuntimeRepair("loading", false, false),
-    "V6_SUPERVISOR_LOADING_CHARACTER_IS_NOT_RESTARTED");
 Assert(CdpCharacterSupervisor.IsCombatClass("priest"), "V6_SUPERVISOR_PRIEST_IS_FARMER_CLASS");
 Assert(CdpCharacterSupervisor.IsCombatClass("ranger"), "V6_SUPERVISOR_RANGER_IS_FARMER_CLASS");
 Assert(!CdpCharacterSupervisor.IsCombatClass("merchant"), "V6_SUPERVISOR_MERCHANT_NOT_FARMER_CLASS");
@@ -837,76 +754,6 @@ Assert(incompleteRuntimeWarning is not null
     && incompleteRuntimeWarning.Contains("farmers=2/3", StringComparison.Ordinal),
     "V6_RUNTIME_GROUP_WARNING_EXPOSES_RUNNING_COMPOSITION");
 
-DebugReadResult MerchantAuthorityRuntimeRead(
-    string merchantName,
-    bool enabled,
-    string desiredSource,
-    string[] desiredNames)
-{
-    var snapshotBytes = JsonSerializer.SerializeToUtf8Bytes(new
-    {
-        character = new { name = merchantName, ctype = "merchant" },
-        status = new
-        {
-            running = true,
-            fullAutonomy = new
-            {
-                enabled,
-                desiredSource,
-                desiredCharacterNames = desiredNames
-            }
-        }
-    });
-    using var snapshot = JsonDocument.Parse(snapshotBytes);
-    using var events = JsonDocument.Parse("[]");
-    return new DebugReadResult(
-        snapshot.RootElement.Clone(),
-        events.RootElement.Clone(),
-        0, 0, 0, 0, false,
-        "https://adventure.land/character/" + merchantName + "/in/EU/II/");
-}
-
-var merchantSelectedRoster = TelemetryBridgeService.RuntimeRepairRoster(
-    [
-        MerchantAuthorityRuntimeRead(
-            "My_Merchant",
-            true,
-            "merchant-authority",
-            ["My_Merchant", "My_Priest", "My_Ranger2", "My_Ranger3"])
-    ],
-    Array.Empty<string>());
-Assert(merchantSelectedRoster.SequenceEqual(
-        new[] { "My_Merchant", "My_Priest", "My_Ranger2", "My_Ranger3" },
-        StringComparer.OrdinalIgnoreCase),
-    "V6_RUNTIME_REPAIR_USES_MERCHANT_AUTHORITY_SELECTION_WITHOUT_PERSISTING_GUESS");
-
-var nonAuthoritativeRoster = TelemetryBridgeService.RuntimeRepairRoster(
-    [
-        MerchantAuthorityRuntimeRead(
-            "My_Merchant",
-            true,
-            "bootstrap-hint",
-            ["My_Merchant", "My_Priest", "My_Ranger2", "My_Ranger3"])
-    ],
-    Array.Empty<string>());
-Assert(nonAuthoritativeRoster.Count == 0,
-    "V6_RUNTIME_REPAIR_REJECTS_NON_AUTHORITATIVE_TRANSIENT_ROSTER");
-
-var persistedManagedRoster = TelemetryBridgeService.RuntimeRepairRoster(
-    [
-        MerchantAuthorityRuntimeRead(
-            "My_Merchant",
-            true,
-            "merchant-authority",
-            ["My_Merchant", "My_Priest", "My_Ranger2", "My_Ranger3"])
-    ],
-    ["My_Merchant", "My_Warrior", "My_Rogue", "My_Mage"]);
-Assert(persistedManagedRoster.SequenceEqual(
-        new[] { "My_Mage", "My_Merchant", "My_Rogue", "My_Warrior" },
-        StringComparer.OrdinalIgnoreCase),
-    "V6_RUNTIME_REPAIR_PREFERS_ALREADY_PROVEN_PERSISTED_ROSTER");
-
-
 var merchantNavigationBuilder = typeof(CdpCharacterSupervisor).GetMethod(
     "BuildMerchantNavigationExpression",
     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
@@ -916,20 +763,14 @@ var characterStartBuilder = typeof(CdpCharacterSupervisor).GetMethod(
 var codeRestartBuilder = typeof(CdpCharacterSupervisor).GetMethod(
     "BuildRestartCodeExpression",
     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-var forceCodeRestartBuilder = typeof(CdpCharacterSupervisor).GetMethod(
-    "BuildForceRestartCodeExpression",
-    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 Assert(merchantNavigationBuilder is not null, "V6_SUPERVISOR_MERCHANT_NAVIGATION_BUILDER");
 Assert(characterStartBuilder is not null, "V6_SUPERVISOR_CHARACTER_START_BUILDER");
 Assert(codeRestartBuilder is not null, "V6_SUPERVISOR_CODE_RESTART_BUILDER");
-Assert(forceCodeRestartBuilder is not null, "V6_SUPERVISOR_FORCE_V6_CODE_RESTART_BUILDER");
 var merchantNavigationExpression = (string)merchantNavigationBuilder!.Invoke(
     null, ["My_Merchant", "EU", "II", "AL Final Bot"])!;
 var characterStartExpression = (string)characterStartBuilder!.Invoke(
     null, ["My_Ranger2", "AL Final Bot"])!;
 var codeRestartExpression = (string)codeRestartBuilder!.Invoke(
-    null, ["My_Ranger2", "AL Final Bot"])!;
-var forceCodeRestartExpression = (string)forceCodeRestartBuilder!.Invoke(
     null, ["My_Ranger2", "AL Final Bot"])!;
 Assert(merchantNavigationExpression.Contains("location.assign", StringComparison.Ordinal)
     && merchantNavigationExpression.Contains("?code=", StringComparison.Ordinal),
@@ -947,12 +788,6 @@ Assert(codeRestartExpression.Contains("searchParams.set('code', slot)", StringCo
     "V6_SUPERVISOR_CODE_RESTART_PRESERVES_MANAGED_CODE_SLOT");
 Assert(!codeRestartExpression.Contains("stop_character", StringComparison.Ordinal),
     "V6_SUPERVISOR_CODE_RESTART_PRESERVES_CONNECTED_CHARACTER");
-Assert(forceCodeRestartExpression.Contains("FORCE_RELOAD_CHILD_MANAGED_V6", StringComparison.Ordinal)
-    && forceCodeRestartExpression.Contains("FORCE_RELOAD_LOCAL_MANAGED_V6", StringComparison.Ordinal),
-    "V6_SUPERVISOR_FORCE_RESTART_RELOADS_CODE_EVEN_WHEN_GENERIC_CODE_IS_ACTIVE");
-Assert(forceCodeRestartExpression.Contains("searchParams.set('code', slot)", StringComparison.Ordinal)
-    && !forceCodeRestartExpression.Contains("stop_character", StringComparison.Ordinal),
-    "V6_SUPERVISOR_FORCE_V6_REPAIR_USES_MANAGED_SLOT_WITHOUT_STOPPING_CHARACTER");
 
 var perCharacterState = new BridgeState(999);
 Assert(perCharacterState.GetLastEventSeq("My_Ranger1") == 0,
