@@ -70,13 +70,25 @@ local function bearingFromPoints(player, target)
         player.x,
         player.y)
 
-    if playerWorld and tonumber(target.worldX) and tonumber(target.worldY) then
-        local deltaX = tonumber(target.worldX) - playerWorld.x
-        local deltaY = tonumber(target.worldY) - playerWorld.y
-        local angle = MG:ComputeWorldAbsoluteBearing(deltaX, deltaY)
-        local distance = math.sqrt(deltaX * deltaX + deltaY * deltaY)
+    if tonumber(target.worldX) and tonumber(target.worldY) and
+       MG.ForeverAPI.MapToRestedXPWorld then
+        local rxpPlayerWorld = MG.ForeverAPI:MapToRestedXPWorld(
+            player.mapID, player.x, player.y)
 
-        return angle, distance, "RestedXPWorldCoordinates"
+        if rxpPlayerWorld then
+            -- Convert RestedXP world deltas back to Blizzard axis order for
+            -- ComputeWorldAbsoluteBearing: Blizzard X=north/south,
+            -- Blizzard Y=east/west.
+            local deltaNorthSouth = tonumber(target.worldY) - rxpPlayerWorld.y
+            local deltaEastWest = tonumber(target.worldX) - rxpPlayerWorld.x
+            local angle = MG:ComputeWorldAbsoluteBearing(
+                deltaNorthSouth, deltaEastWest)
+            local distance = math.sqrt(
+                deltaNorthSouth * deltaNorthSouth +
+                deltaEastWest * deltaEastWest)
+
+            return angle, distance, "RestedXPWorldCoordinates"
+        end
     end
 
     if not tonumber(target.x) or not tonumber(target.y) then
@@ -122,6 +134,90 @@ function MG:ResolveWaypoint(questID)
 
     local target = self.RouteEngine:Resolve(self.currentStep)
     return target
+end
+
+
+local function updateETA(nav, distanceYards)
+    if not nav then return end
+    if not distanceYards or distanceYards < 0 then
+        nav.etaSeconds = nil
+        nav.etaSpeedYards = nil
+        return
+    end
+
+    nav.etaState = nav.etaState or {
+        samples = {},
+        lastDistance = nil,
+        lastTime = nil,
+        smoothedETA = nil,
+    }
+    local state = nav.etaState
+    local now = GetTime and GetTime() or 0
+
+    if distanceYards <= 2 then
+        state.smoothedETA = 0
+        nav.etaSeconds = 0
+        nav.etaSpeedYards = nil
+        state.lastDistance = distanceYards
+        state.lastTime = now
+        return
+    end
+
+    local measuredSpeed = nil
+    if state.lastDistance and state.lastTime and now > state.lastTime then
+        local dt = now - state.lastTime
+        if dt >= 0.25 then
+            local approach = (state.lastDistance - distanceYards) / dt
+            state.lastDistance = distanceYards
+            state.lastTime = now
+
+            if approach > 0.15 and approach < 200 then
+                state.samples[#state.samples + 1] = approach
+                while #state.samples > 8 do table.remove(state.samples, 1) end
+            elseif approach <= 0 then
+                -- Moving away or standing still should not preserve an
+                -- increasingly misleading arrival estimate indefinitely.
+                if #state.samples > 0 then table.remove(state.samples, 1) end
+            end
+        end
+    else
+        state.lastDistance = distanceYards
+        state.lastTime = now
+    end
+
+    if #state.samples > 0 then
+        local sum = 0
+        for _, speed in ipairs(state.samples) do sum = sum + speed end
+        measuredSpeed = sum / #state.samples
+    end
+
+    local fallbackSpeed = GetUnitSpeed and tonumber(GetUnitSpeed("player")) or nil
+    local speed = measuredSpeed
+    if not speed and fallbackSpeed and fallbackSpeed > 0.15 then
+        speed = fallbackSpeed
+    end
+
+    if not speed or speed <= 0 then
+        nav.etaSeconds = nil
+        nav.etaSpeedYards = nil
+        return
+    end
+
+    local rawETA = distanceYards / speed
+    if rawETA < 0 or rawETA > 86400 then
+        nav.etaSeconds = nil
+        nav.etaSpeedYards = nil
+        return
+    end
+
+    if state.smoothedETA == nil or math.abs(state.smoothedETA - rawETA) > 120 then
+        state.smoothedETA = rawETA
+    else
+        state.smoothedETA = state.smoothedETA * 0.70 + rawETA * 0.30
+    end
+
+    nav.etaSeconds = state.smoothedETA
+    nav.etaSpeedYards = speed
 end
 
 function MG:UpdateNavigationRealtime()
@@ -170,6 +266,8 @@ function MG:UpdateNavigationRealtime()
     nav.distanceSource = distanceSource
     nav.normalizedDistance = normalizedDistance
 
+    updateETA(nav, distanceYards)
+
     if player and nav.target then
         nav.sameMap = tonumber(player.mapID) == tonumber(nav.target.mapID)
     else
@@ -186,13 +284,25 @@ function MG:RefreshNavigation(reason)
             directionReliable = false,
             reason = "no_step",
         }
+        if self.RefreshWorldMapMarker then self:RefreshWorldMapMarker(nil) end
         return
     end
 
     local target, candidates, routeReason
+    local runtime = self.runtimeState
+    local destinationState = runtime and runtime.destinationGoal or nil
+    local destinationGoal = destinationState and destinationState.sourceGoal or nil
+    local routeStep = step
+
+    if destinationGoal and destinationGoal ~= step.goal then
+        routeStep = {}
+        for key, value in pairs(step) do routeStep[key] = value end
+        routeStep.goal = destinationGoal
+        routeStep.navigationGoal = destinationGoal
+    end
 
     if self.RouteEngine then
-        target, candidates, routeReason = self.RouteEngine:Resolve(step)
+        target, candidates, routeReason = self.RouteEngine:Resolve(routeStep)
     end
 
     local nav = {
@@ -202,7 +312,10 @@ function MG:RefreshNavigation(reason)
         source = target and target.source or "NoCoordinate",
         routeScore = target and target.score or nil,
         candidateCount = candidates and #candidates or 0,
+        destinationGoalID = destinationState and destinationState.id or nil,
         waypointText =
+            (runtime and runtime.viewer and runtime.viewer.primary and runtime.viewer.primary.text) or
+            (destinationGoal and destinationGoal.instruction) or
             (step.goal and step.goal.instruction) or
             step.detail or
             step.title,
@@ -212,6 +325,12 @@ function MG:RefreshNavigation(reason)
 
     self.navigation = nav
     self:UpdateNavigationRealtime()
+    if self.TravelPlanner then
+        nav.travelPlan = self.TravelPlanner:Plan(target, step)
+        nav.travelHint = self.TravelPlanner:GetPrimaryHint()
+    end
+    if self.RuntimeEngine then self.RuntimeEngine:UpdateNavigation(target, nav.travelPlan, nil) end
+    if self.RefreshWorldMapMarker then self:RefreshWorldMapMarker(target) end
 
     local signature = table.concat({
         tostring(nav.questID or ""),
@@ -247,6 +366,8 @@ function MG:RefreshNavigation(reason)
                     relativeAngle = nav.relativeAngle,
                     distanceMeters = nav.distanceMeters,
                     distanceSource = nav.distanceSource,
+                    rxpRoutePointCount = target.rxpRoutePointCount,
+                    rxpRoutePointIndex = target.rxpRoutePointIndex,
                     reason = reason,
                 })
         elseif target then

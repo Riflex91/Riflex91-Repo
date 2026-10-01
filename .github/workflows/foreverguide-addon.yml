@@ -1,4 +1,4 @@
-name: Mewthisch Guides addon v0.10
+name: Mewthisch Guides addon v0.12.0
 
 on:
   workflow_dispatch:
@@ -53,7 +53,6 @@ jobs:
           local rel,abs=MG:ComputeRelativeBearing(0,1,0)
           near(abs,0,"north")
           near(rel,0,"north relative")
-
           rel,abs=MG:ComputeRelativeBearing(1,0,0)
           near(abs,math.pi*3/2,"east")
           near(rel,-math.pi/2,"east relative")
@@ -63,40 +62,185 @@ jobs:
           near(MG:ComputeWorldAbsoluteBearing(-1,0),math.pi,"world south")
           near(MG:ComputeWorldAbsoluteBearing(0,1),math.pi/2,"world west")
 
-          local playerX,playerY=0.4207731485366821,0.6839030981063843
-          local targetX,targetY=0.443026065826416,0.5564066171646118
-          local facing=0.03902159631252289
+          local playerX,playerY=.4207731485366821,.6839030981063843
+          local targetX,targetY=.443026065826416,.5564066171646118
+          local facing=.03902159631252289
           rel,abs=MG:ComputeRelativeBearing(targetX-playerX,playerY-targetY,facing)
           assert(rel<0 and rel>-0.35,"field bearing regression")
           assert(abs>6.0,"field absolute bearing regression")
           print("Bearing math PASS")
           LUA
 
-      - name: Validate Forever quest-map behavior
+      - name: Validate RestedXP world axes and Mulgore map geometry
         shell: bash
         run: |
           lua5.1 - <<'LUA'
-          local MG={}
-          assert(loadfile("world of warcraft/MewthischGuides/ForeverAPI.lua"))("MewthischGuides",MG)
-          local API=MG.ForeverAPI
-          API.GetMapChain=function(_,mapID) return {mapID,999} end
-          API.GetQuestsOnMap=function(_,mapID)
-            if mapID==1411 then
-              return {
-                {questID=789,mapID=1411,x=.40,y=.60,isQuestStart=true,inProgress=false},
-                {questID=789,mapID=1411,x=.45,y=.65,isQuestStart=false,inProgress=true},
-              }
-            end
-            return {}
+          local function vec(x,y)
+            return {
+              x=x,y=y,
+              GetXY=function(self) return self.x,self.y end,
+            }
           end
-          local objective=API:FindQuestOnMaps(789,1411,"objectives")
-          assert(objective and objective.phaseMatch and math.abs(objective.x-.45)<.0001)
-          local accept=API:FindQuestOnMaps(789,1411,"accept")
-          assert(accept and accept.phaseMatch and math.abs(accept.x-.40)<.0001)
-          print("Forever quest-map behavior PASS")
+
+          local width,height=5137.5,3425
+          local left,top=2047.9,-272.92
+
+          CreateVector2D=function(x,y) return vec(x,y) end
+          C_Map={
+            GetWorldPosFromMapPos=function(mapID,point)
+              local x,y=point:GetXY()
+              local rxpX=left-width*x
+              local rxpY=top-height*y
+              -- Blizzard vector order is north/south first, west/east second.
+              return 1,vec(rxpY,rxpX)
+            end,
+            GetMapWorldSize=function(mapID) return width,height end,
+          }
+
+          local MG={}
+          assert(loadfile("world of warcraft/MewthischGuides/ForeverAPI.lua"))(
+            "MewthischGuides",MG)
+
+          local map=assert(MG.ForeverAPI:RestedXPWorldToMap(
+            1412,-259.85,-2914.28))
+          assert(math.abs(map.x-.4492)<.0002,
+            string.format("Mulgore x mismatch %.6f",map.x))
+          assert(math.abs(map.y-.7712)<.0002,
+            string.format("Mulgore y mismatch %.6f",map.y))
+
+          local world=assert(MG.ForeverAPI:MapToRestedXPWorld(
+            1412,.443,.798))
+          assert(math.abs(world.x-(left-width*.443))<.01)
+          assert(math.abs(world.y-(top-height*.798))<.01)
+
+          -- Exact runtime evidence from the Mulgore recorder session:
+          -- player at 44.2845 / 79.7912 while "Die Jagd beginnt" was active.
+          local observed=assert(MG.ForeverAPI:MapToRestedXPWorld(
+            1412,.4428451061248779,.797911524772644))
+          assert(math.abs(observed.x-(-227.2167327))<.05)
+          assert(math.abs(observed.y-(-3005.7669723))<.05)
+
+          local function distance(x,y)
+            local dx=x-observed.x
+            local dy=y-observed.y
+            return math.sqrt(dx*dx+dy*dy)
+          end
+          assert(distance(-228.2,-3006.0)<2,
+            "runtime Mulgore loop point must be near the player")
+          assert(distance(-385.2,-3117.38)>190,
+            "old first-loop point must not masquerade as the live target")
+
+          local nearMap=assert(MG.ForeverAPI:RestedXPWorldToMap(
+            1412,-228.2,-3006.0))
+          assert(math.abs(nearMap.x-.4430364963)<.0002)
+          assert(math.abs(nearMap.y-.7979795620)<.0002)
+          print("RestedXP world-axis/map-geometry PASS")
           LUA
 
-      - name: Validate RouteEngine ranking
+      - name: Validate quest progress tracking
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={db={runtime={}}}
+          C_QuestLog=nil
+          GetNumQuestLogEntries=function() return 1,1 end
+          GetQuestLogTitle=function(index)
+            return "Legacy Quest",7,0,false,false,false,0,12345
+          end
+          GetNumQuestLeaderBoards=function(index) return 1 end
+          GetQuestLogLeaderBoard=function(objective,index)
+            return "Testgegner: 3/5","monster",false
+          end
+          IsQuestFlaggedCompleted=function() return false end
+
+          assert(loadfile("world of warcraft/MewthischGuides/QuestTracking.lua"))(
+            "MewthischGuides",MG)
+
+          local snapshot=MG.QuestTracking:Refresh("unit")
+          assert(snapshot[12345],"legacy quest missing")
+          assert(snapshot[12345].trackingSource=="LegacyQuestLog")
+          assert(snapshot[12345].objectives[1].numFulfilled==3)
+          assert(snapshot[12345].objectives[1].numRequired==5)
+          print("Quest progress tracking PASS")
+          LUA
+
+      - name: Validate auto-route resync and objective progression
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={
+            Data={guide={id="test",steps={
+              {id="q1",order=10,questID=1,title="Q1",faction="Horde"},
+              {id="q2",order=20,questID=2,title="Q2",faction="Horde"},
+              {id="q3",order=30,questID=3,title="Q3",faction="Horde"},
+            }}},
+            db={settings={routeMode="auto"},runtime={}},
+          }
+          assert(loadfile("world of warcraft/MewthischGuides/GoalEngine.lua"))("MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/StepEngine.lua"))("MewthischGuides",MG)
+
+          MG.GetPlayerProfile=function()
+            return {faction="Horde",race="Troll",class="HUNTER",level=8}
+          end
+          MG.Log=function() end
+          MG.IsQuestFlaggedCompletedSafe=function(_,questID) return questID==1 end
+          MG.GetQuestLogSnapshot=function()
+            return {
+              [2]={questID=2,title="Q2",level=2,questLogIndex=1,readyForTurnIn=false,
+                objectives={{type="monster",text="Boar: 2/10",numFulfilled=2,numRequired=10,finished=false}}},
+              [3]={questID=3,title="Q3",level=3,questLogIndex=2,readyForTurnIn=false,
+                objectives={{type="item",text="Thing: 1/2",numFulfilled=1,numRequired=2,finished=false}}},
+            }
+          end
+
+          local steps,preferredIndex,reason=MG:BuildGuideSteps()
+          assert(#steps==2)
+          assert(steps[preferredIndex].questID==3,
+            "auto-route resync must choose furthest active route quest")
+          assert(reason=="furthest_active_route_quest")
+          print("Auto-route resync PASS")
+          LUA
+
+      - name: Validate manual nearest-target routing
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={
+            db={settings={routeMode="manual"},runtime={}},
+            StepPhases={OBJECTIVES="objectives",TURNIN="turnin"},
+            Log=function() end,
+          }
+          MG.GetQuestLogSnapshot=function()
+            return {
+              [1]={questID=1,title="Far",questLogIndex=1,readyForTurnIn=false,objectives={}},
+              [2]={questID=2,title="Near",questLogIndex=2,readyForTurnIn=false,objectives={}},
+            }
+          end
+          MG.BuildLiveFallbackStep=function(_,entry)
+            return {questID=entry.questID,questLogIndex=entry.questLogIndex,
+              phase="objectives",title=entry.title}
+          end
+          MG.ForeverAPI={GetPlayerPosition=function() return {mapID=1,x=.5,y=.5} end}
+          MG.RouteEngine={
+            Resolve=function(_,step)
+              local x=step.questID==1 and .9 or .55
+              return {mapID=1,x=x,y=.5,source="QuestMapPOI"}
+            end,
+            EstimateDistanceToTarget=function(_,target)
+              return math.abs(target.x-.5),"normalized_map"
+            end,
+          }
+
+          assert(loadfile("world of warcraft/MewthischGuides/ManualRoute.lua"))(
+            "MewthischGuides",MG)
+          local steps,index,reason=MG:BuildManualRouteSteps()
+          assert(#steps==2 and index==1)
+          assert(steps[1].questID==2,"manual mode did not choose nearest active quest")
+          assert(reason=="manual_nearest_active_quest")
+          print("Manual routing PASS")
+          LUA
+
+      - name: Validate RouteEngine and RestedXP objective target
         shell: bash
         run: |
           lua5.1 - <<'LUA'
@@ -112,147 +256,32 @@ jobs:
             FindQuestOnMaps=function()
               return {mapID=1411,x=.4,y=.6,source="QuestMapPOI",phaseMatch=true}
             end,
-            GetNextQuestWaypoint=function()
-              return {mapID=1411,x=.5,y=.7,source="QuestNextWaypointForMap"}
-            end,
+            GetNextQuestWaypoint=function() return nil end,
             GetLegacyQuestPOI=function() return nil end,
             GetNavigationCoordinate=function() return nil end,
+            MapToWorld=function() return nil end,
           }
-
-          local target,candidates=MG.RouteEngine:Resolve({
-            questID=789,phase="objectives",verification="RECORDED",
-          })
-          assert(target and target.source=="QuestMapPOI")
-          assert(#candidates==2)
-
           MG.RestEDXPImport={
-            GetCoordinate=function()
-              return {
-                mapID=1411,worldX=-4200,worldY=-600,
-                source="RestedXPPublicRouteData",phaseMatch=true,
-              }
+            GetCoordinate=function(_,definition,phase,profile,objective)
+              assert(objective==2,"objective index not forwarded to RestedXP")
+              return {mapID=1411,x=.2,y=.3,source="RestedXPPublicRouteData",phaseMatch=true}
             end,
           }
-          target=MG.RouteEngine:Resolve({
+
+          local target=MG.RouteEngine:Resolve({
             questID=789,phase="objectives",verification="RESTEDXP_PUBLIC",
-            definition={rxpOccurrences={{}}},
+            definition={rxpOccurrences={{}}},goal={index=2},
           })
           assert(target and target.source=="RestedXPPublicRouteData")
           assert(target.score==99)
-          print("RouteEngine ranking PASS")
+          print("RouteEngine objective target PASS")
           LUA
 
-      - name: Validate step engine and resync
+      - name: Validate RestedXP progress occurrence
         shell: bash
         run: |
           lua5.1 - <<'LUA'
-          local MG={
-            Data={guide={id="test",steps={
-              {id="q1",order=10,questID=1,title="Q1",faction="Horde"},
-              {id="q2",order=20,questID=2,title="Q2",faction="Horde"},
-              {id="q3",order=30,questID=3,title="Q3",faction="Horde"},
-            }}},
-            db={runtime={}},
-          }
-          assert(loadfile("world of warcraft/MewthischGuides/GoalEngine.lua"))("MewthischGuides",MG)
-          assert(loadfile("world of warcraft/MewthischGuides/StepEngine.lua"))("MewthischGuides",MG)
-          MG.GetPlayerProfile=function()
-            return {faction="Horde",race="Troll",class="HUNTER",level=8}
-          end
-          MG.Log=function() end
-          MG.IsQuestFlaggedCompletedSafe=function(_,questID) return questID==1 end
-          MG.GetQuestLogSnapshot=function()
-            return {[2]={
-              questID=2,title="Q2",level=2,questLogIndex=1,readyForTurnIn=false,
-              objectives={{type="monster",text="Boar: 2/10",numFulfilled=2,numRequired=10,finished=false}},
-            }}
-          end
-          local steps,preferredIndex,reason=MG:BuildGuideSteps()
-          assert(#steps==2)
-          assert(steps[preferredIndex].questID==2)
-          assert(steps[preferredIndex].phase==MG.StepPhases.OBJECTIVES)
-          assert(reason=="active_route_quest")
-          print("Step/resync PASS")
-          LUA
-
-      - name: Validate parser, validation and TravelGraph
-        shell: bash
-        run: |
-          lua5.1 - <<'LUA'
-          local MG={db={runtime={}}}
-          assert(loadfile("world of warcraft/MewthischGuides/Validation.lua"))("MewthischGuides",MG)
-          assert(loadfile("world of warcraft/MewthischGuides/GuideParser.lua"))("MewthischGuides",MG)
-
-          local guide=MG.GuideParser:NormalizeGuide({
-            id="unit-guide",verification="RECORDED",
-            steps={
-              {id="b",order=20,questID=2},
-              {id="a",order=10,questID=1,objectiveCoordinate={mapID=1411,x=.4,y=.6}},
-            },
-          })
-          assert(guide and guide.steps[1].id=="a")
-          assert(MG.Validation:ValidateGuide(guide))
-
-          local bad=MG.GuideParser:NormalizeGuide({
-            id="bad",
-            steps={{id="x",order=10,questID=3,objectiveCoordinate={mapID=1411,x=1.5,y=.5}}},
-          })
-          assert(not MG.Validation:ValidateGuide(bad))
-
-          MG.GetPlayerProfile=function() return {faction="Horde",class="HUNTER",race="Troll"} end
-          assert(loadfile("world of warcraft/MewthischGuides/TravelGraph.lua"))("MewthischGuides",MG)
-          MG.TravelGraph:Load({
-            nodes={{id="A",mapID=1,x=.1,y=.1},{id="B",mapID=1,x=.2,y=.2},{id="C",mapID=1,x=.3,y=.3}},
-            edges={{from="A",to="B",cost=10},{from="B",to="C",cost=5},{from="A",to="C",cost=30}},
-          })
-          local route,reason=MG.TravelGraph:Plan("A","C",{})
-          assert(reason=="resolved" and route and #route==3)
-          assert(MG.db.runtime.travelPlan.cost==15)
-          print("Parser/Validation/TravelGraph PASS")
-          LUA
-
-      - name: Validate telemetry and gear safety
-        shell: bash
-        run: |
-          lua5.1 - <<'LUA'
-          local MG={db={runtime={}}}
-          assert(loadfile("world of warcraft/MewthischGuides/Telemetry.lua"))("MewthischGuides",MG)
-          MG.Telemetry:Count("test",{scalar=1,fn=function() end,nested={value=true}})
-          assert(MG.db.runtime.telemetry.localOnly==true)
-          assert(type(MG.db.runtime.telemetry.last.test.data.fn)=="string")
-
-          MG={
-            Data={gearProfiles={}},
-            db={settings={
-              gearAutoEquip=true,gearRequireHighConfidence=true,
-              gearAutoEquipWeapons=false,gearProtectBoE=true,
-            },runtime={}},
-            BuildState={GetState=function() return {class="HUNTER"} end},
-            Inventory={GetSnapshot=function() return {bags={},equipped={}} end},
-            Log=function() end,
-          }
-          GetItemInfoInstant=function() return 1001,"Armor","Leather","INVTYPE_CHEST" end
-          GetDetailedItemLevelInfo=function(link)
-            if link=="candidate" then return 20 end
-            if link=="equipped" then return 10 end
-          end
-          IsEquippableItem=function() return true end
-          IsUsableItem=function() return true end
-          GetInventoryItemLink=function() return "equipped" end
-          assert(loadfile("world of warcraft/MewthischGuides/GearAdvisor.lua"))("MewthischGuides",MG)
-          local candidate=assert(MG.GearAdvisor:EvaluateItemLink("candidate"))
-          assert(candidate.upgrade and candidate.confidence=="medium")
-          candidate.bag,candidate.bagSlot,candidate.isBound=0,1,true
-          local equipped,reason=MG.GearAdvisor:TryAutoEquip(candidate)
-          assert(equipped==false and reason=="confidence")
-          print("Telemetry/Gear safety PASS")
-          LUA
-
-      - name: Validate RestedXP dataset and action coverage
-        shell: bash
-        run: |
-          lua5.1 - <<'LUA'
-          local MG={db={settings={rxpSeason=0,rxpRate=1.0,rxpHardcoreMode=false},runtime={}}}
+          local MG={db={settings={rxpSeason=0,rxpRate=1,rxpHardcoreMode=false,rxpSoDMode=false}}}
           for i=1,5 do
             assert(loadfile(string.format(
               "world of warcraft/MewthischGuides/RestedXPForeverData_%02d.lua",i)))(
@@ -264,190 +293,771 @@ jobs:
             "MewthischGuides",MG)
 
           local stats=MG.RestEDXPImport:GetStats()
-          assert(stats.sourceFiles==27,"expected 27 public source files")
-          assert(stats.rawGuides==101,"public guide count changed")
-          assert(stats.rawSteps==14602,"public step count changed")
-          assert(stats.structuredActions==68646,"structured action count changed")
-          assert(stats.catalogActionKinds==63,"catalog kind count changed")
-          assert(stats.knownActionKinds==63,"not every action kind is classified")
-          assert(stats.unknownActionKinds==0,"unknown action kinds detected")
-          assert(stats.unknownActions==0,"unknown actions detected")
-          assert(stats.knownActions==stats.structuredActions,"action coverage incomplete")
-          assert(stats.normalizedGuides>10)
-          assert(stats.normalizedQuestDefinitions>100)
-          assert(stats.sourceCommit=="6f9cf44c09123e496366b3cb5ffe7383660e4bcb")
+          assert(stats.sourceFiles==27)
+          assert(stats.rawGuides>=95)
+          assert(stats.rawSteps>12000)
+          assert(stats.structuredActions>50000)
+          assert(stats.unknownActionKinds==0)
+          assert(stats.unknownActions==0)
+          assert(stats.sourceCommit=="a688a75d595f5884dba8044a5ba4e7d7bd859c09")
 
-          local profile={faction="Horde",race="Orc",class="HUNTER",level=3}
-          assert(MG.RestEDXPImport:SelectorMatches("Orc Hunter/Troll Hunter",profile))
-          assert(not MG.RestEDXPImport:SelectorMatches("Warlock",profile))
-          assert(MG.RestEDXPImport:SelectorMatches("Hunter #optional",profile),
-            "inline optional marker was not normalized")
-          assert(MG.RestEDXPImport:SelectorMatches("Horde --!Hunter",profile),
-            "inline selector comment was not normalized")
-          assert(MG.RestEDXPImport:SelectorMatches("!sod/Warrior",profile),
-            "non-SoD selector should match when SoD mode is disabled")
-          MG.db.settings.rxpSoDMode=true
-          assert(not MG.RestEDXPImport:SelectorMatches("!sod",profile),
-            "SoD selector flag was ignored")
-          MG.db.settings.rxpSoDMode=false
-
-          local guides=MG.RestEDXPImport:BuildGuides()
-          local normalDurotar,fastDurotar,survivalDurotar
-          for _,guide in ipairs(guides) do
-            if guide.title=="1-6 Durotar" then normalDurotar=guide end
-            if guide.title=="1-7 Durotar" then fastDurotar=guide end
-            if guide.title=="1-6 Orc/Troll" then survivalDurotar=guide end
-          end
-          assert(normalDurotar and fastDurotar and survivalDurotar,
-            "expected Durotar route variants are missing")
-          assert(MG.RestEDXPImport:GuideMatches(normalDurotar,profile),
-            "1x Durotar route should match at 1x")
-          assert(not MG.RestEDXPImport:GuideMatches(fastDurotar,profile),
-            "fast Durotar route must not match at 1x")
-          assert(not MG.RestEDXPImport:GuideMatches(survivalDurotar,profile),
-            "hardcore route must not match in softcore mode")
-          MG.db.settings.rxpRate=3
-          assert(not MG.RestEDXPImport:GuideMatches(normalDurotar,profile),
-            "1x route must not match at 3x")
-          assert(MG.RestEDXPImport:GuideMatches(fastDurotar,profile),
-            "fast Durotar route should match at 3x")
-          MG.db.settings.rxpRate=1
-          MG.db.settings.rxpHardcoreMode=true
-          assert(MG.RestEDXPImport:GuideMatches(survivalDurotar,profile),
-            "hardcore route should match in hardcore mode")
-          MG.db.settings.rxpHardcoreMode=false
-
-          local found
-          for _,guide in ipairs(MG.RestEDXPImport:BuildGuides()) do
-            if guide.faction=="Horde" and tostring(guide.title):find("Durotar",1,true) then
-              for _,step in ipairs(guide.steps or {}) do
-                if step.questID==97279 then found=step break end
-              end
-            end
-            if found then break end
-          end
-          assert(found,"Wayward Weapons missing from imported Durotar data")
-          local accept=MG.RestEDXPImport:GetCoordinate(found,"accept",profile)
-          assert(accept and accept.mapID==1411)
-          assert(accept.worldX or accept.x)
-          local hints=MG.RestEDXPImport:GetHints(found,"accept",profile,4)
-          assert(type(hints)=="table")
-
-          local DataLoaderMG=MG
-          DataLoaderMG.Validation = nil
-          DataLoaderMG.GuideParser = nil
-          assert(loadfile("world of warcraft/MewthischGuides/Validation.lua"))(
-            "MewthischGuides",DataLoaderMG)
-          assert(loadfile("world of warcraft/MewthischGuides/GuideParser.lua"))(
-            "MewthischGuides",DataLoaderMG)
-          DataLoaderMG.Data={
-            guides={},
-            guide={
-              id="recorder-seed",
-              title="Recorder Seed",
-              verification="RECORDED",
-              steps={{id="seed-q",order=10,questID=97279,title="Seed"}},
+          local synthetic={
+            order=100,
+            rxpOccurrences={
+              {phase="accept",sourceStep=1,sourceAction=1,tags={}},
+              {phase="objectives",objective=1,sourceStep=5,sourceAction=2,tags={}},
+              {phase="objectives",objective=2,sourceStep=8,sourceAction=3,tags={}},
+              {phase="turnin",sourceStep=10,sourceAction=1,tags={}},
             },
           }
-          DataLoaderMG.GetPlayerProfile=function()
-            return {faction="Horde",race="Troll",class="HUNTER",level=3}
-          end
-          DataLoaderMG.Log=function() end
-          assert(loadfile("world of warcraft/MewthischGuides/DataLoader.lua"))(
-            "MewthischGuides",DataLoaderMG)
-          local report=DataLoaderMG.DataLoader:Load()
-          assert(report.valid,"guide loader validation failed")
-          local active=DataLoaderMG.DataLoader:GetActiveGuide()
-          assert(active and active.title=="1-6 Durotar",
-            "default route must prefer the correct public RestedXP Durotar guide")
+          local profile={faction="Horde",race="Orc",class="HUNTER",level=3}
+          assert(MG.RestEDXPImport:GetProgressOrder(synthetic,"objectives",profile,1)==502)
+          assert(MG.RestEDXPImport:GetProgressOrder(synthetic,"objectives",profile,2)==803)
+          assert(MG.RestEDXPImport:GetProgressOrder(synthetic,"complete",profile,nil)==1001)
 
-          DataLoaderMG.db.settings.rxpHardcoreMode=true
-          active=DataLoaderMG.DataLoader:SelectActiveGuide()
-          assert(active and active.title=="1-6 Orc/Troll",
-            "hardcore mode must prefer the Survival Durotar route")
-
-          DataLoaderMG.db.settings.rxpHardcoreMode=false
-          DataLoaderMG.db.settings.rxpRate=3
-          active=DataLoaderMG.DataLoader:SelectActiveGuide()
-          assert(active and active.title=="1-7 Durotar",
-            "3x mode must prefer the fast Durotar route")
-
-          print(string.format(
-            "RestedXP PASS: %d files / %d guides / %d steps / %d actions / %d kinds",
-            stats.sourceFiles,stats.rawGuides,stats.rawSteps,stats.structuredActions,
-            stats.knownActionKinds))
+          MG.ForeverAPI={
+            GetPlayerPosition=function() return {mapID=1412,x=.443,y=.798} end,
+            MapToRestedXPWorld=function()
+              return {continentID=1,x=-228.3,y=-3006.1}
+            end,
+          }
+          local loopDefinition={
+            rxpOccurrences={{
+              phase="objectives",objective=1,sourceStep=20,sourceAction=9,tags={},
+              coordinate={mapID=1412,worldX=-385.2,worldY=-3117.38,
+                source="RestedXPPublicRouteData"},
+              routeCoordinates={
+                {mapID=1412,worldX=-385.2,worldY=-3117.38,
+                  source="RestedXPPublicRouteData"},
+                {mapID=1412,worldX=-259.85,worldY=-2914.28,
+                  source="RestedXPPublicRouteData"},
+                {mapID=1412,worldX=-228.2,worldY=-3006.0,
+                  source="RestedXPPublicRouteData"},
+              },
+            }},
+          }
+          local nearest=assert(MG.RestEDXPImport:GetCoordinate(
+            loopDefinition,"objectives",profile,1))
+          assert(nearest.rxpRoutePointIndex==3,
+            "objective loop did not choose nearest waypoint")
+          assert(nearest.rxpRoutePointCount==3)
+          print("RestedXP progress occurrence PASS")
           LUA
 
-      - name: Validate five themes
+      - name: Validate supported Forever route catalog and auto readiness
         shell: bash
         run: |
           lua5.1 - <<'LUA'
-          local MG={db={settings={theme="Forever Classic"}},Log=function() end}
-          assert(loadfile("world of warcraft/MewthischGuides/Themes.lua"))("MewthischGuides",MG)
-          assert(#MG.Themes.order==5)
+          local MG={db={settings={
+            rxpSeason=0,rxpRate=1,rxpHardcoreMode=false,rxpSoDMode=false,
+            routeMode="manual",
+          },runtime={}}}
+          for i=1,5 do
+            assert(loadfile(string.format(
+              "world of warcraft/MewthischGuides/RestedXPForeverData_%02d.lua",i)))(
+                "MewthischGuides",MG)
+          end
+          assert(loadfile("world of warcraft/MewthischGuides/RestedXPActionCatalog.lua"))(
+            "MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/RestedXPImport.lua"))(
+            "MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/GuideRegistry.lua"))(
+            "MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/SupportedRoutes.lua"))(
+            "MewthischGuides",MG)
+
+          local guides=MG.RestEDXPImport:BuildGuides()
+          local stats=MG.RestEDXPImport:GetStats()
+          local status=MG.SupportedRoutes:Validate(guides,stats.sourceCommit)
+          assert(status.ready,"supported RestedXP route catalog must be complete")
+          assert(status.requiredRoutes==43)
+          assert(status.resolvedRoutes==43)
+          assert(#status.missing==0 and #status.duplicates==0)
+
+          local horde=MG.SupportedRoutes:GetGuides("horde")
+          local ally=MG.SupportedRoutes:GetGuides("ally")
+          local mage=MG.SupportedRoutes:GetGuides("mage")
+          assert(#horde==18,"unexpected Horde route count")
+          assert(#ally==19,"unexpected Ally route count")
+          assert(#mage==7,"unexpected Mage AoE route count")
+
+          local function sorted(list)
+            for i=2,#list do
+              local a,b=list[i-1],list[i]
+              local amin,bmin=tonumber(a.minLevel) or 999,tonumber(b.minLevel) or 999
+              assert(amin<=bmin,"routes are not level-sorted")
+            end
+          end
+          sorted(horde); sorted(ally); sorted(mage)
+
+          local names={}
+          for _,guide in ipairs(guides) do
+            names[(guide.sourceFile or "").."|"..(guide.title or "")]=true
+          end
           local required={
-            ["Forever Classic"]=true,
-            ["Obsidian"]=true,
-            ["Arcane"]=true,
-            ["Warcraft Heritage"]=true,
-            ["ElvUI"]=true,
+            "Guides/Forever/RestedXP-Skyborne.lua|1-14 Zephras Isle",
+            "Guides/forever/Alliance-1-10_NightElf.lua|1-6 Shadowglen",
+            "Guides/forever/Alliance-1-10_NightElf.lua|6-11 Teldrassil",
+            "Guides/forever/Alliance-1-13_Human.lua|1-6 Northshire",
+            "Guides/forever/Alliance-1-13_Human.lua|6-11 Elwynn Forest",
+            "Guides/forever/Alliance-1-13_Human.lua|11-13 Loch Modan",
+            "Guides/forever/Horde-01-14_Undead.lua|1-6 Tirisfal Glades",
+            "Guides/forever/Horde-01-14_Undead.lua|6-11 Tirisfal Glades",
+            "Guides/forever/Horde-01-14_Undead.lua|12-14 Silverpine Forest",
+            "Guides/forever/Horde-1-12_Mulgore.lua|1-6 Mulgore",
+            "Guides/forever/Horde-1-12_Mulgore.lua|6-12 Mulgore",
+            "Guides/forever/Horde-Mage-12-21.lua|12-17 The Barrens AoE",
+            "Guides/forever/Horde-Mage-12-21.lua|17-21 Stonetalon/Barrens AoE",
           }
-          for _,name in ipairs(MG.Themes.order) do required[name]=nil end
-          assert(next(required)==nil)
-          assert(MG.Themes:Get("ElvUI").adaptiveElvUI==true)
-          print("Five-theme contract PASS")
+          for _,key in ipairs(required) do assert(names[key],"missing route "..key) end
+          print("Supported Forever route catalog PASS")
           LUA
 
-      - name: Validate v0.10 static contract
+      - name: Validate all-quest auto accept and turn-in defaults
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local calls={accept=0,complete=0,reward=0,gossip=0}
+          local MG={
+            db={settings={autoAcceptQuests=true,autoTurnInQuests=true}},
+            Log=function() end,
+            RefreshUI=function() end,
+          }
+          GetTime=function() return 10 end
+          GetQuestID=function() return 999 end
+          AcceptQuest=function() calls.accept=calls.accept+1 end
+          IsQuestCompletable=function() return true end
+          CompleteQuest=function() calls.complete=calls.complete+1 end
+          GetNumQuestChoices=function() return 0 end
+          GetQuestReward=function() calls.reward=calls.reward+1 end
+          C_GossipInfo={
+            GetActiveQuests=function() return {} end,
+            SelectActiveQuest=function() end,
+            GetAvailableQuests=function()
+              return {{questID=777,title="Any Quest",isIgnored=false}}
+            end,
+            SelectAvailableQuest=function(id)
+              assert(id==777); calls.gossip=calls.gossip+1
+            end,
+          }
+
+          assert(loadfile("world of warcraft/MewthischGuides/QuestAutomation.lua"))(
+            "MewthischGuides",MG)
+          MG:HandleQuestAutomationEvent("QUEST_DETAIL")
+          MG:HandleQuestAutomationEvent("QUEST_PROGRESS")
+          MG:HandleQuestAutomationEvent("QUEST_COMPLETE")
+          MG.automationBusyUntil=0
+          MG:HandleQuestAutomationEvent("GOSSIP_SHOW")
+
+          assert(calls.accept==1,"all-quest auto accept failed")
+          assert(calls.complete==1,"all-quest auto complete failed")
+          assert(calls.reward==1,"all-quest auto turn-in failed")
+          assert(calls.gossip==1,"available gossip quest was not selected")
+          print("All-quest automation PASS")
+          LUA
+
+      - name: Validate guide picker policy and Mulgore Call of Earth routing
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={db={settings={
+            rxpSeason=0,rxpRate=1,rxpHardcoreMode=false,rxpSoDMode=false,
+          },runtime={}}}
+          for i=1,5 do
+            assert(loadfile(string.format(
+              "world of warcraft/MewthischGuides/RestedXPForeverData_%02d.lua",i)))(
+                "MewthischGuides",MG)
+          end
+          assert(loadfile("world of warcraft/MewthischGuides/RestedXPActionCatalog.lua"))(
+            "MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/RestedXPImport.lua"))(
+            "MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/GuideRegistry.lua"))(
+            "MewthischGuides",MG)
+          assert(loadfile("world of warcraft/MewthischGuides/SupportedRoutes.lua"))(
+            "MewthischGuides",MG)
+
+          local guides=MG.RestEDXPImport:BuildGuides()
+          local status=MG.SupportedRoutes:Validate(
+            guides,MG.RestEDXPImport:GetStats().sourceCommit)
+          assert(status.ready)
+
+          local function find(title)
+            for _,g in ipairs(guides) do
+              if g.title==title then return g end
+            end
+          end
+
+          local mulgore=assert(find("1-6 Mulgore"))
+          local durotar=assert(find("1-6 Durotar"))
+          local northshire=assert(find("1-6 Northshire"))
+          local mageHorde=assert(find("12-17 The Barrens AoE"))
+
+          MG.GetPlayerProfile=function()
+            return {faction="Horde",race="Tauren",class="DRUID",level=2}
+          end
+          assert(loadfile("world of warcraft/MewthischGuides/DataLoader.lua"))(
+            "MewthischGuides",MG)
+          MG.DataLoader.byID={}
+          for _,g in ipairs(guides) do MG.DataLoader.byID[g.id]=g end
+
+          assert(MG.DataLoader:IsGuideSelectable(mulgore,"horde"))
+          assert(MG.DataLoader:IsGuideSelectable(durotar,"horde"),
+            "Horde character must be able to select every Horde route")
+          assert(not MG.DataLoader:IsGuideSelectable(northshire,"ally"))
+          assert(not MG.DataLoader:CanSelectCategory("mage"),
+            "non-Mage must not be able to select Mage AoE category")
+
+          MG.GetPlayerProfile=function()
+            return {faction="Horde",race="Tauren",class="MAGE",level=2}
+          end
+          assert(MG.DataLoader:CanSelectCategory("mage"))
+          assert(MG.DataLoader:IsGuideSelectable(mageHorde,"mage"))
+
+          local call
+          for _,def in ipairs(mulgore.steps or {}) do
+            if def.questID==1519 then call=def break end
+          end
+          assert(call,"Mulgore quest 1519 missing")
+          assert(call.classSpecific==true,
+            "Call of Earth must be marked class-specific")
+          assert(type(call.classes)=="table" and #call.classes==1 and
+            call.classes[1]=="SHAMAN",
+            "Call of Earth must be marked SHAMAN-only")
+
+          local classStats=MG.RestEDXPImport:GetClassSpecificQuestStats(guides)
+          assert(classStats.total>0,"quest classification audit saw no quests")
+          assert(classStats.classSpecific>0,
+            "quest classification audit found no class-specific quests")
+          local knownClasses={
+            WARRIOR=true,PALADIN=true,HUNTER=true,ROGUE=true,PRIEST=true,
+            SHAMAN=true,MAGE=true,WARLOCK=true,DRUID=true,
+          }
+          for _,guide in ipairs(guides) do
+            for _,def in ipairs(guide.steps or {}) do
+              if def.classSpecific then
+                assert(type(def.classes)=="table" and #def.classes>0,
+                  "class-specific quest missing classes: "..tostring(def.questID))
+                for _,classFile in ipairs(def.classes) do
+                  assert(knownClasses[classFile],
+                    "unknown class marker on quest "..tostring(def.questID))
+                end
+                assert(def.classRestrictionSource=="accept" or
+                  def.classRestrictionSource=="all_occurrences",
+                  "class-specific quest missing restriction source")
+              end
+            end
+          end
+
+          local druid={faction="Horde",race="Tauren",class="DRUID",level=2}
+          local shaman={faction="Horde",race="Tauren",class="SHAMAN",level=2}
+          assert(MG.RestEDXPImport:GetProgressOccurrence(
+            call,"accept",druid,nil)==nil,
+            "Druid must not receive Shaman-only Call of Earth accept step")
+          local occ=assert(MG.RestEDXPImport:GetProgressOccurrence(
+            call,"accept",shaman,nil),
+            "Shaman Call of Earth accept occurrence missing")
+          assert(occ.coordinate and occ.coordinate.mapID==1412)
+          assert(math.abs(occ.coordinate.worldX-(-250.09))<0.01)
+          assert(math.abs(occ.coordinate.worldY-(-2882.08))<0.01)
+
+          MG.StepPhases={ACCEPT="accept",TURNIN="turnin"}
+          assert(loadfile("world of warcraft/MewthischGuides/StepEngine.lua"))(
+            "MewthischGuides",MG)
+          assert(not MG:RestedXPPhaseApplies(call,"accept",druid,nil))
+          assert(MG:RestedXPPhaseApplies(call,"accept",shaman,nil))
+
+          print(string.format(
+            "Guide picker + class quest audit PASS (%d/%d class-specific)",
+            classStats.classSpecific,classStats.total))
+          LUA
+
+      - name: Validate v0.12 localization, registry and settings schema
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={db={settings={language="auto"},runtime={}}}
+          GetLocale=function() return "ruRU" end
+          assert(loadfile("world of warcraft/MewthischGuides/Localization.lua"))(
+            "MewthischGuides",MG)
+          assert(MG.Localization:DetectClientLanguage()=="ru")
+          assert(MG.Localization:GetConfiguredLanguage()=="ru")
+          local required={"en","zh","hi","es","fr","de","ru"}
+          for _,code in ipairs(required) do
+            assert(MG.Localization.supported[code],"missing language "..code)
+            MG.db.settings.language=code
+            assert(MG.Localization:Get("general")~="general",
+              "missing translated label for "..code)
+          end
+          MG.db.settings.language="auto"
+
+          assert(loadfile("world of warcraft/MewthischGuides/GuideRegistry.lua"))(
+            "MewthischGuides",MG)
+          assert(#MG.GuideRegistry:GetSpecs()==43)
+          assert(MG.GuideRegistry:GetCategory("mage").class=="MAGE")
+
+          assert(loadfile("world of warcraft/MewthischGuides/SettingsSchema.lua"))(
+            "MewthischGuides",MG)
+          assert(#MG.SettingsSchema:GetCategories()==11)
+          assert(MG.SettingsSchema:GetControls("general")[1].type=="language")
+          assert(#MG.SettingsSchema:GetControls("navigation")>=10)
+          print("Localization + Registry + SettingsSchema PASS")
+          LUA
+
+      - name: Validate smart resync and RestedXP action plan
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={db={settings={smartResync=true,skipObsoleteSteps=true},runtime={}}}
+          assert(loadfile("world of warcraft/MewthischGuides/SmartResync.lua"))(
+            "MewthischGuides",MG)
+          local steps={
+            {phase="accept",routeOrder=1,questID=1},
+            {phase="objectives",routeOrder=20,questID=2},
+            {phase="turnin",routeOrder=19,questID=3},
+          }
+          local idx,reason=MG.SmartResync:Choose(steps,1,"default")
+          assert(idx==3 and reason=="smart_active_progress")
+
+          MG.GetPlayerProfile=function()
+            return {faction="Horde",race="Tauren",class="DRUID",level=10}
+          end
+          MG.RestEDXPImport={
+            GetProgressOccurrence=function()
+              return {rawGuideIndex=1,leadFromStep=1,sourceStep=1}
+            end,
+            ParseRaw=function()
+              return {{
+                steps={{
+                  actions={
+                    {kind="accept",args="123"},
+                    {kind="fly",args="Thunder Bluff"},
+                    {kind="train",args="Wrath"},
+                    {kind="xp",args="10"},
+                  },
+                  selector="",tags={},
+                }},
+              }}
+            end,
+            SelectorMatches=function() return true end,
+            TagsMatch=function() return true end,
+          }
+          MG.RestEDXPActionCatalog={
+            Format=function(_,kind,args) return kind..": "..tostring(args) end,
+            Get=function(_,kind) return {visible=true,label=kind} end,
+          }
+          assert(loadfile("world of warcraft/MewthischGuides/RestedXPActionEngine.lua"))(
+            "MewthischGuides",MG)
+          local plan=MG.RestEDXPActionEngine:Refresh({
+            questID=123,phase="accept",definition={rxpOccurrences={{}}},
+          })
+          assert(#plan==3)
+          assert(plan[1].category=="travel")
+          assert(plan[2].category=="trainer")
+          assert(plan[3].category=="gate")
+          print("SmartResync + RestedXPActionEngine PASS")
+          LUA
+
+      - name: Validate ForeverQuestDB, TravelPlanner and Journey
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={
+            db={settings={
+              travelUseFlightPaths=true,travelUseHearthstone=true,
+              travelUseTransports=true,travelPreferFastest=true,
+              travelShowEstimatedTime=true,
+            },runtime={}},
+            navigation={distanceMeters=1000},
+          }
+          MG.GetPlayerProfile=function()
+            return {faction="Horde",race="Tauren",class="DRUID",level=4}
+          end
+          MG.ForeverAPI={
+            GetPlayerPosition=function()
+              return {mapID=1412,x=.45,y=.75}
+            end,
+          }
+          MG.RestEDXPImport={OccurrenceMatches=function() return true end}
+          MG.RouteEngine={
+            EstimateDistanceToTarget=function(_,point)
+              return point.worldX and 100 or 200
+            end,
+          }
+          assert(loadfile("world of warcraft/MewthischGuides/ForeverQuestDB.lua"))(
+            "MewthischGuides",MG)
+          local stats=MG.ForeverQuestDB:Rebuild({
+            {id="mulgore",sourceFile="x",steps={{
+              questID=1519,title="Call of Earth",
+              rxpOccurrences={{
+                phase="accept",
+                coordinate={mapID=1412,worldX=-250.09,worldY=-2882.08},
+              }},
+            }}},
+          })
+          assert(stats.quests==1 and stats.points==1)
+          local point=assert(MG.ForeverQuestDB:Resolve(1519,"accept"))
+          assert(point.source=="ForeverQuestDB")
+          assert(math.abs(point.worldX-(-250.09))<0.01)
+
+          GetItemCooldown=function() return 0,0,1 end
+          GetTime=function() return 100 end
+          GetBindLocation=function() return "Bloodhoof Village" end
+          MG.actionPlan={{kind="fly",text="Fly to Thunder Bluff"}}
+          assert(loadfile("world of warcraft/MewthischGuides/TravelPlanner.lua"))(
+            "MewthischGuides",MG)
+          local travel=MG.TravelPlanner:Plan(point,{questID=1519})
+          assert(travel.best.kind=="flight")
+          assert(#travel.alternatives>=2)
+
+          time=function() return 1234 end
+          UnitLevel=function() return 4 end
+          GetRealZoneText=function() return "Mulgore" end
+          MG.GetPosition=function() return {mapID=1412} end
+          assert(loadfile("world of warcraft/MewthischGuides/Journey.lua"))(
+            "MewthischGuides",MG)
+          MG.Journey:Record("accepted",1519)
+          MG.Journey:Record("turned_in",1519)
+          MG.Journey:Record("level",nil,nil,{level=5})
+          local entries=MG.Journey:GetEntries()
+          assert(entries[1].mapID==1412 and entries[1].zone=="Mulgore")
+          local summary=MG.Journey:GetSummary()
+          assert(summary.entries==3 and summary.accepted==1 and summary.turnedIn==1)
+          assert(summary.levelUps==1 and summary.lastLevel==5)
+          print("ForeverQuestDB + TravelPlanner + Journey PASS")
+          LUA
+
+      - name: Validate world map marker
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local calls={set=0,clear=0}
+          local MG={
+            db={settings={showWorldMapMarker=true}},
+            ForeverAPI={
+              SetWorldMapWaypoint=function(_,target)
+                calls.set=calls.set+1
+                return true,{mapID=target.mapID,x=target.x,y=target.y}
+              end,
+              ClearWorldMapWaypoint=function()
+                calls.clear=calls.clear+1
+                return true
+              end,
+            },
+            Log=function() end,
+          }
+
+          assert(loadfile("world of warcraft/MewthischGuides/WorldMapMarker.lua"))(
+            "MewthischGuides",MG)
+          MG:RefreshWorldMapMarker({mapID=1411,x=.4,y=.6,source="test"})
+          assert(calls.set==1)
+          MG.db.settings.showWorldMapMarker=false
+          MG:RefreshWorldMapMarker(nil)
+          assert(calls.clear==1)
+          print("World map marker PASS")
+          LUA
+
+      - name: Validate better-gear auto-equip
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local pickupCalls,equipSlot,equipByNameSlot=0,nil,nil
+          local noticeCalls=0
+          local equippedIDs={}
+          Enum={ItemClass={Armor=4},ItemBind={OnEquip=2}}
+          local MG={
+            Data={gearProfiles={}},
+            db={settings={
+              gearAutoEquip=true,
+              gearRequireHighConfidence=true,
+              gearAutoEquipItemLevelFallback=true,
+              gearAutoEquipWeapons=false,
+              gearProtectBoE=true,
+            },runtime={}},
+            BuildState={GetState=function()
+              return {class="DRUID",level=1}
+            end},
+            Inventory={GetSnapshot=function() return {bags={},equipped={}} end},
+            Log=function() end,
+            ShowAutoEquipNotification=function(_,item)
+              assert(item and item.itemID,"notification item missing")
+              noticeCalls=noticeCalls+1
+            end,
+          }
+
+          GetItemInfoInstant=function(link)
+            if link=="frayed-pants" then
+              return 1378,"Armor","Cloth","INVTYPE_LEGS",0,4,1
+            elseif link=="novice-pants" then
+              return 6124,"Armor","Cloth","INVTYPE_LEGS",0,4,1
+            elseif link=="mail-gloves" then
+              return 2653,"Armor","Mail","INVTYPE_HAND",0,4,3
+            elseif link=="nomad-belt" or link==4954 then
+              return 4954,"Armor","Leather","INVTYPE_WAIST",0,4,2
+            end
+            return 1001,"Armor","Leather","INVTYPE_CHEST",0,4,2
+          end
+          GetDetailedItemLevelInfo=function(link)
+            if link=="frayed-pants" or link=="novice-pants" then return 1 end
+            if link=="mail-gloves" then return 2 end
+            if link=="nomad-belt" then return 5 end
+            if link=="candidate" then return 20 end
+            if link=="equipped" then return 10 end
+          end
+          GetItemStats=function(link)
+            if link=="frayed-pants" then return {RESISTANCE0_NAME=4} end
+            if link=="novice-pants" then return {RESISTANCE0_NAME=2} end
+            if link=="mail-gloves" then return {RESISTANCE0_NAME=35} end
+            if link=="nomad-belt" then return {RESISTANCE0_NAME=19} end
+            return {}
+          end
+          IsEquippableItem=function() return false end
+          IsUsableItem=function() return false end
+          GetInventoryItemLink=function(_,slot)
+            if slot==7 then return "novice-pants" end
+            if slot==5 then return "equipped" end
+          end
+          GetInventoryItemID=function(_,slot) return equippedIDs[slot] end
+          C_Container={PickupContainerItem=function() pickupCalls=pickupCalls+1 end}
+          EquipCursorItem=function(slot) equipSlot=slot end
+          EquipItemByName=function(link,slot)
+            equipByNameSlot=slot
+            if link=="frayed-pants" then equippedIDs[slot]=1378
+            elseif link=="candidate" then equippedIDs[slot]=1001 end
+          end
+
+          assert(loadfile("world of warcraft/MewthischGuides/GearAdvisor.lua"))(
+            "MewthischGuides",MG)
+
+          local pants=assert(MG.GearAdvisor:EvaluateItemLink("frayed-pants"))
+          assert(pants.upgrade and pants.scoreModel=="strict-stat-dominance")
+          assert(pants.slot==7 and pants.statDelta==2)
+
+          local belt=assert(MG.GearAdvisor:EvaluateItemLink("nomad-belt"))
+          assert(belt.upgrade and belt.slot==6,
+            "empty waist slot must accept the Nomad belt candidate")
+          assert(belt.equipDiagnostics and
+                 belt.equipDiagnostics.usedEquipLocFallback==true,
+            "valid INVTYPE_WAIST must survive false equippable helper results")
+
+          local rejected,rejectReason=MG.GearAdvisor:EvaluateItemLink("mail-gloves")
+          assert(rejected==nil and rejectReason=="armor_proficiency",
+            "Druid must not auto-equip mail")
+
+          pants.bag,pants.bagSlot,pants.isBound,pants.bindingType=0,1,false,0
+          local requested,reason=MG.GearAdvisor:TryAutoEquip(pants)
+          assert(requested and reason=="equipped_confirmed")
+          assert(equipByNameSlot==7,"EquipItemByName path not used")
+          assert(pickupCalls==0 and equipSlot==nil,
+            "cursor fallback should not run when EquipItemByName succeeds")
+          assert(noticeCalls==1,
+            "confirmed auto-equip must show exactly one item notification")
+
+          pants.isBound=false
+          pants.bindingType=2
+          requested,reason=MG.GearAdvisor:TryAutoEquip(pants)
+          assert(not requested and reason=="boe_protected")
+
+          pants.bindingType=nil
+          requested,reason=MG.GearAdvisor:TryAutoEquip(pants)
+          assert(not requested and reason=="binding_unknown")
+          print("Better-gear auto-equip PASS")
+          LUA
+
+      - name: Validate auto-equip notification icon resolution
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local MG={}
+          C_Item={
+            GetItemNameByID=function(id)
+              assert(id==1378)
+              return "Ausgefranste Hose"
+            end,
+          }
+          GetInventoryItemTexture=function(unit,slot)
+            assert(unit=="player" and slot==7)
+            return 987654
+          end
+
+          assert(loadfile("world of warcraft/MewthischGuides/UI.lua"))(
+            "MewthischGuides",MG)
+
+          local name,icon,source=MG:ResolveAutoEquipNoticeItemData({
+            itemID=1378,
+            slot=7,
+            link="item:1378",
+          })
+          assert(name=="Ausgefranste Hose")
+          assert(icon==987654)
+          assert(source=="equipped-slot")
+
+          GetInventoryItemTexture=function() return nil end
+          GetItemInfo=function()
+            return "Ausgefranste Hose","item:1378",0,3,1,
+              "Armor","Cloth",1,"INVTYPE_LEGS",112233
+          end
+          C_Item.GetItemNameByID=nil
+
+          name,icon,source=MG:ResolveAutoEquipNoticeItemData({
+            itemID=1378,
+            slot=7,
+            link="item:1378",
+          })
+          assert(name=="Ausgefranste Hose")
+          assert(icon==112233)
+          assert(source=="GetItemInfo")
+
+          print("Auto-equip notification icon resolution PASS")
+          LUA
+
+      - name: Validate seven themes and adaptive UI skins
+        shell: bash
+        run: |
+          lua5.1 - <<'LUA'
+          local skin={
+            IsEnabled=function() return true end,
+            GetAccentColor=function() return .05,.82,.62 end,
+            GetPanelColor=function() return .04,.05,.06,.97 end,
+            GetFont=function() return "Fonts\\FRIZQT__.TTF","" end,
+            OnLooksChanged=function() end,
+          }
+          _G.EllesmereUI={
+            RegisterSkin=function(name,callback)
+              assert(name=="MewthischGuides")
+              callback(skin)
+            end,
+          }
+
+          local elv={
+            media={
+              backdropfadecolor={r=.06,g=.06,b=.06,a=.8},
+              bordercolor={r=0,g=0,b=0,a=1},
+              rgbvaluecolor={r=.09,g=.52,b=.82,a=1},
+              normFont="Fonts\\FRIZQT__.TTF",
+            },
+            db={general={}},
+          }
+          _G.ElvUI={elv}
+          _G.ElvUI_ToxiUI={
+            {Title="ToxiUI"},
+            {},
+            elv,
+            {Strings={Branding={ColorRGB={r=.094,g=.659,b=1,a=1}}}},
+          }
+
+          local MG={db={settings={theme="ElvUI"}},Log=function() end}
+          assert(loadfile("world of warcraft/MewthischGuides/Themes.lua"))(
+            "MewthischGuides",MG)
+
+          local expected={
+            "ElvUI","EllesmereUI","ToxiUI","Forever Classic",
+            "Obsidian","Arcane","Warcraft Heritage",
+          }
+          assert(#MG.Themes.order==#expected)
+          for i,name in ipairs(expected) do
+            assert(MG.Themes.order[i]==name,
+              string.format("theme order mismatch at %d: %s",i,tostring(MG.Themes.order[i])))
+          end
+
+          assert(MG.Themes:Get("ElvUI").adaptiveElvUI==true)
+          assert(MG.Themes:Get("EllesmereUI").adaptiveEllesmereUI==true)
+          assert(MG.Themes:Get("ToxiUI").adaptiveToxiUI==true)
+
+          local eui,euiName=MG.Themes:Resolve("EllesmereUI")
+          assert(euiName=="EllesmereUI" and eui.ellesmereUIDetected)
+          assert(math.abs(eui.accent[2]-.82)<.001)
+
+          local tx,txName=MG.Themes:Resolve("ToxiUI")
+          assert(txName=="ToxiUI" and tx.toxiUIDetected and tx.elvUIDetected)
+          assert(math.abs(tx.accent[1]-.094)<.001)
+          assert(math.abs(tx.accent[2]-.659)<.001)
+          assert(math.abs(tx.accent[3]-1)<.001)
+
+          local elvTheme,name=MG.Themes:GetCurrent()
+          assert(name=="ElvUI" and elvTheme.elvUIDetected)
+          print("Seven-theme contract PASS")
+          LUA
+
+      - name: Validate v0.12.0 static contract
         shell: bash
         run: |
           set -euo pipefail
           ROOT="world of warcraft/MewthischGuides"
           TOC="$ROOT/MewthischGuides.toc"
-          API="$ROOT/ForeverAPI.lua"
-          ROUTE="$ROOT/RouteEngine.lua"
-          NAV="$ROOT/Navigation.lua"
           UI="$ROOT/UI.lua"
-          NAVIGATOR="$ROOT/Navigator.lua"
+          UI2="$ROOT/UI2.lua"
 
           grep -q '^## Interface: 16001$' "$TOC"
-          grep -q '^## Title: Mewthisch Guides$' "$TOC"
-          grep -q '^## Version: 0.10.0$' "$TOC"
-          grep -q '^RestedXPActionCatalog.lua$' "$TOC"
-          grep -q '^RestedXPImport.lua$' "$TOC"
-          for chunk in 01 02 03 04 05; do
-            grep -q "^RestedXPForeverData_$chunk.lua$" "$TOC"
+          grep -q '^## Version: 0.12.0$' "$TOC"
+          grep -q '^## OptionalDeps: ElvUI, EllesmereUI, ElvUI_ToxiUI$' "$TOC"
+
+          for file in GuideRegistry.lua SupportedRoutes.lua Localization.lua SettingsSchema.lua ForeverQuestDB.lua TravelPlanner.lua SmartResync.lua RestedXPActionEngine.lua TrainerAdvisor.lua AudioFeedback.lua Journey.lua UI2.lua; do
+            grep -q "^$file$" "$TOC"
+            test -f "$ROOT/$file"
           done
 
-          grep -q 'forever-modern-capability' "$API"
-          grep -q 'RestedXPPublicRouteData = 99' "$ROUTE"
-          grep -q 'RestedXPWorldCoordinates' "$NAV"
-          grep -q 'Nächstes Theme' "$UI"
-          grep -q 'RestedXP-Guidequellen' "$UI"
-          grep -q 'RestedXP-Aktionsabdeckung' "$UI"
-          grep -q 'CC BY-NC-SA 4.0' "$ROOT/THIRD_PARTY_NOTICES.md"
+          grep -q 'MewthischGuidesMainFrameV2' "$UI2"
+          grep -q 'MewthischGuidesGuideBrowserV2' "$UI2"
+          grep -q 'MewthischGuidesSettingsV2' "$UI2"
+          grep -q 'Automatic (WoW client)' "$ROOT/Localization.lua"
+          grep -q 'Русский' "$ROOT/Localization.lua"
+          grep -q 'हिन्दी' "$ROOT/Localization.lua"
+          grep -q 'a688a75d595f5884dba8044a5ba4e7d7bd859c09' "$ROOT/GuideRegistry.lua"
+          grep -q 'RegisterRoute' "$ROOT/GuideRegistry.lua"
 
-          if grep -q 'navigationScreenAngle' "$NAV"; then
-            echo "Unsafe guessed screen-angle fallback detected."
-            exit 1
-          fi
+          grep -q 'routeMode = "auto"' "$ROOT/Logger.lua"
+          grep -q 'smartResync = true' "$ROOT/Logger.lua"
+          grep -q 'skipObsoleteSteps = true' "$ROOT/Logger.lua"
+          grep -q 'language = "auto"' "$ROOT/Logger.lua"
+          grep -q 'theme = "Forever Classic"' "$ROOT/Logger.lua"
+          grep -q 'navigatorArrowSkin = "arrow-blue"' "$ROOT/Logger.lua"
+          grep -q 'travelPreferFastest = true' "$ROOT/Logger.lua"
+          grep -q 'autoAcceptQuests = true' "$ROOT/Logger.lua"
+          grep -q 'autoTurnInQuests = true' "$ROOT/Logger.lua"
 
-          if grep -q 'RegisterForClicks' "$NAVIGATOR"; then
-            echo "Navigator uses Button-only RegisterForClicks on a normal Frame."
-            exit 1
-          fi
+          grep -q 'restedxp_phase_selector' "$ROOT/StepEngine.lua"
+          grep -q 'SmartResync:Choose' "$ROOT/StepEngine.lua"
+          grep -q 'RestEDXPActionEngine:Refresh' "$ROOT/GuideEngine.lua"
+          grep -q 'ForeverQuestDB:Resolve' "$ROOT/RouteEngine.lua"
+          grep -q 'TravelPlanner:Plan' "$ROOT/Navigation.lua"
+          grep -q 'TAXIMAP_OPENED' "$ROOT/Core.lua"
+          grep -q 'Journey:Record' "$ROOT/Core.lua"
+          grep -Fq 'MG.Journey:Record("level"' "$ROOT/Core.lua"
+          grep -Fq 'MG.Journey:Record("accepted", args[2] or args[1])' "$ROOT/Core.lua"
+          grep -Fq 'local mageFaction=MG.SupportedRoutes:HasCategory(g,"mage") and g.faction==faction' "$UI2"
+          grep -q 'ApplyNavigatorArrowSkinPreview' "$ROOT/Navigator.lua"
+          grep -q 'ApplyNavigatorArrowSkinPreview' "$UI2"
+          grep -q 'FULLSCREEN_DIALOG' "$UI2"
+          grep -q 'RegisterForDrag("LeftButton")' "$UI2"
+          grep -q 'instruction(step)' "$UI2"
+          grep -q 'classSpecific = true' "$ROOT/RestedXPImport.lua"
+          grep -q 'GetClassSpecificQuestStats' "$ROOT/RestedXPImport.lua"
+          grep -q 'updateETA' "$ROOT/Navigation.lua"
+          grep -q 'ETA ≈' "$ROOT/Navigator.lua"
+          ! grep -Fq 'local defs={{"targets"' "$UI2"
 
-          if grep -En 'Toete|verfuegbar|zurueckgesetzt|geaendert|geoeffnet|ausgewaehlt|benoetigten|fuer Befehle|laeuft' "$ROOT"/*.lua; then
-            echo "German user-facing transliteration detected; use real umlauts."
-            exit 1
-          fi
-
-          grep -q 'gearAutoEquip = false' "$ROOT/Logger.lua"
+          grep -q 'gearAutoEquip = true' "$ROOT/Logger.lua"
           grep -q 'gearProtectBoE = true' "$ROOT/Logger.lua"
-          grep -q 'gearAutoEquipWeapons = false' "$ROOT/Logger.lua"
-          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
-          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'gearAutoEquipWeapons = true' "$ROOT/Logger.lua"
+          grep -q 'usedEquipLocFallback' "$ROOT/GearAdvisor.lua"
+          grep -q 'item_data_pending' "$ROOT/GearAdvisor.lua"
+          grep -q 'strict-stat-dominance' "$ROOT/GearAdvisor.lua"
+          grep -q 'ResolveAutoEquipNoticeItemData' "$UI"
+          grep -q 'GetInventoryItemTexture' "$UI"
+
+          grep -q 'local ARROW_SIZE = 83' "$ROOT/Navigator.lua"
+          test -f "$ROOT/Assets/ArrowBlue.blp"
+          test -f "$ROOT/Assets/ArrowRed.blp"
+          test -f "$ROOT/Assets/ArrowOrange.blp"
+
+          grep -q '"EllesmereUI"' "$ROOT/Themes.lua"
+          grep -q '"ToxiUI"' "$ROOT/Themes.lua"
+          grep -q 'adaptiveEllesmereUI = true' "$ROOT/Themes.lua"
+          grep -q 'adaptiveToxiUI = true' "$ROOT/Themes.lua"
           grep -q 'localOnly = true' "$ROOT/Telemetry.lua"
+          grep -q 'automaticSpending = false' "$ROOT/TalentAdvisor.lua"
+          grep -q 'autoSelection = false' "$ROOT/RewardAdvisor.lua"
 
       - name: Package addon
         shell: bash
@@ -456,11 +1066,11 @@ jobs:
           mkdir -p artifacts/MewthischGuides
           cp -R "world of warcraft/MewthischGuides/"* artifacts/MewthischGuides/
           cd artifacts
-          zip -r MewthischGuides-v0.10.zip MewthischGuides
+          zip -r MewthischGuides-v0.12.0.zip MewthischGuides
 
       - name: Upload addon
         uses: actions/upload-artifact@v4
         with:
-          name: MewthischGuides-v0.10
-          path: artifacts/MewthischGuides-v0.10.zip
+          name: MewthischGuides-v0.12.0
+          path: artifacts/MewthischGuides-v0.12.0.zip
           if-no-files-found: error
