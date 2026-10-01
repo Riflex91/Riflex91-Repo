@@ -689,7 +689,19 @@ using (var stoppedCharacterSnapshot = JsonDocument.Parse(
 
 Assert(CdpCharacterSupervisor.IsActiveState("code"), "V6_SUPERVISOR_CODE_STATE_ACTIVE");
 Assert(CdpCharacterSupervisor.IsActiveState("starting"), "V6_SUPERVISOR_STARTING_STATE_ACTIVE");
+Assert(CdpCharacterSupervisor.IsActiveState("active"), "V6_SUPERVISOR_LOADED_CHARACTER_PRESENT");
+Assert(CdpCharacterSupervisor.IsActiveState("self"), "V6_SUPERVISOR_LOCAL_CHARACTER_PRESENT");
 Assert(!CdpCharacterSupervisor.IsActiveState("offline"), "V6_SUPERVISOR_OFFLINE_STATE_REJECTED");
+Assert(CdpCharacterSupervisor.IsCodeActiveState("code", false, false),
+    "V6_SUPERVISOR_CHILD_CODE_STATE_RUNTIME_ACTIVE");
+Assert(!CdpCharacterSupervisor.IsCodeActiveState("active", false, false),
+    "V6_SUPERVISOR_LOADED_CHILD_WITHOUT_CODE_NOT_RUNTIME_ACTIVE");
+Assert(!CdpCharacterSupervisor.IsCodeActiveState("self", false, true),
+    "V6_SUPERVISOR_LOCAL_SELF_WITHOUT_CODE_NOT_RUNTIME_ACTIVE");
+Assert(CdpCharacterSupervisor.IsCodeActiveState("self", true, true),
+    "V6_SUPERVISOR_LOCAL_SELF_REQUIRES_EXPLICIT_CODE_ACTIVE");
+Assert(!CdpCharacterSupervisor.IsCodeActiveState("self", true, false),
+    "V6_SUPERVISOR_REMOTE_SELF_STATE_CANNOT_INFER_CODE_ACTIVE");
 Assert(CdpCharacterSupervisor.IsCombatClass("priest"), "V6_SUPERVISOR_PRIEST_IS_FARMER_CLASS");
 Assert(CdpCharacterSupervisor.IsCombatClass("ranger"), "V6_SUPERVISOR_RANGER_IS_FARMER_CLASS");
 Assert(!CdpCharacterSupervisor.IsCombatClass("merchant"), "V6_SUPERVISOR_MERCHANT_NOT_FARMER_CLASS");
@@ -748,11 +760,17 @@ var merchantNavigationBuilder = typeof(CdpCharacterSupervisor).GetMethod(
 var characterStartBuilder = typeof(CdpCharacterSupervisor).GetMethod(
     "BuildStartCharacterExpression",
     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+var codeRestartBuilder = typeof(CdpCharacterSupervisor).GetMethod(
+    "BuildRestartCodeExpression",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 Assert(merchantNavigationBuilder is not null, "V6_SUPERVISOR_MERCHANT_NAVIGATION_BUILDER");
 Assert(characterStartBuilder is not null, "V6_SUPERVISOR_CHARACTER_START_BUILDER");
+Assert(codeRestartBuilder is not null, "V6_SUPERVISOR_CODE_RESTART_BUILDER");
 var merchantNavigationExpression = (string)merchantNavigationBuilder!.Invoke(
     null, ["My_Merchant", "EU", "II", "AL Final Bot"])!;
 var characterStartExpression = (string)characterStartBuilder!.Invoke(
+    null, ["My_Ranger2", "AL Final Bot"])!;
+var codeRestartExpression = (string)codeRestartBuilder!.Invoke(
     null, ["My_Ranger2", "AL Final Bot"])!;
 Assert(merchantNavigationExpression.Contains("location.assign", StringComparison.Ordinal)
     && merchantNavigationExpression.Contains("?code=", StringComparison.Ordinal),
@@ -762,6 +780,14 @@ Assert(characterStartExpression.Contains("start_character_runner", StringCompari
     "V6_SUPERVISOR_USES_OFFICIAL_CHARACTER_LIFECYCLE_API");
 Assert(!characterStartExpression.Contains("stop_character", StringComparison.Ordinal),
     "V6_SUPERVISOR_DOES_NOT_BLINDLY_STOP_ACTIVE_CHARACTERS");
+Assert(codeRestartExpression.Contains("code_active === true", StringComparison.Ordinal)
+    && codeRestartExpression.Contains("frame.src = next.toString()", StringComparison.Ordinal)
+    && codeRestartExpression.Contains("root.location.assign(next.toString())", StringComparison.Ordinal),
+    "V6_SUPERVISOR_RESTARTS_CODE_LAYER_FOR_LOADED_LOCAL_OR_CHILD_CHARACTER");
+Assert(codeRestartExpression.Contains("searchParams.set('code', slot)", StringComparison.Ordinal),
+    "V6_SUPERVISOR_CODE_RESTART_PRESERVES_MANAGED_CODE_SLOT");
+Assert(!codeRestartExpression.Contains("stop_character", StringComparison.Ordinal),
+    "V6_SUPERVISOR_CODE_RESTART_PRESERVES_CONNECTED_CHARACTER");
 
 var perCharacterState = new BridgeState(999);
 Assert(perCharacterState.GetLastEventSeq("My_Ranger1") == 0,
