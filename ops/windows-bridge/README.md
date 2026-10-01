@@ -35,6 +35,30 @@ The browser side exposes the bounded, transport-only `ALBot.bridge` API. The Win
 
 The identity explicitly reports `gameplayActionAuthority=false`, `transportOnly=true`, and `acceptsLegacyGenerations=false`. Cloud credentials stay in the Windows host.
 
+## Character supervisor: 1 Merchant + 3 Farmer
+
+The Windows Bridge now has a separate, tightly bounded lifecycle supervisor. It is **not** part of `ALBot.bridge` and does not grant the telemetry transport gameplay authority.
+
+Its contract is:
+
+1. The dedicated Adventure Land browser profile is opened as before.
+2. If no local character is running and the saved browser profile has an authenticated Adventure Land account, the supervisor finds the account's **single Merchant** and navigates that browser page to the Merchant with the configured `managedCodeSlot` (default: `AL Final Bot`). The `?code=` launch path makes Adventure Land run that saved code slot on connect.
+3. The bot remains authoritative for selecting the three farmer characters. The Bridge does not guess or hard-code farmer names on first start.
+4. As soon as V6 runtime snapshots prove one running Merchant plus three running combat-class farmers, the exact four names are persisted in `bridge-state.json`.
+5. On later polls the supervisor may restart a missing member of exactly that persisted four-character set through Adventure Land's official `start_character_runner` / `start_character` lifecycle API.
+6. Runtime health is independent from account presence: a character counts as healthy only when its V6 snapshot reports `status.running=true`. The Bridge exposes `ALBOT_V6_GROUP_INCOMPLETE:runtime=...:merchant=...:farmers=...` when the four running runtimes are incomplete.
+
+Chromium may move Adventure Land character runners into out-of-process iframes (OOPIFs). V6 discovery therefore uses flattened CDP child sessions and same-session ordering barriers. It never cancels a receive on a WebSocket that will subsequently be used for snapshot/event/ACK evaluation.
+
+The supervisor does **not** know Adventure Land credentials and cannot log an account in. If the dedicated browser profile is not already authenticated it reports `WAITING_FOR_ACCOUNT_SESSION` instead of attempting credential automation.
+
+Configuration:
+
+```json
+"characterSupervisorEnabled": true,
+"managedCodeSlot": "AL Final Bot"
+```
+
 ## Supabase
 
 Default V6 endpoints:
@@ -155,7 +179,7 @@ The dedicated browser profile is under:
 
 ## Config migration
 
-Config version 11 keeps the V6 Supabase/Cloudflare isolation from version 10 and activates the host-side Backblaze archive against the existing `al-aio-bot` bucket with the mandatory `v6` prefix. The old browser handoff stays disabled. A historical DPAPI Backblaze credential file may be copied once into the V6 credential store; other V3/V4/V5 cloud credentials are not adopted as V6 credentials.
+Config version 12 keeps the V6 Supabase/Cloudflare isolation and host-side Backblaze archive from version 11, and enables the bounded character supervisor with the `AL Final Bot` fallback code slot. The four managed character names are learned only from a proven healthy V6 runtime composition and are stored in `bridge-state.json`, not guessed from account order. The old browser cloud handoff stays disabled. A historical DPAPI Backblaze credential file may be copied once into the V6 credential store; other V3/V4/V5 cloud credentials are not adopted as V6 credentials.
 
 ## Build
 
@@ -269,7 +293,9 @@ Ein vollständig grüner Readiness-Bericht und der geschlossene WISSEN-012-Nachw
 - Backblaze credentials are not persisted to Adventure Land LocalStorage by the Bridge;
 - no FTP/FTPS library or bplaced-specific configuration remains in the Windows Bridge;
 - no service-role key is present in the desktop app;
-- no generic evaluate/invoke or remote-shell surface is exposed.
+- no generic evaluate/invoke or remote-shell surface is exposed;
+- character lifecycle authority is limited to same-origin, locally authenticated Adventure Land pages, exactly one account Merchant, and the last proven 1+3 managed roster;
+- the lifecycle supervisor may start characters/code but has no movement, combat, item, bank, market, party-planning, or economy command surface.
 
 
 ## GitHub-Anmeldung und Wissenswaechter
@@ -370,7 +396,7 @@ Der Import ist fail-closed:
 
 Fehlerhaftes lokales Live-Wissen ersetzt niemals den letzten gueltigen GitHub-Snapshot.
 
-Die Bridge erzeugt keine Gameplay-Fakten und besitzt weiterhin keine Gameplay-Autoritaet.
+Die Bridge erzeugt keine Gameplay-Fakten und besitzt keine Kampf-, Bewegungs-, Item-, Bank-, Markt- oder Economy-Autoritaet. Die einzige aktive Spiel-Lifecycle-Berechtigung ist der oben beschriebene, begrenzte Start/Wiederanlauf des Merchants bzw. des zuletzt live bewiesenen 1+3-Rosters.
 
 ## System-Tray
 
