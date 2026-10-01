@@ -688,6 +688,25 @@ public sealed class CdpAlBotV6Client
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
+    public static string? ReadCharacterType(JsonElement snapshot)
+    {
+        if (snapshot.ValueKind != JsonValueKind.Object
+            || !snapshot.TryGetProperty("character", out var character)
+            || character.ValueKind != JsonValueKind.Object)
+            return null;
+        var value = ReadString(character, "ctype")?.Trim().ToLowerInvariant();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    public static bool IsRuntimeRunning(JsonElement snapshot)
+    {
+        if (snapshot.ValueKind != JsonValueKind.Object
+            || !snapshot.TryGetProperty("status", out var status)
+            || status.ValueKind != JsonValueKind.Object)
+            return false;
+        return ReadBoolean(status, "running", false);
+    }
+
     private static bool IsV6Snapshot(JsonElement value)
     {
         if (value.ValueKind != JsonValueKind.Object
