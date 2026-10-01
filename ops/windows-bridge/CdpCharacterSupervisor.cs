@@ -20,7 +20,9 @@ public sealed record CharacterSupervisorResult(
     string? Detail)
 {
     public bool ActionRequested =>
-        State is "MERCHANT_NAVIGATION_REQUESTED" or "CHARACTER_START_REQUESTED";
+        State is "MERCHANT_NAVIGATION_REQUESTED"
+            or "CHARACTER_START_REQUESTED"
+            or "CHARACTER_CODE_RESTART_REQUESTED";
 }
 
 public sealed class CdpCharacterSupervisor
@@ -28,7 +30,7 @@ public sealed class CdpCharacterSupervisor
     public const int ExpectedMerchantCount = 1;
     public const int ExpectedFarmerCount = 3;
 
-    private static readonly HashSet<string> ActiveStates = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly HashSet<string> PresentStates = new(StringComparer.OrdinalIgnoreCase)
     {
         "self", "starting", "loading", "active", "code"
     };
@@ -49,7 +51,20 @@ public sealed class CdpCharacterSupervisor
     }
 
     public static bool IsActiveState(string? value) =>
-        !string.IsNullOrWhiteSpace(value) && ActiveStates.Contains(value.Trim());
+        !string.IsNullOrWhiteSpace(value) && PresentStates.Contains(value.Trim());
+
+    public static bool IsCodeActiveState(
+        string? value,
+        bool localCodeActive,
+        bool isLocalCharacter)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        var state = value.Trim();
+        if (string.Equals(state, "code", StringComparison.OrdinalIgnoreCase)) return true;
+        return isLocalCharacter
+            && string.Equals(state, "self", StringComparison.OrdinalIgnoreCase)
+            && localCodeActive;
+    }
 
     public static bool IsCombatClass(string? value) =>
         !string.IsNullOrWhiteSpace(value) && CombatClasses.Contains(value.Trim());
@@ -117,10 +132,37 @@ public sealed class CdpCharacterSupervisor
                 "EXPECTED_ONE_MERCHANT_FOUND_" + merchants.Length);
 
         var merchant = merchants[0];
-        var merchantActive = snapshot.Active.TryGetValue(merchant.Name, out var merchantState)
+        var merchantPresent = snapshot.Active.TryGetValue(merchant.Name, out var merchantState)
             && IsActiveState(merchantState);
 
-        if (!merchantActive)
+        if (merchantPresent
+            && !IsCodeActiveState(
+                merchantState,
+                snapshot.LocalCodeActive,
+                string.Equals(snapshot.LocalName, merchant.Name, StringComparison.OrdinalIgnoreCase)))
+        {
+            if (string.Equals(merchantState, "starting", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(merchantState, "loading", StringComparison.OrdinalIgnoreCase))
+            {
+                return new CharacterSupervisorResult(
+                    "MERCHANT_CODE_STARTING", merchant.Name, activeNames, managed,
+                    null, "STATE=" + merchantState);
+            }
+
+            var restartMerchant = await EvaluateAsync(
+                target.WebSocketDebuggerUrl,
+                BuildRestartCodeExpression(merchant.Name, ResolveCodeSlot(merchant)),
+                cancellationToken);
+            if (!ReadAccepted(restartMerchant))
+                return new CharacterSupervisorResult(
+                    "MERCHANT_START_BLOCKED", merchant.Name, activeNames, managed, null,
+                    ReadReason(restartMerchant) ?? "MERCHANT_CODE_RESTART_REJECTED");
+            return new CharacterSupervisorResult(
+                "CHARACTER_CODE_RESTART_REQUESTED", merchant.Name, activeNames, managed,
+                merchant.Name, "MERCHANT_CODE_INACTIVE");
+        }
+
+        if (!merchantPresent)
         {
             if (merchant.Online)
             {
@@ -179,12 +221,40 @@ public sealed class CdpCharacterSupervisor
         var accountByName = snapshot.Characters.ToDictionary(row => row.Name, StringComparer.OrdinalIgnoreCase);
         foreach (var name in managed)
         {
-            if (snapshot.Active.TryGetValue(name, out var state) && IsActiveState(state))
-                continue;
             if (!accountByName.TryGetValue(name, out var row))
                 return new CharacterSupervisorResult(
                     "MANAGED_ROSTER_BLOCKED", merchant.Name, activeNames, managed, null,
                     "ACCOUNT_CHARACTER_MISSING:" + Bound(name));
+
+            if (snapshot.Active.TryGetValue(name, out var state) && IsActiveState(state))
+            {
+                var isLocal = string.Equals(snapshot.LocalName, name, StringComparison.OrdinalIgnoreCase);
+                if (IsCodeActiveState(state, snapshot.LocalCodeActive, isLocal))
+                    continue;
+
+                // starting/loading are transient page lifecycle states. Do not churn
+                // the iframe while Adventure Land is still bringing it up.
+                if (string.Equals(state, "starting", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(state, "loading", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                // Adventure Land explicitly reports child "active" when the character
+                // is connected but code_active is false, and reports the local page as
+                // "self" regardless of code_active. Presence is therefore not runtime
+                // health: restart only the CODE layer while preserving the character.
+                var restart = await EvaluateAsync(
+                    target.WebSocketDebuggerUrl,
+                    BuildRestartCodeExpression(row.Name, ResolveCodeSlot(row)),
+                    cancellationToken);
+                if (!ReadAccepted(restart))
+                    return new CharacterSupervisorResult(
+                        "MANAGED_ROSTER_BLOCKED", merchant.Name, activeNames, managed, null,
+                        ReadReason(restart) ?? ("CODE_RESTART_REJECTED:" + Bound(row.Name)));
+                return new CharacterSupervisorResult(
+                    "CHARACTER_CODE_RESTART_REQUESTED", merchant.Name, activeNames, managed,
+                    row.Name, "MANAGED_RUNTIME_CODE_INACTIVE");
+            }
+
             if (row.Online)
                 return new CharacterSupervisorResult(
                     "MANAGED_ROSTER_BLOCKED", merchant.Name, activeNames, managed, null,
@@ -340,6 +410,7 @@ public sealed class CdpCharacterSupervisor
             rows,
             active,
             ReadString(value, "localName"),
+            ReadBool(value, "localCodeActive"),
             ReadString(value, "serverRegion"),
             ReadString(value, "serverIdentifier"));
     }
@@ -373,6 +444,67 @@ public sealed class CdpCharacterSupervisor
           // execution context/CDP command response.
           globalThis.setTimeout(() => globalThis.location.assign(path), 0);
           return { accepted: true, action: 'NAVIGATE_MERCHANT', name: String(owned.name), path };
+        })()
+        """;
+    }
+
+    private static string BuildRestartCodeExpression(string name, string codeSlot)
+    {
+        var n = JsonSerializer.Serialize(name);
+        var s = JsonSerializer.Serialize(codeSlot);
+        return $"""
+        (() => {
+          const name = {{n}};
+          const slot = {{s}};
+          const root = globalThis;
+          const same = value => String(value || '').toLowerCase() === name.toLowerCase();
+
+          if (root.character && same(root.character.name)) {
+            if (root.code_active === true)
+              return { accepted: true, action: 'CODE_ALREADY_ACTIVE', name };
+            let next;
+            try {
+              next = new URL(root.location.href);
+            } catch {
+              return { accepted: false, reason: 'LOCAL_CHARACTER_URL_INVALID' };
+            }
+            next.searchParams.set('code', slot);
+            root.setTimeout(() => root.location.assign(next.toString()), 0);
+            return { accepted: true, action: 'RELOAD_LOCAL_CODE', name, slot };
+          }
+
+          const frames = Array.from(root.document && root.document.querySelectorAll
+            ? root.document.querySelectorAll('iframe') : []);
+          const frame = frames.find(candidate => {
+            try {
+              const declared = candidate && candidate.dataset ? candidate.dataset.name : null;
+              const actual = candidate && candidate.contentWindow && candidate.contentWindow.character
+                ? candidate.contentWindow.character.name : null;
+              return same(actual || declared);
+            } catch {
+              return false;
+            }
+          });
+          if (!frame || !frame.contentWindow)
+            return { accepted: false, reason: 'CHARACTER_RUNNER_NOT_FOUND' };
+          try {
+            if (frame.contentWindow.code_active === true)
+              return { accepted: true, action: 'CODE_ALREADY_ACTIVE', name };
+            const href = frame.contentWindow.location && frame.contentWindow.location.href
+              ? frame.contentWindow.location.href
+              : frame.src;
+            const next = new URL(href, root.location.origin);
+            next.searchParams.set('no_html', 'true');
+            next.searchParams.set('is_bot', '1');
+            next.searchParams.set('code', slot);
+            root.setTimeout(() => { frame.src = next.toString(); }, 0);
+            return { accepted: true, action: 'RELOAD_CHILD_CODE', name, slot };
+          } catch (error) {
+            return {
+              accepted: false,
+              reason: String(error && error.message || error || 'CODE_RESTART_FAILED').slice(0, 180)
+            };
+          }
         })()
         """;
     }
@@ -444,6 +576,7 @@ public sealed class CdpCharacterSupervisor
         characters,
         active,
         localName: root.character && root.character.name ? String(root.character.name) : null,
+        localCodeActive: root.code_active === true,
         serverRegion: typeof root.server_region !== 'undefined' ? String(root.server_region || '') : '',
         serverIdentifier: typeof root.server_identifier !== 'undefined' ? String(root.server_identifier || '') : ''
       };
@@ -487,6 +620,7 @@ public sealed class CdpCharacterSupervisor
         IReadOnlyList<CharacterLifecycleRow> Characters,
         IReadOnlyDictionary<string, string> Active,
         string? LocalName,
+        bool LocalCodeActive,
         string? ServerRegion,
         string? ServerIdentifier);
 }
