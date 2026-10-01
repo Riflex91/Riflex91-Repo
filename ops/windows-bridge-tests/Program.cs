@@ -42,7 +42,7 @@ defaults.Validate();
 Assert(defaults.TelemetryEnabled == false, "TELEMETRY_MUST_DEFAULT_OFF");
 Assert(defaults.PreferredBrowser == "Brave", "BRAVE_MUST_DEFAULT");
 Assert(defaults.ConfigVersion == BridgeConfig.CurrentConfigVersion, "CONFIG_VERSION");
-Assert(BridgeConfig.CurrentConfigVersion == 11, "CONFIG_VERSION_11");
+Assert(BridgeConfig.CurrentConfigVersion == 12, "CONFIG_VERSION_12");
 Assert(defaults.PollIntervalSeconds == 5, "V5_LOCAL_OBSERVATION_DEFAULT");
 Assert(defaults.SupabaseStatusIntervalSeconds == 60, "V5_SUPABASE_STATUS_INTERVAL_60S");
 Assert(WindowsBridgeSelfUpdater.CheckIntervalSeconds == 60, "SELF_UPDATE_INTERVAL_60S");
@@ -103,6 +103,10 @@ Assert(CdpAlBotV6Client.DashboardTerrainMaxChars <= 400_000, "V6_DASHBOARD_TERRA
 Assert(CdpAlBotV6Client.ExecutionContextDrainMilliseconds >= 100
     && CdpAlBotV6Client.ExecutionContextDrainMilliseconds <= 1000,
     "V6_CDP_EXECUTION_CONTEXT_DRAIN_BOUNDED");
+Assert(typeof(CdpAlBotV6Client).GetField(
+        "AutoAttachDrainMilliseconds",
+        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static) is null,
+    "V6_OOPIF_LIVE_EVALUATION_SOCKET_HAS_NO_CANCELLATION_DRAIN");
 var v6CollectContextsMethod = typeof(CdpAlBotV6Client).GetMethod(
     "CollectTargetExecutionContextsAsync",
     System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
@@ -228,6 +232,79 @@ Assert(v6DashboardVisualNoTerrainExpression.Contains("const includeTerrain = fal
 Assert(CdpAlBotV6Client.IsSupportedTargetType("page"), "V6_CDP_PAGE_TARGET_SUPPORTED");
 Assert(CdpAlBotV6Client.IsSupportedTargetType("iframe"), "V6_CDP_IFRAME_TARGET_SUPPORTED");
 Assert(!CdpAlBotV6Client.IsSupportedTargetType("service_worker"), "V6_CDP_FOREIGN_TARGET_TYPE_REJECTED");
+Assert(CdpAlBotV6Client.IsTrustedAutoAttachedIframeDescriptor(
+        "iframe",
+        "https://adventure.land/character/My_Merchant/in/EU/II/",
+        "https://adventure.land"),
+    "V6_OOPIF_SAME_ORIGIN_AUTOATTACHED_CHILD_ACCEPTED");
+Assert(CdpAlBotV6Client.IsTrustedAutoAttachedIframeDescriptor(
+        "iframe",
+        "about:blank",
+        "https://adventure.land"),
+    "V6_OOPIF_OPAQUE_AUTOATTACHED_CHILD_ACCEPTED");
+Assert(CdpAlBotV6Client.IsTrustedAutoAttachedIframeDescriptor(
+        "iframe",
+        "about:srcdoc",
+        "https://adventure.land"),
+    "V6_OOPIF_SRCDOC_AUTOATTACHED_CHILD_ACCEPTED");
+Assert(CdpAlBotV6Client.IsTrustedAutoAttachedIframeDescriptor(
+        "iframe",
+        "",
+        "https://adventure.land"),
+    "V6_OOPIF_INITIAL_EMPTY_AUTOATTACHED_CHILD_ACCEPTED");
+Assert(CdpAlBotV6Client.IsTrustedAutoAttachedIframeDescriptor(
+        "iframe",
+        "blob:https://adventure.land/runner",
+        "https://adventure.land"),
+    "V6_OOPIF_SAME_ORIGIN_BLOB_ACCEPTED");
+Assert(!CdpAlBotV6Client.IsTrustedAutoAttachedIframeDescriptor(
+        "iframe",
+        "https://example.com/foreign",
+        "https://adventure.land"),
+    "V6_OOPIF_FOREIGN_ORIGIN_REJECTED");
+Assert(!CdpAlBotV6Client.IsTrustedAutoAttachedIframeDescriptor(
+        "iframe",
+        "blob:https://example.com/foreign",
+        "https://adventure.land"),
+    "V6_OOPIF_FOREIGN_BLOB_REJECTED");
+Assert(!CdpAlBotV6Client.IsTrustedAutoAttachedIframeDescriptor(
+        "service_worker",
+        "https://adventure.land/sw.js",
+        "https://adventure.land"),
+    "V6_OOPIF_NON_IFRAME_REJECTED");
+Assert(!CdpAlBotV6Client.IsTrustedAutoAttachedIframeDescriptor(
+        "iframe",
+        "about:blank",
+        "not-a-valid-origin"),
+    "V6_OOPIF_INVALID_ALLOWED_ORIGIN_REJECTED");
+
+// The ancestry proof comes from the parent-scoped Target.attachedToTarget event;
+// TargetInfo itself deliberately has no parentId/parentFrameId dependency.
+using (var autoAttachEventDoc = JsonDocument.Parse("""
+{
+  "method": "Target.attachedToTarget",
+  "params": {
+    "sessionId": "CHILD-SESSION",
+    "targetInfo": {
+      "targetId": "IFRAME-TARGET",
+      "type": "iframe",
+      "url": "about:blank"
+    },
+    "waitingForDebugger": false
+  }
+}
+"""))
+{
+    var root = autoAttachEventDoc.RootElement;
+    Assert(root.GetProperty("params").GetProperty("sessionId").GetString() == "CHILD-SESSION",
+        "V6_OOPIF_REAL_CDP_EVENT_EXPOSES_CHILD_SESSION");
+    Assert(root.GetProperty("params").GetProperty("targetInfo").GetProperty("type").GetString() == "iframe",
+        "V6_OOPIF_REAL_CDP_EVENT_EXPOSES_IFRAME_TARGET");
+    Assert(!root.GetProperty("params").GetProperty("targetInfo").TryGetProperty("parentId", out _),
+        "V6_OOPIF_TEST_DOES_NOT_INVENT_TARGETINFO_PARENT_ID");
+    Assert(!root.GetProperty("params").GetProperty("targetInfo").TryGetProperty("parentFrameId", out _),
+        "V6_OOPIF_TEST_DOES_NOT_INVENT_TARGETINFO_PARENT_FRAME_ID");
+}
 Assert(CdpAlBotV6Client.CharacterNameFromTargetUrl(
     "https://adventure.land/character/My_Merchant/in/EU/II/") == "My_Merchant",
     "V6_CDP_TARGET_CHARACTER_PARSED");
@@ -270,7 +347,12 @@ Assert(boundedDiagnostic.Length == 512, "V6_UI_ERROR_BOUND_PRESERVES_DIAGNOSTICS
 var bridgePrivateFields = typeof(TelemetryBridgeService)
     .GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
 Assert(bridgePrivateFields.Any(field => field.FieldType == typeof(CdpAlBotV6Client)), "ACTIVE_BRIDGE_MUST_USE_V6_CDP_CLIENT");
+Assert(bridgePrivateFields.Any(field => field.FieldType == typeof(CdpCharacterSupervisor)), "ACTIVE_BRIDGE_MUST_USE_BOUNDED_CHARACTER_SUPERVISOR");
 Assert(!bridgePrivateFields.Any(field => field.FieldType == typeof(CdpAdventureLandClient)), "ACTIVE_BRIDGE_MUST_NOT_USE_LEGACY_CDP_CLIENT");
+Assert(TelemetryBridgeService.SupervisorBlocksTelemetry("WAITING_FOR_ACCOUNT_SESSION"),
+    "V6_SUPERVISOR_LOGIN_WAIT_BLOCKS_RUNTIME_PROBE");
+Assert(!TelemetryBridgeService.SupervisorBlocksTelemetry("ROSTER_ACTIVE"),
+    "V6_SUPERVISOR_ACTIVE_ROSTER_ALLOWS_RUNTIME_PROBE");
 Assert(!bridgePrivateFields.Any(field => field.FieldType == typeof(CdpBackblazeConfigurator)), "ACTIVE_BRIDGE_MUST_NOT_HOLD_LEGACY_BACKBLAZE_CONFIGURATOR");
 Assert(bridgePrivateFields.Any(field => field.FieldType == typeof(BackblazeV6ArchiveSink)), "ACTIVE_BRIDGE_MUST_USE_V6_BACKBLAZE_HOST_SINK");
 Assert(CloudflareV6DashboardSink.RuntimePath == "/api/v6/runtime", "V6_DASHBOARD_RUNTIME_PATH");
@@ -588,11 +670,124 @@ Assert(ClassifyCdp("""{"id":76,"result":{}}""", 77) == "other-response",
 Assert(ClassifyCdp("""{"garbage":{"id":77}}""", 77) == "unknown",
     "V6_CDP_UNCLASSIFIED_LARGE_MESSAGE_FAILS_CLOSED");
 
-using (var multiCharacterSnapshot = JsonDocument.Parse("""{"character":{"name":"My_Ranger1"}}"""))
+using (var multiCharacterSnapshot = JsonDocument.Parse(
+    """{"character":{"name":"My_Ranger1","ctype":"ranger"},"status":{"running":true}}"""))
 {
     Assert(CdpAlBotV6Client.ReadCharacterName(multiCharacterSnapshot.RootElement) == "My_Ranger1",
         "V6_SNAPSHOT_CHARACTER_NAME");
+    Assert(CdpAlBotV6Client.ReadCharacterType(multiCharacterSnapshot.RootElement) == "ranger",
+        "V6_SNAPSHOT_CHARACTER_TYPE");
+    Assert(CdpAlBotV6Client.IsRuntimeRunning(multiCharacterSnapshot.RootElement),
+        "V6_SNAPSHOT_RUNTIME_RUNNING");
 }
+using (var stoppedCharacterSnapshot = JsonDocument.Parse(
+    """{"character":{"name":"My_Ranger2","ctype":"ranger"},"status":{"running":false}}"""))
+{
+    Assert(!CdpAlBotV6Client.IsRuntimeRunning(stoppedCharacterSnapshot.RootElement),
+        "V6_SNAPSHOT_RUNTIME_STOPPED");
+}
+
+Assert(CdpCharacterSupervisor.IsActiveState("code"), "V6_SUPERVISOR_CODE_STATE_ACTIVE");
+Assert(CdpCharacterSupervisor.IsActiveState("starting"), "V6_SUPERVISOR_STARTING_STATE_ACTIVE");
+Assert(CdpCharacterSupervisor.IsActiveState("active"), "V6_SUPERVISOR_LOADED_CHARACTER_PRESENT");
+Assert(CdpCharacterSupervisor.IsActiveState("self"), "V6_SUPERVISOR_LOCAL_CHARACTER_PRESENT");
+Assert(!CdpCharacterSupervisor.IsActiveState("offline"), "V6_SUPERVISOR_OFFLINE_STATE_REJECTED");
+Assert(CdpCharacterSupervisor.IsCodeActiveState("code", false, false),
+    "V6_SUPERVISOR_CHILD_CODE_STATE_RUNTIME_ACTIVE");
+Assert(!CdpCharacterSupervisor.IsCodeActiveState("active", false, false),
+    "V6_SUPERVISOR_LOADED_CHILD_WITHOUT_CODE_NOT_RUNTIME_ACTIVE");
+Assert(!CdpCharacterSupervisor.IsCodeActiveState("self", false, true),
+    "V6_SUPERVISOR_LOCAL_SELF_WITHOUT_CODE_NOT_RUNTIME_ACTIVE");
+Assert(CdpCharacterSupervisor.IsCodeActiveState("self", true, true),
+    "V6_SUPERVISOR_LOCAL_SELF_REQUIRES_EXPLICIT_CODE_ACTIVE");
+Assert(!CdpCharacterSupervisor.IsCodeActiveState("self", true, false),
+    "V6_SUPERVISOR_REMOTE_SELF_STATE_CANNOT_INFER_CODE_ACTIVE");
+Assert(CdpCharacterSupervisor.IsCombatClass("priest"), "V6_SUPERVISOR_PRIEST_IS_FARMER_CLASS");
+Assert(CdpCharacterSupervisor.IsCombatClass("ranger"), "V6_SUPERVISOR_RANGER_IS_FARMER_CLASS");
+Assert(!CdpCharacterSupervisor.IsCombatClass("merchant"), "V6_SUPERVISOR_MERCHANT_NOT_FARMER_CLASS");
+Assert(CdpCharacterSupervisor.IsHealthyRuntimeComposition([
+    ("My_Merchant", "merchant", true),
+    ("My_Priest", "priest", true),
+    ("My_Ranger2", "ranger", true),
+    ("My_Ranger3", "ranger", true)
+]), "V6_SUPERVISOR_ONE_MERCHANT_THREE_FARMERS_HEALTHY");
+Assert(!CdpCharacterSupervisor.IsHealthyRuntimeComposition([
+    ("My_Merchant", "merchant", true),
+    ("My_Priest", "priest", true),
+    ("My_Ranger2", "ranger", true),
+    ("My_Ranger3", "ranger", false)
+]), "V6_SUPERVISOR_STOPPED_RUNTIME_UNHEALTHY");
+
+DebugReadResult RuntimeRead(string name, string ctype, bool running)
+{
+    var snapshotBytes = JsonSerializer.SerializeToUtf8Bytes(new
+    {
+        character = new { name, ctype },
+        status = new { running }
+    });
+    using var snapshot = JsonDocument.Parse(snapshotBytes);
+    using var events = JsonDocument.Parse("[]");
+    return new DebugReadResult(
+        snapshot.RootElement.Clone(),
+        events.RootElement.Clone(),
+        0, 0, 0, 0, false,
+        "https://adventure.land/character/" + name + "/in/EU/II/");
+}
+var healthyRuntimeReads = new[]
+{
+    RuntimeRead("My_Merchant", "merchant", true),
+    RuntimeRead("My_Priest", "priest", true),
+    RuntimeRead("My_Ranger2", "ranger", true),
+    RuntimeRead("My_Ranger3", "ranger", true)
+};
+Assert(TelemetryBridgeService.RuntimeCompositionWarning(healthyRuntimeReads) is null,
+    "V6_RUNTIME_GROUP_ONE_MERCHANT_THREE_FARMERS_HEALTHY");
+var incompleteRuntimeWarning = TelemetryBridgeService.RuntimeCompositionWarning([
+    RuntimeRead("My_Merchant", "merchant", true),
+    RuntimeRead("My_Priest", "priest", true),
+    RuntimeRead("My_Ranger2", "ranger", true),
+    RuntimeRead("My_Ranger3", "ranger", false)
+]);
+Assert(incompleteRuntimeWarning is not null
+    && incompleteRuntimeWarning.Contains("runtime=3/4", StringComparison.Ordinal)
+    && incompleteRuntimeWarning.Contains("merchant=1/1", StringComparison.Ordinal)
+    && incompleteRuntimeWarning.Contains("farmers=2/3", StringComparison.Ordinal),
+    "V6_RUNTIME_GROUP_WARNING_EXPOSES_RUNNING_COMPOSITION");
+
+var merchantNavigationBuilder = typeof(CdpCharacterSupervisor).GetMethod(
+    "BuildMerchantNavigationExpression",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+var characterStartBuilder = typeof(CdpCharacterSupervisor).GetMethod(
+    "BuildStartCharacterExpression",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+var codeRestartBuilder = typeof(CdpCharacterSupervisor).GetMethod(
+    "BuildRestartCodeExpression",
+    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+Assert(merchantNavigationBuilder is not null, "V6_SUPERVISOR_MERCHANT_NAVIGATION_BUILDER");
+Assert(characterStartBuilder is not null, "V6_SUPERVISOR_CHARACTER_START_BUILDER");
+Assert(codeRestartBuilder is not null, "V6_SUPERVISOR_CODE_RESTART_BUILDER");
+var merchantNavigationExpression = (string)merchantNavigationBuilder!.Invoke(
+    null, ["My_Merchant", "EU", "II", "AL Final Bot"])!;
+var characterStartExpression = (string)characterStartBuilder!.Invoke(
+    null, ["My_Ranger2", "AL Final Bot"])!;
+var codeRestartExpression = (string)codeRestartBuilder!.Invoke(
+    null, ["My_Ranger2", "AL Final Bot"])!;
+Assert(merchantNavigationExpression.Contains("location.assign", StringComparison.Ordinal)
+    && merchantNavigationExpression.Contains("?code=", StringComparison.Ordinal),
+    "V6_SUPERVISOR_COLD_START_NAVIGATES_MERCHANT_WITH_CODE_SLOT");
+Assert(characterStartExpression.Contains("start_character_runner", StringComparison.Ordinal)
+    && characterStartExpression.Contains("start_character", StringComparison.Ordinal),
+    "V6_SUPERVISOR_USES_OFFICIAL_CHARACTER_LIFECYCLE_API");
+Assert(!characterStartExpression.Contains("stop_character", StringComparison.Ordinal),
+    "V6_SUPERVISOR_DOES_NOT_BLINDLY_STOP_ACTIVE_CHARACTERS");
+Assert(codeRestartExpression.Contains("code_active === true", StringComparison.Ordinal)
+    && codeRestartExpression.Contains("frame.src = next.toString()", StringComparison.Ordinal)
+    && codeRestartExpression.Contains("root.location.assign(next.toString())", StringComparison.Ordinal),
+    "V6_SUPERVISOR_RESTARTS_CODE_LAYER_FOR_LOADED_LOCAL_OR_CHILD_CHARACTER");
+Assert(codeRestartExpression.Contains("searchParams.set('code', slot)", StringComparison.Ordinal),
+    "V6_SUPERVISOR_CODE_RESTART_PRESERVES_MANAGED_CODE_SLOT");
+Assert(!codeRestartExpression.Contains("stop_character", StringComparison.Ordinal),
+    "V6_SUPERVISOR_CODE_RESTART_PRESERVES_CONNECTED_CHARACTER");
 
 var perCharacterState = new BridgeState(999);
 Assert(perCharacterState.GetLastEventSeq("My_Ranger1") == 0,
@@ -603,6 +798,22 @@ Assert(perCharacterState.GetLastEventSeq("My_Ranger1") == 12, "V6_RANGER_CURSOR_
 Assert(perCharacterState.GetLastEventSeq("my_priest") == 34, "V6_PRIEST_CURSOR_CASE_INSENSITIVE");
 Assert(perCharacterState.GetLastEventSeq("My_Merchant") == 0, "V6_NEW_CHARACTER_CURSOR_STARTS_ZERO");
 Assert(perCharacterState.LastEventSeq == 999, "V6_AGGREGATE_CURSOR_REMAINS_MONOTONIC");
+perCharacterState = perCharacterState.WithManagedCharacterNames([
+    "My_Ranger3", "My_Merchant", "My_Priest", "My_Ranger2"
+]);
+Assert(perCharacterState.GetManagedCharacterNames().SequenceEqual(
+    ["My_Merchant", "My_Priest", "My_Ranger2", "My_Ranger3"],
+    StringComparer.OrdinalIgnoreCase),
+    "V6_MANAGED_ROSTER_PERSISTED_DETERMINISTICALLY");
+try
+{
+    _ = perCharacterState.WithManagedCharacterNames(["My_Merchant", "My_Priest"]);
+    throw new InvalidOperationException("EXPECTED_MANAGED_ROSTER_VALIDATION");
+}
+catch (ArgumentException error) when (
+    error.Message.Contains("MANAGED_CHARACTER_SET_MUST_CONTAIN_FOUR_UNIQUE_NAMES", StringComparison.Ordinal))
+{
+}
 
 Assert(defaults.WebDashboardEnabled, "WEB_DASHBOARD_PROFILE_SYNC_DEFAULT_ON");
 Assert(defaults.WebDashboardBaseUrl.StartsWith("https://", StringComparison.Ordinal), "WEB_DASHBOARD_MUST_DEFAULT_HTTPS");
@@ -615,7 +826,9 @@ Assert(defaults.BackblazeBucket == "al-aio-bot", "BACKBLAZE_BUCKET_DEFAULT");
 Assert(defaults.BackblazePrefix == "v6", "BACKBLAZE_PREFIX_DEFAULT");
 Assert(defaults.BackblazeKeyIdEnvironmentVariable == "ALBOT_V6_BACKBLAZE_KEY_ID", "BACKBLAZE_KEY_ID_ENV_REQUIRED");
 Assert(defaults.BackblazeApplicationKeyEnvironmentVariable == "ALBOT_V6_BACKBLAZE_APPLICATION_KEY", "BACKBLAZE_APPLICATION_KEY_ENV_REQUIRED");
-Assert(BridgeConfig.CurrentConfigVersion == 11, "V6_CONFIG_VERSION_11");
+Assert(BridgeConfig.CurrentConfigVersion == 12, "V6_CONFIG_VERSION_12");
+Assert(defaults.CharacterSupervisorEnabled, "V6_CHARACTER_SUPERVISOR_DEFAULT_ON");
+Assert(defaults.ManagedCodeSlot == "AL Final Bot", "V6_CHARACTER_SUPERVISOR_CODE_SLOT_DEFAULT");
 Assert(BridgeConfig.LegacyBackblazeCredentialsPath.EndsWith("backblaze-credentials.dpapi", StringComparison.OrdinalIgnoreCase), "LEGACY_BACKBLAZE_STORE_AVAILABLE_FOR_ONE_TIME_IMPORT");
 Assert(defaults.WissenswaechterAktiv, "WISSENSWAECHTER_DEFAULT_ON");
 Assert(V5ReadinessSystemtest.TestKennung == "V5_WINDOWS_BRIDGE_READINESS", "V5_READINESS_TEST_ID");
@@ -832,6 +1045,8 @@ if (Directory.Exists(@"D:\"))
 (defaults with { PreferredBrowser = "Edge" }).Validate();
 (defaults with { PreferredBrowser = "Chrome" }).Validate();
 ExpectInvalid(defaults with { PreferredBrowser = "Firefox" }, "PREFERRED_BROWSER_INVALID");
+ExpectInvalid(defaults with { ManagedCodeSlot = "" }, "MANAGED_CODE_SLOT_INVALID");
+(defaults with { CharacterSupervisorEnabled = false, ManagedCodeSlot = "" }).Validate();
 
 var browserOrder = BrowserLauncher.BrowserPreferenceOrder("Brave");
 Assert(browserOrder.Count == 3, "BROWSER_ORDER_COUNT");

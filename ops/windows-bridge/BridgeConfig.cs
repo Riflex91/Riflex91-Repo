@@ -5,7 +5,7 @@ namespace AioBotWindowsBridge;
 
 public sealed record BridgeConfig
 {
-    public const int CurrentConfigVersion = 11;
+    public const int CurrentConfigVersion = 12;
     public const string V6TelemetryIngestUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-debug-ingest";
     public const string V6SignalControlUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-signal-control";
     public const string V6TelemetryTokenEnvironmentVariable = "ALBOT_V6_TELEMETRY_TOKEN";
@@ -26,6 +26,12 @@ public sealed record BridgeConfig
     public int SupabaseStatusIntervalSeconds { get; init; } = 60;
     public int MaxBackoffSeconds { get; init; } = 300;
     public int EventLimit { get; init; } = 100;
+
+    // The lifecycle supervisor is intentionally separate from ALBot.bridge. It may
+    // only start owned Adventure Land characters; bot planning/gameplay remains in
+    // the character runtime.
+    public bool CharacterSupervisorEnabled { get; init; } = true;
+    public string ManagedCodeSlot { get; init; } = "AL Final Bot";
 
     public bool WissenswaechterAktiv { get; init; } = true;
     public int WissenswaechterIntervallMinuten { get; init; } = 60;
@@ -126,7 +132,13 @@ public sealed record BridgeConfig
                     : loaded.BackblazeKeyIdEnvironmentVariable,
                 BackblazeApplicationKeyEnvironmentVariable = storedVersion < 11
                     ? "ALBOT_V6_BACKBLAZE_APPLICATION_KEY"
-                    : loaded.BackblazeApplicationKeyEnvironmentVariable
+                    : loaded.BackblazeApplicationKeyEnvironmentVariable,
+                CharacterSupervisorEnabled = storedVersion < 12
+                    ? true
+                    : loaded.CharacterSupervisorEnabled,
+                ManagedCodeSlot = storedVersion < 12 && string.IsNullOrWhiteSpace(loaded.ManagedCodeSlot)
+                    ? "AL Final Bot"
+                    : loaded.ManagedCodeSlot
             };
             await loaded.SaveAsync(cancellationToken);
         }
@@ -190,6 +202,11 @@ public sealed record BridgeConfig
             throw new InvalidOperationException("MAX_BACKOFF_OUT_OF_RANGE");
         if (EventLimit is < 1 or > 200)
             throw new InvalidOperationException("EVENT_LIMIT_OUT_OF_RANGE");
+        if (CharacterSupervisorEnabled
+            && (string.IsNullOrWhiteSpace(ManagedCodeSlot)
+                || ManagedCodeSlot.Trim().Length > 120
+                || ManagedCodeSlot.Any(char.IsControl)))
+            throw new InvalidOperationException("MANAGED_CODE_SLOT_INVALID");
 
         if (WissenswaechterIntervallMinuten != 60)
             throw new InvalidOperationException("WISSENSWAECHTER_INTERVALL_MUSS_60_MINUTEN_SEIN");
@@ -299,8 +316,30 @@ public sealed record BridgeConfig
 
 public sealed record BridgeState(
     long LastEventSeq = 0,
-    Dictionary<string, long>? CharacterEventSeqs = null)
+    Dictionary<string, long>? CharacterEventSeqs = null,
+    string[]? ManagedCharacterNames = null)
 {
+    public IReadOnlyList<string> GetManagedCharacterNames() =>
+        (ManagedCharacterNames ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+    public BridgeState WithManagedCharacterNames(IEnumerable<string> names)
+    {
+        var normalized = (names ?? Array.Empty<string>())
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (normalized.Length != CdpCharacterSupervisor.ExpectedMerchantCount + CdpCharacterSupervisor.ExpectedFarmerCount)
+            throw new ArgumentException("MANAGED_CHARACTER_SET_MUST_CONTAIN_FOUR_UNIQUE_NAMES", nameof(names));
+        return this with { ManagedCharacterNames = normalized };
+    }
+
     public long GetLastEventSeq(string? character)
     {
         if (string.IsNullOrWhiteSpace(character) || CharacterEventSeqs is null) return 0;

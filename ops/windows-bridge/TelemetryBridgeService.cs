@@ -26,6 +26,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     private readonly BridgeConfig _config;
     private readonly BrowserLauncher _launcher;
     private readonly CdpAlBotV6Client _browser;
+    private readonly CdpCharacterSupervisor _characterSupervisor;
     private readonly CdpWebDashboardConfigurator _dashboard;
     private readonly SupabaseTelemetrySink _sink;
     private readonly CloudflareV6DashboardSink? _dashboardSink;
@@ -48,6 +49,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
         _config = config;
         _launcher = new BrowserLauncher(httpClient, config);
         _browser = new CdpAlBotV6Client(httpClient, config);
+        _characterSupervisor = new CdpCharacterSupervisor(httpClient, config);
         _dashboard = new CdpWebDashboardConfigurator(httpClient, config);
         _sink = new SupabaseTelemetrySink(httpClient, config, token);
         _diagnostics = new LocalProblemDiagnosticsArchive(config);
@@ -124,6 +126,34 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                 browserReady = browserConnection.Ready;
                 if (!browserReady) throw new InvalidOperationException(browserConnection.State);
 
+                var supervisor = await _characterSupervisor.EnsureAsync(
+                    state.GetManagedCharacterNames(),
+                    cancellationToken);
+                if (supervisor.ActionRequested || SupervisorBlocksTelemetry(supervisor.State))
+                {
+                    var supervisorState = supervisor.ActionRequested ? "RECOVERING" : "DEGRADED";
+                    var supervisorMessage = CharacterSupervisorMessage(supervisor);
+                    var supervisorStatus = new RuntimeBridgeStatus(
+                        supervisorState,
+                        true,
+                        false,
+                        attempt,
+                        lastSuccess,
+                        state.LastEventSeq,
+                        0,
+                        supervisorMessage,
+                        null,
+                        dashboardState,
+                        dashboardError,
+                        backblazeState,
+                        backblazeError);
+                    Publish(supervisorStatus);
+                    await SaveStatusAsync(supervisorStatus, cancellationToken);
+                    failures = 0;
+                    await Task.Delay(TimeSpan.FromSeconds(_config.PollIntervalSeconds), cancellationToken);
+                    continue;
+                }
+
                 (dashboardState, dashboardError) = await SyncDashboardProfileAsync(cancellationToken);
                 (backblazeState, backblazeError) = BackblazeCurrentState();
 
@@ -140,6 +170,28 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                         readLimit,
                         includeDeepDiagnostics,
                         cancellationToken);
+
+                    var compositionWarning = RuntimeCompositionWarning(reads);
+                    if (batchIndex == 0 && compositionWarning is null)
+                    {
+                        var healthyNames = reads
+                            .Where(read => CdpAlBotV6Client.IsRuntimeRunning(read.Snapshot))
+                            .Select(read => CdpAlBotV6Client.ReadCharacterName(read.Snapshot))
+                            .Where(name => !string.IsNullOrWhiteSpace(name))
+                            .Select(name => name!)
+                            .Distinct(StringComparer.OrdinalIgnoreCase)
+                            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                            .ToArray();
+                        if (healthyNames.Length == CdpCharacterSupervisor.ExpectedMerchantCount
+                            + CdpCharacterSupervisor.ExpectedFarmerCount
+                            && !healthyNames.SequenceEqual(
+                                state.GetManagedCharacterNames(),
+                                StringComparer.OrdinalIgnoreCase))
+                        {
+                            state = state.WithManagedCharacterNames(healthyNames);
+                            await state.SaveAsync(cancellationToken);
+                        }
+                    }
 
                     var processed = 0;
                     var totalEventCount = 0;
@@ -208,7 +260,7 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
                         lastSuccess,
                         state.LastEventSeq,
                         totalEventCount,
-                        _browser.LastDiscoveryWarning,
+                        CombineWarnings(_browser.LastDiscoveryWarning, compositionWarning),
                         targetUrl,
                         dashboardState,
                         dashboardError,
@@ -484,6 +536,62 @@ public sealed class TelemetryBridgeService : IAsyncDisposable
     }
 
     private void Publish(RuntimeBridgeStatus status) => StatusChanged?.Invoke(status);
+
+    public static bool SupervisorBlocksTelemetry(string? state) =>
+        state is "WAITING_FOR_ADVENTURE_LAND_PAGE"
+            or "WAITING_FOR_ACCOUNT_SESSION"
+            or "MERCHANT_ROSTER_AMBIGUOUS"
+            or "MERCHANT_ONLINE_OUTSIDE_LOCAL_RUNNERS"
+            or "MERCHANT_START_BLOCKED"
+            or "MANAGED_ROSTER_BLOCKED";
+
+    public static string CharacterSupervisorMessage(CharacterSupervisorResult result)
+    {
+        var parts = new List<string> { "ALBOT_V6_CHARACTER_SUPERVISOR:" + result.State };
+        if (!string.IsNullOrWhiteSpace(result.ActionCharacter))
+            parts.Add("character=" + result.ActionCharacter);
+        if (!string.IsNullOrWhiteSpace(result.Detail))
+            parts.Add("detail=" + result.Detail);
+        return string.Join(":", parts);
+    }
+
+    public static string? RuntimeCompositionWarning(IEnumerable<DebugReadResult> reads)
+    {
+        var rows = (reads ?? Array.Empty<DebugReadResult>())
+            .Select(read => (
+                Name: CdpAlBotV6Client.ReadCharacterName(read.Snapshot),
+                Ctype: CdpAlBotV6Client.ReadCharacterType(read.Snapshot),
+                Running: CdpAlBotV6Client.IsRuntimeRunning(read.Snapshot)))
+            .Where(row => !string.IsNullOrWhiteSpace(row.Name))
+            .GroupBy(row => row.Name!, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .ToArray();
+
+        var running = rows.Where(row => row.Running).ToArray();
+        var merchants = running.Count(row =>
+            string.Equals(row.Ctype, "merchant", StringComparison.OrdinalIgnoreCase));
+        var farmers = running.Count(row => CdpCharacterSupervisor.IsCombatClass(row.Ctype));
+        if (running.Length == CdpCharacterSupervisor.ExpectedMerchantCount
+                + CdpCharacterSupervisor.ExpectedFarmerCount
+            && merchants == CdpCharacterSupervisor.ExpectedMerchantCount
+            && farmers == CdpCharacterSupervisor.ExpectedFarmerCount)
+            return null;
+
+        return "ALBOT_V6_GROUP_INCOMPLETE:"
+            + "runtime=" + running.Length + "/4"
+            + ":merchant=" + merchants + "/1"
+            + ":farmers=" + farmers + "/3";
+    }
+
+    public static string? CombineWarnings(params string?[] warnings)
+    {
+        var rows = warnings
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value!.Trim())
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        return rows.Length == 0 ? null : string.Join(" | ", rows);
+    }
 
     public static bool ShouldPublishConnecting(DateTimeOffset? lastSuccess) =>
         !lastSuccess.HasValue;

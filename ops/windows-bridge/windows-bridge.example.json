@@ -1,5 +1,5 @@
 {
-  "configVersion": 11,
+  "configVersion": 12,
   "cdpEndpoint": "http://127.0.0.1:9222",
   "allowedOrigin": "https://adventure.land",
   "telemetryIngestUrl": "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-debug-ingest",
@@ -13,6 +13,8 @@
   "supabaseStatusIntervalSeconds": 60,
   "maxBackoffSeconds": 300,
   "eventLimit": 100,
+  "characterSupervisorEnabled": true,
+  "managedCodeSlot": "AL Final Bot",
   "wissenswaechterAktiv": true,
   "wissenswaechterIntervallMinuten": 60,
   "wissenswaechterWebSucheAktiv": true,

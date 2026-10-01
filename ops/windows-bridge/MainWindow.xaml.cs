@@ -231,13 +231,22 @@ public partial class MainWindow : Window
         Dispatcher.Invoke(() =>
         {
             BrowserStateText.Text = status.BrowserReady ? "VERBUNDEN" : status.State == "CONNECTING" ? "VERBINDE …" : "OFFLINE";
-            BotStateText.Text = status.TargetUrl is not null ? "GEFUNDEN" : status.BrowserReady ? "SUCHE …" : "OFFLINE";
-            SupabaseStateText.Text = status.SupabaseReady ? "VERBUNDEN" : status.State == "CONNECTING" ? "VERBINDE …" : "OFFLINE";
+            BotStateText.Text = status.TargetUrl is not null
+                ? "GEFUNDEN"
+                : status.State == "RECOVERING"
+                    ? "STARTET …"
+                    : status.BrowserReady ? "SUCHE …" : "OFFLINE";
+            SupabaseStateText.Text = status.SupabaseReady
+                ? "VERBUNDEN"
+                : status.State is "CONNECTING" or "RECOVERING"
+                    ? "WARTE …"
+                    : "OFFLINE";
             TelemetryDetailText.Text = status.State switch
             {
                 "HEALTHY" => "Aktiv · Upload erfolgreich",
                 "CATCHING_UP" => "Aktiv · Telemetrie wird aufgeholt",
                 "CONNECTING" => "Aktiv · Verbindung wird hergestellt",
+                "RECOVERING" => "Aktiv · Charaktere/Bot werden wiederhergestellt",
                 "DEGRADED" => "Aktiv · Wiederholungsversuch mit Backoff",
                 _ => status.State
             };
