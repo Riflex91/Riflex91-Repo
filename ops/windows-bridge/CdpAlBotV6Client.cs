@@ -834,6 +834,144 @@ public sealed class CdpAlBotV6Client
 
     private const int MaxAttachedIframeDepth = 4;
     private const int MaxAttachedIframeSessions = 32;
+    private const int MaxExistingIframeTargets = 48;
+
+    public static bool TargetAncestryReachesRoot(
+        string targetId,
+        string rootTargetId,
+        IReadOnlyDictionary<string, string?> parentByTargetId)
+    {
+        if (string.IsNullOrWhiteSpace(targetId)
+            || string.IsNullOrWhiteSpace(rootTargetId)
+            || parentByTargetId is null)
+            return false;
+
+        var current = targetId.Trim();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (var depth = 0; depth < 16 && seen.Add(current); depth++)
+        {
+            if (!parentByTargetId.TryGetValue(current, out var parentId)
+                || string.IsNullOrWhiteSpace(parentId))
+                return false;
+            var parent = parentId.Trim();
+            if (string.Equals(parent, rootTargetId, StringComparison.Ordinal))
+                return true;
+            current = parent;
+        }
+        return false;
+    }
+
+    public static bool IsTrustedExistingIframeDescriptor(
+        string? targetType,
+        string? targetUrl,
+        bool ancestryReachesTrustedRoot,
+        string allowedOrigin)
+    {
+        if (!ancestryReachesTrustedRoot
+            || !string.Equals(targetType, "iframe", StringComparison.OrdinalIgnoreCase)
+            || string.IsNullOrWhiteSpace(allowedOrigin)
+            || !Uri.TryCreate(allowedOrigin, UriKind.Absolute, out var allowed))
+            return false;
+
+        var raw = (targetUrl ?? string.Empty).Trim();
+        if (Uri.TryCreate(raw, UriKind.Absolute, out var targetUri)
+            && SameOrigin(targetUri, allowed))
+            return true;
+
+        if (raw.StartsWith("blob:", StringComparison.OrdinalIgnoreCase)
+            && Uri.TryCreate(raw[5..], UriKind.Absolute, out var blobOrigin)
+            && SameOrigin(blobOrigin, allowed))
+            return true;
+
+        // An empty/about URL can inherit its origin only because the parent chain
+        // above has already been proven to terminate at the trusted AL page target.
+        return string.Equals(raw, "about:blank", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(raw, "about:srcdoc", StringComparison.OrdinalIgnoreCase)
+            || raw.Length == 0;
+    }
+
+    private async Task<IReadOnlyList<AttachedExecutionContext>> DiscoverExistingIframeContextsAsync(
+        ClientWebSocket socket,
+        Target rootTarget,
+        CancellationToken cancellationToken)
+    {
+        var result = await SendCommandForResultAsync(
+            socket,
+            "Target.getTargets",
+            new { },
+            sessionId: null,
+            cancellationToken);
+        if (!result.TryGetProperty("targetInfos", out var targetInfos)
+            || targetInfos.ValueKind != JsonValueKind.Array)
+            return Array.Empty<AttachedExecutionContext>();
+
+        var rows = new List<ExistingTargetInfo>();
+        foreach (var targetInfo in targetInfos.EnumerateArray())
+        {
+            if (targetInfo.ValueKind != JsonValueKind.Object) continue;
+            var targetId = ReadString(targetInfo, "targetId")?.Trim();
+            if (string.IsNullOrWhiteSpace(targetId)) continue;
+            rows.Add(new ExistingTargetInfo(
+                targetId,
+                ReadString(targetInfo, "type") ?? string.Empty,
+                ReadString(targetInfo, "url") ?? string.Empty,
+                ReadString(targetInfo, "parentId")));
+        }
+
+        var parentByTargetId = rows
+            .ToDictionary(row => row.TargetId, row => row.ParentId, StringComparer.Ordinal);
+        var allowedOrigin = _allowedOrigin.GetLeftPart(UriPartial.Authority);
+        var candidates = rows
+            .Where(row => IsTrustedExistingIframeDescriptor(
+                row.Type,
+                row.Url,
+                TargetAncestryReachesRoot(row.TargetId, rootTarget.Id, parentByTargetId),
+                allowedOrigin))
+            .Take(MaxExistingIframeTargets)
+            .ToArray();
+
+        var contexts = new List<AttachedExecutionContext>();
+        foreach (var candidate in candidates)
+        {
+            try
+            {
+                var attach = await SendCommandForResultAsync(
+                    socket,
+                    "Target.attachToTarget",
+                    new
+                    {
+                        targetId = candidate.TargetId,
+                        flatten = true
+                    },
+                    sessionId: null,
+                    cancellationToken);
+                var sessionId = ReadString(attach, "sessionId")?.Trim();
+                if (string.IsNullOrWhiteSpace(sessionId))
+                    continue;
+
+                foreach (var contextId in await EnableRuntimeAndCollectContextsAsync(
+                             socket,
+                             sessionId,
+                             cancellationToken))
+                {
+                    contexts.Add(new AttachedExecutionContext(
+                        contextId,
+                        sessionId,
+                        candidate.TargetId));
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // Keep discovery best-effort. The event-based auto-attach path below
+                // remains available for Chromium versions/layouts that do not expose
+                // the existing target tree in this session.
+            }
+        }
+
+        return contexts
+            .DistinctBy(row => (row.SessionId, row.ContextId))
+            .ToArray();
+    }
 
     private async Task<IReadOnlyList<AttachedExecutionContext>> DiscoverAttachedIframeContextsAsync(
         ClientWebSocket socket,
@@ -843,13 +981,25 @@ public sealed class CdpAlBotV6Client
         if (string.IsNullOrWhiteSpace(rootTarget.Id))
             return Array.Empty<AttachedExecutionContext>();
 
-        // Target.getTargets does not expose iframe parent ancestry. Instead, enable
-        // auto-attach on the already trusted Adventure Land page target and consume
-        // the real Target.attachedToTarget events emitted by that parent session.
-        // Repeating this on each trusted child session gives us bounded descendant
-        // OOPIF discovery without inventing relationships from TargetInfo fields.
+        // Chrome exposes parentId/parentFrameId on TargetInfo. Enumerate and attach
+        // existing descendant iframe targets first so already-running AL character
+        // and nested CODE runner OOPIFs do not depend on fresh attachedToTarget events.
+        // Keep recursive auto-attach as a compatibility/future-target fallback.
         var contexts = new List<AttachedExecutionContext>();
-        var seenSessions = new HashSet<string>(StringComparer.Ordinal);
+        try
+        {
+            contexts.AddRange(await DiscoverExistingIframeContextsAsync(
+                socket,
+                rootTarget,
+                cancellationToken));
+        }
+        catch (InvalidOperationException)
+        {
+        }
+
+        var seenSessions = new HashSet<string>(
+            contexts.Select(row => row.SessionId),
+            StringComparer.Ordinal);
         var parents = new Queue<(string? SessionId, int Depth)>();
         parents.Enqueue((null, 0));
 
@@ -2371,6 +2521,12 @@ catch { return { valid: false, identity: null, diagnostics }; }
         var text = string.IsNullOrWhiteSpace(value) ? "ALBOT_V6_CDP_FAILED" : value;
         return text.Length <= 320 ? text : text[..320];
     }
+
+    private sealed record ExistingTargetInfo(
+        string TargetId,
+        string Type,
+        string Url,
+        string? ParentId);
 
     private sealed record AutoAttachedTargetInfo(
         string SessionId,
