@@ -420,7 +420,7 @@ public sealed class CdpCharacterSupervisor
 
             var restart = await EvaluateAsync(
                 target.WebSocketDebuggerUrl,
-                BuildForceRestartCodeExpression(row.Name, ResolveCodeSlot(row)),
+                BuildForceRestartCodeExpression(row.Name, _config.ManagedCodeSlot),
                 cancellationToken);
             if (!ReadAccepted(restart))
             {
