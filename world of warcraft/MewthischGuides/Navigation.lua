@@ -70,13 +70,25 @@ local function bearingFromPoints(player, target)
         player.x,
         player.y)
 
-    if playerWorld and tonumber(target.worldX) and tonumber(target.worldY) then
-        local deltaX = tonumber(target.worldX) - playerWorld.x
-        local deltaY = tonumber(target.worldY) - playerWorld.y
-        local angle = MG:ComputeWorldAbsoluteBearing(deltaX, deltaY)
-        local distance = math.sqrt(deltaX * deltaX + deltaY * deltaY)
+    if tonumber(target.worldX) and tonumber(target.worldY) and
+       MG.ForeverAPI.MapToRestedXPWorld then
+        local rxpPlayerWorld = MG.ForeverAPI:MapToRestedXPWorld(
+            player.mapID, player.x, player.y)
 
-        return angle, distance, "RestedXPWorldCoordinates"
+        if rxpPlayerWorld then
+            -- Convert RestedXP world deltas back to Blizzard axis order for
+            -- ComputeWorldAbsoluteBearing: Blizzard X=north/south,
+            -- Blizzard Y=east/west.
+            local deltaNorthSouth = tonumber(target.worldY) - rxpPlayerWorld.y
+            local deltaEastWest = tonumber(target.worldX) - rxpPlayerWorld.x
+            local angle = MG:ComputeWorldAbsoluteBearing(
+                deltaNorthSouth, deltaEastWest)
+            local distance = math.sqrt(
+                deltaNorthSouth * deltaNorthSouth +
+                deltaEastWest * deltaEastWest)
+
+            return angle, distance, "RestedXPWorldCoordinates"
+        end
     end
 
     if not tonumber(target.x) or not tonumber(target.y) then
@@ -186,6 +198,7 @@ function MG:RefreshNavigation(reason)
             directionReliable = false,
             reason = "no_step",
         }
+        if self.RefreshWorldMapMarker then self:RefreshWorldMapMarker(nil) end
         return
     end
 
@@ -212,6 +225,7 @@ function MG:RefreshNavigation(reason)
 
     self.navigation = nav
     self:UpdateNavigationRealtime()
+    if self.RefreshWorldMapMarker then self:RefreshWorldMapMarker(target) end
 
     local signature = table.concat({
         tostring(nav.questID or ""),
@@ -247,6 +261,8 @@ function MG:RefreshNavigation(reason)
                     relativeAngle = nav.relativeAngle,
                     distanceMeters = nav.distanceMeters,
                     distanceSource = nav.distanceSource,
+                    rxpRoutePointCount = target.rxpRoutePointCount,
+                    rxpRoutePointIndex = target.rxpRoutePointIndex,
                     reason = reason,
                 })
         elseif target then

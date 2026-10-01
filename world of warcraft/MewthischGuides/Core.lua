@@ -2,7 +2,7 @@ local addonName, MG = ...
 _G.MewthischGuides = MG
 _G.ForeverGuide = MG
 
-MG.VERSION = "0.10.0"
+MG.VERSION = "0.11.2"
 MG.INTERFACE = 16001
 MG.NAME = "Mewthisch Guides"
 MG.heartbeatTicker = nil
@@ -135,6 +135,9 @@ frame:SetScript("OnEvent", function(_, event, ...)
             MG:EnsureDB()
 
             if MG.ForeverAPI and MG.ForeverAPI.Survey then MG.ForeverAPI:Survey() end
+            if MG.Themes and MG.Themes.RegisterEllesmereSkin then
+                MG.Themes:RegisterEllesmereSkin()
+            end
             MG:StartLogSession()
 
             if MG.DataLoader then MG.DataLoader:Load() end
@@ -265,7 +268,7 @@ local function handleSlash(msg)
         elseif command == "show" then MG:ShowWindow()
         elseif command == "hide" then MG:HideWindow()
         elseif command == "info" then MG:ToggleInfo()
-        elseif command == "settings" or command == "optionen" then MG:ToggleSettings()
+        elseif command == "settings" or command == "optionen" or command == "config" then MG:ToggleSettings()
         elseif command == "navigator" or command == "arrow" or command == "pfeil" then MG:ToggleNavigator()
         elseif command == "status" then MG:PrintStatus()
         elseif command == "diag" or command == "diagnose" then
@@ -280,11 +283,32 @@ local function handleSlash(msg)
                 " Secrets=" .. tostring(caps.security and caps.security.secretsNamespace))
         elseif command == "route" then
             local status = MG.RouteEngine and MG.RouteEngine:GetStatus() or {}
-            print("|cff62d6ffMewthisch Guides|r Route: Quelle=" ..
-                tostring(status.source or "none") ..
+            print("|cff62d6ffMewthisch Guides|r Route: Modus=" ..
+                tostring(MG.GetRouteMode and MG:GetRouteMode() or "preset") ..
+                " Quelle=" .. tostring(status.source or "none") ..
                 " Kandidaten=" .. tostring(status.candidates or 0) ..
                 " Map=" .. tostring(status.mapID or "-") ..
                 " Score=" .. tostring(status.score or "-"))
+        elseif command == "mode" or command == "modus" then
+            local wanted = string.lower(rest or "")
+            if wanted == "manual" or wanted == "manuell" then
+                MG:SetRouteMode("manual")
+            elseif wanted == "preset" or wanted == "vorgegeben" then
+                MG:SetRouteMode("preset")
+            end
+            print("|cff62d6ffMewthisch Guides|r Routenmodus: " ..
+                tostring(MG.GetRouteMode and MG:GetRouteMode() or "preset"))
+        elseif command == "mapmarker" then
+            local value = parseOnOff(rest)
+            if value ~= nil then
+                MG.db.settings.showWorldMapMarker = value
+                if MG.RefreshWorldMapMarker then
+                    MG:RefreshWorldMapMarker(MG.navigation and MG.navigation.target or nil)
+                end
+                if MG.RefreshSettings then MG:RefreshSettings() end
+            end
+            print("|cff62d6ffMewthisch Guides|r Weltkarten-Marker: " ..
+                tostring(MG.db.settings.showWorldMapMarker))
         elseif command == "next" then MG:SelectRelativeStep(1, "slash")
         elseif command == "prev" then MG:SelectRelativeStep(-1, "slash")
         elseif command == "refresh" or command == "resync" then
@@ -357,7 +381,7 @@ local function handleSlash(msg)
             MG:Log("INFO", "log.cleared", "Diagnoselog geleert.")
             print("|cff62d6ffMewthisch Guides|r Diagnoselog geleert.")
         else
-            print("|cff62d6ffMewthisch Guides|r /mg | show | hide | info | settings | navigator | status | diag | api | route | next | prev | refresh | guide <id> | theme <name> | gear | gearauto on/off | reward | talent | autoaccept on/off | autoturnin on/off | log | clearlog")
+            print("|cff62d6ffMewthisch Guides|r /mg | show | hide | info | config | settings | navigator | status | diag | api | route | mode manual/preset | mapmarker on/off | next | prev | refresh | guide <id> | theme <name> | gear | gearauto on/off | reward | talent | autoaccept on/off | autoturnin on/off | log | clearlog")
         end
     end)
 end

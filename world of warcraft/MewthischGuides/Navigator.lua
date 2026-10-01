@@ -27,7 +27,7 @@ local function applyPosition(frame)
 end
 
 local function applyScale(frame)
-    local scale = tonumber(MG.db.settings.navigatorScale) or 1.0
+    local scale = tonumber(MG.db.settings.navigatorScale) or 1.15
     if scale < 0.7 then scale = 0.7 end
     if scale > 1.7 then scale = 1.7 end
 
@@ -42,7 +42,7 @@ function MG:InitializeNavigator()
     end
 
     local frame = CreateFrame("Frame", "MewthischGuidesNavigatorFrame", UIParent)
-    frame:SetSize(92, 88)
+    frame:SetSize(124, 132)
     frame:SetClampedToScreen(true)
     frame:SetMovable(true)
     frame:EnableMouse(true)
@@ -55,17 +55,22 @@ function MG:InitializeNavigator()
     local arrow = frame:CreateTexture(nil, "ARTWORK")
     local atlasSet = false
     if arrow.SetAtlas then
-        atlasSet = pcall(arrow.SetAtlas, arrow, "UI-HUD-Minimap-Arrow-Player", true)
+        atlasSet = pcall(arrow.SetAtlas, arrow, "UI-HUD-Minimap-Arrow-Player", false)
     end
     if not atlasSet then
         arrow:SetTexture("Interface\\Minimap\\MinimapArrow")
-        arrow:SetSize(72, 72)
     end
-    arrow:SetPoint("TOP", 0, 2)
+    -- Always force an explicit size. SetAtlas(..., true) previously used the
+    -- atlas' tiny native dimensions, making the distance text visually larger
+    -- than the direction arrow.
+    arrow:SetSize(104, 104)
+    arrow:SetPoint("TOP", 0, 4)
     navigator.arrow = arrow
 
     local distance = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    distance:SetPoint("TOP", arrow, "BOTTOM", 0, 2)
+    local distanceFont, _, distanceFlags = distance:GetFont()
+    if distanceFont then distance:SetFont(distanceFont, 12, distanceFlags) end
+    distance:SetPoint("TOP", arrow, "BOTTOM", 0, 0)
     distance:SetTextColor(0.78, 0.94, 1.0, 1.0)
     distance:SetText("")
     navigator.distance = distance
@@ -146,7 +151,7 @@ function MG:InitializeNavigator()
 end
 
 function MG:SetNavigatorScale(scale)
-    scale = tonumber(scale) or 1.0
+    scale = tonumber(scale) or 1.15
     if scale < 0.7 then scale = 0.7 end
     if scale > 1.7 then scale = 1.7 end
 
@@ -163,7 +168,7 @@ end
 function MG:ResetNavigatorPosition()
     self.db.settings.navigatorX = 0
     self.db.settings.navigatorY = 235
-    self.db.settings.navigatorScale = 1.0
+    self.db.settings.navigatorScale = 1.15
 
     if navigator.frame then
         applyPosition(navigator.frame)

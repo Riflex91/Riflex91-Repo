@@ -24,6 +24,57 @@ local function safeCompleted(questID)
     return false
 end
 
+local function parseLegacyCounts(text)
+    local current, required = tostring(text or ""):match("(%d+)%s*/%s*(%d+)")
+    return tonumber(current), tonumber(required)
+end
+
+local function legacyObjectives(index)
+    local objectives = {}
+    if not GetNumQuestLeaderBoards or not GetQuestLogLeaderBoard then
+        return objectives
+    end
+
+    local okCount, count = pcall(GetNumQuestLeaderBoards, index)
+    count = okCount and tonumber(count) or 0
+
+    for objectiveIndex = 1, count do
+        local ok, text, objectiveType, finished =
+            pcall(GetQuestLogLeaderBoard, objectiveIndex, index)
+
+        if ok and text then
+            local current, required = parseLegacyCounts(text)
+            objectives[#objectives + 1] = {
+                text = text,
+                type = objectiveType,
+                finished = finished and true or false,
+                numFulfilled = current,
+                numRequired = required,
+            }
+        end
+    end
+
+    return objectives
+end
+
+local function readyForTurnIn(questID, info)
+    if C_QuestLog and C_QuestLog.ReadyForTurnIn then
+        local ok, value = pcall(C_QuestLog.ReadyForTurnIn, questID)
+        if ok then return value and true or false end
+    end
+
+    if C_QuestLog and C_QuestLog.IsComplete then
+        local ok, value = pcall(C_QuestLog.IsComplete, questID)
+        if ok then return value and true or false end
+    end
+
+    if info and info.isComplete ~= nil then
+        return info.isComplete == true or info.isComplete == 1
+    end
+
+    return false
+end
+
 local function signature(snapshot)
     local ids = {}
     for questID in pairs(snapshot) do ids[#ids + 1] = questID end
@@ -44,45 +95,84 @@ local function signature(snapshot)
     return table.concat(parts, "|")
 end
 
-function Tracking:Refresh(reason)
-    local snapshot = {}
+local function addModernSnapshot(snapshot)
+    if not C_QuestLog or not C_QuestLog.GetNumQuestLogEntries or not C_QuestLog.GetInfo then
+        return 0
+    end
 
-    if C_QuestLog and C_QuestLog.GetNumQuestLogEntries and C_QuestLog.GetInfo then
-        local okCount, count = pcall(C_QuestLog.GetNumQuestLogEntries)
-        count = okCount and tonumber(count) or 0
+    local okCount, count = pcall(C_QuestLog.GetNumQuestLogEntries)
+    count = okCount and tonumber(count) or 0
+    local added = 0
 
-        for index = 1, count do
-            local okInfo, info = pcall(C_QuestLog.GetInfo, index)
-            if okInfo and info and not info.isHeader and info.questID then
-                local objectives = {}
-                if C_QuestLog.GetQuestObjectives then
-                    local ok, value = pcall(C_QuestLog.GetQuestObjectives, info.questID)
-                    if ok and type(value) == "table" then objectives = value end
-                end
+    for index = 1, count do
+        local okInfo, info = pcall(C_QuestLog.GetInfo, index)
+        if okInfo and info and not info.isHeader and info.questID then
+            local objectives = {}
+            if C_QuestLog.GetQuestObjectives then
+                local ok, value = pcall(C_QuestLog.GetQuestObjectives, info.questID)
+                if ok and type(value) == "table" then objectives = value end
+            end
 
-                local ready = false
-                if C_QuestLog.ReadyForTurnIn then
-                    local ok, value = pcall(C_QuestLog.ReadyForTurnIn, info.questID)
-                    ready = ok and value and true or false
-                elseif C_QuestLog.IsComplete then
-                    local ok, value = pcall(C_QuestLog.IsComplete, info.questID)
-                    ready = ok and value and true or false
-                elseif info.isComplete ~= nil then
-                    ready = info.isComplete and true or false
-                end
+            if #objectives == 0 then objectives = legacyObjectives(index) end
 
-                snapshot[info.questID] = {
-                    questID = info.questID,
-                    title = info.title,
-                    level = info.level,
+            snapshot[info.questID] = {
+                questID = info.questID,
+                title = info.title,
+                level = info.level,
+                questLogIndex = index,
+                objectives = objectives,
+                readyForTurnIn = readyForTurnIn(info.questID, info),
+                completed = safeCompleted(info.questID),
+                trackingSource = "C_QuestLog",
+            }
+            added = added + 1
+        end
+    end
+
+    return added
+end
+
+local function addLegacySnapshot(snapshot)
+    if not GetNumQuestLogEntries or not GetQuestLogTitle then return 0 end
+
+    local okCount, entries = pcall(GetNumQuestLogEntries)
+    entries = okCount and tonumber(entries) or 0
+    local added = 0
+
+    for index = 1, entries do
+        local ok, title, level, _, isHeader, _, isComplete, _, questID =
+            pcall(GetQuestLogTitle, index)
+
+        if ok and not isHeader and tonumber(questID) then
+            questID = tonumber(questID)
+
+            if not snapshot[questID] then
+                local objectives = legacyObjectives(index)
+                local ready = readyForTurnIn(questID, { isComplete = isComplete })
+
+                snapshot[questID] = {
+                    questID = questID,
+                    title = title,
+                    level = level,
                     questLogIndex = index,
                     objectives = objectives,
                     readyForTurnIn = ready,
-                    completed = safeCompleted(info.questID),
+                    completed = safeCompleted(questID),
+                    trackingSource = "LegacyQuestLog",
                 }
+                added = added + 1
             end
         end
     end
+
+    return added
+end
+
+function Tracking:Refresh(reason)
+    local snapshot = {}
+
+    local modernAdded = addModernSnapshot(snapshot)
+    local legacyAdded = addLegacySnapshot(snapshot)
 
     local newSignature = signature(snapshot)
     local changed = self.signature ~= nil and self.signature ~= newSignature
@@ -96,6 +186,8 @@ function Tracking:Refresh(reason)
         for _ in pairs(snapshot) do count = count + 1 end
         MG.db.runtime.questTracking = {
             activeQuests = count,
+            modernQuests = modernAdded,
+            legacyQuests = legacyAdded,
             updatedAt = self.updatedAt,
             reason = reason,
             changed = changed,

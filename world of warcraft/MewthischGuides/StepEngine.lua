@@ -183,17 +183,25 @@ function MG:BuildRouteStep(definition, snapshotEntry)
     end
 
     local routeHints = {}
+    local routeOrder = definition.order
     if self.RestEDXPImport and definition.rxpOccurrences then
+        local objectiveIndex = activeGoal and activeGoal.index or nil
+        routeOrder = self.RestEDXPImport:GetProgressOrder(
+            definition,
+            phase,
+            self:GetPlayerProfile(),
+            objectiveIndex) or routeOrder
         routeHints = self.RestEDXPImport:GetHints(
             definition,
             phase,
             self:GetPlayerProfile(),
-            4)
+            4,
+            objectiveIndex)
     end
 
     return {
         id = definition.id,
-        routeOrder = definition.order,
+        routeOrder = routeOrder,
         questID = definition.questID,
         title = title,
         level = snapshotEntry and snapshotEntry.level or definition.minLevel,
@@ -225,7 +233,7 @@ function MG:BuildLiveFallbackStep(entry)
         questID = entry.questID,
         title = entry.title or ("Quest " .. tostring(entry.questID)),
         level = entry.level,
-        phase = entry.readyForTurnIn and self.StepPhases.TURNIN or self.StepPhases.LIVE,
+        phase = entry.readyForTurnIn and self.StepPhases.TURNIN or self.StepPhases.OBJECTIVES,
         complete = false,
         action = goal and goal.instruction or "Quest fortsetzen",
         detail = goal and goal.instruction or "Quest fortsetzen",
@@ -240,6 +248,10 @@ function MG:BuildLiveFallbackStep(entry)
 end
 
 function MG:BuildGuideSteps()
+    if self.GetRouteMode and self:GetRouteMode() == "manual" and self.BuildManualRouteSteps then
+        return self:BuildManualRouteSteps()
+    end
+
     local snapshot = self:GetQuestLogSnapshot()
     local profile = self:GetPlayerProfile()
     local routeSteps = {}
@@ -277,14 +289,24 @@ function MG:BuildGuideSteps()
     local preferredQuestID = nil
     local preferredReason = nil
 
-    -- Resync rule 1: an already active route quest wins. This is the strongest
-    -- evidence that the character is already further into the route.
+    -- Resync rule 1: among active route quests, the furthest matching
+    -- RestedXP occurrence wins. Imported quests can stay in the quest log for
+    -- several guide steps, so choosing the first active quest incorrectly
+    -- pulled the guide backwards.
+    local furthestActive = nil
     for _, step in ipairs(routeSteps) do
         if step.phase == self.StepPhases.OBJECTIVES or step.phase == self.StepPhases.TURNIN then
-            preferredQuestID = step.questID
-            preferredReason = "active_route_quest"
-            break
+            local order = tonumber(step.routeOrder) or 0
+            if order >= maxCompletedOrder and
+               (not furthestActive or order > (tonumber(furthestActive.routeOrder) or 0)) then
+                furthestActive = step
+            end
         end
+    end
+
+    if furthestActive then
+        preferredQuestID = furthestActive.questID
+        preferredReason = "furthest_active_route_quest"
     end
 
     -- Resync rule 2: if nothing is active, continue after the highest
