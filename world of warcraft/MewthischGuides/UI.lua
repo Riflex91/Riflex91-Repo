@@ -14,6 +14,8 @@ local MAIN_WIDTH = 326
 local MAIN_HEIGHT = 184
 local MAIN_COLLAPSED_HEIGHT = 52
 local VISIBLE_ROWS = 4
+local GUIDE_PAGE_SIZE = 5
+local AUTO_ROUTE_TOOLTIP = "Derzeit nicht verfügbar! Questinformationen reichen nicht aus!"
 
 local function color(value, fallback)
     local c = type(value) == "table" and value or fallback or {1, 1, 1, 1}
@@ -147,6 +149,17 @@ local function setButtonEnabled(button, enabled)
     button:SetAlpha(enabled and 1 or 0.38)
 end
 
+local function showTooltip(owner, text)
+    if not GameTooltip or not owner or not text then return end
+    GameTooltip:SetOwner(owner, "ANCHOR_CURSOR")
+    GameTooltip:SetText(text, 1, 1, 1, true)
+    GameTooltip:Show()
+end
+
+local function hideTooltip()
+    if GameTooltip then GameTooltip:Hide() end
+end
+
 local function makeCheck(parent, y, labelText, settingKey, onChanged)
     local check = CreateFrame("Button", nil, parent)
     check:SetSize(18, 18)
@@ -269,6 +282,18 @@ local function setFrameBorder(frame, theme)
     end
 end
 
+local function objectiveProgressColor(percent)
+    percent = math.max(0, math.min(1, tonumber(percent) or 0))
+
+    -- Continuous red -> yellow -> green feedback:
+    -- 0/required = red, halfway = yellow, complete = green.
+    if percent <= 0.5 then
+        return 1, percent * 2, 0, 1
+    end
+
+    return (1 - percent) * 2, 1, 0, 1
+end
+
 local function rowColors(role, theme)
     if role == "complete" then return theme.complete, theme.complete end
     if role == "danger" then return theme.danger, theme.danger end
@@ -304,7 +329,7 @@ function MG:RefreshTheme()
 
     for _, button in ipairs(ui.buttons) do
         if button and button._mgBackground then
-            local bg = button._mgHovered and theme.active or theme.panel
+            local bg = (button._mgHovered or button._mgSelected) and theme.active or theme.panel
             setColorTexture(button._mgBackground, bg)
             setFrameBorder(button, theme)
         end
@@ -343,6 +368,12 @@ function MG:RefreshTheme()
             elseif label._mgDefaultFont and label.SetFont then
                 label:SetFont(label._mgDefaultFont, label._mgFontSize or 11, label._mgFontFlags)
             end
+        end
+    end
+
+    for _, row in ipairs(ui.rows) do
+        if row and row.text and row.progressPercent ~= nil then
+            row.text:SetTextColor(objectiveProgressColor(row.progressPercent))
         end
     end
 
@@ -471,9 +502,11 @@ function MG:InitializeUI()
     next:SetPoint("RIGHT", -29, 0)
     ui.next = next
 
-    local options = makeButton(guideBar, "O", 25, 21, function() MG:ToggleSettings() end)
+    local options = makeButton(guideBar, "O", 25, 21, function()
+        MG:ToggleGuideSelector()
+    end)
     options:SetPoint("RIGHT", -2, 0)
-    ui.settingsButton = options
+    ui.guideSelectButton = options
 
     local progress = makeProgressBar(frame, 12)
     progress:SetPoint("TOPLEFT", guideBar, "BOTTOMLEFT", 5, -5)
@@ -508,23 +541,165 @@ function MG:InitializeUI()
     footer:SetHeight(19)
     ui.footer = footer
 
-    local status = makeText(footer, "GameFontHighlightSmall", 9, "muted")
-    status:SetPoint("LEFT", 0, 0)
-    status:SetPoint("RIGHT", -100, 0)
-    status:SetWordWrap(false)
-    ui.footerStatus = status
-
-    local navigatorButton = makeButton(footer, "Pfeil", 46, 18, function()
-        MG:ToggleNavigator()
+    local configButton = makeButton(footer, "Config", 54, 18, function()
+        MG:ToggleSettings()
     end)
-    navigatorButton:SetPoint("RIGHT", -50, 0)
-    ui.navigatorButton = navigatorButton
+    configButton:SetPoint("RIGHT", 0, 0)
+    ui.configButton = configButton
 
-    local infoButton = makeButton(footer, "Info", 46, 18, function()
-        MG:ToggleInfo()
+    local equipNotice = CreateFrame(
+        "Frame", "MewthischGuidesAutoEquipNotice", UIParent)
+    equipNotice:SetSize(MAIN_WIDTH - 18, 36)
+    equipNotice:SetPoint("TOP", frame, "BOTTOM", 0, -8)
+    equipNotice:SetFrameStrata("DIALOG")
+    equipNotice:SetFrameLevel(frame:GetFrameLevel() + 50)
+    equipNotice:EnableMouse(false)
+    equipNotice:SetAlpha(0)
+    stylePanel(equipNotice, "panel")
+    equipNotice:Hide()
+    ui.equipNotice = equipNotice
+
+    local equipNoticeIcon = equipNotice:CreateTexture(nil, "ARTWORK")
+    equipNoticeIcon:SetSize(26, 26)
+    equipNoticeIcon:SetPoint("LEFT", 5, 0)
+    ui.equipNoticeIcon = equipNoticeIcon
+
+    local equipNoticeText = makeText(
+        equipNotice, "GameFontHighlight", 11, "text")
+    equipNoticeText:SetPoint("LEFT", equipNoticeIcon, "RIGHT", 8, 0)
+    equipNoticeText:SetPoint("RIGHT", -8, 0)
+    equipNoticeText:SetJustifyH("LEFT")
+    equipNoticeText:SetWordWrap(false)
+    ui.equipNoticeText = equipNoticeText
+
+    local equipNoticeAnimation = equipNotice:CreateAnimationGroup()
+
+    local noticeFadeIn = equipNoticeAnimation:CreateAnimation("Alpha")
+    noticeFadeIn:SetFromAlpha(0)
+    noticeFadeIn:SetToAlpha(1)
+    noticeFadeIn:SetDuration(0.20)
+    noticeFadeIn:SetOrder(1)
+
+    local noticeHold = equipNoticeAnimation:CreateAnimation("Alpha")
+    noticeHold:SetFromAlpha(1)
+    noticeHold:SetToAlpha(1)
+    noticeHold:SetDuration(2.20)
+    noticeHold:SetOrder(2)
+
+    local noticeFadeOut = equipNoticeAnimation:CreateAnimation("Alpha")
+    noticeFadeOut:SetFromAlpha(1)
+    noticeFadeOut:SetToAlpha(0)
+    noticeFadeOut:SetDuration(0.55)
+    noticeFadeOut:SetOrder(3)
+
+    equipNoticeAnimation:SetScript("OnPlay", function()
+        equipNotice:SetAlpha(0)
+        equipNotice:Show()
     end)
-    infoButton:SetPoint("RIGHT", 0, 0)
-    ui.infoButton = infoButton
+    equipNoticeAnimation:SetScript("OnFinished", function()
+        equipNotice:SetAlpha(0)
+        equipNotice:Hide()
+    end)
+    ui.equipNoticeAnimation = equipNoticeAnimation
+
+    local guideSelectFrame = CreateFrame("Frame",
+        "MewthischGuidesGuideSelectFrame", frame)
+    guideSelectFrame:SetAllPoints(frame)
+    guideSelectFrame:SetFrameLevel(frame:GetFrameLevel() + 20)
+    guideSelectFrame:EnableMouse(true)
+    stylePanel(guideSelectFrame, "panel")
+    guideSelectFrame:Hide()
+    ui.guideSelectFrame = guideSelectFrame
+
+    local guideSelectHeader = CreateFrame("Frame", nil, guideSelectFrame)
+    guideSelectHeader:SetPoint("TOPLEFT", 1, -1)
+    guideSelectHeader:SetPoint("TOPRIGHT", -1, -1)
+    guideSelectHeader:SetHeight(23)
+    stylePanel(guideSelectHeader, "header")
+
+    local guideSelectTitle = makeText(
+        guideSelectHeader, "GameFontNormalLarge", 12, "title")
+    guideSelectTitle:SetPoint("LEFT", 8, 0)
+    guideSelectTitle:SetPoint("RIGHT", -32, 0)
+    guideSelectTitle:SetWordWrap(false)
+    guideSelectTitle:SetText("Guide auswählen")
+    ui.guideSelectTitle = guideSelectTitle
+
+    local guideSelectClose = makeButton(
+        guideSelectHeader, "X", 20, 18, function()
+            MG:ToggleGuideSelector(false)
+        end)
+    guideSelectClose:SetPoint("RIGHT", -2, 0)
+
+    local categoryHorde = makeButton(
+        guideSelectFrame, "Horde", 92, 25, function()
+            MG:ShowGuideCategory("horde")
+        end)
+    categoryHorde:SetPoint("TOP", guideSelectHeader, "BOTTOM", -102, -34)
+    ui.guideCategoryHorde = categoryHorde
+
+    local categoryAlly = makeButton(
+        guideSelectFrame, "Ally", 92, 25, function()
+            MG:ShowGuideCategory("ally")
+        end)
+    categoryAlly:SetPoint("LEFT", categoryHorde, "RIGHT", 10, 0)
+    ui.guideCategoryAlly = categoryAlly
+
+    local categoryMage = makeButton(
+        guideSelectFrame, "Mage AoE Farm", 118, 25, function()
+            MG:ShowGuideCategory("mage")
+        end)
+    categoryMage:SetPoint("TOP", categoryHorde, "BOTTOM", 51, -14)
+    ui.guideCategoryMage = categoryMage
+
+    ui.guideRouteButtons = {}
+    for index = 1, GUIDE_PAGE_SIZE do
+        local routeButton = makeButton(
+            guideSelectFrame, "", MAIN_WIDTH - 30, 20, function(self)
+                if not self._mgGuideID or not MG.DataLoader then return end
+                local ok = MG.DataLoader:SelectGuide(self._mgGuideID)
+                if ok then
+                    MG:SetRouteMode("auto")
+                    MG:ToggleGuideSelector(false)
+                    MG:RefreshGuide("guide_picker")
+                end
+            end)
+        routeButton:SetPoint("TOPLEFT", 15, -35 - ((index - 1) * 23))
+        routeButton._mgGuideID = nil
+        ui.guideRouteButtons[index] = routeButton
+    end
+
+    local guideBack = makeButton(
+        guideSelectFrame, "< Kategorien", 84, 18, function()
+            ui.guideSelectCategory = nil
+            ui.guideSelectPage = 1
+            MG:RefreshGuideSelector()
+        end)
+    guideBack:SetPoint("BOTTOMLEFT", 8, 7)
+    ui.guideBackButton = guideBack
+
+    local guidePagePrev = makeButton(
+        guideSelectFrame, "<", 25, 18, function()
+            ui.guideSelectPage = math.max(1, (ui.guideSelectPage or 1) - 1)
+            MG:RefreshGuideSelector()
+        end)
+    guidePagePrev:SetPoint("BOTTOM", -42, 7)
+    ui.guidePagePrev = guidePagePrev
+
+    local guidePageLabel = makeText(
+        guideSelectFrame, "GameFontHighlightSmall", 9, "muted")
+    guidePageLabel:SetPoint("BOTTOM", 0, 10)
+    guidePageLabel:SetWidth(55)
+    guidePageLabel:SetJustifyH("CENTER")
+    ui.guidePageLabel = guidePageLabel
+
+    local guidePageNext = makeButton(
+        guideSelectFrame, ">", 25, 18, function()
+            ui.guideSelectPage = (ui.guideSelectPage or 1) + 1
+            MG:RefreshGuideSelector()
+        end)
+    guidePageNext:SetPoint("BOTTOM", 42, 7)
+    ui.guidePageNext = guidePageNext
 
     local infoFrame = CreateFrame("Frame", "MewthischGuidesInfoFrame", UIParent)
     infoFrame:SetSize(480, 570)
@@ -555,7 +730,7 @@ function MG:InitializeUI()
     ui.infoBody = infoBody
 
     local settingsFrame = CreateFrame("Frame", "MewthischGuidesSettingsFrame", UIParent)
-    settingsFrame:SetSize(440, 570)
+    settingsFrame:SetSize(440, 620)
     centerOverlay(settingsFrame)
     settingsFrame:SetClampedToScreen(true)
     stylePanel(settingsFrame, "panel")
@@ -578,34 +753,68 @@ function MG:InitializeUI()
     end)
     settingsClose:SetPoint("RIGHT", -3, 0)
 
-    ui.checkAutoAccept = makeCheck(settingsFrame, -48,
+    local routeModeLabel = makeText(settingsFrame, "GameFontHighlight", 11, "text")
+    routeModeLabel:SetPoint("TOPLEFT", 18, -48)
+    routeModeLabel:SetText("Routenmodus")
+
+    local manualMode = makeButton(settingsFrame, "Manuell", 82, 21, function()
+        MG:SetRouteMode("manual")
+    end)
+    manualMode:SetPoint("TOPLEFT", 110, -41)
+    ui.routeManualButton = manualMode
+
+    local autoMode = makeButton(settingsFrame, "Auto", 92, 21, function()
+        MG:SetRouteMode("auto")
+    end)
+    autoMode:SetPoint("LEFT", manualMode, "RIGHT", 8, 0)
+    autoMode:HookScript("OnEnter", function(self)
+        local ready = MG.DataLoader and MG.DataLoader:IsAutoRouteReady()
+        if not ready then showTooltip(self, AUTO_ROUTE_TOOLTIP) end
+    end)
+    autoMode:HookScript("OnLeave", hideTooltip)
+    ui.routeAutoButton = autoMode
+
+    local routeModeValue = makeText(settingsFrame, "GameFontHighlightSmall", 9, "muted")
+    routeModeValue:SetPoint("LEFT", autoMode, "RIGHT", 8, 0)
+    routeModeValue:SetPoint("RIGHT", -14, 0)
+    routeModeValue:SetWordWrap(false)
+    ui.routeModeValue = routeModeValue
+
+    ui.checkAutoAccept = makeCheck(settingsFrame, -82,
         "Quests bei Questgebern automatisch annehmen", "autoAcceptQuests")
-    ui.checkAutoTurnIn = makeCheck(settingsFrame, -80,
+    ui.checkAutoTurnIn = makeCheck(settingsFrame, -110,
         "Fertige Quests automatisch abgeben", "autoTurnInQuests")
-    ui.checkSuperTrack = makeCheck(settingsFrame, -112,
+    ui.checkSuperTrack = makeCheck(settingsFrame, -138,
         "Aktuelles Ziel automatisch super-tracken", "autoSuperTrack",
         function() MG:RefreshGuide("settings_supertrack") end)
-    ui.checkNavigator = makeCheck(settingsFrame, -144,
+    ui.checkNavigator = makeCheck(settingsFrame, -166,
         "Separaten Navigator anzeigen", "showNavigator",
         function() MG:RefreshNavigator() end)
-    ui.checkNavigatorLocked = makeCheck(settingsFrame, -176,
+    ui.checkNavigatorLocked = makeCheck(settingsFrame, -194,
         "Navigator sperren", "navigatorLocked")
-    ui.checkMinimap = makeCheck(settingsFrame, -208,
+    ui.checkMinimap = makeCheck(settingsFrame, -222,
         "Minimap-Button anzeigen", "showMinimapButton",
         function() MG:RefreshMinimapButton() end)
-    ui.checkDiagnostics = makeCheck(settingsFrame, -240,
+    ui.checkWorldMapMarker = makeCheck(settingsFrame, -250,
+        "Aktuelles Ziel auf der Weltkarte markieren", "showWorldMapMarker",
+        function()
+            if MG.RefreshWorldMapMarker then
+                MG:RefreshWorldMapMarker(MG.navigation and MG.navigation.target or nil)
+            end
+        end)
+    ui.checkDiagnostics = makeCheck(settingsFrame, -278,
         "Diagnose-Logs speichern", "diagnostics")
-    ui.checkGearAuto = makeCheck(settingsFrame, -272,
-        "Sichere High-Confidence-Gear-Upgrades automatisch anlegen",
+    ui.checkGearAuto = makeCheck(settingsFrame, -306,
+        "Bessere Ausrüstung automatisch anlegen",
         "gearAutoEquip",
         function() if MG.Sync then MG.Sync:Inventory("settings_gear_auto") end end)
 
     local transparencyLabel = makeText(settingsFrame, "GameFontHighlight", 11, "text")
-    transparencyLabel:SetPoint("TOPLEFT", 18, -314)
+    transparencyLabel:SetPoint("TOPLEFT", 18, -348)
     transparencyLabel:SetText("Fenster-Transparenz")
 
     local transparencyValue = makeText(settingsFrame, "GameFontHighlight", 10, "muted")
-    transparencyValue:SetPoint("TOPRIGHT", -20, -314)
+    transparencyValue:SetPoint("TOPRIGHT", -20, -348)
     transparencyValue:SetWidth(55)
     transparencyValue:SetJustifyH("RIGHT")
     ui.transparencyValue = transparencyValue
@@ -613,7 +822,7 @@ function MG:InitializeUI()
     local slider = CreateFrame("Slider", "MewthischGuidesTransparencySlider", settingsFrame)
     slider:SetOrientation("HORIZONTAL")
     slider:SetSize(280, 18)
-    slider:SetPoint("TOPLEFT", 18, -334)
+    slider:SetPoint("TOPLEFT", 18, -368)
     slider:SetMinMaxValues(0, 80)
     slider:SetValueStep(5)
     if slider.SetObeyStepOnDrag then slider:SetObeyStepOnDrag(true) end
@@ -651,13 +860,13 @@ function MG:InitializeUI()
     ui.transparencySlider = slider
 
     local scaleLabel = makeText(settingsFrame, "GameFontHighlight", 11, "text")
-    scaleLabel:SetPoint("TOPLEFT", 18, -374)
+    scaleLabel:SetPoint("TOPLEFT", 18, -408)
     scaleLabel:SetText("Navigator-Größe")
 
     local scaleDown = makeButton(settingsFrame, "-", 28, 20, function()
         MG:SetNavigatorScale((MG.db.settings.navigatorScale or 1) - 0.05)
     end)
-    scaleDown:SetPoint("TOPLEFT", 150, -367)
+    scaleDown:SetPoint("TOPLEFT", 150, -401)
 
     local scaleValue = makeText(settingsFrame, "GameFontHighlight", 11, "text")
     scaleValue:SetPoint("LEFT", scaleDown, "RIGHT", 8, 0)
@@ -670,13 +879,30 @@ function MG:InitializeUI()
     end)
     scaleUp:SetPoint("LEFT", scaleValue, "RIGHT", 8, 0)
 
+    local arrowSkinLabel = makeText(settingsFrame, "GameFontHighlight", 11, "text")
+    arrowSkinLabel:SetPoint("TOPLEFT", 18, -445)
+    arrowSkinLabel:SetText("Pfeil-Skin")
+
+    local arrowSkinButton = makeButton(settingsFrame, "Nächster Skin", 112, 21, function()
+        if MG.NextNavigatorArrowSkin then MG:NextNavigatorArrowSkin() end
+    end)
+    arrowSkinButton:SetPoint("TOPLEFT", 100, -438)
+    ui.arrowSkinButton = arrowSkinButton
+
+    local arrowSkinValue = makeText(
+        settingsFrame, "GameFontHighlightSmall", 10, "muted")
+    arrowSkinValue:SetPoint("LEFT", arrowSkinButton, "RIGHT", 10, 0)
+    arrowSkinValue:SetPoint("RIGHT", -16, 0)
+    arrowSkinValue:SetWordWrap(false)
+    ui.arrowSkinValue = arrowSkinValue
+
     local resetNavigator = makeButton(settingsFrame, "Pfeil zurücksetzen", 145, 21, function()
         MG:ResetNavigatorPosition()
     end)
-    resetNavigator:SetPoint("TOPLEFT", 18, -407)
+    resetNavigator:SetPoint("TOPLEFT", 18, -475)
 
     local themeLabel = makeText(settingsFrame, "GameFontHighlight", 11, "text")
-    themeLabel:SetPoint("TOPLEFT", 18, -450)
+    themeLabel:SetPoint("TOPLEFT", 18, -516)
     themeLabel:SetText("Design")
 
     local themeButton = makeButton(settingsFrame, "Nächstes Theme", 125, 21, function()
@@ -684,7 +910,7 @@ function MG:InitializeUI()
         MG:RefreshSettings()
         MG:RefreshUI()
     end)
-    themeButton:SetPoint("TOPLEFT", 80, -443)
+    themeButton:SetPoint("TOPLEFT", 80, -509)
     ui.themeButton = themeButton
 
     local themeValue = makeText(settingsFrame, "GameFontHighlightSmall", 10, "muted")
@@ -694,14 +920,14 @@ function MG:InitializeUI()
     ui.themeValue = themeValue
 
     local elvNote = makeText(settingsFrame, "GameFontHighlightSmall", 9, "muted")
-    elvNote:SetPoint("TOPLEFT", 18, -482)
+    elvNote:SetPoint("TOPLEFT", 18, -550)
     elvNote:SetPoint("RIGHT", -18, 0)
     elvNote:SetText("ElvUI übernimmt bei erkanntem ElvUI automatisch dessen Hintergrund-, Rahmen-, Akzentfarben und Standardschrift.")
 
     local safety = makeText(settingsFrame, "GameFontHighlightSmall", 9, "muted")
-    safety:SetPoint("TOPLEFT", 18, -520)
+    safety:SetPoint("TOPLEFT", 18, -586)
     safety:SetPoint("RIGHT", -18, 0)
-    safety:SetText("Mehrfachbelohnungen und Talente bleiben manuell. Gear-Auto-Equip arbeitet ausschließlich fail-closed.")
+    safety:SetText("Auto-Equip schützt Waffen und bindet keine erkannten BoE-Gegenstände. Mehrfachbelohnungen und Talente bleiben manuell.")
 
     if self.db.settings.showWindow == false then frame:Hide() end
 
@@ -709,10 +935,161 @@ function MG:InitializeUI()
     self:RefreshSettings()
     self:RefreshTheme()
     self:RefreshInfo()
+
+    if ui.pendingAutoEquipNotice then
+        local pending = ui.pendingAutoEquipNotice
+        ui.pendingAutoEquipNotice = nil
+        self:ShowAutoEquipNotification(pending)
+    end
+
     self:Log("INFO", "ui.initialized",
         "Kompakter Mewthisch-Guides-Viewer initialisiert.", {
             version = self.VERSION,
             layout = "compact-guide-widget",
+        })
+end
+
+local function validItemIcon(value)
+    if type(value) == "number" then return value > 0 end
+    if type(value) == "string" then return value ~= "" end
+    return false
+end
+
+function MG:ResolveAutoEquipNoticeItemData(item)
+    item = item or {}
+    local itemID = tonumber(item.itemID)
+    local link = item.link
+    local slot = tonumber(item.slot)
+    local name = item.itemName
+    local icon = item.icon
+    local iconSource = validItemIcon(icon) and "candidate" or nil
+
+    if not name and C_Item and C_Item.GetItemNameByID and itemID then
+        local ok, value = pcall(C_Item.GetItemNameByID, itemID)
+        if ok and value and value ~= "" then name = value end
+    end
+
+    -- The notification is emitted only after the equip was confirmed, making
+    -- the equipped slot the strongest source for the actual displayed icon.
+    if not validItemIcon(icon) and slot and GetInventoryItemTexture then
+        local ok, value = pcall(GetInventoryItemTexture, "player", slot)
+        if ok and validItemIcon(value) then
+            icon = value
+            iconSource = "equipped-slot"
+        end
+    end
+
+    if not validItemIcon(icon) and
+       C_Item and C_Item.GetItemIconByID and itemID then
+        local ok, value = pcall(C_Item.GetItemIconByID, itemID)
+        if ok and validItemIcon(value) then
+            icon = value
+            iconSource = "C_Item.GetItemIconByID"
+        end
+    end
+
+    if not validItemIcon(icon) and GetItemIcon then
+        for _, target in ipairs({ itemID, link }) do
+            if target then
+                local ok, value = pcall(GetItemIcon, target)
+                if ok and validItemIcon(value) then
+                    icon = value
+                    iconSource = "GetItemIcon"
+                    break
+                end
+            end
+        end
+    end
+
+    local getter = C_Item and C_Item.GetItemInfo or GetItemInfo
+    if getter and (not name or not validItemIcon(icon)) then
+        local values = { pcall(getter, link or itemID) }
+        if values[1] then
+            if type(values[2]) == "table" then
+                local info = values[2]
+                name = name or info.itemName or info.name
+                local value = info.iconFileID or info.icon
+                if not validItemIcon(icon) and validItemIcon(value) then
+                    icon = value
+                    iconSource = "GetItemInfo-table"
+                end
+            else
+                if not name and values[2] and values[2] ~= "" then
+                    name = values[2]
+                end
+                -- GetItemInfo icon is return value #10; pcall adds one index.
+                local value = values[11]
+                if not validItemIcon(icon) and validItemIcon(value) then
+                    icon = value
+                    iconSource = "GetItemInfo"
+                end
+            end
+        end
+    end
+
+    if not validItemIcon(icon) and GetItemInfoInstant then
+        local values = { pcall(GetItemInfoInstant, itemID or link) }
+        if values[1] then
+            -- GetItemInfoInstant icon is return value #5; pcall adds one.
+            local value = values[6]
+            if validItemIcon(value) then
+                icon = value
+                iconSource = "GetItemInfoInstant"
+            end
+        end
+    end
+
+    if not validItemIcon(icon) then
+        icon = "Interface\\Icons\\INV_Misc_QuestionMark"
+        iconSource = "fallback"
+    end
+
+    return name or "Gegenstand", icon, iconSource
+end
+
+function MG:ShowAutoEquipNotification(item)
+    if not item then return end
+
+    if not ui.equipNotice or not ui.equipNoticeAnimation then
+        ui.pendingAutoEquipNotice = {
+            itemID = item.itemID,
+            link = item.link,
+            slot = item.slot,
+            itemName = item.itemName,
+            icon = item.icon,
+        }
+        return
+    end
+
+    local name, icon, iconSource =
+        self:ResolveAutoEquipNoticeItemData(item)
+
+    ui.equipNoticeIcon:SetTexture(icon)
+    ui.equipNoticeIcon:SetTexCoord(0, 1, 0, 1)
+    if ui.equipNoticeIcon.SetVertexColor then
+        ui.equipNoticeIcon:SetVertexColor(1, 1, 1, 1)
+    end
+    if ui.equipNoticeIcon.SetDesaturated then
+        ui.equipNoticeIcon:SetDesaturated(false)
+    end
+    ui.equipNoticeIcon:SetAlpha(1)
+    ui.equipNoticeIcon:Show()
+    ui.equipNoticeText:SetText(name .. " " .. (self.L and self:L("equipped") or "wurde angelegt."))
+    if self.AudioFeedback then self.AudioFeedback:Play("equip") end
+
+    local animation = ui.equipNoticeAnimation
+    if animation:IsPlaying() then animation:Stop() end
+
+    ui.equipNotice:SetAlpha(0)
+    ui.equipNotice:Show()
+    animation:Play()
+
+    self:Log("INFO", "gear.auto_equip_notice",
+        "Auto-Equip-Meldung angezeigt.", {
+            itemID = item.itemID,
+            itemName = name,
+            itemIcon = tostring(icon),
+            iconSource = iconSource,
         })
 end
 
@@ -822,13 +1199,46 @@ local function clearRows()
         local row = ui["row" .. index]
         row.text:SetText("")
         row.role = "muted"
+        row.progressPercent = nil
         row:Hide()
     end
 end
 
-local function addRow(models, text, role)
+local function addRow(models, text, role, progressPercent)
     if not text or text == "" or #models >= VISIBLE_ROWS then return end
-    models[#models + 1] = { text = text, role = role or "muted" }
+    models[#models + 1] = {
+        text = text,
+        role = role or "muted",
+        progressPercent = progressPercent,
+    }
+end
+
+local function goalRowText(goal)
+    local name = tostring(goal.name or "Questziel")
+    local current = tonumber(goal.current)
+    local required = tonumber(goal.required)
+    local progress = current and required and
+        (tostring(current) .. "/" .. tostring(required)) or
+        tostring(goal.progressText or "")
+
+    local instruction
+    if goal.type == "collect" or goal.type == "collect_currency" then
+        instruction = "Sammle " .. name
+    elseif goal.type == "kill" then
+        instruction = "Töte " .. name
+    elseif goal.type == "kill_player" then
+        instruction = "Besiege " .. name
+    elseif goal.type == "interact" then
+        instruction = "Interagiere mit " .. name
+    else
+        instruction = tostring(goal.instruction or name)
+    end
+
+    if progress ~= "" then
+        instruction = instruction .. "  " .. progress
+    end
+
+    return instruction
 end
 
 function MG:RefreshUI()
@@ -836,7 +1246,13 @@ function MG:RefreshUI()
 
     local step = self.currentStep
     local guide = self.GetActiveGuideDefinition and self:GetActiveGuideDefinition() or nil
-    local guideName = guide and (guide.title or guide.id) or "Kein Guide ausgewählt"
+    local routeMode = self.GetRouteMode and self:GetRouteMode() or "preset"
+    local guideName
+    if routeMode == "manual" then
+        guideName = "Manueller Modus"
+    else
+        guideName = guide and (guide.title or guide.id) or "Kein Guide ausgewählt"
+    end
 
     ui.guideTitle:SetText(guideName)
     clearRows()
@@ -845,7 +1261,6 @@ function MG:RefreshUI()
         ui.stepCounter:SetText("0 / 0")
         ui.progressLabel:SetText("Warte auf Guide-Schritt")
         ui.progress:SetProgress(0, "")
-        ui.footerStatus:SetText("Keine aktive Quest")
 
         local row = ui.row1
         row.text:SetText("Warte auf den nächsten passenden Guide-Schritt")
@@ -878,7 +1293,15 @@ function MG:RefreshUI()
             goal.state == self.GoalStates.ACTIVE and "active" or "muted"
         local prefix = goal.state == self.GoalStates.COMPLETE and "✓ " or
             goal.state == self.GoalStates.ACTIVE and "> " or "  "
-        addRow(models, prefix .. tostring(goal.instruction or goal.name or "Questziel"), role)
+        local progressPercent = nil
+        if tonumber(goal.required) and tonumber(goal.required) > 0 and
+           tonumber(goal.current) then
+            progressPercent = math.max(0, math.min(1,
+                tonumber(goal.current) / tonumber(goal.required)))
+        elseif tonumber(goal.percent) then
+            progressPercent = math.max(0, math.min(1, tonumber(goal.percent)))
+        end
+        addRow(models, prefix .. goalRowText(goal), role, progressPercent)
     end
 
     for _, hint in ipairs(step.routeHints or {}) do
@@ -894,21 +1317,105 @@ function MG:RefreshUI()
         local row = ui["row" .. index]
         row.text:SetText(model.text)
         row.role = model.role
+        row.progressPercent = model.progressPercent
         row:Show()
     end
-
-    local nav = self.navigation or {}
-    local distance = nav.distanceMeters and
-        (nav.distanceMeters >= 1000 and string.format("%.1f km", nav.distanceMeters / 1000) or
-            string.format("%.0f m", nav.distanceMeters)) or "–"
-    ui.footerStatus:SetText("Ziel: " .. distance .. "  •  " ..
-        tostring(self.automationStatus or "bereit"))
 
     setButtonEnabled(ui.prev, currentIndex > 1)
     setButtonEnabled(ui.next, currentIndex < stepCount)
 
     self:RefreshTheme()
     self:RefreshInfo()
+end
+
+function MG:ToggleGuideSelector(force)
+    if not ui.guideSelectFrame then return end
+    local show = force
+    if show == nil then show = not ui.guideSelectFrame:IsShown() end
+
+    if show then
+        ui.guideSelectCategory = nil
+        ui.guideSelectPage = 1
+        ui.guideSelectFrame:Show()
+        self:RefreshGuideSelector()
+    else
+        ui.guideSelectFrame:Hide()
+    end
+end
+
+function MG:ShowGuideCategory(category)
+    if category ~= "horde" and category ~= "ally" and category ~= "mage" then
+        return
+    end
+    if self.DataLoader and
+       not self.DataLoader:CanSelectCategory(category) then
+        return
+    end
+    ui.guideSelectCategory = category
+    ui.guideSelectPage = 1
+    self:RefreshGuideSelector()
+end
+
+function MG:RefreshGuideSelector()
+    if not ui.guideSelectFrame then return end
+
+    local category = ui.guideSelectCategory
+    local categoryButtons = {
+        ui.guideCategoryHorde, ui.guideCategoryAlly, ui.guideCategoryMage,
+    }
+
+    if not category then
+        ui.guideSelectTitle:SetText("Guide auswählen")
+        for _, button in ipairs(categoryButtons) do button:Show() end
+        if self.DataLoader then
+            setButtonEnabled(ui.guideCategoryHorde,
+                self.DataLoader:CanSelectCategory("horde"))
+            setButtonEnabled(ui.guideCategoryAlly,
+                self.DataLoader:CanSelectCategory("ally"))
+            setButtonEnabled(ui.guideCategoryMage,
+                self.DataLoader:CanSelectCategory("mage"))
+        end
+        for _, button in ipairs(ui.guideRouteButtons or {}) do button:Hide() end
+        ui.guideBackButton:Hide()
+        ui.guidePagePrev:Hide()
+        ui.guidePageNext:Hide()
+        ui.guidePageLabel:Hide()
+        return
+    end
+
+    for _, button in ipairs(categoryButtons) do button:Hide() end
+    ui.guideBackButton:Show()
+
+    local categoryName = category == "horde" and "Horde" or
+        category == "ally" and "Ally" or "Mage AoE Farm"
+    ui.guideSelectTitle:SetText(categoryName)
+
+    local guides = self.DataLoader and
+        self.DataLoader:GetSupportedGuides(category) or {}
+    local pageCount = math.max(1, math.ceil(#guides / GUIDE_PAGE_SIZE))
+    local page = math.max(1, math.min(pageCount, ui.guideSelectPage or 1))
+    ui.guideSelectPage = page
+
+    local first = ((page - 1) * GUIDE_PAGE_SIZE) + 1
+    for index, button in ipairs(ui.guideRouteButtons or {}) do
+        local guide = guides[first + index - 1]
+        if guide then
+            button._mgGuideID = guide.id
+            button:SetText(tostring(guide.title or guide.id))
+            setButtonEnabled(button,
+                self.DataLoader and
+                self.DataLoader:IsGuideSelectable(guide, category))
+            button:Show()
+        else
+            button._mgGuideID = nil
+            button:Hide()
+        end
+    end
+
+    ui.guidePageLabel:SetText(tostring(page) .. "/" .. tostring(pageCount))
+    ui.guidePageLabel:Show()
+    ui.guidePagePrev:SetShown(page > 1)
+    ui.guidePageNext:SetShown(page < pageCount)
 end
 
 function MG:RefreshInfo()
@@ -970,15 +1477,21 @@ function MG:RefreshInfo()
         "",
         "Auto-Annahme: " .. (self.db.settings.autoAcceptQuests and "AN" or "AUS"),
         "Auto-Abgabe: " .. (self.db.settings.autoTurnInQuests and "AN" or "AUS"),
+        "Routenmodus: " .. ((self.GetRouteMode and self:GetRouteMode() == "manual") and
+            "Manuell / kürzeste aktuelle Ziele" or "Vorgegebene Route"),
+        "Weltkarten-Marker: " .. (self.db.settings.showWorldMapMarker and "AN" or "AUS"),
         "Navigator: " .. (self.db.settings.showNavigator and "AN" or "AUS") ..
             (self.db.settings.navigatorLocked and " / gesperrt" or " / frei"),
         "Theme: " .. tostring(themeName),
-        "ElvUI erkannt: " .. (theme and theme.elvUIDetected and "ja" or "nein"),
+        "ElvUI erkannt: " .. ((self.Themes and self.Themes:IsElvUIAvailable()) and "ja" or "nein"),
+        "EllesmereUI erkannt: " .. ((self.Themes and self.Themes:IsEllesmereUIAvailable()) and "ja" or "nein"),
+        "ToxiUI erkannt: " .. ((self.Themes and self.Themes:IsToxiUIAvailable()) and "ja" or "nein"),
         "Guide-Validierung: " .. (validation.valid and "OK" or "prüfen") ..
             " (" .. tostring(validation.errors or 0) .. " Fehler)",
         "TravelGraph: " .. tostring(travel.nodes or 0) .. " Knoten / " ..
             tostring(travel.edges or 0) .. " Kanten",
         "Gear-Empfehlung: " .. tostring(gear.recommendedItemID or "–"),
+        "Gear-Auto-Equip: " .. tostring(gear.autoEquipReason or "–"),
         "Talent-Empfehlung: " .. tostring(talent.recommendedSpellID or "–"),
         "Reward-Empfehlung: " .. tostring(reward.recommendedItemID or "–"),
         "RestedXP-Guidequellen: " .. tostring(restedXP.rawGuides or 0) ..
@@ -1010,11 +1523,26 @@ function MG:RefreshSettings()
     ui.checkNavigator:SetChecked(self.db.settings.showNavigator)
     ui.checkNavigatorLocked:SetChecked(self.db.settings.navigatorLocked)
     ui.checkMinimap:SetChecked(self.db.settings.showMinimapButton)
+    ui.checkWorldMapMarker:SetChecked(self.db.settings.showWorldMapMarker)
     ui.checkDiagnostics:SetChecked(self.db.settings.diagnostics)
     ui.checkGearAuto:SetChecked(self.db.settings.gearAutoEquip)
 
+    local routeMode = self.GetRouteMode and self:GetRouteMode() or "manual"
+    local autoReady = self.DataLoader and self.DataLoader:IsAutoRouteReady()
+    ui.routeManualButton._mgSelected = routeMode == "manual"
+    ui.routeAutoButton._mgSelected = routeMode == "auto"
+    setButtonEnabled(ui.routeAutoButton, autoReady)
+    ui.routeModeValue:SetText(
+        routeMode == "auto" and "aktiv: Auto" or
+        (autoReady and "aktiv: Manuell" or "Auto nicht verfügbar"))
+
     ui.navigatorScaleValue:SetText(string.format("%d%%",
         math.floor((self.db.settings.navigatorScale or 1) * 100 + 0.5)))
+
+    if ui.arrowSkinValue and self.GetNavigatorArrowSkinName then
+        local skinName = self:GetNavigatorArrowSkinName()
+        ui.arrowSkinValue:SetText(tostring(skinName or "Kompass Schwarz"))
+    end
 
     local transparency = clampTransparency(self.db.settings.windowTransparency)
     ui.updatingSettings = true

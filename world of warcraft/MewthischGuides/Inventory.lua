@@ -16,6 +16,37 @@ local function safeItemLink(bag, slot)
     return nil
 end
 
+local function safeBoundState(bag, slot, info)
+    if info and info.isBound ~= nil then
+        return info.isBound and true or false
+    end
+
+    if C_Item and C_Item.IsBound and ItemLocation and
+       ItemLocation.CreateFromBagAndSlot then
+        local okLocation, location = pcall(function()
+            return ItemLocation:CreateFromBagAndSlot(bag, slot)
+        end)
+
+        if okLocation and location then
+            local okBound, value = pcall(C_Item.IsBound, location)
+            if okBound then return value and true or false end
+        end
+    end
+
+    return nil
+end
+
+local function safeBindingType(link)
+    local getter = C_Item and C_Item.GetItemInfo or GetItemInfo
+    if not link or not getter then return nil end
+    local values = { pcall(getter, link) }
+    if not values[1] or not values[2] then return nil end
+
+    -- GetItemInfo bindType is the 14th return value. pcall adds the success
+    -- boolean at index 1, so the binding type is stored at index 15.
+    return tonumber(values[15])
+end
+
 local function bagSlots(bag)
     if C_Container and C_Container.GetContainerNumSlots then
         local ok, value = pcall(C_Container.GetContainerNumSlots, bag)
@@ -52,7 +83,8 @@ function Inventory:Refresh(reason)
                     itemID = tonumber(itemID),
                     link = link,
                     count = info and info.stackCount or 1,
-                    isBound = info and info.isBound or nil,
+                    isBound = safeBoundState(bag, slot, info),
+                    bindingType = safeBindingType(link),
                     quality = info and info.quality or nil,
                 }
             end
