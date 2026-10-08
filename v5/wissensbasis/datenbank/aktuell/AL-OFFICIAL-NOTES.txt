@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<script src="/js/phrases.js?v=17397"></script>
-<script src="/phrases/en.js?v=17397"></script>
+		<script src="/js/phrases.js?v=17665"></script>
+<script src="/phrases/en.js?v=17665"></script>
 <script>
 	var language_account = false;
 	var language_initialized = false;
@@ -10,7 +10,7 @@
 	document.documentElement.lang = phrase.language;
 </script>
 
-<script src="/js/language_picker.js?v=17397"></script>
+<script src="/js/language_picker.js?v=17665"></script>
 <script>
 	if (window.desktop) {
 		initialize_desktop_language();
@@ -27,11 +27,11 @@
 		<!--[if IE]><link rel="shortcut icon" href="/images/favicon.png"><![endif]--> <!-- .ico -->
 		<meta name="msapplication-TileImage" content="/images/favicon.png"> <!-- 144 -->
 		<script src="/js/jquery/jquery-3.2.0.min.js"></script>
-		<script src="/js/common_functions.js?v=17397"></script>
-		<script src="/js/old_common_functions.js?v=17397"></script>
-		<script src="/js/functions.js?v=17397"></script>
-		<link href="/css/common.css?v=17397" rel="stylesheet" type="text/css"/>
-		<link href="/css/index.css?v=17397" rel="stylesheet" type="text/css"/>
+		<script src="/js/common_functions.js?v=17665"></script>
+		<script src="/js/old_common_functions.js?v=17665"></script>
+		<script src="/js/functions.js?v=17665"></script>
+		<link href="/css/common.css?v=17665" rel="stylesheet" type="text/css"/>
+		<link href="/css/index.css?v=17665" rel="stylesheet" type="text/css"/>
 		<style>
 			html{
 				background: black;
@@ -98,7 +98,43 @@
 	<body>
 		<div id="devlogs" class="update-notes">
 			<div class="update-notes-title">Update Notes</div>
-			<div class="update-notes-subtitle">Last Update [27/09/26]</div>
+			<div class="update-notes-subtitle">Last Update [07/10/26]</div>
+			
+				
+					<div class="update-notes-entry"><span class="update-notes-date">[07/10/26]</span><span>
+						<span class="release-archive-title">Anniversary Crafting</span>
+						
+						
+						<br><span class="release-count">Monsters:</span> Green Jr. (CHANGED), Jr. (CHANGED)<br><span class="release-count">Drops:</span> maps.global (CHANGED)<br><span class="release-count">Fixes:</span> Fixed the missing image on the UPDATE button., Anniversary recipes are available at Cole after the event ends.<br><span class="release-count">Improvements:</span> CODE can now read seasonal flags through server.status.event_flags.
+					</span></div>
+				
+			
+				
+					<div class="update-notes-entry"><span class="update-notes-date">[06/10/26]</span><span>
+						<span class="release-archive-title">Invite Friends and Fixes</span>
+						
+						<br><span class="release-archive-title">Invite Friends</span> <span class="release-note">Eligible Steam friends can connect once from the character screen. Both receive a Friend Token when the invited player enters the game, and the inviter receives 200 SHELLS.</span>
+						<br><span class="release-count">Items:</span> Gilded Horse Leather Cape (CHANGED)<br><span class="release-count">Fixes:</span> Bank gold responses now identify deposits and withdrawals., Offline characters no longer inflate cooperative monster drops., Short stun refreshes no longer shorten a longer stun., Poisoned monsters now receive 25% of normal healing, as the condition describes., Updated browser and payment-page connections to match the game servers., Failed throws no longer consume items., Splitting a stack in an overflowing inventory no longer loses items., Exchanges now work with a full inventory when they consume the whole stack., Invalid inventory slots no longer act on the first item., Sending items now checks space using their titles, markings, and contents., Loot and reward space checks now count stacks correctly., Offerings used without a scroll now show the grace they add instead of an upgrade chance., Entrances now name the missing key., Upgrade and compound CODE results no longer wait for a redraw., Monster documentation now explains both spawn-boundary formats., Banned accounts can no longer sign in or connect to the game., Invalid stand prices are now rejected instead of becoming 1-gold listings. Price fields now accept plain text only., Super Computer menus now use the selected inventory item. The Network menu now includes Cavalry when opened from the Super Computer., Direction buttons now move one 50-pixel step per click. Held arrow keys release correctly when focus changes., Character Objects links now open in the game’s documentation panel., Player-only skills now work on characters with all-numeric names, even when a monster has the same ID., Alchemy now shows the percentage of an item’s gold value returned., Items and potions can no longer be used while stunned., Mail attachments can now be collected only by the receiving account. Deleting mail removes only your copy., Event cards no longer cover the server menu., Switching servers on a merchant no longer interrupts other characters’ encouragement bonuses., Items in extra inventory rows can now be banked without moving the wrong item., Using either bank floor key now makes its first item pack available immediately, without leaving and re-entering., Cave votes no longer leave characters stuck in walls. Logging out from a blocked position no longer prevents returning to the run., Self-inflicted splash damage no longer prevents XP loss when a monster kills you or gives you loot from your own death.<br><span class="release-count">Improvements:</span> The anniversary event has ended., First-time Steam links can now connect to an earlier Adventure Land friend. When several friends qualify, you choose one., Upgrade and compound scrolls now say they are consumed on every attempt, whether it succeeds or fails.
+					</span></div>
+				
+			
+				
+					<div class="update-notes-entry"><span class="update-notes-date">[04/10/26]</span><span>
+						<span class="release-archive-title">Halloween and Cave Fixes</span>
+						
+						
+						<br><span class="release-count">Fixes:</span> Fixed Cave progress getting stuck after dragging enemies away or leaving a completed encounter., Fixed Cave loot showing ERROR and Amber counters not updating after leaving a completed encounter., The flaming-eye head now animates, even while standing still.<br><span class="release-count">Improvements:</span> Halloween has started!
+					</span></div>
+				
+			
+				
+					<div class="update-notes-entry"><span class="update-notes-date">[04/10/26]</span><span>
+						<span class="release-archive-title">Cave Fixes and Orb Compounding</span>
+						<br><span class="release-note">Loaded Die and Stillwater Lens can now be compounded.</span>
+						
+						<br><span class="release-count">Items:</span> Stillwater Lens (CHANGED), Loaded Die (CHANGED)<br><span class="release-count">Recipes:</span> Deepvein Axe (CHANGED)<br><span class="release-count">Titles:</span> cavefound (CHANGED)<br><span class="release-count">Fixes:</span> Included character slots no longer cost shells. Character changes can no longer overdraw your shell balance., Monster range checks in CODE now match the server, including for Tiny Crab., Encouragement drops now appear in CODE’s loot event., Repeated public messages are now filtered out of Discord and saved chat history., Cave monsters now report their target to CODE.<br><span class="release-count">Improvements:</span> Game servers use about 20% less CPU, so busy events lag less.
+					</span></div>
+				
 			
 				
 					<div class="update-notes-entry"><span class="update-notes-date">[27/09/26]</span><span>

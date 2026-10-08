@@ -2,6 +2,93 @@
   "schemaVersion": 2,
   "kandidaten": [
     {
+      "adresse": "https://github.com/kaansoral/adventureland",
+      "titel": "Adventure Land - The Open Source CODE MMORPG - GitHub",
+      "vertrauensklasse": "OFFIZIELL",
+      "status": "KANDIDAT",
+      "ersteSichtung": "2026-09-25T11:46:32.336931+00:00",
+      "letzteSichtung": "2026-10-08T20:45:22.6954304+00:00",
+      "suchanfragen": [
+        "site:github.com \u0022Adventure Land - The Code MMORPG\u0022",
+        "\u0022Adventure Land - The Code MMORPG\u0022"
+      ],
+      "relevanznachweis": "ADVENTURE_LAND_OFFIZIELLE_ADRESSE"
+    },
+    {
+      "adresse": "https://spielstarts.de/adventure-land-the-code-mmorpg",
+      "titel": "Adventure Land: The Code MMORPG - spielstarts.de",
+      "vertrauensklasse": "KANDIDAT",
+      "status": "KANDIDAT",
+      "ersteSichtung": "2026-09-25T11:46:32.336931+00:00",
+      "letzteSichtung": "2026-10-08T20:45:22.6954304+00:00",
+      "suchanfragen": [
+        "site:github.com \u0022Adventure Land - The Code MMORPG\u0022",
+        "\u0022Adventure Land - The Code MMORPG\u0022"
+      ],
+      "relevanznachweis": "ADVENTURE_LAND_SEITENINHALT_BESTAETIGT"
+    },
+    {
+      "adresse": "https://store.steampowered.com/app/777150/Adventure_Land__The_Code_MMORPG",
+      "titel": "Save 40% on Adventure Land - The Code MMORPG on Steam",
+      "vertrauensklasse": "OFFIZIELL",
+      "status": "KANDIDAT",
+      "ersteSichtung": "2026-09-25T11:46:32.336931+00:00",
+      "letzteSichtung": "2026-10-08T20:45:22.6954304+00:00",
+      "suchanfragen": [
+        "site:github.com \u0022Adventure Land - The Code MMORPG\u0022",
+        "\u0022Adventure Land - The Code MMORPG\u0022"
+      ],
+      "relevanznachweis": "ADVENTURE_LAND_OFFIZIELLE_ADRESSE"
+    },
+    {
+      "adresse": "https://adventure.land/docs",
+      "titel": "Adventure Land Docs",
+      "vertrauensklasse": "OFFIZIELL",
+      "status": "KANDIDAT",
+      "ersteSichtung": "2026-10-08T20:45:22.6954304+00:00",
+      "letzteSichtung": "2026-10-08T20:45:22.6954304+00:00",
+      "suchanfragen": [
+        "site:github.com \u0022Adventure Land - The Code MMORPG\u0022"
+      ],
+      "relevanznachweis": "ADVENTURE_LAND_OFFIZIELLE_ADRESSE"
+    },
+    {
+      "adresse": "https://adventureland.dcoles.net/guide.html",
+      "titel": "Adventure Land Coding Guide | Adventures in Adventure Land",
+      "vertrauensklasse": "KANDIDAT",
+      "status": "KANDIDAT",
+      "ersteSichtung": "2026-10-08T20:45:22.6954304+00:00",
+      "letzteSichtung": "2026-10-08T20:45:22.6954304+00:00",
+      "suchanfragen": [
+        "site:github.com \u0022Adventure Land - The Code MMORPG\u0022"
+      ],
+      "relevanznachweis": "ADVENTURE_LAND_SEITENINHALT_BESTAETIGT"
+    },
+    {
+      "adresse": "https://steamcommunity.com/app/777150/guides",
+      "titel": "Adventure Land - The Code MMORPG - Steam Community",
+      "vertrauensklasse": "OFFIZIELL",
+      "status": "KANDIDAT",
+      "ersteSichtung": "2026-10-08T20:45:22.6954304+00:00",
+      "letzteSichtung": "2026-10-08T20:45:22.6954304+00:00",
+      "suchanfragen": [
+        "site:github.com \u0022Adventure Land - The Code MMORPG\u0022"
+      ],
+      "relevanznachweis": "ADVENTURE_LAND_OFFIZIELLE_ADRESSE"
+    },
+    {
+      "adresse": "https://www.youtube.com/watch?v=xcan_IC1Cs4",
+      "titel": "An MMORPG Where You Code Your Character?! | Adventure Land",
+      "vertrauensklasse": "KANDIDAT",
+      "status": "KANDIDAT",
+      "ersteSichtung": "2026-10-08T20:45:22.6954304+00:00",
+      "letzteSichtung": "2026-10-08T20:45:22.6954304+00:00",
+      "suchanfragen": [
+        "site:github.com \u0022Adventure Land - The Code MMORPG\u0022"
+      ],
+      "relevanznachweis": "ADVENTURE_LAND_SEITENINHALT_BESTAETIGT"
+    },
+    {
       "adresse": "https://adventureland.dcoles.net/",
       "titel": "Adventures in Adventure Land | My travels through the Code MMORPG",
       "vertrauensklasse": "KANDIDAT",
@@ -13,19 +100,6 @@
         "\u0022Adventure Land - The Code MMORPG\u0022"
       ],
       "relevanznachweis": "ADVENTURE_LAND_SEITENINHALT_BESTAETIGT"
-    },
-    {
-      "adresse": "https://github.com/kaansoral/adventureland",
-      "titel": "Adventure Land - The Open Source CODE MMORPG - GitHub",
-      "vertrauensklasse": "OFFIZIELL",
-      "status": "KANDIDAT",
-      "ersteSichtung": "2026-09-25T11:46:32.336931+00:00",
-      "letzteSichtung": "2026-09-26T11:00:42.1157963+00:00",
-      "suchanfragen": [
-        "site:github.com \u0022Adventure Land - The Code MMORPG\u0022",
-        "\u0022Adventure Land - The Code MMORPG\u0022"
-      ],
-      "relevanznachweis": "ADVENTURE_LAND_OFFIZIELLE_ADRESSE"
     },
     {
       "adresse": "https://ocean-of-games.com/game/113728/adventure-land-the-code-mmorpg",
@@ -41,34 +115,8 @@
       "relevanznachweis": "ADVENTURE_LAND_SEITENINHALT_BESTAETIGT"
     },
     {
-      "adresse": "https://spielstarts.de/adventure-land-the-code-mmorpg",
-      "titel": "Adventure Land: The Code MMORPG - spielstarts.de",
-      "vertrauensklasse": "KANDIDAT",
-      "status": "KANDIDAT",
-      "ersteSichtung": "2026-09-25T11:46:32.336931+00:00",
-      "letzteSichtung": "2026-09-26T11:00:42.1157963+00:00",
-      "suchanfragen": [
-        "site:github.com \u0022Adventure Land - The Code MMORPG\u0022",
-        "\u0022Adventure Land - The Code MMORPG\u0022"
-      ],
-      "relevanznachweis": "ADVENTURE_LAND_SEITENINHALT_BESTAETIGT"
-    },
-    {
       "adresse": "https://steamcommunity.com/app/777150",
       "titel": "Adventure Land - The Code MMORPG - Steam Community",
-      "vertrauensklasse": "OFFIZIELL",
-      "status": "KANDIDAT",
-      "ersteSichtung": "2026-09-25T11:46:32.336931+00:00",
-      "letzteSichtung": "2026-09-26T11:00:42.1157963+00:00",
-      "suchanfragen": [
-        "site:github.com \u0022Adventure Land - The Code MMORPG\u0022",
-        "\u0022Adventure Land - The Code MMORPG\u0022"
-      ],
-      "relevanznachweis": "ADVENTURE_LAND_OFFIZIELLE_ADRESSE"
-    },
-    {
-      "adresse": "https://store.steampowered.com/app/777150/Adventure_Land__The_Code_MMORPG",
-      "titel": "Adventure Land - The Code MMORPG on Steam",
       "vertrauensklasse": "OFFIZIELL",
       "status": "KANDIDAT",
       "ersteSichtung": "2026-09-25T11:46:32.336931+00:00",
