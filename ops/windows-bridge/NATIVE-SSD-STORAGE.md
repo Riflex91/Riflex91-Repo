@@ -69,3 +69,22 @@ silently accepting or losing telemetry. The live ALFinal telemetry client
 continues using Node port `17391`. The native ingestion path can be
 integration-tested with temporary roots and explicit test-only opt-in;
 a single-writer cutover is still required.
+
+## Account write preparation and legacy writer guard
+
+The native Bridge now contains a validated `AlFinalNativeAccountSnapshot.WriteAccount`
+implementation that writes the legacy `account-profiles/*.json` and
+`account-wealth.json` file formats with per-file fsync and rename. It
+prevalidates all records and rejects duplicate names, traversal, stale
+observations, and oversized/malformed input before modifying files. It is
+**not a multi-file transaction**. A failure can leave an incomplete batch,
+which must be reconciled rather than blindly retried.
+
+The HTTP `POST /v1/state/account` route is **disabled by default** and
+returns HTTP 423. The production Bridge never enables it. A test-only opt-in
+parameter exists for controlled temporary-folder protocol tests. Both the
+account and telemetry write routes reject writes when the legacy Node host
+might be listening on 127.0.0.1:17391. This check is defense in depth and
+**not** proof of exclusive filesystem ownership: safe operational handover
+will require coordinated shutdown, a durable exclusive lease, and endpoint
+switching before either writer is enabled in production.

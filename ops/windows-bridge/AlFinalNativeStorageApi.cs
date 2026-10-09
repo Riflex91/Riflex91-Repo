@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -135,6 +136,7 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
     private readonly AlFinalNativeAccountSnapshot _accountSnapshot;
     private readonly AlFinalNativeTelemetryCapture _telemetryCapture;
     private readonly bool _telemetryWritesEnabled;
+    private readonly bool _accountWritesEnabled;
     private readonly int _port;
     private WebApplication? _server;
 
@@ -142,13 +144,15 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
         AlFinalNativeKeyValueStore? store = null, int port = DefaultPort,
         AlFinalNativeAccountSnapshot? accountSnapshot = null,
         AlFinalNativeTelemetryCapture? telemetryCapture = null,
-        bool telemetryWritesEnabled = false)
+        bool telemetryWritesEnabled = false,
+        bool accountWritesEnabled = false)
     {
         if (port is < 1 or > 65535) throw new ArgumentOutOfRangeException(nameof(port));
         _store = store ?? new AlFinalNativeKeyValueStore();
         _accountSnapshot = accountSnapshot ?? new AlFinalNativeAccountSnapshot();
         _telemetryCapture = telemetryCapture ?? new AlFinalNativeTelemetryCapture();
         _telemetryWritesEnabled = telemetryWritesEnabled;
+        _accountWritesEnabled = accountWritesEnabled;
         _port = port;
     }
 
@@ -158,6 +162,34 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
             || origin == "https://adventure.land"
             || origin == "https://www.adventure.land"
             || Regex.IsMatch(origin, @"^https://[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*\.adventure\.land$");
+    }
+
+    // Defense in depth: do not allow this experimental write interface
+    // to modify shared SSD state while the legacy Node server is online.
+    // A free port alone is NOT sufficient for safe permanent handover;
+    // the operator still has to stop the old host and pin one writer.
+    public static async Task<bool> LegacyWriterAbsentAsync(CancellationToken cancellationToken = default)
+    {
+        using var socket = new TcpClient();
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromMilliseconds(400));
+        try
+        {
+            await socket.ConnectAsync(IPAddress.Loopback, 17391, timeout.Token);
+            return false;
+        }
+        catch (SocketException e) when (e.SocketErrorCode == SocketError.ConnectionRefused)
+        {
+            return true;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            return false; // probe uncertain, fail closed
+        }
+        catch (SocketException)
+        {
+            return false;
+        }
     }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
@@ -203,6 +235,9 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
             if (!_telemetryWritesEnabled)
                 return Results.Json(new { ok = false, error = "TELEMETRY_NATIVE_WRITE_NOT_ENABLED" },
                     statusCode: 423);
+            if (!await LegacyWriterAbsentAsync(ctx.RequestAborted))
+                return Results.Json(new { ok = false, error = "LEGACY_NODE_WRITER_MAY_BE_RUNNING" },
+                    statusCode: 423);
             try
             {
                 using var document = await JsonDocument.ParseAsync(ctx.Request.Body,
@@ -225,10 +260,32 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
                     statusCode: 503);
             }
         });
-        // No native state POST until the old Node account writer is disabled.
-        server.MapPost("/v1/state/account", () =>
-            Results.Json(new { ok = false, error = "ACCOUNT_NATIVE_WRITE_NOT_ENABLED" },
-                statusCode: 423));
+        server.MapPost("/v1/state/account", async (HttpContext ctx) =>
+        {
+            if (!_accountWritesEnabled)
+                return Results.Json(new { ok = false, error = "ACCOUNT_NATIVE_WRITE_NOT_ENABLED" },
+                    statusCode: 423);
+            if (!await LegacyWriterAbsentAsync(ctx.RequestAborted))
+                return Results.Json(new { ok = false, error = "LEGACY_NODE_WRITER_MAY_BE_RUNNING" },
+                    statusCode: 423);
+            try
+            {
+                using var doc = await JsonDocument.ParseAsync(ctx.Request.Body,
+                    new JsonDocumentOptions { MaxDepth = 32 }, ctx.RequestAborted);
+                var (profilesWritten, wealthWritten) = _accountSnapshot.WriteAccount(doc.RootElement);
+                return Results.Json(new { ok = true, profilesWritten, wealthWritten });
+            }
+            catch (InvalidOperationException error) when (error.Message == "ACCOUNT_STALE_PROFILE_REJECTED"
+                || error.Message == "ACCOUNT_STALE_WEALTH_REJECTED")
+            {
+                return Results.Json(new { ok = false, error = error.Message }, statusCode: 409);
+            }
+            catch (Exception error) when (error is InvalidDataException or JsonException)
+            {
+                return Results.Json(new { ok = false, error = "ACCOUNT_WRITE_PAYLOAD_INVALID" },
+                    statusCode: 400);
+            }
+        });
 
         server.MapGet("/health", () => Results.Json(new
         {
