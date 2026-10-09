@@ -434,6 +434,110 @@ finally
     if (Directory.Exists(blockedRoot)) Directory.Delete(blockedRoot, recursive: true);
 }
 
+// A free port is not sufficient: invalidate Bridge ownership *during*
+// the awaited port probe. The second, per-mutation check must return 423.
+foreach (var accountRoute in new[] { true, false })
+{
+    var raceListener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+    raceListener.Start();
+    var racePort = ((System.Net.IPEndPoint)raceListener.LocalEndpoint).Port;
+    raceListener.Stop();
+    var raceRoot = Path.Combine(Path.GetTempPath(), "aio-writer-revoked-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        var raceState = Path.Combine(raceRoot, "state");
+        using var raceOwner = CreateTestBridgeWriter(raceState);
+        await using (var raceApi = new AlFinalNativeStorageApi(
+            new AlFinalNativeKeyValueStore(Path.Combine(raceRoot, "kv")), racePort,
+            new AlFinalNativeAccountSnapshot(raceState),
+            new AlFinalNativeTelemetryCapture(Path.Combine(raceRoot, "telemetry")),
+            accountWritesEnabled: true, telemetryWritesEnabled: true,
+            writerOwnership: raceOwner,
+            legacyWriterAbsentProbe: _ =>
+            {
+                File.WriteAllText(Path.Combine(raceState, AlFinalNativeWriterOwnership.OwnerFilename),
+                    "{\"schemaVersion\":1,\"owner\":\"node\"}");
+                return Task.FromResult(true);
+            }))
+        {
+            await raceApi.StartAsync();
+            using var client = new HttpClient();
+            var path = accountRoute ? "/v1/state/account" : "/v1/telemetry";
+            var payload = accountRoute
+                ? "{\"profiles\":[{\"name\":\"My_Merchant\",\"observedAtMs\":1234}]}"
+                : "{\"records\":[{\"atMs\":1791570000000,\"character\":{\"name\":\"My_Mage\"}}]}";
+            var response = await client.PostAsync("http://127.0.0.1:" + racePort + path,
+                new StringContent(payload, Encoding.UTF8, "text/plain"));
+            Assert((int)response.StatusCode == 423,
+                accountRoute ? "SSD_ACCOUNT_REVOKED_AFTER_PROBE_BLOCKED" : "SSD_TELEMETRY_REVOKED_AFTER_PROBE_BLOCKED");
+            Assert(!Directory.Exists(Path.Combine(raceState, "account-profiles")),
+                "SSD_REVOKED_NO_ACCOUNT_WRITE");
+            Assert(!Directory.Exists(Path.Combine(raceRoot, "telemetry")),
+                "SSD_REVOKED_NO_TELEMETRY_WRITE");
+        }
+    }
+    finally
+    {
+        if (Directory.Exists(raceRoot)) Directory.Delete(raceRoot, recursive: true);
+    }
+}
+
+// Mid-batch revocation is a partial failure (never a successful ACK).
+// Previously written files are left for explicit reconciliation, not deleted.
+var partialRoot = Path.Combine(Path.GetTempPath(), "aio-writer-partial-" + Guid.NewGuid().ToString("N"));
+try
+{
+    var partialAccounts = new AlFinalNativeAccountSnapshot(Path.Combine(partialRoot, "state"));
+    using (var payload = JsonDocument.Parse(
+        "{\"profiles\":[{\"name\":\"My_Mage\",\"observedAtMs\":100},{\"name\":\"My_Priest\",\"observedAtMs\":100}]}"))
+    {
+        var checks = 0;
+        try
+        {
+            partialAccounts.WriteAccount(payload.RootElement, () =>
+            {
+                if (++checks == 4)
+                    throw new InvalidOperationException("NATIVE_WRITER_OWNERSHIP_UNVERIFIED");
+            });
+            throw new Exception("EXPECTED_ACCOUNT_PARTIAL_REVOKED");
+        }
+        catch (InvalidOperationException error)
+            when (error.Message == "NATIVE_WRITER_OWNERSHIP_UNVERIFIED") { }
+    }
+    Assert(File.Exists(Path.Combine(partialRoot, "state", "account-profiles", "My_Mage.json")),
+        "SSD_ACCOUNT_FIRST_FILE_DURABLE_BEFORE_REVOKE");
+    Assert(!File.Exists(Path.Combine(partialRoot, "state", "account-profiles", "My_Priest.json")),
+        "SSD_ACCOUNT_SECOND_FILE_BLOCKED_AFTER_REVOKE");
+
+    var partialTelemetry = new AlFinalNativeTelemetryCapture(Path.Combine(partialRoot, "telemetry"));
+    using (var batch = JsonDocument.Parse(
+        "{\"records\":[{\"atMs\":1791570000000,\"character\":{\"name\":\"My_Mage\"}}," +
+        "{\"atMs\":1791570000000,\"character\":{\"name\":\"My_Priest\"}}]}"))
+    {
+        var checks = 0;
+        try
+        {
+            partialTelemetry.Ingest(batch.RootElement, () =>
+            {
+                if (++checks == 5)
+                    throw new InvalidOperationException("NATIVE_WRITER_OWNERSHIP_UNVERIFIED");
+            });
+            throw new Exception("EXPECTED_TELEMETRY_PARTIAL_REVOKED");
+        }
+        catch (InvalidOperationException error)
+            when (error.Message == "NATIVE_WRITER_OWNERSHIP_UNVERIFIED") { }
+    }
+    var partialDay = DateTimeOffset.FromUnixTimeMilliseconds(1791570000000).UtcDateTime.ToString("yyyy-MM-dd");
+    Assert(File.Exists(Path.Combine(partialRoot, "telemetry", "daily", partialDay, "My_Mage.json")),
+        "SSD_TELEMETRY_FIRST_FILE_DURABLE_BEFORE_REVOKE");
+    Assert(!File.Exists(Path.Combine(partialRoot, "telemetry", "daily", partialDay, "My_Priest.json")),
+        "SSD_TELEMETRY_SECOND_FILE_BLOCKED_AFTER_REVOKE");
+}
+finally
+{
+    if (Directory.Exists(partialRoot)) Directory.Delete(partialRoot, recursive: true);
+}
+
 Assert(TrayIconService.ToolTipText == "AIO Bot Windows Bridge", "TRAY_TOOLTIP");
 Assert(typeof(App).GetMethod("ShutdownForUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic) is not null, "TRAY_UPDATE_SHUTDOWN_PATH");
 Assert(typeof(AioBotWindowsBridge.Program).GetMethod("Main", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static) is not null, "SELF_UPDATE_PRE_WPF_ENTRYPOINT");
