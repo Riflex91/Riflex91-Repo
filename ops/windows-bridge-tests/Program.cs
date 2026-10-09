@@ -205,6 +205,47 @@ await using (var nativeApi = new AlFinalNativeStorageApi(
     }
 }
 
+// Explicit test-only flag exercises the native telemetry HTTP handler.
+// Production Bridge never passes telemetryWritesEnabled=true in this phase.
+var telemetryListener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+telemetryListener.Start();
+var telemetryTestPort = ((System.Net.IPEndPoint)telemetryListener.LocalEndpoint).Port;
+telemetryListener.Stop();
+var telemetryTestRoot = Path.Combine(Path.GetTempPath(), "aio-native-http-capture-" + Guid.NewGuid().ToString("N"));
+try
+{
+    await using (var api = new AlFinalNativeStorageApi(
+        new AlFinalNativeKeyValueStore(Path.Combine(telemetryTestRoot, "kv")),
+        telemetryTestPort,
+        new AlFinalNativeAccountSnapshot(Path.Combine(telemetryTestRoot, "state")),
+        new AlFinalNativeTelemetryCapture(Path.Combine(telemetryTestRoot, "telemetry")),
+        telemetryWritesEnabled: true))
+    {
+        await api.StartAsync();
+        using var client = new HttpClient();
+        var payload = JsonSerializer.Serialize(new {
+            records = new[] { new {
+                schemaVersion = 1, atMs = 1791570000000L,
+                character = new { name = "My_Ranger2", gold = 250, hp = 80, maxHp = 100 }
+            } }
+        });
+        var ingest = await client.PostAsync("http://127.0.0.1:" + telemetryTestPort + "/v1/telemetry",
+            new StringContent(payload, Encoding.UTF8, "text/plain"));
+        Assert(ingest.IsSuccessStatusCode, "SSD_NATIVE_TELEMETRY_HTTP_OPTIN");
+        using var result = JsonDocument.Parse(await ingest.Content.ReadAsStringAsync());
+        Assert(result.RootElement.GetProperty("ok").GetBoolean()
+            && result.RootElement.GetProperty("accepted").GetInt32() == 1,
+            "SSD_NATIVE_TELEMETRY_HTTP_ACK");
+        var day = DateTimeOffset.FromUnixTimeMilliseconds(1791570000000L).UtcDateTime.ToString("yyyy-MM-dd");
+        Assert(File.Exists(Path.Combine(telemetryTestRoot, "telemetry", "daily", day, "My_Ranger2.json")),
+            "SSD_NATIVE_TELEMETRY_HTTP_FILE");
+    }
+}
+finally
+{
+    if (Directory.Exists(telemetryTestRoot)) Directory.Delete(telemetryTestRoot, recursive: true);
+}
+
 Assert(TrayIconService.ToolTipText == "AIO Bot Windows Bridge", "TRAY_TOOLTIP");
 Assert(typeof(App).GetMethod("ShutdownForUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic) is not null, "TRAY_UPDATE_SHUTDOWN_PATH");
 Assert(typeof(AioBotWindowsBridge.Program).GetMethod("Main", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static) is not null, "SELF_UPDATE_PRE_WPF_ENTRYPOINT");
