@@ -97,7 +97,15 @@ tcpReservation.Start();
 var ssdTestPort = ((System.Net.IPEndPoint)tcpReservation.LocalEndpoint).Port;
 tcpReservation.Stop();
 var httpRoot = Path.Combine(Path.GetTempPath(), "aio-ssd-http-" + Guid.NewGuid().ToString("N"));
-await using (var nativeApi = new AlFinalNativeStorageApi(new AlFinalNativeKeyValueStore(httpRoot), ssdTestPort))
+var accountRoot = Path.Combine(httpRoot, "state");
+Directory.CreateDirectory(Path.Combine(accountRoot, "account-profiles"));
+await File.WriteAllTextAsync(Path.Combine(accountRoot, "account-profiles", "My_Merchant.json"),
+    "{\"name\":\"My_Merchant\",\"observedAtMs\":1234}");
+await File.WriteAllTextAsync(Path.Combine(accountRoot, "account-wealth.json"),
+    "{\"schemaVersion\":1,\"gold\":890}");
+await using (var nativeApi = new AlFinalNativeStorageApi(
+    new AlFinalNativeKeyValueStore(httpRoot), ssdTestPort,
+    new AlFinalNativeAccountSnapshot(accountRoot)))
 {
     try
     {
@@ -108,6 +116,18 @@ await using (var nativeApi = new AlFinalNativeStorageApi(new AlFinalNativeKeyVal
         Assert(status.IsSuccessStatusCode, "SSD_NATIVE_HTTP_HEALTH");
         using var health = JsonDocument.Parse(await status.Content.ReadAsStringAsync());
         Assert(health.RootElement.GetProperty("ok").GetBoolean(), "SSD_NATIVE_HEALTH_TRUE");
+
+        var accountResponse = await http.GetAsync(baseUrl + "/v1/state/account");
+        Assert(accountResponse.IsSuccessStatusCode, "SSD_NATIVE_ACCOUNT_SHADOW_GET");
+        using var accountJson = JsonDocument.Parse(await accountResponse.Content.ReadAsStringAsync());
+        Assert(accountJson.RootElement.GetProperty("schemaVersion").GetInt32() == 1
+            && accountJson.RootElement.GetProperty("profiles").GetArrayLength() == 1
+            && accountJson.RootElement.GetProperty("profiles")[0].GetProperty("name").GetString() == "My_Merchant"
+            && accountJson.RootElement.GetProperty("wealth").GetProperty("gold").GetInt32() == 890,
+            "SSD_NATIVE_ACCOUNT_SHADOW_SCHEMA");
+        var accountPost = await http.PostAsync(baseUrl + "/v1/state/account",
+            new StringContent("{}", Encoding.UTF8, "text/plain"));
+        Assert((int)accountPost.StatusCode == 423, "SSD_NATIVE_ACCOUNT_DUAL_WRITE_BLOCKED");
 
         var resource = baseUrl + "/v1/storage?key=" +
             Uri.EscapeDataString("albot:h25:autonomy-handoff:v1:EU:I:My_Mage");

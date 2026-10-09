@@ -132,13 +132,17 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
 {
     public const int DefaultPort = 17392;
     private readonly AlFinalNativeKeyValueStore _store;
+    private readonly AlFinalNativeAccountSnapshot _accountSnapshot;
     private readonly int _port;
     private WebApplication? _server;
 
-    public AlFinalNativeStorageApi(AlFinalNativeKeyValueStore? store = null, int port = DefaultPort)
+    public AlFinalNativeStorageApi(
+        AlFinalNativeKeyValueStore? store = null, int port = DefaultPort,
+        AlFinalNativeAccountSnapshot? accountSnapshot = null)
     {
         if (port is < 1 or > 65535) throw new ArgumentOutOfRangeException(nameof(port));
         _store = store ?? new AlFinalNativeKeyValueStore();
+        _accountSnapshot = accountSnapshot ?? new AlFinalNativeAccountSnapshot();
         _port = port;
     }
 
@@ -187,7 +191,7 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
         });
         server.MapGet("/v1/state/account", () =>
         {
-            try { return Results.Json(new AlFinalNativeAccountSnapshot().ReadAccount()); }
+            try { return Results.Json(_accountSnapshot.ReadAccount()); }
             catch (Exception error) when (error is InvalidDataException or JsonException or IOException)
             {
                 return Results.Json(new { ok = false, error = "ACCOUNT_SSD_READ_FAILED" },
