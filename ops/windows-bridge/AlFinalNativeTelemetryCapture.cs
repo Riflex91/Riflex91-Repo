@@ -32,14 +32,17 @@ public sealed class AlFinalNativeTelemetryCapture
 
     private static string? OptionalText(JsonElement row, string key)
     {
-        if (!row.TryGetProperty(key, out var value) || value.ValueKind != JsonValueKind.String)
+        if (row.ValueKind != JsonValueKind.Object
+            || !row.TryGetProperty(key, out var value)
+            || value.ValueKind != JsonValueKind.String)
             return null;
         return value.GetString();
     }
 
     private static double? OptionalNumber(JsonElement row, string key)
     {
-        if (!row.TryGetProperty(key, out var value) || value.ValueKind != JsonValueKind.Number
+        if (row.ValueKind != JsonValueKind.Object
+            || !row.TryGetProperty(key, out var value) || value.ValueKind != JsonValueKind.Number
             || !value.TryGetDouble(out var number) || !double.IsFinite(number))
             return null;
         return number;
