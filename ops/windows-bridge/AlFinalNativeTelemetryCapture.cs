@@ -56,7 +56,7 @@ public sealed class AlFinalNativeTelemetryCapture
         return default;
     }
 
-    public int Ingest(JsonElement payload)
+    public int Ingest(JsonElement payload, Action? confirmWriterOwnership = null)
     {
         if (payload.ValueKind != JsonValueKind.Object
             || !payload.TryGetProperty("records", out var list)
@@ -82,8 +82,12 @@ public sealed class AlFinalNativeTelemetryCapture
 
         lock (_gate)
         {
+            confirmWriterOwnership?.Invoke();
             foreach (var item in rows)
             {
+                // A prevalidated batch is not a transaction: revalidate for
+                // each record and leave an explicit failure on revoked ownership.
+                confirmWriterOwnership?.Invoke();
                 var rawDir = Path.Combine(_root, "raw", item.Day, item.Hour);
                 Directory.CreateDirectory(rawDir);
                 var rawPath = Path.Combine(rawDir, item.Character + ".ndjson");
@@ -95,14 +99,16 @@ public sealed class AlFinalNativeTelemetryCapture
                     file.Write(bytes);
                     file.Flush(flushToDisk: true);
                 }
-                UpdateDaily(item.Row, item.Day, item.Character, item.At);
+                UpdateDaily(item.Row, item.Day, item.Character, item.At, confirmWriterOwnership);
             }
         }
         return rows.Count;
     }
 
-    private void UpdateDaily(JsonElement source, string day, string name, DateTimeOffset at)
+    private void UpdateDaily(JsonElement source, string day, string name,
+        DateTimeOffset at, Action? confirmWriterOwnership)
     {
+        confirmWriterOwnership?.Invoke();
         var directory = Path.Combine(_root, "daily", day);
         Directory.CreateDirectory(directory);
         var file = Path.Combine(directory, name + ".json");
@@ -161,6 +167,7 @@ public sealed class AlFinalNativeTelemetryCapture
                 stream.Write(bytes);
                 stream.Flush(flushToDisk: true);
             }
+            confirmWriterOwnership?.Invoke();
             File.Move(tmp, file, overwrite: true);
         }
         finally { if (File.Exists(tmp)) File.Delete(tmp); }
