@@ -5,7 +5,7 @@ namespace AioBotWindowsBridge;
 
 public sealed record BridgeConfig
 {
-    public const int CurrentConfigVersion = 12;
+    public const int CurrentConfigVersion = 13;
     public const string V6TelemetryIngestUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-debug-ingest";
     public const string V6SignalControlUrl = "https://uasaygvcpusfevgmeqpk.supabase.co/functions/v1/albot-v6-signal-control";
     public const string V6TelemetryTokenEnvironmentVariable = "ALBOT_V6_TELEMETRY_TOKEN";
@@ -32,6 +32,10 @@ public sealed record BridgeConfig
     // the character runtime.
     public bool CharacterSupervisorEnabled { get; init; } = true;
     public string ManagedCodeSlot { get; init; } = "AL Final Bot";
+
+    // Default OFF: explicit Windows operator opt-in required. The Bridge
+    // never kills or adopts an existing externally managed local Node host.
+    public bool AlFinalLocalHostManagementEnabled { get; init; } = false;
 
     public bool WissenswaechterAktiv { get; init; } = true;
     public int WissenswaechterIntervallMinuten { get; init; } = 60;

@@ -17,6 +17,7 @@ public partial class MainWindow : Window
     private TelemetryBridgeService? _bridge;
     private WissenswaechterDienst? _wissenswaechter;
     private WindowsBridgeSelfUpdater? _selfUpdater;
+    private AlFinalLocalHostManager? _alFinalHostManager;
     private string? _githubKonto;
     private bool _initializing = true;
     private bool _changingSignal;
@@ -148,10 +149,22 @@ public partial class MainWindow : Window
 
         if (_config.WissenswaechterAktiv && !string.IsNullOrWhiteSpace(_githubKonto))
             await StarteWissenswaechterAsync();
+
+        if (_config.AlFinalLocalHostManagementEnabled)
+        {
+            // Separate process lifecycle from ALBot.bridge/CDP gameplay authority.
+            _alFinalHostManager = new AlFinalLocalHostManager();
+            await _alFinalHostManager.StartAsync();
+        }
     }
 
     private async void MainWindow_Closed(object? sender, EventArgs e)
     {
+        if (_alFinalHostManager is not null)
+        {
+            await _alFinalHostManager.DisposeAsync();
+            _alFinalHostManager = null;
+        }
         if (_selfUpdater is not null)
         {
             _selfUpdater.UpdateInstallerStarted -= OnSelfUpdateInstallerStarted;

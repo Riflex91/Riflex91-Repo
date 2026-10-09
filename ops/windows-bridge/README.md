@@ -407,3 +407,43 @@ Die Windows Bridge startet standardmäßig ohne sichtbares Hauptfenster und läu
 - **Beenden** im Tray-Menü beendet die Bridge vollständig.
 - Ein Self-Update verwendet einen separaten echten Shutdown-Pfad, damit die Bridge trotz Close-to-Tray sauber ersetzt und neu gestartet werden kann.
 
+
+## ALFinal local SSD host – Bridge-managed update lane (opt-in)
+
+The Windows Bridge manages the separate Node.js host process for `D:\ALBot\state`
+and `D:\ALBot\telemetry` **only** when the operator explicitly enables it.
+In `%APPDATA%\AioBotWindowsBridge\settings.json`:
+
+```json
+"alFinalLocalHostManagementEnabled": true
+```
+
+The property defaults to `false`; it does not modify Adventure Land actions,
+saved passwords, or bot stop-latches. Node.js must be installed in Windows PATH.
+
+Only this stable release lane is accepted:
+
+- `https://github.com/Riflex91/ALFinal/releases/download/albot-host-latest/albot-host.json`
+- `https://github.com/Riflex91/ALFinal/releases/download/albot-host-latest/albot-host.zip`
+
+The Bridge checks every five minutes, validates the version is monotonic and the
+archive size and SHA-256, and allows exactly three host scripts. Files are staged
+under `D:\ALBot\updates` and installed in `D:\ALBot\host`. Existing scripts
+are moved to `D:\ALBot\backup\host` first. The `state` and `telemetry`
+trees are never moved or deleted. The Bridge starts `node.exe` with only the
+fixed `telemetry-recorder.mjs` argument (not a shell command).
+
+**No takeover / no interruption:** if port 17391 is occupied, including by the
+old manually started `npm run host:local`, the Bridge neither replaces files
+nor kills or adopts the foreign process. It waits until the port is free. It
+does not force a restart of an active game host; code updates take effect on
+the next safe, idle host start. The Bridge does not kill its own Node child
+when the Bridge self-updates. A later Bridge instance will regard that living
+Node process as external until it stops. Automatic live restart handoff and
+rollback after a failed runtime health check are **not part of this phase**.
+
+Monitor `%LOCALAPPDATA%\AioBotWindowsBridge\albot-host-update-status.json`.
+The stable host package must be published by the ALFinal repository; if the
+manifest is missing, installation fails closed. Do not enable this mode until
+the release pipeline and host tests are verified. This is separate from the
+still-draft ALFinal SSD migration PR #115.

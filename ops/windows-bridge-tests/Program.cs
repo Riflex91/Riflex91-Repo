@@ -40,14 +40,78 @@ var jsonOptions = new JsonSerializerOptions
 var defaults = new BridgeConfig();
 defaults.Validate();
 Assert(defaults.TelemetryEnabled == false, "TELEMETRY_MUST_DEFAULT_OFF");
+Assert(defaults.AlFinalLocalHostManagementEnabled == false, "ALFINAL_HOST_MANAGEMENT_DEFAULT_OFF");
+Assert(AlFinalLocalHostManager.ManifestUrl == "https://github.com/Riflex91/ALFinal/releases/download/albot-host-latest/albot-host.json", "ALFINAL_HOST_FIXED_MANIFEST");
+Assert(AlFinalLocalHostManager.ArchiveUrl == "https://github.com/Riflex91/ALFinal/releases/download/albot-host-latest/albot-host.zip", "ALFINAL_HOST_FIXED_ARCHIVE");
+Assert(AlFinalLocalHostManager.HostDirectory == @"D:\ALBot\host", "ALFINAL_HOST_FIXED_ROOT");
 Assert(defaults.PreferredBrowser == "Brave", "BRAVE_MUST_DEFAULT");
 Assert(defaults.ConfigVersion == BridgeConfig.CurrentConfigVersion, "CONFIG_VERSION");
-Assert(BridgeConfig.CurrentConfigVersion == 12, "CONFIG_VERSION_12");
+Assert(BridgeConfig.CurrentConfigVersion == 13, "CONFIG_VERSION_13");
 Assert(defaults.PollIntervalSeconds == 5, "V5_LOCAL_OBSERVATION_DEFAULT");
 Assert(defaults.SupabaseStatusIntervalSeconds == 60, "V5_SUPABASE_STATUS_INTERVAL_60S");
 Assert(WindowsBridgeSelfUpdater.CheckIntervalSeconds == 60, "SELF_UPDATE_INTERVAL_60S");
 Assert(WindowsBridgeSelfUpdater.ReleaseTag == "windows-bridge-latest", "SELF_UPDATE_RELEASE_TAG");
 Assert(WindowsBridgeSelfUpdater.StatusFileName == "self-update-status.json", "SELF_UPDATE_STATUS_FILE");
+
+var hostManifest = new AlFinalHostRelease(
+    1, "AL Bot Local Host", "stable", "0.26.71",
+    new string('a', 40), AlFinalLocalHostManager.ArchiveUrl,
+    new string('b', 64), 100, DateTimeOffset.UtcNow.ToString("O"));
+AlFinalLocalHostManager.ValidateManifest(hostManifest);
+Assert(AlFinalLocalHostManager.IsNewer(hostManifest, null), "ALFINAL_FIRST_INSTALL");
+Assert(AlFinalLocalHostManager.IsNewer(hostManifest, hostManifest with { PackageVersion = "0.26.69" }), "ALFINAL_FORWARD_UPDATE");
+Assert(!AlFinalLocalHostManager.IsNewer(hostManifest, hostManifest), "ALFINAL_SAME_BUILD_NO_INSTALL");
+Assert(!AlFinalLocalHostManager.IsNewer(hostManifest, hostManifest with { PackageVersion = "0.26.72" }), "ALFINAL_DOWNGRADE_REJECTED");
+try
+{
+    AlFinalLocalHostManager.ValidateManifest(hostManifest with { AssetUrl = "https://evil.example/host.zip" });
+    throw new InvalidOperationException("ALFINAL_MUTABLE_URL_NOT_REJECTED");
+}
+catch (InvalidOperationException e) when (e.Message == "ALFINAL_HOST_MANIFEST_INVALID") { }
+try
+{
+    AlFinalLocalHostManager.ValidateManifest(hostManifest with { PackageVersion = "0.26.71-preview" });
+    throw new InvalidOperationException("ALFINAL_PRERELEASE_NOT_REJECTED");
+}
+catch (InvalidOperationException e) when (e.Message == "ALFINAL_HOST_MANIFEST_INVALID") { }
+
+byte[] HostTestZip(string[] names)
+{
+    using var ms = new MemoryStream();
+    using (var zip = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+    {
+        foreach (var name in names)
+        {
+            var entry = zip.CreateEntry(name);
+            using var writer = new StreamWriter(entry.Open());
+            writer.Write("export const ok = true;");
+        }
+    }
+    return ms.ToArray();
+}
+var goodArchive = HostTestZip(["telemetry-recorder.mjs", "h22-host-watchdog.mjs", "durable-storage.mjs"]);
+var goodHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(goodArchive)).ToLowerInvariant();
+var goodManifest = hostManifest with { Sha256 = goodHash, Bytes = goodArchive.Length };
+var extracted = AlFinalLocalHostManager.ValidateArchive(goodArchive, goodManifest);
+Assert(extracted.Count == 3 && extracted.ContainsKey("durable-storage.mjs"), "ALFINAL_VERIFIED_ARCHIVE");
+try
+{
+    AlFinalLocalHostManager.ValidateArchive(goodArchive, goodManifest with { Sha256 = new string('b', 64) });
+    throw new InvalidOperationException("ALFINAL_BAD_HASH_ACCEPTED");
+}
+catch (InvalidOperationException e) when (e.Message == "ALFINAL_HOST_ARCHIVE_HASH_MISMATCH") { }
+var traversal = HostTestZip(["../bad.mjs", "h22-host-watchdog.mjs", "durable-storage.mjs"]);
+var traversalManifest = goodManifest with {
+    Bytes = traversal.Length,
+    Sha256 = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(traversal)).ToLowerInvariant()
+};
+try
+{
+    AlFinalLocalHostManager.ValidateArchive(traversal, traversalManifest);
+    throw new InvalidOperationException("ALFINAL_ZIP_SLIP_ACCEPTED");
+}
+catch (InvalidOperationException e) when (e.Message == "ALFINAL_HOST_ARCHIVE_ENTRY_REJECTED") { }
+
 Assert(TrayIconService.ToolTipText == "AIO Bot Windows Bridge", "TRAY_TOOLTIP");
 Assert(typeof(App).GetMethod("ShutdownForUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic) is not null, "TRAY_UPDATE_SHUTDOWN_PATH");
 Assert(typeof(AioBotWindowsBridge.Program).GetMethod("Main", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static) is not null, "SELF_UPDATE_PRE_WPF_ENTRYPOINT");
