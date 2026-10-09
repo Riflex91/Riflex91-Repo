@@ -443,7 +443,9 @@ the next safe, idle host start. The Bridge does not kill its own Node child
 when the Bridge self-updates. A later Bridge instance will regard that living
 Node process as external until it stops. Automatic live restart handoff is **not part of this phase**. After
 install, the Bridge requires a healthy local `/health` result exposing
-`durableStore`. On a failed startup it terminates **only its own newly
+`durableStore`, schema version 1, **and the exact process ID of its own
+freshly spawned Node.js child**. A foreign host responding on the same
+port is never accepted as a managed child. On a failed startup it terminates **only its own newly
 started child**, restores the previous code directory if a backup exists,
 and reports failure. It never clears the account safety/UNKNOWN state. The
 restored host may require a controlled subsequent start.

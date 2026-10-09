@@ -44,6 +44,30 @@ Assert(defaults.AlFinalLocalHostManagementEnabled == false, "ALFINAL_HOST_MANAGE
 Assert(AlFinalLocalHostManager.ManifestUrl == "https://github.com/Riflex91/ALFinal/releases/download/albot-host-latest/albot-host.json", "ALFINAL_HOST_FIXED_MANIFEST");
 Assert(AlFinalLocalHostManager.ArchiveUrl == "https://github.com/Riflex91/ALFinal/releases/download/albot-host-latest/albot-host.zip", "ALFINAL_HOST_FIXED_ARCHIVE");
 Assert(AlFinalLocalHostManager.HostDirectory == @"D:\ALBot\host", "ALFINAL_HOST_FIXED_ROOT");
+
+using (var ownHealth = JsonDocument.Parse(
+    "{\"ok\":true,\"processId\":4242,\"durableStore\":{\"schemaVersion\":1}}"))
+{
+    Assert(AlFinalLocalHostManager.MatchesManagedHostHealth(ownHealth.RootElement, 4242),
+        "ALFINAL_HOST_OWN_PID_ACCEPTED");
+    Assert(!AlFinalLocalHostManager.MatchesManagedHostHealth(ownHealth.RootElement, 4243),
+        "ALFINAL_HOST_FOREIGN_PID_REJECTED");
+    Assert(!AlFinalLocalHostManager.MatchesManagedHostHealth(ownHealth.RootElement, 0),
+        "ALFINAL_HOST_NO_PID_REJECTED");
+}
+using (var legacyHealth = JsonDocument.Parse(
+    "{\"ok\":true,\"durableStore\":{\"schemaVersion\":1}}"))
+    Assert(!AlFinalLocalHostManager.MatchesManagedHostHealth(legacyHealth.RootElement, 4242),
+        "ALFINAL_HOST_PID_MISSING_REJECTED");
+using (var missingStorage = JsonDocument.Parse(
+    "{\"ok\":true,\"processId\":4242}"))
+    Assert(!AlFinalLocalHostManager.MatchesManagedHostHealth(missingStorage.RootElement, 4242),
+        "ALFINAL_HOST_DURABLE_CAPABILITY_REQUIRED");
+using (var unhealthyHost = JsonDocument.Parse(
+    "{\"ok\":false,\"processId\":4242,\"durableStore\":{\"schemaVersion\":1}}"))
+    Assert(!AlFinalLocalHostManager.MatchesManagedHostHealth(unhealthyHost.RootElement, 4242),
+        "ALFINAL_HOST_HEALTH_MUST_BE_TRUE");
+
 Assert(defaults.PreferredBrowser == "Brave", "BRAVE_MUST_DEFAULT");
 Assert(defaults.ConfigVersion == BridgeConfig.CurrentConfigVersion, "CONFIG_VERSION");
 Assert(BridgeConfig.CurrentConfigVersion == 13, "CONFIG_VERSION_13");

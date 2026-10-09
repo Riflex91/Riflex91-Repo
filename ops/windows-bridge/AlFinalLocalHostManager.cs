@@ -260,6 +260,22 @@ public sealed class AlFinalLocalHostManager : IAsyncDisposable
         return backup;
     }
 
+    public static bool MatchesManagedHostHealth(JsonElement response, int expectedProcessId)
+    {
+        if (expectedProcessId < 1 || response.ValueKind != JsonValueKind.Object)
+            return false;
+        return response.TryGetProperty("ok", out var ok)
+            && ok.ValueKind == JsonValueKind.True
+            && response.TryGetProperty("processId", out var processId)
+            && processId.ValueKind == JsonValueKind.Number
+            && processId.TryGetInt32(out var actualProcessId)
+            && actualProcessId == expectedProcessId
+            && response.TryGetProperty("durableStore", out var durable)
+            && durable.ValueKind == JsonValueKind.Object
+            && durable.TryGetProperty("schemaVersion", out var schema)
+            && schema.TryGetInt32(out var version) && version == 1;
+    }
+
     private async Task<bool> WaitForHostHealthAsync(
         Process process, CancellationToken cancellationToken)
     {
@@ -273,9 +289,9 @@ public sealed class AlFinalLocalHostManager : IAsyncDisposable
                 if (response.IsSuccessStatusCode && !process.HasExited)
                 {
                     using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
-                    if (doc.RootElement.TryGetProperty("ok", out var ok) && ok.GetBoolean()
-                        && doc.RootElement.TryGetProperty("durableStore", out var durable)
-                        && durable.ValueKind == JsonValueKind.Object)
+                    // A different process may race to occupy port 17391.
+                    // Do NOT report our child healthy from another host's reply.
+                    if (MatchesManagedHostHealth(doc.RootElement, process.Id))
                         return true;
                 }
             }
