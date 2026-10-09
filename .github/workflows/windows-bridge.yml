@@ -41,7 +41,8 @@ jobs:
           if-no-files-found: error
 
   publish-stable-self-update:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Preparation-only merges must not publish or replace the stable self-update.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[ssd-staging-no-release]')
     needs: build-test-publish
     runs-on: windows-latest
     permissions:

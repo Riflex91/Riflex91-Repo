@@ -7,6 +7,17 @@ static void Assert(bool condition, string message)
     if (!condition) throw new InvalidOperationException(message);
 }
 
+static AlFinalNativeWriterOwnership CreateTestBridgeWriter(string stateRoot)
+{
+    Directory.CreateDirectory(stateRoot);
+    File.WriteAllText(Path.Combine(stateRoot, AlFinalNativeWriterOwnership.OwnerFilename),
+        "{\"schemaVersion\":1,\"owner\":\"bridge\"}");
+    var owner = new AlFinalNativeWriterOwnership(stateRoot);
+    owner.Acquire();
+    Assert(owner.IsOwned(), "SSD_NATIVE_WRITER_LEASE_ACQUIRED");
+    return owner;
+}
+
 static void ExpectInvalid(BridgeConfig config, string expected)
 {
     try
@@ -42,12 +53,507 @@ defaults.Validate();
 Assert(defaults.TelemetryEnabled == false, "TELEMETRY_MUST_DEFAULT_OFF");
 Assert(defaults.PreferredBrowser == "Brave", "BRAVE_MUST_DEFAULT");
 Assert(defaults.ConfigVersion == BridgeConfig.CurrentConfigVersion, "CONFIG_VERSION");
-Assert(BridgeConfig.CurrentConfigVersion == 12, "CONFIG_VERSION_12");
+Assert(BridgeConfig.CurrentConfigVersion == 13, "CONFIG_VERSION_13");
 Assert(defaults.PollIntervalSeconds == 5, "V5_LOCAL_OBSERVATION_DEFAULT");
 Assert(defaults.SupabaseStatusIntervalSeconds == 60, "V5_SUPABASE_STATUS_INTERVAL_60S");
 Assert(WindowsBridgeSelfUpdater.CheckIntervalSeconds == 60, "SELF_UPDATE_INTERVAL_60S");
 Assert(WindowsBridgeSelfUpdater.ReleaseTag == "windows-bridge-latest", "SELF_UPDATE_RELEASE_TAG");
 Assert(WindowsBridgeSelfUpdater.StatusFileName == "self-update-status.json", "SELF_UPDATE_STATUS_FILE");
+
+// Account writer preflight: schema, monotonicity, durable restart.
+var accountTestRoot = Path.Combine(Path.GetTempPath(), "aio-ssd-account-" + Guid.NewGuid().ToString("N"));
+try
+{
+    var accountStore = new AlFinalNativeAccountSnapshot(accountTestRoot);
+    using (var write = JsonDocument.Parse(
+        "{\"profiles\":[{\"name\":\"My_Merchant\",\"observedAtMs\":200,\"gold\":10}],\"wealth\":{\"observedAtMs\":300,\"gold\":100}}"))
+    {
+        var result = accountStore.WriteAccount(write.RootElement);
+        Assert(result.ProfilesWritten == 1 && result.WealthWritten,
+            "SSD_NATIVE_ACCOUNT_WRITE_CONFIRMED");
+    }
+    var mirror = JsonSerializer.Serialize(new AlFinalNativeAccountSnapshot(accountTestRoot).ReadAccount());
+    using (var state = JsonDocument.Parse(mirror))
+        Assert(state.RootElement.GetProperty("profiles")[0].GetProperty("gold").GetInt32() == 10
+            && state.RootElement.GetProperty("wealth").GetProperty("gold").GetInt32() == 100,
+            "SSD_NATIVE_ACCOUNT_WRITE_READBACK");
+    try
+    {
+        using var stale = JsonDocument.Parse(
+            "{\"profiles\":[{\"name\":\"My_Merchant\",\"observedAtMs\":199,\"gold\":999}]}");
+        accountStore.WriteAccount(stale.RootElement);
+        throw new InvalidOperationException("SSD_NATIVE_STALE_PROFILE_ACCEPTED");
+    }
+    catch (InvalidOperationException error) when (error.Message == "ACCOUNT_STALE_PROFILE_REJECTED") {}
+    try
+    {
+        using var traversal = JsonDocument.Parse(
+            "{\"profiles\":[{\"name\":\"../bad\",\"observedAtMs\":250}]}");
+        accountStore.WriteAccount(traversal.RootElement);
+        throw new InvalidOperationException("SSD_NATIVE_TRAVERSAL_ACCEPTED");
+    }
+    catch (InvalidDataException error) when (error.Message == "ACCOUNT_WRITE_NAME_INVALID") {}
+    try
+    {
+        using var duplicate = JsonDocument.Parse(
+            "{\"profiles\":[{\"name\":\"My_Merchant\"},{\"name\":\"My_Merchant\"}]}");
+        accountStore.WriteAccount(duplicate.RootElement);
+        throw new InvalidOperationException("SSD_NATIVE_DUPLICATE_ACCEPTED");
+    }
+    catch (InvalidDataException error) when (error.Message == "ACCOUNT_WRITE_NAME_INVALID") {}
+    using (var still = JsonDocument.Parse(JsonSerializer.Serialize(accountStore.ReadAccount())))
+        Assert(still.RootElement.GetProperty("profiles")[0].GetProperty("gold").GetInt32() == 10,
+            "SSD_NATIVE_STALE_REJECTION_NO_MUTATION");
+}
+finally { if (Directory.Exists(accountTestRoot)) Directory.Delete(accountTestRoot, recursive: true); }
+
+// Native telemetry parity checks: direct files; no production write activation.
+var captureRoot = Path.Combine(Path.GetTempPath(), "aio-ssd-telemetry-" + Guid.NewGuid().ToString("N"));
+try
+{
+    var telemetryCapture = new AlFinalNativeTelemetryCapture(captureRoot);
+    const string record = "{\"schemaVersion\":1,\"atMs\":1791570000000,\"character\":{\"name\":\"My_Ranger2\",\"gold\":100,\"hp\":50,\"maxHp\":100,\"map\":\"main\"},\"fullAutonomy\":{\"taskType\":\"FARM\"},\"encounter\":{\"selected\":\"goo\"},\"health\":{\"state\":\"HEALTHY\"}}";
+    using (var batch = JsonDocument.Parse("{\"records\":[" + record + "]}"))
+        Assert(telemetryCapture.Ingest(batch.RootElement) == 1, "SSD_NATIVE_TELEMETRY_INGEST");
+    var at = DateTimeOffset.FromUnixTimeMilliseconds(1791570000000);
+    var day = at.UtcDateTime.ToString("yyyy-MM-dd");
+    var hour = at.UtcDateTime.ToString("HH");
+    var rawFile = Path.Combine(captureRoot, "raw", day, hour, "My_Ranger2.ndjson");
+    var dailyFile = Path.Combine(captureRoot, "daily", day, "My_Ranger2.json");
+    Assert(File.Exists(rawFile) && File.ReadAllLines(rawFile).Length == 1,
+        "SSD_NATIVE_TELEMETRY_RAW_FILE");
+    using (var daily = JsonDocument.Parse(await File.ReadAllTextAsync(dailyFile)))
+    {
+        var row = daily.RootElement;
+        Assert(row.GetProperty("samples").GetInt32() == 1
+            && row.GetProperty("gold").GetProperty("last").GetDouble() == 100
+            && row.GetProperty("hp").GetProperty("minRatio").GetDouble() == 0.5
+            && row.GetProperty("maps").GetProperty("main").GetInt32() == 1
+            && row.GetProperty("tasks").GetProperty("FARM").GetInt32() == 1,
+            "SSD_NATIVE_TELEMETRY_DAILY_SCHEMA");
+    }
+    using (var batch = JsonDocument.Parse("{\"records\":[" + record + "]}"))
+        Assert(new AlFinalNativeTelemetryCapture(captureRoot).Ingest(batch.RootElement) == 1,
+            "SSD_NATIVE_TELEMETRY_RESTART");
+    using (var daily = JsonDocument.Parse(await File.ReadAllTextAsync(dailyFile)))
+        Assert(daily.RootElement.GetProperty("samples").GetInt32() == 2,
+            "SSD_NATIVE_TELEMETRY_COUNTERS_SURVIVE_RESTART");
+    using (var invalid = JsonDocument.Parse("{\"records\":[{\"atMs\":0}]}"))
+    {
+        try
+        {
+            telemetryCapture.Ingest(invalid.RootElement);
+            throw new InvalidOperationException("SSD_NATIVE_INVALID_TIMESTAMP_ACCEPTED");
+        }
+        catch (InvalidDataException error) when (error.Message == "TELEMETRY_TIMESTAMP_INVALID") { }
+    }
+    // Earlier shadow code silently accepted only the first 100 records.
+    // Native HTTP must instead reject the entire oversized batch.
+    var oversizedRoot = Path.Combine(captureRoot, "oversized");
+    var oversizedRecords = Enumerable.Range(1, 101)
+        .Select(i => new { atMs = 1791570000000L, character = new { name = "Test_" + i } })
+        .ToArray();
+    using (var tooMany = JsonDocument.Parse(JsonSerializer.Serialize(new { records = oversizedRecords })))
+    {
+        try
+        {
+            new AlFinalNativeTelemetryCapture(oversizedRoot).Ingest(tooMany.RootElement);
+            throw new InvalidOperationException("SSD_NATIVE_OVERSIZED_BATCH_ACCEPTED");
+        }
+        catch (InvalidDataException error) when (error.Message == "TELEMETRY_TOO_MANY_RECORDS") { }
+    }
+    Assert(!Directory.Exists(oversizedRoot), "SSD_NATIVE_OVERSIZED_BATCH_NO_PARTIAL_WRITE");
+}
+finally { if (Directory.Exists(captureRoot)) Directory.Delete(captureRoot, recursive: true); }
+
+// Shared cross-process writer ownership cannot be inferred from free TCP ports.
+var ownershipRoot = Path.Combine(Path.GetTempPath(), "aio-owner-" + Guid.NewGuid().ToString("N"));
+try
+{
+    Directory.CreateDirectory(ownershipRoot);
+    var marker = Path.Combine(ownershipRoot, AlFinalNativeWriterOwnership.OwnerFilename);
+    File.WriteAllText(marker, "{\"schemaVersion\":1,\"owner\":\"node\"}");
+    using (var foreignOwner = new AlFinalNativeWriterOwnership(ownershipRoot))
+    {
+        var blocked = false;
+        try { foreignOwner.Acquire(); }
+        catch (InvalidOperationException) { blocked = true; }
+        Assert(blocked, "SSD_NATIVE_WRITER_NODE_OWNER_BLOCKED");
+    }
+    Assert(!File.Exists(Path.Combine(ownershipRoot, AlFinalNativeWriterOwnership.LeaseFilename)),
+        "SSD_NATIVE_WRITER_NODE_OWNER_NO_LEASE");
+
+    File.WriteAllText(marker, "{\"schemaVersion\":1,\"owner\":\"bridge\"}");
+    using (var firstOwner = new AlFinalNativeWriterOwnership(ownershipRoot))
+    {
+        firstOwner.Acquire();
+        Assert(firstOwner.IsOwned(), "SSD_NATIVE_WRITER_VERIFIED");
+        using var secondOwner = new AlFinalNativeWriterOwnership(ownershipRoot);
+        var secondBlocked = false;
+        try { secondOwner.Acquire(); }
+        catch (IOException) { secondBlocked = true; }
+        Assert(secondBlocked, "SSD_NATIVE_WRITER_SECOND_INSTANCE_BLOCKED");
+    }
+    Assert(!File.Exists(Path.Combine(ownershipRoot, AlFinalNativeWriterOwnership.LeaseFilename)),
+        "SSD_NATIVE_WRITER_CLEAN_RELEASE");
+    File.WriteAllText(Path.Combine(ownershipRoot, AlFinalNativeWriterOwnership.LeaseFilename),
+        "{\"schemaVersion\":1,\"owner\":\"bridge\",\"token\":\"stale\"}");
+    using (var staleOwner = new AlFinalNativeWriterOwnership(ownershipRoot))
+    {
+        var staleBlocked = false;
+        try { staleOwner.Acquire(); }
+        catch (IOException) { staleBlocked = true; }
+        Assert(staleBlocked, "SSD_NATIVE_WRITER_STALE_LEASE_BLOCKED");
+    }
+}
+finally
+{
+    if (Directory.Exists(ownershipRoot)) Directory.Delete(ownershipRoot, recursive: true);
+}
+
+// Native SSD backend regression tests. No Adventure Land or Node process involved.
+Assert(!new BridgeConfig().AlFinalNativeStorageEnabled, "NATIVE_SSD_DEFAULT_OFF");
+Assert(AlFinalNativeStorageApi.DefaultPort == 17392, "NATIVE_SSD_SEPARATE_PORT");
+Assert(AlFinalNativeStorageApi.AllowedOrigin("https://adventure.land"), "SSD_ORIGIN_ALLOWED");
+Assert(AlFinalNativeStorageApi.AllowedOrigin("https://www.adventure.land"), "SSD_WWW_ORIGIN_ALLOWED");
+Assert(!AlFinalNativeStorageApi.AllowedOrigin("https://evil.example"), "SSD_EVIL_ORIGIN_DENIED");
+var ssdTestDir = Path.Combine(Path.GetTempPath(), "aio-ssd-" + Guid.NewGuid().ToString("N"));
+try
+{
+    var store = new AlFinalNativeKeyValueStore(ssdTestDir);
+    const string ssdKey = "albot:h25:autonomy-handoff:v1:EU:I:My_Mage";
+    var absent = store.Read(ssdKey);
+    Assert(!absent.Found && absent.Revision == 0, "SSD_INITIAL_ABSENT");
+    var revision = store.Write(ssdKey, "{\"task\":\"FARM\"}", expectedRevision: 0);
+    Assert(revision == 1, "SSD_FIRST_REVISION");
+    var restored = new AlFinalNativeKeyValueStore(ssdTestDir);
+    Assert(restored.Read(ssdKey).Found && restored.Read(ssdKey).Revision == 1,
+        "SSD_DURABLE_RESTART_READ");
+    try
+    {
+        restored.Write(ssdKey, "other", expectedRevision: 0);
+        throw new InvalidOperationException("SSD_EXPECTED_REVISION_REJECTED");
+    }
+    catch (InvalidOperationException error) when (error.Message == "SSD_REVISION_CONFLICT") { }
+    Assert(restored.Write(ssdKey, "changed", expectedRevision: 1) == 2,
+        "SSD_SECOND_REVISION");
+    Assert(restored.Remove(ssdKey) && !restored.Read(ssdKey).Found, "SSD_REMOVE");
+    try
+    {
+        restored.Write("../secrets", "x");
+        throw new InvalidOperationException("SSD_INVALID_KEY_ACCEPTED");
+    }
+    catch (InvalidOperationException error) when (error.Message == "SSD_KEY_INVALID") { }
+    Assert(restored.Write("aio-v3-content-drift-v1:My_Ranger2", "{\"records\":[]}",
+        expectedRevision: 0) == 1, "SSD_V3_OWNED_NAMESPACE");
+    Assert(restored.Write("albot:market-intelligence-history:v1", "{\"items\":[]}",
+        expectedRevision: 0) == 1, "SSD_MARKET_NAMESPACE");
+}
+finally { if (Directory.Exists(ssdTestDir)) Directory.Delete(ssdTestDir, recursive: true); }
+
+
+// Exercise the native HTTP routes and browser-facing CORS protocol with a
+// temporary, unprivileged localhost port. No Node or Adventure Land involved.
+var tcpReservation = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+tcpReservation.Start();
+var ssdTestPort = ((System.Net.IPEndPoint)tcpReservation.LocalEndpoint).Port;
+tcpReservation.Stop();
+var httpRoot = Path.Combine(Path.GetTempPath(), "aio-ssd-http-" + Guid.NewGuid().ToString("N"));
+var accountRoot = Path.Combine(httpRoot, "state");
+Directory.CreateDirectory(Path.Combine(accountRoot, "account-profiles"));
+await File.WriteAllTextAsync(Path.Combine(accountRoot, "account-profiles", "My_Merchant.json"),
+    "{\"name\":\"My_Merchant\",\"observedAtMs\":1234}");
+await File.WriteAllTextAsync(Path.Combine(accountRoot, "account-wealth.json"),
+    "{\"schemaVersion\":1,\"gold\":890}");
+await using (var nativeApi = new AlFinalNativeStorageApi(
+    new AlFinalNativeKeyValueStore(httpRoot), ssdTestPort,
+    new AlFinalNativeAccountSnapshot(accountRoot)))
+{
+    try
+    {
+        await nativeApi.StartAsync();
+        using var http = new HttpClient();
+        var baseUrl = "http://127.0.0.1:" + ssdTestPort;
+        var status = await http.GetAsync(baseUrl + "/health");
+        Assert(status.IsSuccessStatusCode, "SSD_NATIVE_HTTP_HEALTH");
+        using var health = JsonDocument.Parse(await status.Content.ReadAsStringAsync());
+        Assert(health.RootElement.GetProperty("ok").GetBoolean(), "SSD_NATIVE_HEALTH_TRUE");
+
+        var accountResponse = await http.GetAsync(baseUrl + "/v1/state/account");
+        Assert(accountResponse.IsSuccessStatusCode, "SSD_NATIVE_ACCOUNT_SHADOW_GET");
+        using var accountJson = JsonDocument.Parse(await accountResponse.Content.ReadAsStringAsync());
+        Assert(accountJson.RootElement.GetProperty("schemaVersion").GetInt32() == 1
+            && accountJson.RootElement.GetProperty("profiles").GetArrayLength() == 1
+            && accountJson.RootElement.GetProperty("profiles")[0].GetProperty("name").GetString() == "My_Merchant"
+            && accountJson.RootElement.GetProperty("wealth").GetProperty("gold").GetInt32() == 890,
+            "SSD_NATIVE_ACCOUNT_SHADOW_SCHEMA");
+        var telemetryBlocked = await http.PostAsync(baseUrl + "/v1/telemetry",
+            new StringContent("{\"records\":[]}", Encoding.UTF8, "text/plain"));
+        Assert((int)telemetryBlocked.StatusCode == 423,
+            "SSD_NATIVE_TELEMETRY_DUAL_WRITES_BLOCKED");
+
+        var accountPost = await http.PostAsync(baseUrl + "/v1/state/account",
+            new StringContent("{}", Encoding.UTF8, "text/plain"));
+        Assert((int)accountPost.StatusCode == 423, "SSD_NATIVE_ACCOUNT_DUAL_WRITE_BLOCKED");
+
+        var resource = baseUrl + "/v1/storage?key=" +
+            Uri.EscapeDataString("albot:h25:autonomy-handoff:v1:EU:I:My_Mage");
+        var put = new HttpRequestMessage(HttpMethod.Post, resource)
+        {
+            Content = new StringContent(
+                "{\"key\":\"albot:h25:autonomy-handoff:v1:EU:I:My_Mage\",\"value\":\"abc\",\"expectedRevision\":0}",
+                Encoding.UTF8, "text/plain")
+        };
+        put.Headers.TryAddWithoutValidation("Origin", "https://adventure.land");
+        var posted = await http.SendAsync(put);
+        Assert(posted.IsSuccessStatusCode, "SSD_NATIVE_HTTP_WRITE");
+        var read = new HttpRequestMessage(HttpMethod.Get, resource);
+        read.Headers.TryAddWithoutValidation("Origin", "https://adventure.land");
+        using var returned = JsonDocument.Parse(await (await http.SendAsync(read)).Content.ReadAsStringAsync());
+        Assert(returned.RootElement.GetProperty("found").GetBoolean()
+            && returned.RootElement.GetProperty("value").GetString() == "abc",
+            "SSD_NATIVE_HTTP_READBACK");
+        var denied = new HttpRequestMessage(HttpMethod.Get, resource);
+        denied.Headers.TryAddWithoutValidation("Origin", "https://evil.invalid");
+        Assert((await http.SendAsync(denied)).StatusCode == System.Net.HttpStatusCode.Forbidden,
+            "SSD_NATIVE_HTTP_BAD_ORIGIN_BLOCKED");
+    }
+    finally
+    {
+        if (Directory.Exists(httpRoot)) Directory.Delete(httpRoot, recursive: true);
+    }
+}
+
+// Explicit test-only flag exercises the native telemetry HTTP handler.
+// Production Bridge never passes telemetryWritesEnabled=true in this phase.
+var telemetryListener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+telemetryListener.Start();
+var telemetryTestPort = ((System.Net.IPEndPoint)telemetryListener.LocalEndpoint).Port;
+telemetryListener.Stop();
+var telemetryTestRoot = Path.Combine(Path.GetTempPath(), "aio-native-http-capture-" + Guid.NewGuid().ToString("N"));
+try
+{
+    using var telemetryOwner = CreateTestBridgeWriter(Path.Combine(telemetryTestRoot, "state"));
+    await using (var api = new AlFinalNativeStorageApi(
+        new AlFinalNativeKeyValueStore(Path.Combine(telemetryTestRoot, "kv")),
+        telemetryTestPort,
+        new AlFinalNativeAccountSnapshot(Path.Combine(telemetryTestRoot, "state")),
+        new AlFinalNativeTelemetryCapture(Path.Combine(telemetryTestRoot, "telemetry")),
+        telemetryWritesEnabled: true,
+        legacyWriterAbsentProbe: _ => Task.FromResult(true),
+        writerOwnership: telemetryOwner))
+    {
+        await api.StartAsync();
+        using var client = new HttpClient();
+        var payload = JsonSerializer.Serialize(new {
+            records = new[] { new {
+                schemaVersion = 1, atMs = 1791570000000L,
+                character = new { name = "My_Ranger2", gold = 250, hp = 80, maxHp = 100 }
+            } }
+        });
+        var ingest = await client.PostAsync("http://127.0.0.1:" + telemetryTestPort + "/v1/telemetry",
+            new StringContent(payload, Encoding.UTF8, "text/plain"));
+        Assert(ingest.IsSuccessStatusCode, "SSD_NATIVE_TELEMETRY_HTTP_OPTIN");
+        using var result = JsonDocument.Parse(await ingest.Content.ReadAsStringAsync());
+        Assert(result.RootElement.GetProperty("ok").GetBoolean()
+            && result.RootElement.GetProperty("accepted").GetInt32() == 1,
+            "SSD_NATIVE_TELEMETRY_HTTP_ACK");
+        var day = DateTimeOffset.FromUnixTimeMilliseconds(1791570000000L).UtcDateTime.ToString("yyyy-MM-dd");
+        Assert(File.Exists(Path.Combine(telemetryTestRoot, "telemetry", "daily", day, "My_Ranger2.json")),
+            "SSD_NATIVE_TELEMETRY_HTTP_FILE");
+    }
+}
+finally
+{
+    if (Directory.Exists(telemetryTestRoot)) Directory.Delete(telemetryTestRoot, recursive: true);
+}
+
+// HTTP account writer: disabled by default; enabled only with an explicit
+// test-only flag on a temporary folder, never in production Bridge setup.
+var accountListener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+accountListener.Start();
+var accountTestPort = ((System.Net.IPEndPoint)accountListener.LocalEndpoint).Port;
+accountListener.Stop();
+var accountHttpRoot = Path.Combine(Path.GetTempPath(), "aio-account-http-" + Guid.NewGuid().ToString("N"));
+try
+{
+    using var accountOwner = CreateTestBridgeWriter(Path.Combine(accountHttpRoot, "state"));
+    await using (var api = new AlFinalNativeStorageApi(
+        new AlFinalNativeKeyValueStore(Path.Combine(accountHttpRoot, "kv")),
+        accountTestPort,
+        new AlFinalNativeAccountSnapshot(Path.Combine(accountHttpRoot, "state")),
+        accountWritesEnabled: true,
+        legacyWriterAbsentProbe: _ => Task.FromResult(true),
+        writerOwnership: accountOwner))
+    {
+        await api.StartAsync();
+        using var client = new HttpClient();
+        var endpoint = "http://127.0.0.1:" + accountTestPort + "/v1/state/account";
+        var body = "{\"profiles\":[{\"name\":\"My_Merchant\",\"observedAtMs\":1234,\"gold\":555}]}";
+        var resp = await client.PostAsync(endpoint, new StringContent(body, Encoding.UTF8, "text/plain"));
+        Assert(resp.IsSuccessStatusCode, "SSD_NATIVE_ACCOUNT_HTTP_OPTIN");
+        using var ack = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        Assert(ack.RootElement.GetProperty("ok").GetBoolean()
+            && ack.RootElement.GetProperty("profilesWritten").GetInt32() == 1,
+            "SSD_NATIVE_ACCOUNT_HTTP_ACK");
+        using var snapshot = JsonDocument.Parse(await client.GetStringAsync(endpoint));
+        Assert(snapshot.RootElement.GetProperty("profiles")[0].GetProperty("gold").GetInt32() == 555,
+            "SSD_NATIVE_ACCOUNT_HTTP_READBACK");
+        var stale = await client.PostAsync(endpoint,
+            new StringContent("{\"profiles\":[{\"name\":\"My_Merchant\",\"observedAtMs\":10}]}",
+                Encoding.UTF8, "text/plain"));
+        Assert((int)stale.StatusCode == 409, "SSD_NATIVE_ACCOUNT_STALE_HTTP_CONFLICT");
+    }
+}
+finally
+{
+    if (Directory.Exists(accountHttpRoot)) Directory.Delete(accountHttpRoot, recursive: true);
+}
+
+// Simulate an occupied legacy Node writer: both APIs must fail closed even
+// with a test-only opt-in. No actual port 17391 dependency in CI.
+var blockedListener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+blockedListener.Start();
+var blockedPort = ((System.Net.IPEndPoint)blockedListener.LocalEndpoint).Port;
+blockedListener.Stop();
+var blockedRoot = Path.Combine(Path.GetTempPath(), "aio-node-present-" + Guid.NewGuid().ToString("N"));
+try
+{
+    using var blockedOwner = CreateTestBridgeWriter(Path.Combine(blockedRoot, "state"));
+    await using (var api = new AlFinalNativeStorageApi(
+        new AlFinalNativeKeyValueStore(Path.Combine(blockedRoot, "kv")),
+        blockedPort,
+        new AlFinalNativeAccountSnapshot(Path.Combine(blockedRoot, "state")),
+        new AlFinalNativeTelemetryCapture(Path.Combine(blockedRoot, "telemetry")),
+        telemetryWritesEnabled: true, accountWritesEnabled: true,
+        legacyWriterAbsentProbe: _ => Task.FromResult(false),
+        writerOwnership: blockedOwner))
+    {
+        await api.StartAsync();
+        using var http = new HttpClient();
+        var baseUrl = "http://127.0.0.1:" + blockedPort;
+        var profileResponse = await http.PostAsync(baseUrl + "/v1/state/account",
+            new StringContent("{\"profiles\":[{\"name\":\"My_Merchant\"}]}",
+                Encoding.UTF8, "text/plain"));
+        Assert((int)profileResponse.StatusCode == 423, "SSD_NODE_PRESENT_ACCOUNT_REJECTED");
+        var telemetryResponse = await http.PostAsync(baseUrl + "/v1/telemetry",
+            new StringContent("{\"records\":[]}", Encoding.UTF8, "text/plain"));
+        Assert((int)telemetryResponse.StatusCode == 423, "SSD_NODE_PRESENT_TELEMETRY_REJECTED");
+        Assert(!Directory.Exists(Path.Combine(blockedRoot, "state", "account-profiles")),
+            "SSD_NODE_PRESENT_NO_ACCOUNT_WRITE");
+        Assert(!Directory.Exists(Path.Combine(blockedRoot, "telemetry")),
+            "SSD_NODE_PRESENT_NO_TELEMETRY_WRITE");
+    }
+}
+finally
+{
+    if (Directory.Exists(blockedRoot)) Directory.Delete(blockedRoot, recursive: true);
+}
+
+// A free port is not sufficient: invalidate Bridge ownership *during*
+// the awaited port probe. The second, per-mutation check must return 423.
+foreach (var accountRoute in new[] { true, false })
+{
+    var raceListener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+    raceListener.Start();
+    var racePort = ((System.Net.IPEndPoint)raceListener.LocalEndpoint).Port;
+    raceListener.Stop();
+    var raceRoot = Path.Combine(Path.GetTempPath(), "aio-writer-revoked-" + Guid.NewGuid().ToString("N"));
+    try
+    {
+        var raceState = Path.Combine(raceRoot, "state");
+        using var raceOwner = CreateTestBridgeWriter(raceState);
+        await using (var raceApi = new AlFinalNativeStorageApi(
+            new AlFinalNativeKeyValueStore(Path.Combine(raceRoot, "kv")), racePort,
+            new AlFinalNativeAccountSnapshot(raceState),
+            new AlFinalNativeTelemetryCapture(Path.Combine(raceRoot, "telemetry")),
+            accountWritesEnabled: true, telemetryWritesEnabled: true,
+            writerOwnership: raceOwner,
+            legacyWriterAbsentProbe: _ =>
+            {
+                File.WriteAllText(Path.Combine(raceState, AlFinalNativeWriterOwnership.OwnerFilename),
+                    "{\"schemaVersion\":1,\"owner\":\"node\"}");
+                return Task.FromResult(true);
+            }))
+        {
+            await raceApi.StartAsync();
+            using var client = new HttpClient();
+            var path = accountRoute ? "/v1/state/account" : "/v1/telemetry";
+            var payload = accountRoute
+                ? "{\"profiles\":[{\"name\":\"My_Merchant\",\"observedAtMs\":1234}]}"
+                : "{\"records\":[{\"atMs\":1791570000000,\"character\":{\"name\":\"My_Mage\"}}]}";
+            var response = await client.PostAsync("http://127.0.0.1:" + racePort + path,
+                new StringContent(payload, Encoding.UTF8, "text/plain"));
+            Assert((int)response.StatusCode == 423,
+                accountRoute ? "SSD_ACCOUNT_REVOKED_AFTER_PROBE_BLOCKED" : "SSD_TELEMETRY_REVOKED_AFTER_PROBE_BLOCKED");
+            Assert(!Directory.Exists(Path.Combine(raceState, "account-profiles")),
+                "SSD_REVOKED_NO_ACCOUNT_WRITE");
+            Assert(!Directory.Exists(Path.Combine(raceRoot, "telemetry")),
+                "SSD_REVOKED_NO_TELEMETRY_WRITE");
+        }
+    }
+    finally
+    {
+        if (Directory.Exists(raceRoot)) Directory.Delete(raceRoot, recursive: true);
+    }
+}
+
+// Mid-batch revocation is a partial failure (never a successful ACK).
+// Previously written files are left for explicit reconciliation, not deleted.
+var partialRoot = Path.Combine(Path.GetTempPath(), "aio-writer-partial-" + Guid.NewGuid().ToString("N"));
+try
+{
+    var partialAccounts = new AlFinalNativeAccountSnapshot(Path.Combine(partialRoot, "state"));
+    using (var payload = JsonDocument.Parse(
+        "{\"profiles\":[{\"name\":\"My_Mage\",\"observedAtMs\":100},{\"name\":\"My_Priest\",\"observedAtMs\":100}]}"))
+    {
+        var checks = 0;
+        try
+        {
+            partialAccounts.WriteAccount(payload.RootElement, () =>
+            {
+                if (++checks == 4)
+                    throw new InvalidOperationException("NATIVE_WRITER_OWNERSHIP_UNVERIFIED");
+            });
+            throw new Exception("EXPECTED_ACCOUNT_PARTIAL_REVOKED");
+        }
+        catch (InvalidOperationException error)
+            when (error.Message == "NATIVE_WRITER_OWNERSHIP_UNVERIFIED") { }
+    }
+    Assert(File.Exists(Path.Combine(partialRoot, "state", "account-profiles", "My_Mage.json")),
+        "SSD_ACCOUNT_FIRST_FILE_DURABLE_BEFORE_REVOKE");
+    Assert(!File.Exists(Path.Combine(partialRoot, "state", "account-profiles", "My_Priest.json")),
+        "SSD_ACCOUNT_SECOND_FILE_BLOCKED_AFTER_REVOKE");
+
+    var partialTelemetry = new AlFinalNativeTelemetryCapture(Path.Combine(partialRoot, "telemetry"));
+    using (var batch = JsonDocument.Parse(
+        "{\"records\":[{\"atMs\":1791570000000,\"character\":{\"name\":\"My_Mage\"}}," +
+        "{\"atMs\":1791570000000,\"character\":{\"name\":\"My_Priest\"}}]}"))
+    {
+        var checks = 0;
+        try
+        {
+            partialTelemetry.Ingest(batch.RootElement, () =>
+            {
+                if (++checks == 5)
+                    throw new InvalidOperationException("NATIVE_WRITER_OWNERSHIP_UNVERIFIED");
+            });
+            throw new Exception("EXPECTED_TELEMETRY_PARTIAL_REVOKED");
+        }
+        catch (InvalidOperationException error)
+            when (error.Message == "NATIVE_WRITER_OWNERSHIP_UNVERIFIED") { }
+    }
+    var partialDay = DateTimeOffset.FromUnixTimeMilliseconds(1791570000000).UtcDateTime.ToString("yyyy-MM-dd");
+    Assert(File.Exists(Path.Combine(partialRoot, "telemetry", "daily", partialDay, "My_Mage.json")),
+        "SSD_TELEMETRY_FIRST_FILE_DURABLE_BEFORE_REVOKE");
+    Assert(!File.Exists(Path.Combine(partialRoot, "telemetry", "daily", partialDay, "My_Priest.json")),
+        "SSD_TELEMETRY_SECOND_FILE_BLOCKED_AFTER_REVOKE");
+}
+finally
+{
+    if (Directory.Exists(partialRoot)) Directory.Delete(partialRoot, recursive: true);
+}
+
 Assert(TrayIconService.ToolTipText == "AIO Bot Windows Bridge", "TRAY_TOOLTIP");
 Assert(typeof(App).GetMethod("ShutdownForUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic) is not null, "TRAY_UPDATE_SHUTDOWN_PATH");
 Assert(typeof(AioBotWindowsBridge.Program).GetMethod("Main", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static) is not null, "SELF_UPDATE_PRE_WPF_ENTRYPOINT");
@@ -826,7 +1332,7 @@ Assert(defaults.BackblazeBucket == "al-aio-bot", "BACKBLAZE_BUCKET_DEFAULT");
 Assert(defaults.BackblazePrefix == "v6", "BACKBLAZE_PREFIX_DEFAULT");
 Assert(defaults.BackblazeKeyIdEnvironmentVariable == "ALBOT_V6_BACKBLAZE_KEY_ID", "BACKBLAZE_KEY_ID_ENV_REQUIRED");
 Assert(defaults.BackblazeApplicationKeyEnvironmentVariable == "ALBOT_V6_BACKBLAZE_APPLICATION_KEY", "BACKBLAZE_APPLICATION_KEY_ENV_REQUIRED");
-Assert(BridgeConfig.CurrentConfigVersion == 12, "V6_CONFIG_VERSION_12");
+Assert(BridgeConfig.CurrentConfigVersion == 13, "V6_CONFIG_VERSION_13");
 Assert(defaults.CharacterSupervisorEnabled, "V6_CHARACTER_SUPERVISOR_DEFAULT_ON");
 Assert(defaults.ManagedCodeSlot == "AL Final Bot", "V6_CHARACTER_SUPERVISOR_CODE_SLOT_DEFAULT");
 Assert(BridgeConfig.LegacyBackblazeCredentialsPath.EndsWith("backblaze-credentials.dpapi", StringComparison.OrdinalIgnoreCase), "LEGACY_BACKBLAZE_STORE_AVAILABLE_FOR_ONE_TIME_IMPORT");
