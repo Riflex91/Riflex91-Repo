@@ -42,12 +42,53 @@ defaults.Validate();
 Assert(defaults.TelemetryEnabled == false, "TELEMETRY_MUST_DEFAULT_OFF");
 Assert(defaults.PreferredBrowser == "Brave", "BRAVE_MUST_DEFAULT");
 Assert(defaults.ConfigVersion == BridgeConfig.CurrentConfigVersion, "CONFIG_VERSION");
-Assert(BridgeConfig.CurrentConfigVersion == 12, "CONFIG_VERSION_12");
+Assert(BridgeConfig.CurrentConfigVersion == 13, "CONFIG_VERSION_13");
 Assert(defaults.PollIntervalSeconds == 5, "V5_LOCAL_OBSERVATION_DEFAULT");
 Assert(defaults.SupabaseStatusIntervalSeconds == 60, "V5_SUPABASE_STATUS_INTERVAL_60S");
 Assert(WindowsBridgeSelfUpdater.CheckIntervalSeconds == 60, "SELF_UPDATE_INTERVAL_60S");
 Assert(WindowsBridgeSelfUpdater.ReleaseTag == "windows-bridge-latest", "SELF_UPDATE_RELEASE_TAG");
 Assert(WindowsBridgeSelfUpdater.StatusFileName == "self-update-status.json", "SELF_UPDATE_STATUS_FILE");
+
+// Native SSD backend regression tests. No Adventure Land or Node process involved.
+Assert(!new BridgeConfig().AlFinalNativeStorageEnabled, "NATIVE_SSD_DEFAULT_OFF");
+Assert(AlFinalNativeStorageApi.DefaultPort == 17392, "NATIVE_SSD_SEPARATE_PORT");
+Assert(AlFinalNativeStorageApi.AllowedOrigin("https://adventure.land"), "SSD_ORIGIN_ALLOWED");
+Assert(AlFinalNativeStorageApi.AllowedOrigin("https://www.adventure.land"), "SSD_WWW_ORIGIN_ALLOWED");
+Assert(!AlFinalNativeStorageApi.AllowedOrigin("https://evil.example"), "SSD_EVIL_ORIGIN_DENIED");
+var ssdTestDir = Path.Combine(Path.GetTempPath(), "aio-ssd-" + Guid.NewGuid().ToString("N"));
+try
+{
+    var store = new AlFinalNativeKeyValueStore(ssdTestDir);
+    const string ssdKey = "albot:h25:autonomy-handoff:v1:EU:I:My_Mage";
+    var absent = store.Read(ssdKey);
+    Assert(!absent.Found && absent.Revision == 0, "SSD_INITIAL_ABSENT");
+    var revision = store.Write(ssdKey, "{\"task\":\"FARM\"}", expectedRevision: 0);
+    Assert(revision == 1, "SSD_FIRST_REVISION");
+    var restored = new AlFinalNativeKeyValueStore(ssdTestDir);
+    Assert(restored.Read(ssdKey).Found && restored.Read(ssdKey).Revision == 1,
+        "SSD_DURABLE_RESTART_READ");
+    try
+    {
+        restored.Write(ssdKey, "other", expectedRevision: 0);
+        throw new InvalidOperationException("SSD_EXPECTED_REVISION_REJECTED");
+    }
+    catch (InvalidOperationException error) when (error.Message == "SSD_REVISION_CONFLICT") { }
+    Assert(restored.Write(ssdKey, "changed", expectedRevision: 1) == 2,
+        "SSD_SECOND_REVISION");
+    Assert(restored.Remove(ssdKey) && !restored.Read(ssdKey).Found, "SSD_REMOVE");
+    try
+    {
+        restored.Write("../secrets", "x");
+        throw new InvalidOperationException("SSD_INVALID_KEY_ACCEPTED");
+    }
+    catch (InvalidOperationException error) when (error.Message == "SSD_KEY_INVALID") { }
+    Assert(restored.Write("aio-v3-content-drift-v1:My_Ranger2", "{\"records\":[]}",
+        expectedRevision: 0) == 1, "SSD_V3_OWNED_NAMESPACE");
+    Assert(restored.Write("albot:market-intelligence-history:v1", "{\"items\":[]}",
+        expectedRevision: 0) == 1, "SSD_MARKET_NAMESPACE");
+}
+finally { if (Directory.Exists(ssdTestDir)) Directory.Delete(ssdTestDir, recursive: true); }
+
 Assert(TrayIconService.ToolTipText == "AIO Bot Windows Bridge", "TRAY_TOOLTIP");
 Assert(typeof(App).GetMethod("ShutdownForUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic) is not null, "TRAY_UPDATE_SHUTDOWN_PATH");
 Assert(typeof(AioBotWindowsBridge.Program).GetMethod("Main", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static) is not null, "SELF_UPDATE_PRE_WPF_ENTRYPOINT");
@@ -826,7 +867,7 @@ Assert(defaults.BackblazeBucket == "al-aio-bot", "BACKBLAZE_BUCKET_DEFAULT");
 Assert(defaults.BackblazePrefix == "v6", "BACKBLAZE_PREFIX_DEFAULT");
 Assert(defaults.BackblazeKeyIdEnvironmentVariable == "ALBOT_V6_BACKBLAZE_KEY_ID", "BACKBLAZE_KEY_ID_ENV_REQUIRED");
 Assert(defaults.BackblazeApplicationKeyEnvironmentVariable == "ALBOT_V6_BACKBLAZE_APPLICATION_KEY", "BACKBLAZE_APPLICATION_KEY_ENV_REQUIRED");
-Assert(BridgeConfig.CurrentConfigVersion == 12, "V6_CONFIG_VERSION_12");
+Assert(BridgeConfig.CurrentConfigVersion == 13, "V6_CONFIG_VERSION_13");
 Assert(defaults.CharacterSupervisorEnabled, "V6_CHARACTER_SUPERVISOR_DEFAULT_ON");
 Assert(defaults.ManagedCodeSlot == "AL Final Bot", "V6_CHARACTER_SUPERVISOR_CODE_SLOT_DEFAULT");
 Assert(BridgeConfig.LegacyBackblazeCredentialsPath.EndsWith("backblaze-credentials.dpapi", StringComparison.OrdinalIgnoreCase), "LEGACY_BACKBLAZE_STORE_AVAILABLE_FOR_ONE_TIME_IMPORT");

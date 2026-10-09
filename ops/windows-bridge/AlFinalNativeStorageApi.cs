@@ -261,7 +261,8 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
         if (_server is null) return;
         var server = _server;
         _server = null;
-        await server.StopAsync(TimeSpan.FromSeconds(5));
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        await server.StopAsync(cancellation.Token);
         await server.DisposeAsync();
     }
 }
