@@ -115,6 +115,12 @@ public partial class MainWindow : Window
             LoadBackblazeControlsFromConfig();
             UpdateBackblazeCredentialStatus();
 
+            AlFinalHostToggle.IsChecked = _config.AlFinalLocalHostManagementEnabled;
+            AlFinalHostToggle.Content = _config.AlFinalLocalHostManagementEnabled
+                ? "HOST-VERWALTUNG AN" : "HOST-VERWALTUNG AUS";
+            AlFinalHostStateText.Text = _config.AlFinalLocalHostManagementEnabled
+                ? "Aktiviert; nur geprüfte Stable-Hostdateien. Status: %LOCALAPPDATA%\\AioBotWindowsBridge\\albot-host-update-status.json"
+                : "Deaktiviert; aktuell laufender Host bleibt unverändert.";
             WissenswaechterToggle.IsChecked = _config.WissenswaechterAktiv;
             LiveWissenspfadBox.Text = _config.LiveWissensdatenbankPfad;
             LiveWissenStateText.Text = Directory.Exists(_config.LiveWissensdatenbankPfad)
@@ -179,6 +185,54 @@ public partial class MainWindow : Window
         }
         if (_bridge is not null) await _bridge.DisposeAsync();
         _httpClient.Dispose();
+    }
+
+    private async void AlFinalHostToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_initializing) return;
+        var enabled = AlFinalHostToggle.IsChecked == true;
+        var previous = _config.AlFinalLocalHostManagementEnabled;
+        if (enabled && !previous)
+        {
+            var approved = System.Windows.MessageBox.Show(
+                "ALFinal-Hostverwaltung aktivieren? Die Bridge installiert ausschließlich geprüfte Stable-Hostskripte unter D:\\ALBot\\host, falls Port 17391 frei ist. Bereits laufende Hosts werden nicht beendet oder übernommen. Node.js muss installiert sein.",
+                "ALFinal Windows-Host", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (approved != MessageBoxResult.Yes)
+            {
+                _initializing = true;
+                AlFinalHostToggle.IsChecked = false;
+                _initializing = false;
+                return;
+            }
+        }
+
+        try
+        {
+            _config = _config with { AlFinalLocalHostManagementEnabled = enabled };
+            await _config.SaveAsync();
+            if (enabled && _alFinalHostManager is null)
+            {
+                _alFinalHostManager = new AlFinalLocalHostManager();
+                await _alFinalHostManager.StartAsync();
+            }
+            else if (!enabled && _alFinalHostManager is not null)
+            {
+                await _alFinalHostManager.DisposeAsync();
+                _alFinalHostManager = null;
+            }
+            AlFinalHostToggle.Content = enabled ? "HOST-VERWALTUNG AN" : "HOST-VERWALTUNG AUS";
+            AlFinalHostStateText.Text = enabled
+                ? "Verwaltung läuft im Hintergrund. Prüfe %LOCALAPPDATA%\\AioBotWindowsBridge\\albot-host-update-status.json"
+                : "Verwaltung deaktiviert; vorhandene Hostprozesse bleiben unangetastet.";
+        }
+        catch (Exception error)
+        {
+            _config = _config with { AlFinalLocalHostManagementEnabled = previous };
+            _initializing = true;
+            AlFinalHostToggle.IsChecked = previous;
+            _initializing = false;
+            AlFinalHostStateText.Text = "Host-Manager Fehler: " + Bounded(error.Message);
+        }
     }
 
     private async void TelemetryToggle_Changed(object sender, RoutedEventArgs e)

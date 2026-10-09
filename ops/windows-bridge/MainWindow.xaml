@@ -20,6 +20,8 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="22" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="22" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <DockPanel Grid.Row="0" LastChildFill="False">
@@ -347,6 +349,25 @@
                             <TextBlock x:Name="ConfigPathText" Grid.Row="5" Grid.Column="1" Margin="0,4" TextWrapping="Wrap" />
                         </Grid>
                     </Expander>
+                </StackPanel>
+            </Border>
+            <Border Grid.Row="14" Style="{StaticResource Card}">
+                <StackPanel>
+                    <DockPanel LastChildFill="False">
+                        <StackPanel>
+                            <TextBlock Text="ALFinal-Host auf D:\ALBot" FontSize="20" FontWeight="SemiBold" />
+                            <TextBlock Text="Optionale Verwaltung des lokalen Node.js-SSD-Hosts: nur geprüfte Stable-Dateien, kein Zugriff auf Spielaktionen." 
+                                       Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,6,18,12" />
+                        </StackPanel>
+                        <ToggleButton x:Name="AlFinalHostToggle"
+                                      DockPanel.Dock="Right"
+                                      Content="HOST-VERWALTUNG AUS"
+                                      Checked="AlFinalHostToggle_Changed"
+                                      Unchecked="AlFinalHostToggle_Changed"
+                                      HorizontalAlignment="Right" Margin="12,0,0,0" />
+                    </DockPanel>
+                    <TextBlock x:Name="AlFinalHostStateText" Text="Standardmäßig deaktiviert; laufende fremde Hosts werden nicht übernommen."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="4,2,0,0"/>
                 </StackPanel>
             </Border>
         </Grid>

@@ -412,7 +412,9 @@ Die Windows Bridge startet standardmäßig ohne sichtbares Hauptfenster und läu
 
 The Windows Bridge manages the separate Node.js host process for `D:\ALBot\state`
 and `D:\ALBot\telemetry` **only** when the operator explicitly enables it.
-In `%APPDATA%\AioBotWindowsBridge\settings.json`:
+Use the **ALFinal-Host auf D:\ALBot** toggle in the Windows Bridge. The first
+enable action requires explicit local confirmation. Alternatively, configure
+`%APPDATA%\AioBotWindowsBridge\settings.json`:
 
 ```json
 "alFinalLocalHostManagementEnabled": true
