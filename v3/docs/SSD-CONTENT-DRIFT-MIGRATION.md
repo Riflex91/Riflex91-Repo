@@ -23,3 +23,17 @@ can copy and verify the existing V3 drift keys. This adapter can then serve
 as the async persistence primitive for a later safe startup cutover.
 
 No automatic opt-in, release promotion or browser key deletion is in this PR.
+
+## Merge / release separation
+
+This standalone client is safe to keep **dormant in a merge to main** once its
+isolated regression suite and V3 full-check workflow are green. A merge is
+not a storage cutover, does not opt the runtime into this adapter, and must
+not deploy new Cloudflare/V3 runtime artifacts solely for this preparation.
+Its own paths are excluded from the automatic V3 version, Cloudflare deploy
+and documentation-release triggers. Revisit those exclusions as part of a
+separately authorized, runtime-validated migration.
+
+Required before real activation: confirmed preload of every old content-drift
+and quarantine baseline, preservation of UNKNOWN/STOP conditions, explicit
+rollback and live runtime evidence. Host outage must not reset any baseline.
