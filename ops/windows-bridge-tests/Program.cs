@@ -7,6 +7,17 @@ static void Assert(bool condition, string message)
     if (!condition) throw new InvalidOperationException(message);
 }
 
+static AlFinalNativeWriterOwnership CreateTestBridgeWriter(string stateRoot)
+{
+    Directory.CreateDirectory(stateRoot);
+    File.WriteAllText(Path.Combine(stateRoot, AlFinalNativeWriterOwnership.OwnerFilename),
+        "{\\"schemaVersion\\":1,\\"owner\\":\\"bridge\\"}");
+    var owner = new AlFinalNativeWriterOwnership(stateRoot);
+    owner.Acquire();
+    Assert(owner.IsOwned(), "SSD_NATIVE_WRITER_LEASE_ACQUIRED");
+    return owner;
+}
+
 static void ExpectInvalid(BridgeConfig config, string expected)
 {
     try
@@ -139,6 +150,51 @@ try
 }
 finally { if (Directory.Exists(captureRoot)) Directory.Delete(captureRoot, recursive: true); }
 
+// Shared cross-process writer ownership cannot be inferred from free TCP ports.
+var ownershipRoot = Path.Combine(Path.GetTempPath(), "aio-owner-" + Guid.NewGuid().ToString("N"));
+try
+{
+    Directory.CreateDirectory(ownershipRoot);
+    var marker = Path.Combine(ownershipRoot, AlFinalNativeWriterOwnership.OwnerFilename);
+    File.WriteAllText(marker, "{\\"schemaVersion\\":1,\\"owner\\":\\"node\\"}");
+    using (var foreignOwner = new AlFinalNativeWriterOwnership(ownershipRoot))
+    {
+        var blocked = false;
+        try { foreignOwner.Acquire(); }
+        catch (InvalidOperationException) { blocked = true; }
+        Assert(blocked, "SSD_NATIVE_WRITER_NODE_OWNER_BLOCKED");
+    }
+    Assert(!File.Exists(Path.Combine(ownershipRoot, AlFinalNativeWriterOwnership.LeaseFilename)),
+        "SSD_NATIVE_WRITER_NODE_OWNER_NO_LEASE");
+
+    File.WriteAllText(marker, "{\\"schemaVersion\\":1,\\"owner\\":\\"bridge\\"}");
+    using (var firstOwner = new AlFinalNativeWriterOwnership(ownershipRoot))
+    {
+        firstOwner.Acquire();
+        Assert(firstOwner.IsOwned(), "SSD_NATIVE_WRITER_VERIFIED");
+        using var secondOwner = new AlFinalNativeWriterOwnership(ownershipRoot);
+        var secondBlocked = false;
+        try { secondOwner.Acquire(); }
+        catch (IOException) { secondBlocked = true; }
+        Assert(secondBlocked, "SSD_NATIVE_WRITER_SECOND_INSTANCE_BLOCKED");
+    }
+    Assert(!File.Exists(Path.Combine(ownershipRoot, AlFinalNativeWriterOwnership.LeaseFilename)),
+        "SSD_NATIVE_WRITER_CLEAN_RELEASE");
+    File.WriteAllText(Path.Combine(ownershipRoot, AlFinalNativeWriterOwnership.LeaseFilename),
+        "{\\"schemaVersion\\":1,\\"owner\\":\\"bridge\\",\\"token\\":\\"stale\\"}");
+    using (var staleOwner = new AlFinalNativeWriterOwnership(ownershipRoot))
+    {
+        var staleBlocked = false;
+        try { staleOwner.Acquire(); }
+        catch (IOException) { staleBlocked = true; }
+        Assert(staleBlocked, "SSD_NATIVE_WRITER_STALE_LEASE_BLOCKED");
+    }
+}
+finally
+{
+    if (Directory.Exists(ownershipRoot)) Directory.Delete(ownershipRoot, recursive: true);
+}
+
 // Native SSD backend regression tests. No Adventure Land or Node process involved.
 Assert(!new BridgeConfig().AlFinalNativeStorageEnabled, "NATIVE_SSD_DEFAULT_OFF");
 Assert(AlFinalNativeStorageApi.DefaultPort == 17392, "NATIVE_SSD_SEPARATE_PORT");
@@ -261,13 +317,15 @@ telemetryListener.Stop();
 var telemetryTestRoot = Path.Combine(Path.GetTempPath(), "aio-native-http-capture-" + Guid.NewGuid().ToString("N"));
 try
 {
+    using var telemetryOwner = CreateTestBridgeWriter(Path.Combine(telemetryTestRoot, "state"));
     await using (var api = new AlFinalNativeStorageApi(
         new AlFinalNativeKeyValueStore(Path.Combine(telemetryTestRoot, "kv")),
         telemetryTestPort,
         new AlFinalNativeAccountSnapshot(Path.Combine(telemetryTestRoot, "state")),
         new AlFinalNativeTelemetryCapture(Path.Combine(telemetryTestRoot, "telemetry")),
         telemetryWritesEnabled: true,
-        legacyWriterAbsentProbe: _ => Task.FromResult(true)))
+        legacyWriterAbsentProbe: _ => Task.FromResult(true),
+        writerOwnership: telemetryOwner))
     {
         await api.StartAsync();
         using var client = new HttpClient();
@@ -303,12 +361,14 @@ accountListener.Stop();
 var accountHttpRoot = Path.Combine(Path.GetTempPath(), "aio-account-http-" + Guid.NewGuid().ToString("N"));
 try
 {
+    using var accountOwner = CreateTestBridgeWriter(Path.Combine(accountHttpRoot, "state"));
     await using (var api = new AlFinalNativeStorageApi(
         new AlFinalNativeKeyValueStore(Path.Combine(accountHttpRoot, "kv")),
         accountTestPort,
         new AlFinalNativeAccountSnapshot(Path.Combine(accountHttpRoot, "state")),
         accountWritesEnabled: true,
-        legacyWriterAbsentProbe: _ => Task.FromResult(true)))
+        legacyWriterAbsentProbe: _ => Task.FromResult(true),
+        writerOwnership: accountOwner))
     {
         await api.StartAsync();
         using var client = new HttpClient();
@@ -343,13 +403,15 @@ blockedListener.Stop();
 var blockedRoot = Path.Combine(Path.GetTempPath(), "aio-node-present-" + Guid.NewGuid().ToString("N"));
 try
 {
+    using var blockedOwner = CreateTestBridgeWriter(Path.Combine(blockedRoot, "state"));
     await using (var api = new AlFinalNativeStorageApi(
         new AlFinalNativeKeyValueStore(Path.Combine(blockedRoot, "kv")),
         blockedPort,
         new AlFinalNativeAccountSnapshot(Path.Combine(blockedRoot, "state")),
         new AlFinalNativeTelemetryCapture(Path.Combine(blockedRoot, "telemetry")),
         telemetryWritesEnabled: true, accountWritesEnabled: true,
-        legacyWriterAbsentProbe: _ => Task.FromResult(false)))
+        legacyWriterAbsentProbe: _ => Task.FromResult(false),
+        writerOwnership: blockedOwner))
     {
         await api.StartAsync();
         using var http = new HttpClient();
