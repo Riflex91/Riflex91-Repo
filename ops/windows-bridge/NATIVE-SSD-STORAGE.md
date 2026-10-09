@@ -126,3 +126,20 @@ The lease is a cooperation/fail-closed mechanism for **instrumented** writers,
 not a proof that an old uninstrumented Node process, a direct file-writing
 tool, or a hostile local program is absent. Live exclusive ownership cannot
 be claimed until all legacy writers are accounted for and disabled.
+
+## Account/telemetry ownership revalidation during HTTP requests
+
+The experimental native account and telemetry HTTP handlers now pass the
+verified writer lease as a per-mutation check into the file-writing classes.
+The original route-level gate is still required, but no longer sufficient:
+a lease revoked **while the request is being parsed or the Node-port probe
+is awaited** returns HTTP 423 rather than writing a file. Account snapshots
+revalidate immediately before each write and final atomic rename; telemetry
+revalidates for each raw record and daily-file replacement.
+
+Both APIs are still test-only and production-disabled. Batches are **not
+atomic across files**: a revocation part-way through an account/telemetry
+batch can leave a durable prefix of the batch. Such an exception must not be
+reported as a successful ACK. The operator must reconcile partial files using
+a verified backup; retries must never be blind. Regression coverage explicitly
+revokes the owner during the async HTTP probe and during multi-record writes.
