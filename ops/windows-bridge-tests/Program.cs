@@ -49,6 +49,53 @@ Assert(WindowsBridgeSelfUpdater.CheckIntervalSeconds == 60, "SELF_UPDATE_INTERVA
 Assert(WindowsBridgeSelfUpdater.ReleaseTag == "windows-bridge-latest", "SELF_UPDATE_RELEASE_TAG");
 Assert(WindowsBridgeSelfUpdater.StatusFileName == "self-update-status.json", "SELF_UPDATE_STATUS_FILE");
 
+// Account writer preflight: schema, monotonicity, durable restart.
+var accountTestRoot = Path.Combine(Path.GetTempPath(), "aio-ssd-account-" + Guid.NewGuid().ToString("N"));
+try
+{
+    var accountStore = new AlFinalNativeAccountSnapshot(accountTestRoot);
+    using (var write = JsonDocument.Parse(
+        "{\"profiles\":[{\"name\":\"My_Merchant\",\"observedAtMs\":200,\"gold\":10}],\"wealth\":{\"observedAtMs\":300,\"gold\":100}}"))
+    {
+        var result = accountStore.WriteAccount(write.RootElement);
+        Assert(result.ProfilesWritten == 1 && result.WealthWritten,
+            "SSD_NATIVE_ACCOUNT_WRITE_CONFIRMED");
+    }
+    var mirror = JsonSerializer.Serialize(new AlFinalNativeAccountSnapshot(accountTestRoot).ReadAccount());
+    using (var state = JsonDocument.Parse(mirror))
+        Assert(state.RootElement.GetProperty("profiles")[0].GetProperty("gold").GetInt32() == 10
+            && state.RootElement.GetProperty("wealth").GetProperty("gold").GetInt32() == 100,
+            "SSD_NATIVE_ACCOUNT_WRITE_READBACK");
+    try
+    {
+        using var stale = JsonDocument.Parse(
+            "{\"profiles\":[{\"name\":\"My_Merchant\",\"observedAtMs\":199,\"gold\":999}]}");
+        accountStore.WriteAccount(stale.RootElement);
+        throw new InvalidOperationException("SSD_NATIVE_STALE_PROFILE_ACCEPTED");
+    }
+    catch (InvalidOperationException error) when (error.Message == "ACCOUNT_STALE_PROFILE_REJECTED") {}
+    try
+    {
+        using var traversal = JsonDocument.Parse(
+            "{\"profiles\":[{\"name\":\"../bad\",\"observedAtMs\":250}]}");
+        accountStore.WriteAccount(traversal.RootElement);
+        throw new InvalidOperationException("SSD_NATIVE_TRAVERSAL_ACCEPTED");
+    }
+    catch (InvalidDataException error) when (error.Message == "ACCOUNT_WRITE_NAME_INVALID") {}
+    try
+    {
+        using var duplicate = JsonDocument.Parse(
+            "{\"profiles\":[{\"name\":\"My_Merchant\"},{\"name\":\"My_Merchant\"}]}");
+        accountStore.WriteAccount(duplicate.RootElement);
+        throw new InvalidOperationException("SSD_NATIVE_DUPLICATE_ACCEPTED");
+    }
+    catch (InvalidDataException error) when (error.Message == "ACCOUNT_WRITE_NAME_INVALID") {}
+    using (var still = JsonDocument.Parse(JsonSerializer.Serialize(accountStore.ReadAccount())))
+        Assert(still.RootElement.GetProperty("profiles")[0].GetProperty("gold").GetInt32() == 10,
+            "SSD_NATIVE_STALE_REJECTION_NO_MUTATION");
+}
+finally { if (Directory.Exists(accountTestRoot)) Directory.Delete(accountTestRoot, recursive: true); }
+
 // Native telemetry parity checks: direct files; no production write activation.
 var captureRoot = Path.Combine(Path.GetTempPath(), "aio-ssd-telemetry-" + Guid.NewGuid().ToString("N"));
 try
@@ -244,6 +291,45 @@ try
 finally
 {
     if (Directory.Exists(telemetryTestRoot)) Directory.Delete(telemetryTestRoot, recursive: true);
+}
+
+// HTTP account writer: disabled by default; enabled only with an explicit
+// test-only flag on a temporary folder, never in production Bridge setup.
+var accountListener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+accountListener.Start();
+var accountTestPort = ((System.Net.IPEndPoint)accountListener.LocalEndpoint).Port;
+accountListener.Stop();
+var accountHttpRoot = Path.Combine(Path.GetTempPath(), "aio-account-http-" + Guid.NewGuid().ToString("N"));
+try
+{
+    await using (var api = new AlFinalNativeStorageApi(
+        new AlFinalNativeKeyValueStore(Path.Combine(accountHttpRoot, "kv")),
+        accountTestPort,
+        new AlFinalNativeAccountSnapshot(Path.Combine(accountHttpRoot, "state")),
+        accountWritesEnabled: true))
+    {
+        await api.StartAsync();
+        using var client = new HttpClient();
+        var endpoint = "http://127.0.0.1:" + accountTestPort + "/v1/state/account";
+        var body = "{\"profiles\":[{\"name\":\"My_Merchant\",\"observedAtMs\":1234,\"gold\":555}]}";
+        var resp = await client.PostAsync(endpoint, new StringContent(body, Encoding.UTF8, "text/plain"));
+        Assert(resp.IsSuccessStatusCode, "SSD_NATIVE_ACCOUNT_HTTP_OPTIN");
+        using var ack = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+        Assert(ack.RootElement.GetProperty("ok").GetBoolean()
+            && ack.RootElement.GetProperty("profilesWritten").GetInt32() == 1,
+            "SSD_NATIVE_ACCOUNT_HTTP_ACK");
+        using var snapshot = JsonDocument.Parse(await client.GetStringAsync(endpoint));
+        Assert(snapshot.RootElement.GetProperty("profiles")[0].GetProperty("gold").GetInt32() == 555,
+            "SSD_NATIVE_ACCOUNT_HTTP_READBACK");
+        var stale = await client.PostAsync(endpoint,
+            new StringContent("{\"profiles\":[{\"name\":\"My_Merchant\",\"observedAtMs\":10}]}",
+                Encoding.UTF8, "text/plain"));
+        Assert((int)stale.StatusCode == 409, "SSD_NATIVE_ACCOUNT_STALE_HTTP_CONFLICT");
+    }
+}
+finally
+{
+    if (Directory.Exists(accountHttpRoot)) Directory.Delete(accountHttpRoot, recursive: true);
 }
 
 Assert(TrayIconService.ToolTipText == "AIO Bot Windows Bridge", "TRAY_TOOLTIP");
