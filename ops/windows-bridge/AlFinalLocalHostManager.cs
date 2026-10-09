@@ -150,12 +150,29 @@ public sealed class AlFinalLocalHostManager : IAsyncDisposable
             return "EXTERNAL_OR_RUNNING_HOST";
         }
 
-        var manifestBytes = await GetBoundedAsync(ManifestUrl, 64 * 1024, cancellationToken);
-        var manifest = JsonSerializer.Deserialize<AlFinalHostRelease>(manifestBytes, JsonOptions)
-            ?? throw new InvalidOperationException("ALFINAL_HOST_MANIFEST_MISSING");
-        ValidateManifest(manifest);
-
+        // A previously verified install may start offline, but a missing,
+        // invalid, or unverified local install may never bypass the stable
+        // release manifest. Invalid HTTP manifest content also fails closed.
         var installed = ReadInstalledManifest();
+        AlFinalHostRelease manifest;
+        try
+        {
+            var manifestBytes = await GetBoundedAsync(ManifestUrl, 64 * 1024, cancellationToken);
+            manifest = JsonSerializer.Deserialize<AlFinalHostRelease>(manifestBytes, JsonOptions)
+                ?? throw new InvalidOperationException("ALFINAL_HOST_MANIFEST_MISSING");
+            ValidateManifest(manifest);
+        }
+        catch (HttpRequestException) when (installed is not null)
+        {
+            manifest = installed;
+            await RecordStatusAsync("OFFLINE_PINNED_INSTALL", installed.PackageVersion);
+        }
+        catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested && installed is not null)
+        {
+            manifest = installed;
+            await RecordStatusAsync("OFFLINE_PINNED_INSTALL", installed.PackageVersion);
+        }
+
         string? rollbackBackup = null;
         if (IsNewer(manifest, installed))
         {

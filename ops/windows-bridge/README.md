@@ -455,3 +455,12 @@ The stable host package must be published by the ALFinal repository; if the
 manifest is missing, installation fails closed. Do not enable this mode until
 the release pipeline and host tests are verified. This is separate from the
 still-draft ALFinal SSD migration PR #115.
+
+### Offline recovery
+
+If GitHub cannot be reached, a previously installed host with a valid pinned
+`host-version.json` can still start in its fixed directory. Missing or
+invalid local manifest, corrupt/malformed GitHub manifest data, or unknown
+release versions never permit a fresh installation. The status file records
+`OFFLINE_PINNED_INSTALL` when this mode is used. The Bridge still verifies the
+actual child process PID and SSD capability before treating startup as healthy.
