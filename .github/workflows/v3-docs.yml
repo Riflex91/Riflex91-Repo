@@ -9,6 +9,8 @@ on:
     paths:
       - "v3/README.md"
       - "v3/docs/**"
+      # Documentation for inactive storage groundwork is not a docs-release event.
+      - "!v3/docs/SSD-CONTENT-DRIFT-MIGRATION.md"
       - "v3/scripts/generate-docs.js"
   workflow_dispatch:
 
