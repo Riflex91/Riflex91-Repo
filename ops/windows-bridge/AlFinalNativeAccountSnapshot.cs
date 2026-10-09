@@ -33,7 +33,8 @@ public sealed class AlFinalNativeAccountSnapshot
 
     // Test-only migration primitive. Production API does NOT enable account
     // writes until the legacy Node account writer is fully stopped.
-    public (int ProfilesWritten, bool WealthWritten) WriteAccount(JsonElement payload)
+    public (int ProfilesWritten, bool WealthWritten) WriteAccount(
+        JsonElement payload, Action? confirmWriterOwnership = null)
     {
         if (payload.ValueKind != JsonValueKind.Object)
             throw new InvalidDataException("ACCOUNT_WRITE_PAYLOAD_INVALID");
@@ -78,6 +79,9 @@ public sealed class AlFinalNativeAccountSnapshot
         // this batch is NOT a multi-file transaction.
         lock (_writeGate)
         {
+            // Check again after HTTP parsing/probing, before any disk mutation.
+            // Direct migration tests can omit the guard; HTTP writer may not.
+            confirmWriterOwnership?.Invoke();
             var dir = Path.Combine(_root, "account-profiles");
             foreach (var row in rows)
             {
@@ -93,9 +97,9 @@ public sealed class AlFinalNativeAccountSnapshot
                     throw new InvalidOperationException("ACCOUNT_STALE_WEALTH_REJECTED");
             }
             foreach (var row in rows)
-                WriteAtomic(Path.Combine(dir, row.Name + ".json"), row.Content);
+                WriteAtomic(Path.Combine(dir, row.Name + ".json"), row.Content, confirmWriterOwnership);
             if (wealth is not null)
-                WriteAtomic(Path.Combine(_root, "account-wealth.json"), wealth);
+                WriteAtomic(Path.Combine(_root, "account-wealth.json"), wealth, confirmWriterOwnership);
         }
         return (rows.Count, wealth is not null);
     }
@@ -116,8 +120,9 @@ public sealed class AlFinalNativeAccountSnapshot
         return 0;
     }
 
-    private static void WriteAtomic(string filename, byte[] bytes)
+    private static void WriteAtomic(string filename, byte[] bytes, Action? confirmWriterOwnership)
     {
+        confirmWriterOwnership?.Invoke();
         Directory.CreateDirectory(Path.GetDirectoryName(filename)!);
         var tmp = filename + ".tmp-" + Guid.NewGuid().ToString("N");
         try
@@ -128,6 +133,8 @@ public sealed class AlFinalNativeAccountSnapshot
                 stream.Write(bytes);
                 stream.Flush(flushToDisk: true);
             }
+            // A writer revoked during serialization must not replace a live file.
+            confirmWriterOwnership?.Invoke();
             File.Move(tmp, filename, overwrite: true);
         }
         finally { if (File.Exists(tmp)) File.Delete(tmp); }
