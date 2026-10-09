@@ -38,3 +38,17 @@ migration. Do not automatically clear browser data or fail open on a native
 Bridge restart/self-update. The live bot remains unchanged while this PR
 is a draft. The older draft Windows host-updater PR #994 is superseded by
 this native-storage direction, not required for the SSD API.
+
+## Native account-state readback (shadow mode)
+
+The Bridge now exposes a **read-only** `GET /v1/state/account` compatible
+with the existing ALFinal Node host account snapshot JSON schema. It reads
+`D:\ALBot\state\account-profiles\*.json` and
+`D:\ALBot\state\account-wealth.json` without changing the files.
+The parser bounds the number and size of records, refuses reparse-point
+files, and fails explicitly on malformed JSON or unsafe filenames.
+
+`POST /v1/state/account` is intentionally **not supported** yet. This
+prevents the new Bridge from racing the still-running Node account writer.
+ALFinal's host-state client therefore remains on Node port `17391`
+until a safe single-writer cutover has been implemented and verified.

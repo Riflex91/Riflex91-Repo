@@ -185,6 +185,20 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
             }
             await next();
         });
+        server.MapGet("/v1/state/account", () =>
+        {
+            try { return Results.Json(new AlFinalNativeAccountSnapshot().ReadAccount()); }
+            catch (Exception error) when (error is InvalidDataException or JsonException or IOException)
+            {
+                return Results.Json(new { ok = false, error = "ACCOUNT_SSD_READ_FAILED" },
+                    statusCode: 503);
+            }
+        });
+        // No native state POST until the old Node account writer is disabled.
+        server.MapPost("/v1/state/account", () =>
+            Results.Json(new { ok = false, error = "ACCOUNT_NATIVE_WRITE_NOT_ENABLED" },
+                statusCode: 423));
+
         server.MapGet("/health", () => Results.Json(new
         {
             ok = true, service = "ALFinal Windows Bridge native SSD", schemaVersion = 1,
