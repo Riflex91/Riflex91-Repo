@@ -136,6 +136,12 @@ public sealed class AlFinalLocalHostManager : IAsyncDisposable
 
     public async Task<string> CheckAndManageOnceAsync(CancellationToken cancellationToken = default)
     {
+        // Cross-process OS file lease: a second Bridge instance cannot install
+        // or start the same host concurrently. Lock releases on process exit.
+        Directory.CreateDirectory(StagingDirectory);
+        using var lease = new FileStream(Path.Combine(StagingDirectory, ".host-manager.lock"),
+            FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+
         // Never take over a host launched from a developer checkout or another process.
         var occupied = await IsPortOccupiedAsync(cancellationToken);
         if (occupied)
@@ -150,11 +156,12 @@ public sealed class AlFinalLocalHostManager : IAsyncDisposable
         ValidateManifest(manifest);
 
         var installed = ReadInstalledManifest();
+        string? rollbackBackup = null;
         if (IsNewer(manifest, installed))
         {
             var archive = await GetBoundedAsync(ArchiveUrl, MaximumArchiveBytes, cancellationToken);
             var files = ValidateArchive(archive, manifest);
-            ApplyWhileStopped(files, manifest);
+            rollbackBackup = ApplyWhileStopped(files, manifest);
             await RecordStatusAsync("INSTALLED", manifest.PackageVersion);
         }
         else if (installed is not null && !Directory.Exists(HostDirectory))
@@ -178,10 +185,33 @@ public sealed class AlFinalLocalHostManager : IAsyncDisposable
             };
             info.ArgumentList.Add(RequiredFiles[0]);
             _ownedProcess?.Dispose();
-            _ownedProcess = Process.Start(info)
-                ?? throw new InvalidOperationException("ALFINAL_HOST_NODE_START_FAILED");
-            await RecordStatusAsync("STARTED", manifest.PackageVersion);
-            return "STARTED";
+            try
+            {
+                _ownedProcess = Process.Start(info)
+                    ?? throw new InvalidOperationException("ALFINAL_HOST_NODE_START_FAILED");
+                if (!await WaitForHostHealthAsync(_ownedProcess, cancellationToken))
+                    throw new InvalidOperationException("ALFINAL_HOST_HEALTH_VERIFICATION_FAILED");
+            }
+            catch
+            {
+                if (_ownedProcess is not null && !_ownedProcess.HasExited)
+                {
+                    _ownedProcess.Kill(entireProcessTree: true); // our own child PID ONLY
+                    await _ownedProcess.WaitForExitAsync(cancellationToken);
+                }
+                if (rollbackBackup is not null)
+                {
+                    // Restore only the previous CODE directory, not SSD state.
+                    var failed = Path.Combine(StagingDirectory,
+                        "failed-host-" + Guid.NewGuid().ToString("N"));
+                    if (Directory.Exists(HostDirectory))
+                        Directory.Move(HostDirectory, failed);
+                    Directory.Move(rollbackBackup, HostDirectory);
+                }
+                throw;
+            }
+            await RecordStatusAsync("HEALTHY", manifest.PackageVersion);
+            return "HEALTHY";
         }
         return "NO_HOST_INSTALLED";
     }
@@ -196,7 +226,7 @@ public sealed class AlFinalLocalHostManager : IAsyncDisposable
         return manifest;
     }
 
-    private static void ApplyWhileStopped(
+    private static string? ApplyWhileStopped(
         IReadOnlyDictionary<string, byte[]> files, AlFinalHostRelease manifest)
     {
         // Do not mutate any existing data under D:\ALBot\state or telemetry.
@@ -227,6 +257,33 @@ public sealed class AlFinalLocalHostManager : IAsyncDisposable
             }
         }
         finally { if (Directory.Exists(stage)) Directory.Delete(stage, recursive: true); }
+        return backup;
+    }
+
+    private async Task<bool> WaitForHostHealthAsync(
+        Process process, CancellationToken cancellationToken)
+    {
+        for (var i = 0; i < 16; i++)
+        {
+            if (process.HasExited) return false;
+            try
+            {
+                using var response = await _http.GetAsync(
+                    "http://127.0.0.1:17391/health", cancellationToken);
+                if (response.IsSuccessStatusCode && !process.HasExited)
+                {
+                    using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+                    if (doc.RootElement.TryGetProperty("ok", out var ok) && ok.GetBoolean()
+                        && doc.RootElement.TryGetProperty("durableStore", out var durable)
+                        && durable.ValueKind == JsonValueKind.Object)
+                        return true;
+                }
+            }
+            catch (HttpRequestException) { }
+            catch (JsonException) { }
+            await Task.Delay(TimeSpan.FromMilliseconds(500), cancellationToken);
+        }
+        return false;
     }
 
     private async Task<byte[]> GetBoundedAsync(string url, int maxBytes, CancellationToken token)
