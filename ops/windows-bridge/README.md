@@ -439,8 +439,12 @@ nor kills or adopts the foreign process. It waits until the port is free. It
 does not force a restart of an active game host; code updates take effect on
 the next safe, idle host start. The Bridge does not kill its own Node child
 when the Bridge self-updates. A later Bridge instance will regard that living
-Node process as external until it stops. Automatic live restart handoff and
-rollback after a failed runtime health check are **not part of this phase**.
+Node process as external until it stops. Automatic live restart handoff is **not part of this phase**. After
+install, the Bridge requires a healthy local `/health` result exposing
+`durableStore`. On a failed startup it terminates **only its own newly
+started child**, restores the previous code directory if a backup exists,
+and reports failure. It never clears the account safety/UNKNOWN state. The
+restored host may require a controlled subsequent start.
 
 Monitor `%LOCALAPPDATA%\AioBotWindowsBridge\albot-host-update-status.json`.
 The stable host package must be published by the ALFinal repository; if the
