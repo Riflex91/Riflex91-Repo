@@ -64,12 +64,15 @@ public sealed class AlFinalNativeTelemetryCapture
             || Encoding.UTF8.GetByteCount(payload.GetRawText()) > MaximumBatchBytes)
             throw new InvalidDataException("TELEMETRY_BATCH_INVALID");
 
-        // Validate all entries before the first filesystem mutation.
+        // Never report success while silently discarding a batch suffix.
+        if (list.GetArrayLength() > 100)
+            throw new InvalidDataException("TELEMETRY_TOO_MANY_RECORDS");
+        // Validate every entry before the first filesystem mutation.
         var rows = new List<(JsonElement Row, string Day, string Hour, string Character, DateTimeOffset At)>();
-        foreach (var row in list.EnumerateArray().Take(100))
+        foreach (var row in list.EnumerateArray())
         {
             if (row.ValueKind != JsonValueKind.Object
-                || row.GetRawText().Length > 128 * 1024)
+                || Encoding.UTF8.GetByteCount(row.GetRawText()) > 128 * 1024)
                 throw new InvalidDataException("TELEMETRY_RECORD_INVALID");
             var time = OptionalNumber(row, "atMs");
             if (!time.HasValue || time.Value < 946684800000 || time.Value > 4102444800000)
