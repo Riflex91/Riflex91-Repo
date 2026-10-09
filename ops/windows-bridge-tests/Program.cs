@@ -11,7 +11,7 @@ static AlFinalNativeWriterOwnership CreateTestBridgeWriter(string stateRoot)
 {
     Directory.CreateDirectory(stateRoot);
     File.WriteAllText(Path.Combine(stateRoot, AlFinalNativeWriterOwnership.OwnerFilename),
-        "{\\"schemaVersion\\":1,\\"owner\\":\\"bridge\\"}");
+        "{\"schemaVersion\":1,\"owner\":\"bridge\"}");
     var owner = new AlFinalNativeWriterOwnership(stateRoot);
     owner.Acquire();
     Assert(owner.IsOwned(), "SSD_NATIVE_WRITER_LEASE_ACQUIRED");
@@ -156,7 +156,7 @@ try
 {
     Directory.CreateDirectory(ownershipRoot);
     var marker = Path.Combine(ownershipRoot, AlFinalNativeWriterOwnership.OwnerFilename);
-    File.WriteAllText(marker, "{\\"schemaVersion\\":1,\\"owner\\":\\"node\\"}");
+    File.WriteAllText(marker, "{\"schemaVersion\":1,\"owner\":\"node\"}");
     using (var foreignOwner = new AlFinalNativeWriterOwnership(ownershipRoot))
     {
         var blocked = false;
@@ -167,7 +167,7 @@ try
     Assert(!File.Exists(Path.Combine(ownershipRoot, AlFinalNativeWriterOwnership.LeaseFilename)),
         "SSD_NATIVE_WRITER_NODE_OWNER_NO_LEASE");
 
-    File.WriteAllText(marker, "{\\"schemaVersion\\":1,\\"owner\\":\\"bridge\\"}");
+    File.WriteAllText(marker, "{\"schemaVersion\":1,\"owner\":\"bridge\"}");
     using (var firstOwner = new AlFinalNativeWriterOwnership(ownershipRoot))
     {
         firstOwner.Acquire();
@@ -181,7 +181,7 @@ try
     Assert(!File.Exists(Path.Combine(ownershipRoot, AlFinalNativeWriterOwnership.LeaseFilename)),
         "SSD_NATIVE_WRITER_CLEAN_RELEASE");
     File.WriteAllText(Path.Combine(ownershipRoot, AlFinalNativeWriterOwnership.LeaseFilename),
-        "{\\"schemaVersion\\":1,\\"owner\\":\\"bridge\\",\\"token\\":\\"stale\\"}");
+        "{\"schemaVersion\":1,\"owner\":\"bridge\",\"token\":\"stale\"}");
     using (var staleOwner = new AlFinalNativeWriterOwnership(ownershipRoot))
     {
         var staleBlocked = false;
