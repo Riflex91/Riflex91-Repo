@@ -49,6 +49,49 @@ Assert(WindowsBridgeSelfUpdater.CheckIntervalSeconds == 60, "SELF_UPDATE_INTERVA
 Assert(WindowsBridgeSelfUpdater.ReleaseTag == "windows-bridge-latest", "SELF_UPDATE_RELEASE_TAG");
 Assert(WindowsBridgeSelfUpdater.StatusFileName == "self-update-status.json", "SELF_UPDATE_STATUS_FILE");
 
+// Native telemetry parity checks: direct files; no production write activation.
+var captureRoot = Path.Combine(Path.GetTempPath(), "aio-ssd-telemetry-" + Guid.NewGuid().ToString("N"));
+try
+{
+    var telemetryCapture = new AlFinalNativeTelemetryCapture(captureRoot);
+    const string record = "{\"schemaVersion\":1,\"atMs\":1791570000000,\"character\":{\"name\":\"My_Ranger2\",\"gold\":100,\"hp\":50,\"maxHp\":100,\"map\":\"main\"},\"fullAutonomy\":{\"taskType\":\"FARM\"},\"encounter\":{\"selected\":\"goo\"},\"health\":{\"state\":\"HEALTHY\"}}";
+    using (var batch = JsonDocument.Parse("{\"records\":[" + record + "]}"))
+        Assert(telemetryCapture.Ingest(batch.RootElement) == 1, "SSD_NATIVE_TELEMETRY_INGEST");
+    var at = DateTimeOffset.FromUnixTimeMilliseconds(1791570000000);
+    var day = at.UtcDateTime.ToString("yyyy-MM-dd");
+    var hour = at.UtcDateTime.ToString("HH");
+    var rawFile = Path.Combine(captureRoot, "raw", day, hour, "My_Ranger2.ndjson");
+    var dailyFile = Path.Combine(captureRoot, "daily", day, "My_Ranger2.json");
+    Assert(File.Exists(rawFile) && File.ReadAllLines(rawFile).Length == 1,
+        "SSD_NATIVE_TELEMETRY_RAW_FILE");
+    using (var daily = JsonDocument.Parse(await File.ReadAllTextAsync(dailyFile)))
+    {
+        var row = daily.RootElement;
+        Assert(row.GetProperty("samples").GetInt32() == 1
+            && row.GetProperty("gold").GetProperty("last").GetDouble() == 100
+            && row.GetProperty("hp").GetProperty("minRatio").GetDouble() == 0.5
+            && row.GetProperty("maps").GetProperty("main").GetInt32() == 1
+            && row.GetProperty("tasks").GetProperty("FARM").GetInt32() == 1,
+            "SSD_NATIVE_TELEMETRY_DAILY_SCHEMA");
+    }
+    using (var batch = JsonDocument.Parse("{\"records\":[" + record + "]}"))
+        Assert(new AlFinalNativeTelemetryCapture(captureRoot).Ingest(batch.RootElement) == 1,
+            "SSD_NATIVE_TELEMETRY_RESTART");
+    using (var daily = JsonDocument.Parse(await File.ReadAllTextAsync(dailyFile)))
+        Assert(daily.RootElement.GetProperty("samples").GetInt32() == 2,
+            "SSD_NATIVE_TELEMETRY_COUNTERS_SURVIVE_RESTART");
+    using (var invalid = JsonDocument.Parse("{\"records\":[{\"atMs\":0}]}"))
+    {
+        try
+        {
+            telemetryCapture.Ingest(invalid.RootElement);
+            throw new InvalidOperationException("SSD_NATIVE_INVALID_TIMESTAMP_ACCEPTED");
+        }
+        catch (InvalidDataException error) when (error.Message == "TELEMETRY_TIMESTAMP_INVALID") { }
+    }
+}
+finally { if (Directory.Exists(captureRoot)) Directory.Delete(captureRoot, recursive: true); }
+
 // Native SSD backend regression tests. No Adventure Land or Node process involved.
 Assert(!new BridgeConfig().AlFinalNativeStorageEnabled, "NATIVE_SSD_DEFAULT_OFF");
 Assert(AlFinalNativeStorageApi.DefaultPort == 17392, "NATIVE_SSD_SEPARATE_PORT");
@@ -125,6 +168,11 @@ await using (var nativeApi = new AlFinalNativeStorageApi(
             && accountJson.RootElement.GetProperty("profiles")[0].GetProperty("name").GetString() == "My_Merchant"
             && accountJson.RootElement.GetProperty("wealth").GetProperty("gold").GetInt32() == 890,
             "SSD_NATIVE_ACCOUNT_SHADOW_SCHEMA");
+        var telemetryBlocked = await http.PostAsync(baseUrl + "/v1/telemetry",
+            new StringContent("{\"records\":[]}", Encoding.UTF8, "text/plain"));
+        Assert((int)telemetryBlocked.StatusCode == 423,
+            "SSD_NATIVE_TELEMETRY_DUAL_WRITES_BLOCKED");
+
         var accountPost = await http.PostAsync(baseUrl + "/v1/state/account",
             new StringContent("{}", Encoding.UTF8, "text/plain"));
         Assert((int)accountPost.StatusCode == 423, "SSD_NATIVE_ACCOUNT_DUAL_WRITE_BLOCKED");
