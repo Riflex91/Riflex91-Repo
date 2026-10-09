@@ -147,6 +147,22 @@ try
         }
         catch (InvalidDataException error) when (error.Message == "TELEMETRY_TIMESTAMP_INVALID") { }
     }
+    // Earlier shadow code silently accepted only the first 100 records.
+    // Native HTTP must instead reject the entire oversized batch.
+    var oversizedRoot = Path.Combine(captureRoot, "oversized");
+    var oversizedRecords = Enumerable.Range(1, 101)
+        .Select(i => new { atMs = 1791570000000L, character = new { name = "Test_" + i } })
+        .ToArray();
+    using (var tooMany = JsonDocument.Parse(JsonSerializer.Serialize(new { records = oversizedRecords })))
+    {
+        try
+        {
+            new AlFinalNativeTelemetryCapture(oversizedRoot).Ingest(tooMany.RootElement);
+            throw new InvalidOperationException("SSD_NATIVE_OVERSIZED_BATCH_ACCEPTED");
+        }
+        catch (InvalidDataException error) when (error.Message == "TELEMETRY_TOO_MANY_RECORDS") { }
+    }
+    Assert(!Directory.Exists(oversizedRoot), "SSD_NATIVE_OVERSIZED_BATCH_NO_PARTIAL_WRITE");
 }
 finally { if (Directory.Exists(captureRoot)) Directory.Delete(captureRoot, recursive: true); }
 
