@@ -161,6 +161,10 @@ public sealed class AlFinalLocalHostManager : IAsyncDisposable
         {
             var archive = await GetBoundedAsync(ArchiveUrl, MaximumArchiveBytes, cancellationToken);
             var files = ValidateArchive(archive, manifest);
+            // Recheck the socket after the HTTPS downloads. The operator
+            // might have started a manual host while our release downloaded.
+            if (await IsPortOccupiedAsync(cancellationToken))
+                throw new InvalidOperationException("ALFINAL_HOST_PORT_BECAME_OCCUPIED");
             rollbackBackup = ApplyWhileStopped(files, manifest);
             await RecordStatusAsync("INSTALLED", manifest.PackageVersion);
         }
