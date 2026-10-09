@@ -48,8 +48,10 @@ with the existing ALFinal Node host account snapshot JSON schema. It reads
 The parser bounds the number and size of records, refuses reparse-point
 files, and fails explicitly on malformed JSON or unsafe filenames.
 
-`POST /v1/state/account` is intentionally **not supported** yet. This
-prevents the new Bridge from racing the still-running Node account writer.
+`POST /v1/state/account` exists only behind disabled-by-default write gates.
+Without explicit test-only permission, verified durable Bridge ownership **and**
+the legacy-writer probe, it returns HTTP 423. Production never enables it.
+This prevents the Bridge from racing the still-running Node account writer.
 ALFinal's host-state client therefore remains on Node port `17391`
 until a safe single-writer cutover has been implemented and verified.
 
@@ -88,3 +90,39 @@ might be listening on 127.0.0.1:17391. This check is defense in depth and
 **not** proof of exclusive filesystem ownership: safe operational handover
 will require coordinated shutdown, a durable exclusive lease, and endpoint
 switching before either writer is enabled in production.
+
+## Durable account/telemetry writer ownership (staged; not a cutover)
+
+ALFinal's instrumented Node host and the native Bridge share a cross-process
+fencing protocol under `D:\\ALBot\\state`:
+
+- `writer-owner.json` is a persistent, versioned JSON record with
+  `schemaVersion: 1` and `owner: "node" | "bridge"`.
+- `writer-lease.json` is created atomically using create-new/exclusive mode.
+  While active, the Bridge also holds its Windows file handle with
+  `FileShare.None`. The file includes a per-process random token.
+- The Node daemon acquires its lease before serving HTTP, checks both records
+  before account/telemetry mutations (including daily flush and pruning), and
+  only removes its **verified** lease after a successful graceful flush/stop.
+  Node refuses to restart when the durable owner is `bridge`.
+- The Bridge's test-only account/telemetry write routes also require a
+  confirmed native lease **in addition to** their existing opt-in and port
+  checks. A missing, stale or foreign owner returns HTTP 423.
+- Abnormal termination deliberately leaves the lease file behind. Neither
+  process silently reclaims a stale lease. Manual reconciliation is required.
+
+**No automated ownership handover is provided yet.** Never directly change
+or remove either production marker to make a failed startup pass. A future
+authorized cutover must stop/flush the legacy service, confirm it remains
+stopped across restarts, back up and reconcile account/telemetry data,
+atomically transition the owner record while no lease is held, then acquire
+and verify Bridge ownership before switching browser endpoints. Rollback
+must symmetrically stop and release the Bridge writer, preserve all writes,
+and explicitly reassign ownership before starting Node. Native write opt-ins
+remain inaccessible from the production Bridge GUI/config; the existing live
+Node endpoints remain unchanged.
+
+The lease is a cooperation/fail-closed mechanism for **instrumented** writers,
+not a proof that an old uninstrumented Node process, a direct file-writing
+tool, or a hostile local program is absent. Live exclusive ownership cannot
+be claimed until all legacy writers are accounted for and disabled.
