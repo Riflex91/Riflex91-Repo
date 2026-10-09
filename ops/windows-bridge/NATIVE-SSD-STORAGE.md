@@ -52,3 +52,20 @@ files, and fails explicitly on malformed JSON or unsafe filenames.
 prevents the new Bridge from racing the still-running Node account writer.
 ALFinal's host-state client therefore remains on Node port `17391`
 until a safe single-writer cutover has been implemented and verified.
+
+## Native telemetry ingest (shadow-gated)
+
+The native .NET `AlFinalNativeTelemetryCapture` implements the legacy
+`POST /v1/telemetry` JSON contract (`{records:[...]}`), writing the same
+`raw/YYYY-MM-DD/HH/<character>.ndjson` and
+`daily/YYYY-MM-DD/<character>.json` layout under
+`D:\ALBot\telemetry`. It validates timestamps, bounds batches and
+per-record sizes, preserves daily counters across restarts, and writes
+durable files.
+
+**Its HTTP write gate defaults to OFF** and is not enabled by the Bridge
+settings/UI in this phase. A disabled route returns HTTP 423 rather than
+silently accepting or losing telemetry. The live ALFinal telemetry client
+continues using Node port `17391`. The native ingestion path can be
+integration-tested with temporary roots and explicit test-only opt-in;
+a single-writer cutover is still required.

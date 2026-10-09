@@ -133,16 +133,22 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
     public const int DefaultPort = 17392;
     private readonly AlFinalNativeKeyValueStore _store;
     private readonly AlFinalNativeAccountSnapshot _accountSnapshot;
+    private readonly AlFinalNativeTelemetryCapture _telemetryCapture;
+    private readonly bool _telemetryWritesEnabled;
     private readonly int _port;
     private WebApplication? _server;
 
     public AlFinalNativeStorageApi(
         AlFinalNativeKeyValueStore? store = null, int port = DefaultPort,
-        AlFinalNativeAccountSnapshot? accountSnapshot = null)
+        AlFinalNativeAccountSnapshot? accountSnapshot = null,
+        AlFinalNativeTelemetryCapture? telemetryCapture = null,
+        bool telemetryWritesEnabled = false)
     {
         if (port is < 1 or > 65535) throw new ArgumentOutOfRangeException(nameof(port));
         _store = store ?? new AlFinalNativeKeyValueStore();
         _accountSnapshot = accountSnapshot ?? new AlFinalNativeAccountSnapshot();
+        _telemetryCapture = telemetryCapture ?? new AlFinalNativeTelemetryCapture();
+        _telemetryWritesEnabled = telemetryWritesEnabled;
         _port = port;
     }
 
@@ -188,6 +194,27 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
                 return;
             }
             await next();
+        });
+        server.MapPost("/v1/telemetry", async (HttpContext ctx) =>
+        {
+            // Telemetry writes remain disabled for production while the old
+            // Node host owns D:\\ALBot\\telemetry. This flag is NOT exposed
+            // in the standard Bridge UI/config during the shadow migration.
+            if (!_telemetryWritesEnabled)
+                return Results.Json(new { ok = false, error = "TELEMETRY_NATIVE_WRITE_NOT_ENABLED" },
+                    statusCode: 423);
+            try
+            {
+                using var document = await JsonDocument.ParseAsync(ctx.Request.Body,
+                    new JsonDocumentOptions { MaxDepth = 32 }, ctx.RequestAborted);
+                var accepted = _telemetryCapture.Ingest(document.RootElement);
+                return Results.Json(new { ok = true, accepted });
+            }
+            catch (Exception e) when (e is InvalidDataException or JsonException)
+            {
+                return Results.Json(new { ok = false, error = "TELEMETRY_BATCH_INVALID" },
+                    statusCode: 400);
+            }
         });
         server.MapGet("/v1/state/account", () =>
         {
