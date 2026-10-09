@@ -137,6 +137,7 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
     private readonly AlFinalNativeTelemetryCapture _telemetryCapture;
     private readonly bool _telemetryWritesEnabled;
     private readonly bool _accountWritesEnabled;
+    private readonly AlFinalNativeWriterOwnership? _writerOwnership;
     private readonly Func<CancellationToken, Task<bool>> _legacyWriterAbsentProbe;
     private readonly int _port;
     private WebApplication? _server;
@@ -147,7 +148,8 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
         AlFinalNativeTelemetryCapture? telemetryCapture = null,
         bool telemetryWritesEnabled = false,
         bool accountWritesEnabled = false,
-        Func<CancellationToken, Task<bool>>? legacyWriterAbsentProbe = null)
+        Func<CancellationToken, Task<bool>>? legacyWriterAbsentProbe = null,
+        AlFinalNativeWriterOwnership? writerOwnership = null)
     {
         if (port is < 1 or > 65535) throw new ArgumentOutOfRangeException(nameof(port));
         _store = store ?? new AlFinalNativeKeyValueStore();
@@ -155,6 +157,7 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
         _telemetryCapture = telemetryCapture ?? new AlFinalNativeTelemetryCapture();
         _telemetryWritesEnabled = telemetryWritesEnabled;
         _accountWritesEnabled = accountWritesEnabled;
+        _writerOwnership = writerOwnership;
         _legacyWriterAbsentProbe = legacyWriterAbsentProbe ?? LegacyWriterAbsentAsync;
         _port = port;
     }
@@ -238,6 +241,9 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
             if (!_telemetryWritesEnabled)
                 return Results.Json(new { ok = false, error = "TELEMETRY_NATIVE_WRITE_NOT_ENABLED" },
                     statusCode: 423);
+            if (_writerOwnership?.IsOwned() != true)
+                return Results.Json(new { ok = false, error = "NATIVE_WRITER_OWNERSHIP_UNVERIFIED" },
+                    statusCode: 423);
             if (!await _legacyWriterAbsentProbe(ctx.RequestAborted))
                 return Results.Json(new { ok = false, error = "LEGACY_NODE_WRITER_MAY_BE_RUNNING" },
                     statusCode: 423);
@@ -267,6 +273,9 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
         {
             if (!_accountWritesEnabled)
                 return Results.Json(new { ok = false, error = "ACCOUNT_NATIVE_WRITE_NOT_ENABLED" },
+                    statusCode: 423);
+            if (_writerOwnership?.IsOwned() != true)
+                return Results.Json(new { ok = false, error = "NATIVE_WRITER_OWNERSHIP_UNVERIFIED" },
                     statusCode: 423);
             if (!await _legacyWriterAbsentProbe(ctx.RequestAborted))
                 return Results.Json(new { ok = false, error = "LEGACY_NODE_WRITER_MAY_BE_RUNNING" },
