@@ -143,3 +143,9 @@ batch can leave a durable prefix of the batch. Such an exception must not be
 reported as a successful ACK. The operator must reconcile partial files using
 a verified backup; retries must never be blind. Regression coverage explicitly
 revokes the owner during the async HTTP probe and during multi-record writes.
+
+Native telemetry batch validation rejects any request with more than 100
+records as HTTP 400 **before the first write**, rather than silently
+accepting a truncated prefix. Individual record byte limits are evaluated
+on UTF-8 bytes. This does not change the still-active legacy Node service,
+whose separate data-loss behavior requires its own migration review.
