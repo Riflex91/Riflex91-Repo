@@ -46,7 +46,7 @@ test('SSD V3 drift read + CAS write + verified readback; never browser localStor
   assert.deepEqual(await store.read(key), { found: true, value: sample, revision: 1 });
   assert.deepEqual(calls.map(x => x.options.method), ['GET','POST','GET','GET']);
   assert.equal(calls.every(x => x.url ===
-    'http://127.0.0.1:17391/v1/storage?key=' + encodeURIComponent(key)), true);
+    'http://127.0.0.1:17392/v1/storage?key=' + encodeURIComponent(key)), true);
   assert.equal(calls.every(x => x.options.credentials === 'omit'), true);
   assert.equal(calls.every(x => x.options.cache === 'no-store'), true);
   await assert.rejects(store.write(key, sample, 0), /AIO_V3_SSD_HTTP_409/);

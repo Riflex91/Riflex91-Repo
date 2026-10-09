@@ -1,7 +1,7 @@
 # AIO-V3 content-drift SSD transport (preparation only)
 
 The `ContentDriftSsdStore` is an async, deliberately opt-in **data transport**
-using the ALFinal host from draft PR #115. It reads and stores **only**
+using the native Windows Bridge SSD endpoint from draft PR #995 (used by ALFinal draft PR #115). It reads and stores **only**
 `aio-v3-content-drift-v1` and
 `aio-v3-content-drift-v1:<safe-character-name>` keys, with revision-based
 compare-and-swap and verified readback.

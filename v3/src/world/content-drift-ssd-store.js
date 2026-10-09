@@ -3,7 +3,7 @@
 // Explicit, asynchronous SSD transport for the V3 content-drift snapshots.
 // Not a transparent replacement for synchronous localStorage: callers must
 // await load + confirmed write and gate their scanners while unavailable.
-const HOST_BASE = 'http://127.0.0.1:17391/v1/storage?key=';
+const HOST_BASE = 'http://127.0.0.1:17392/v1/storage?key=';
 const MAX_VALUE_LENGTH = 3 * 1024 * 1024;
 
 function validateKey(key) {
