@@ -162,6 +162,14 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
         _port = port;
     }
 
+    private void ConfirmWriterOwnership()
+    {
+        // HTTP gates are only a first check. Persisting account/telemetry data
+        // must also be fenced after the async probe, parsing, and per-file IO.
+        if (_writerOwnership?.IsOwned() != true)
+            throw new InvalidOperationException("NATIVE_WRITER_OWNERSHIP_UNVERIFIED");
+    }
+
     public static bool AllowedOrigin(string? origin)
     {
         return string.IsNullOrEmpty(origin)
@@ -251,8 +259,12 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
             {
                 using var document = await JsonDocument.ParseAsync(ctx.Request.Body,
                     new JsonDocumentOptions { MaxDepth = 32 }, ctx.RequestAborted);
-                var accepted = _telemetryCapture.Ingest(document.RootElement);
+                var accepted = _telemetryCapture.Ingest(document.RootElement, ConfirmWriterOwnership);
                 return Results.Json(new { ok = true, accepted });
+            }
+            catch (InvalidOperationException e) when (e.Message == "NATIVE_WRITER_OWNERSHIP_UNVERIFIED")
+            {
+                return Results.Json(new { ok = false, error = e.Message }, statusCode: 423);
             }
             catch (Exception e) when (e is InvalidDataException or JsonException)
             {
@@ -284,8 +296,12 @@ public sealed class AlFinalNativeStorageApi : IAsyncDisposable
             {
                 using var doc = await JsonDocument.ParseAsync(ctx.Request.Body,
                     new JsonDocumentOptions { MaxDepth = 32 }, ctx.RequestAborted);
-                var (profilesWritten, wealthWritten) = _accountSnapshot.WriteAccount(doc.RootElement);
+                var (profilesWritten, wealthWritten) = _accountSnapshot.WriteAccount(doc.RootElement, ConfirmWriterOwnership);
                 return Results.Json(new { ok = true, profilesWritten, wealthWritten });
+            }
+            catch (InvalidOperationException error) when (error.Message == "NATIVE_WRITER_OWNERSHIP_UNVERIFIED")
+            {
+                return Results.Json(new { ok = false, error = error.Message }, statusCode: 423);
             }
             catch (InvalidOperationException error) when (error.Message == "ACCOUNT_STALE_PROFILE_REJECTED"
                 || error.Message == "ACCOUNT_STALE_WEALTH_REJECTED")
