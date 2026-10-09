@@ -8,6 +8,10 @@ on:
       - "!v3/README.md"
       - "!v3/docs/**"
       - "!v3/scripts/generate-docs.js"
+      # Inactive SSD adapter groundwork is not a V3 runtime release.
+      # Revisit these exclusions when a separately approved async cutover ships.
+      - "!v3/src/world/content-drift-ssd-store.js"
+      - "!v3/test/content-drift-ssd-store.test.js"
 
 permissions:
   contents: write
