@@ -89,6 +89,54 @@ try
 }
 finally { if (Directory.Exists(ssdTestDir)) Directory.Delete(ssdTestDir, recursive: true); }
 
+
+// Exercise the native HTTP routes and browser-facing CORS protocol with a
+// temporary, unprivileged localhost port. No Node or Adventure Land involved.
+var tcpReservation = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+tcpReservation.Start();
+var ssdTestPort = ((System.Net.IPEndPoint)tcpReservation.LocalEndpoint).Port;
+tcpReservation.Stop();
+var httpRoot = Path.Combine(Path.GetTempPath(), "aio-ssd-http-" + Guid.NewGuid().ToString("N"));
+await using (var nativeApi = new AlFinalNativeStorageApi(new AlFinalNativeKeyValueStore(httpRoot), ssdTestPort))
+{
+    try
+    {
+        await nativeApi.StartAsync();
+        using var http = new HttpClient();
+        var baseUrl = "http://127.0.0.1:" + ssdTestPort;
+        var status = await http.GetAsync(baseUrl + "/health");
+        Assert(status.IsSuccessStatusCode, "SSD_NATIVE_HTTP_HEALTH");
+        using var health = JsonDocument.Parse(await status.Content.ReadAsStringAsync());
+        Assert(health.RootElement.GetProperty("ok").GetBoolean(), "SSD_NATIVE_HEALTH_TRUE");
+
+        var resource = baseUrl + "/v1/storage?key=" +
+            Uri.EscapeDataString("albot:h25:autonomy-handoff:v1:EU:I:My_Mage");
+        var put = new HttpRequestMessage(HttpMethod.Post, resource)
+        {
+            Content = new StringContent(
+                "{\"key\":\"albot:h25:autonomy-handoff:v1:EU:I:My_Mage\",\"value\":\"abc\",\"expectedRevision\":0}",
+                Encoding.UTF8, "text/plain")
+        };
+        put.Headers.TryAddWithoutValidation("Origin", "https://adventure.land");
+        var posted = await http.SendAsync(put);
+        Assert(posted.IsSuccessStatusCode, "SSD_NATIVE_HTTP_WRITE");
+        var read = new HttpRequestMessage(HttpMethod.Get, resource);
+        read.Headers.TryAddWithoutValidation("Origin", "https://adventure.land");
+        using var returned = JsonDocument.Parse(await (await http.SendAsync(read)).Content.ReadAsStringAsync());
+        Assert(returned.RootElement.GetProperty("found").GetBoolean()
+            && returned.RootElement.GetProperty("value").GetString() == "abc",
+            "SSD_NATIVE_HTTP_READBACK");
+        var denied = new HttpRequestMessage(HttpMethod.Get, resource);
+        denied.Headers.TryAddWithoutValidation("Origin", "https://evil.invalid");
+        Assert((await http.SendAsync(denied)).StatusCode == System.Net.HttpStatusCode.Forbidden,
+            "SSD_NATIVE_HTTP_BAD_ORIGIN_BLOCKED");
+    }
+    finally
+    {
+        if (Directory.Exists(httpRoot)) Directory.Delete(httpRoot, recursive: true);
+    }
+}
+
 Assert(TrayIconService.ToolTipText == "AIO Bot Windows Bridge", "TRAY_TOOLTIP");
 Assert(typeof(App).GetMethod("ShutdownForUpdate", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic) is not null, "TRAY_UPDATE_SHUTDOWN_PATH");
 Assert(typeof(AioBotWindowsBridge.Program).GetMethod("Main", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static) is not null, "SELF_UPDATE_PRE_WPF_ENTRYPOINT");
