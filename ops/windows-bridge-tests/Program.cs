@@ -890,7 +890,7 @@ Assert(defaults.BackblazeBucket == "al-aio-bot", "BACKBLAZE_BUCKET_DEFAULT");
 Assert(defaults.BackblazePrefix == "v6", "BACKBLAZE_PREFIX_DEFAULT");
 Assert(defaults.BackblazeKeyIdEnvironmentVariable == "ALBOT_V6_BACKBLAZE_KEY_ID", "BACKBLAZE_KEY_ID_ENV_REQUIRED");
 Assert(defaults.BackblazeApplicationKeyEnvironmentVariable == "ALBOT_V6_BACKBLAZE_APPLICATION_KEY", "BACKBLAZE_APPLICATION_KEY_ENV_REQUIRED");
-Assert(BridgeConfig.CurrentConfigVersion == 12, "V6_CONFIG_VERSION_12");
+Assert(BridgeConfig.CurrentConfigVersion == 13, "V6_CONFIG_VERSION_13");
 Assert(defaults.CharacterSupervisorEnabled, "V6_CHARACTER_SUPERVISOR_DEFAULT_ON");
 Assert(defaults.ManagedCodeSlot == "AL Final Bot", "V6_CHARACTER_SUPERVISOR_CODE_SLOT_DEFAULT");
 Assert(BridgeConfig.LegacyBackblazeCredentialsPath.EndsWith("backblaze-credentials.dpapi", StringComparison.OrdinalIgnoreCase), "LEGACY_BACKBLAZE_STORE_AVAILABLE_FOR_ONE_TIME_IMPORT");
