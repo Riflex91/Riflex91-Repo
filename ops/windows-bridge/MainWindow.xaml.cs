@@ -17,6 +17,7 @@ public partial class MainWindow : Window
     private TelemetryBridgeService? _bridge;
     private WissenswaechterDienst? _wissenswaechter;
     private WindowsBridgeSelfUpdater? _selfUpdater;
+    private AlFinalNativeStorageApi? _nativeStorageApi;
     private string? _githubKonto;
     private bool _initializing = true;
     private bool _changingSignal;
@@ -114,6 +115,12 @@ public partial class MainWindow : Window
             LoadBackblazeControlsFromConfig();
             UpdateBackblazeCredentialStatus();
 
+            NativeStorageToggle.IsChecked = _config.AlFinalNativeStorageEnabled;
+            NativeStorageToggle.Content = _config.AlFinalNativeStorageEnabled
+                ? "SSD-API AN" : "SSD-API AUS";
+            NativeStorageStateText.Text = _config.AlFinalNativeStorageEnabled
+                ? "Aktivierung angefordert; Port 17392 wird überprüft."
+                : "Ausgeschaltet. Bestehende Bot-Daten bleiben unverändert.";
             WissenswaechterToggle.IsChecked = _config.WissenswaechterAktiv;
             LiveWissenspfadBox.Text = _config.LiveWissensdatenbankPfad;
             LiveWissenStateText.Text = Directory.Exists(_config.LiveWissensdatenbankPfad)
@@ -148,10 +155,31 @@ public partial class MainWindow : Window
 
         if (_config.WissenswaechterAktiv && !string.IsNullOrWhiteSpace(_githubKonto))
             await StarteWissenswaechterAsync();
+
+        if (_config.AlFinalNativeStorageEnabled)
+        {
+            try
+            {
+                _nativeStorageApi = new AlFinalNativeStorageApi();
+                await _nativeStorageApi.StartAsync();
+                NativeStorageStateText.Text = "SSD-API bereit: http://127.0.0.1:17392/health";
+            }
+            catch (Exception error)
+            {
+                if (_nativeStorageApi is not null) await _nativeStorageApi.DisposeAsync();
+                _nativeStorageApi = null;
+                NativeStorageStateText.Text = "SSD-API nicht gestartet: " + Bounded(error.Message);
+            }
+        }
     }
 
     private async void MainWindow_Closed(object? sender, EventArgs e)
     {
+        if (_nativeStorageApi is not null)
+        {
+            await _nativeStorageApi.DisposeAsync();
+            _nativeStorageApi = null;
+        }
         if (_selfUpdater is not null)
         {
             _selfUpdater.UpdateInstallerStarted -= OnSelfUpdateInstallerStarted;
@@ -166,6 +194,59 @@ public partial class MainWindow : Window
         }
         if (_bridge is not null) await _bridge.DisposeAsync();
         _httpClient.Dispose();
+    }
+
+    private async void NativeStorageToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_initializing) return;
+        var enabled = NativeStorageToggle.IsChecked == true;
+        var previous = _config.AlFinalNativeStorageEnabled;
+        if (enabled && !previous)
+        {
+            var confirmation = System.Windows.MessageBox.Show(
+                "Native SSD-API der Windows Bridge auf Port 17392 aktivieren?\n" +
+                "Bot-Daten werden ausschließlich unter D:\\ALBot\\state\\durable-kv gespeichert. " +
+                "Weder der laufende Node-Host auf 17391 noch Browserdaten werden verändert.",
+                "ALFinal SSD-Speicher", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (confirmation != MessageBoxResult.Yes)
+            {
+                _initializing = true;
+                NativeStorageToggle.IsChecked = false;
+                _initializing = false;
+                return;
+            }
+        }
+        try
+        {
+            if (enabled && _nativeStorageApi is null)
+            {
+                _nativeStorageApi = new AlFinalNativeStorageApi();
+                await _nativeStorageApi.StartAsync();
+            }
+            else if (!enabled && _nativeStorageApi is not null)
+            {
+                await _nativeStorageApi.DisposeAsync();
+                _nativeStorageApi = null;
+            }
+            _config = _config with { AlFinalNativeStorageEnabled = enabled };
+            await _config.SaveAsync();
+            NativeStorageToggle.Content = enabled ? "SSD-API AN" : "SSD-API AUS";
+            NativeStorageStateText.Text = enabled
+                ? "SSD-API bereit: http://127.0.0.1:17392/health"
+                : "Deaktiviert; SSD-Daten werden nicht gelöscht.";
+        }
+        catch (Exception error)
+        {
+            if (!previous && _nativeStorageApi is not null)
+            {
+                await _nativeStorageApi.DisposeAsync();
+                _nativeStorageApi = null;
+            }
+            _initializing = true;
+            NativeStorageToggle.IsChecked = previous;
+            _initializing = false;
+            NativeStorageStateText.Text = "SSD-API Fehler: " + Bounded(error.Message);
+        }
     }
 
     private async void TelemetryToggle_Changed(object sender, RoutedEventArgs e)

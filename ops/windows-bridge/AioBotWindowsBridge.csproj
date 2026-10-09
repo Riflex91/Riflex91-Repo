@@ -12,6 +12,8 @@
     <StartupObject>AioBotWindowsBridge.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Kestrel binds directly to loopback without an HTTP.sys URL reservation. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
 </Project>

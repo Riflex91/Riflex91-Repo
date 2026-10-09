@@ -20,6 +20,8 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="22" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="22" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
             <DockPanel Grid.Row="0" LastChildFill="False">
@@ -347,6 +349,24 @@
                             <TextBlock x:Name="ConfigPathText" Grid.Row="5" Grid.Column="1" Margin="0,4" TextWrapping="Wrap" />
                         </Grid>
                     </Expander>
+                </StackPanel>
+            </Border>
+            <Border Grid.Row="14" Style="{StaticResource Card}">
+                <StackPanel>
+                    <DockPanel LastChildFill="False">
+                        <StackPanel>
+                            <TextBlock Text="Native SSD-Speicher-API" FontSize="20" FontWeight="SemiBold" />
+                            <TextBlock Text="Windows Bridge stellt Daten unter D:\ALBot bereit – kein Node.js für die SSD-API nötig."
+                                       Style="{StaticResource MutedText}" TextWrapping="Wrap" Margin="0,5,14,12" />
+                        </StackPanel>
+                        <ToggleButton x:Name="NativeStorageToggle" Content="SSD-API AUS"
+                                      DockPanel.Dock="Right"
+                                      Checked="NativeStorageToggle_Changed"
+                                      Unchecked="NativeStorageToggle_Changed" />
+                    </DockPanel>
+                    <TextBlock x:Name="NativeStorageStateText"
+                               Text="Standardmäßig deaktiviert."
+                               Style="{StaticResource MutedText}" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
         </Grid>
