@@ -266,7 +266,8 @@ try
         telemetryTestPort,
         new AlFinalNativeAccountSnapshot(Path.Combine(telemetryTestRoot, "state")),
         new AlFinalNativeTelemetryCapture(Path.Combine(telemetryTestRoot, "telemetry")),
-        telemetryWritesEnabled: true))
+        telemetryWritesEnabled: true,
+        legacyWriterAbsentProbe: _ => Task.FromResult(true)))
     {
         await api.StartAsync();
         using var client = new HttpClient();
@@ -306,7 +307,8 @@ try
         new AlFinalNativeKeyValueStore(Path.Combine(accountHttpRoot, "kv")),
         accountTestPort,
         new AlFinalNativeAccountSnapshot(Path.Combine(accountHttpRoot, "state")),
-        accountWritesEnabled: true))
+        accountWritesEnabled: true,
+        legacyWriterAbsentProbe: _ => Task.FromResult(true)))
     {
         await api.StartAsync();
         using var client = new HttpClient();
@@ -330,6 +332,44 @@ try
 finally
 {
     if (Directory.Exists(accountHttpRoot)) Directory.Delete(accountHttpRoot, recursive: true);
+}
+
+// Simulate an occupied legacy Node writer: both APIs must fail closed even
+// with a test-only opt-in. No actual port 17391 dependency in CI.
+var blockedListener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+blockedListener.Start();
+var blockedPort = ((System.Net.IPEndPoint)blockedListener.LocalEndpoint).Port;
+blockedListener.Stop();
+var blockedRoot = Path.Combine(Path.GetTempPath(), "aio-node-present-" + Guid.NewGuid().ToString("N"));
+try
+{
+    await using (var api = new AlFinalNativeStorageApi(
+        new AlFinalNativeKeyValueStore(Path.Combine(blockedRoot, "kv")),
+        blockedPort,
+        new AlFinalNativeAccountSnapshot(Path.Combine(blockedRoot, "state")),
+        new AlFinalNativeTelemetryCapture(Path.Combine(blockedRoot, "telemetry")),
+        telemetryWritesEnabled: true, accountWritesEnabled: true,
+        legacyWriterAbsentProbe: _ => Task.FromResult(false)))
+    {
+        await api.StartAsync();
+        using var http = new HttpClient();
+        var baseUrl = "http://127.0.0.1:" + blockedPort;
+        var profileResponse = await http.PostAsync(baseUrl + "/v1/state/account",
+            new StringContent("{\"profiles\":[{\"name\":\"My_Merchant\"}]}",
+                Encoding.UTF8, "text/plain"));
+        Assert((int)profileResponse.StatusCode == 423, "SSD_NODE_PRESENT_ACCOUNT_REJECTED");
+        var telemetryResponse = await http.PostAsync(baseUrl + "/v1/telemetry",
+            new StringContent("{\"records\":[]}", Encoding.UTF8, "text/plain"));
+        Assert((int)telemetryResponse.StatusCode == 423, "SSD_NODE_PRESENT_TELEMETRY_REJECTED");
+        Assert(!Directory.Exists(Path.Combine(blockedRoot, "state", "account-profiles")),
+            "SSD_NODE_PRESENT_NO_ACCOUNT_WRITE");
+        Assert(!Directory.Exists(Path.Combine(blockedRoot, "telemetry")),
+            "SSD_NODE_PRESENT_NO_TELEMETRY_WRITE");
+    }
+}
+finally
+{
+    if (Directory.Exists(blockedRoot)) Directory.Delete(blockedRoot, recursive: true);
 }
 
 Assert(TrayIconService.ToolTipText == "AIO Bot Windows Bridge", "TRAY_TOOLTIP");
