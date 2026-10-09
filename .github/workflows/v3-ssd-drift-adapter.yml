@@ -1,0 +1,26 @@
+name: v3-ssd-drift-adapter
+on:
+  pull_request:
+    paths:
+      - 'v3/src/world/content-drift-ssd-store.js'
+      - 'v3/test/content-drift-ssd-store.test.js'
+      - 'v3/docs/SSD-CONTENT-DRIFT-MIGRATION.md'
+      - '.github/workflows/v3-ssd-drift-adapter.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'v3/src/world/content-drift-ssd-store.js'
+      - 'v3/test/content-drift-ssd-store.test.js'
+      - '.github/workflows/v3-ssd-drift-adapter.yml'
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate standalone V3 SSD adapter
+        run: node --test v3/test/content-drift-ssd-store.test.js
