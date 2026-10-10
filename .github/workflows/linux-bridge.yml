@@ -1,0 +1,117 @@
+name: linux-bridge
+
+on:
+  push:
+    paths:
+      - 'ops/linux-bridge/**'
+      - 'ops/windows-bridge/CdpAlBotV6Client.cs'
+      - 'ops/windows-bridge/CdpWebDashboardConfigurator.cs'
+      - 'ops/windows-bridge/SupabaseTelemetrySink.cs'
+      - 'ops/windows-bridge/SupabaseSignalControlClient.cs'
+      - 'ops/windows-bridge/CloudflareV6DashboardSink.cs'
+      - 'ops/windows-bridge/BackblazeV6ArchiveSink.cs'
+      - 'ops/windows-bridge/LocalProblemDiagnosticsArchive.cs'
+      - 'ops/windows-bridge/SupabaseProblemDiagnosticsMirror.cs'
+      - 'ops/windows-bridge/TelemetryBridgeService.cs'
+      - 'ops/windows-bridge/GitArbeitskopie.cs'
+      - 'ops/windows-bridge/GitHubAnmeldung.cs'
+      - 'ops/windows-bridge/WebQuellenEntdecker.cs'
+      - 'ops/windows-bridge/WissenswaechterDienst.cs'
+      - 'ops/windows-bridge/LiveWissensImportDienst.cs'
+      - '.github/workflows/linux-bridge.yml'
+  pull_request:
+    paths:
+      - 'ops/linux-bridge/**'
+      - 'ops/windows-bridge/**'
+      - '.github/workflows/linux-bridge.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-bridge-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Restore
+        run: dotnet restore ops/linux-bridge/AioBotLinuxBridge.csproj
+      - name: Build
+        run: dotnet build ops/linux-bridge/AioBotLinuxBridge.csproj -c Release --no-restore
+      - name: Self-test
+        run: dotnet run --project ops/linux-bridge/AioBotLinuxBridge.csproj -c Release --no-build -- --self-test
+      - name: Publish linux-x64
+        run: dotnet publish ops/linux-bridge/AioBotLinuxBridge.csproj -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:InformationalVersion=1.0.${{ github.run_number }}+${{ github.sha }} -p:IncludeSourceRevisionInInformationalVersion=false -o artifacts/linux-bridge
+      - name: Stage install files
+        run: |
+          cp ops/linux-bridge/install.sh artifacts/linux-bridge/install.sh
+          mkdir -p artifacts/linux-bridge/systemd
+          cp ops/linux-bridge/systemd/aio-bot-linux-bridge.service artifacts/linux-bridge/systemd/
+          chmod +x artifacts/linux-bridge/install.sh artifacts/linux-bridge/AioBotLinuxBridge
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AioBotLinuxBridge-linux-x64
+          path: artifacts/linux-bridge/
+          if-no-files-found: error
+
+  publish-stable-self-update:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-test-publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: linux-bridge-stable-release
+      cancel-in-progress: true
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: AioBotLinuxBridge-linux-x64
+          path: release
+      - name: Create self-update manifest
+        run: |
+          set -euo pipefail
+          asset="release/AioBotLinuxBridge"
+          sha256="$(sha256sum "$asset" | awk '{print $1}')"
+          size="$(stat -c %s "$asset")"
+          cat > release/AioBotLinuxBridge.version.json <<EOF
+          {
+            "schemaVersion": 1,
+            "buildNumber": ${{ github.run_number }},
+            "version": "${{ github.sha }}",
+            "assetUrl": "https://github.com/Riflex91/Riflex91-Repo/releases/download/linux-bridge-latest/AioBotLinuxBridge",
+            "sha256": "$sha256",
+            "sizeBytes": $size,
+            "publishedAt": "$(date --utc --iso-8601=seconds)"
+          }
+          EOF
+      - name: Publish stable self-update release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          current_main="$(gh api "repos/$GITHUB_REPOSITORY/branches/main" --jq '.commit.sha')"
+          if [[ "$current_main" != "$GITHUB_SHA" ]]; then
+            echo "Skipping stale Linux Bridge release for $GITHUB_SHA; current main is $current_main"
+            exit 0
+          fi
+          tag="linux-bridge-latest"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
+          fi
+          gh release create "$tag" \
+            release/AioBotLinuxBridge \
+            release/AioBotLinuxBridge.version.json \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "AIO Bot Linux Bridge — automatic latest" \
+            --notes "Automated, self-tested Linux Bridge build from commit $GITHUB_SHA (workflow build ${{ github.run_number }})." \
+            --prerelease
