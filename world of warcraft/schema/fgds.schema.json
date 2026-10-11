@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://foreverguide.local/schema/fgds-1.0.json",
+  "title": "ForeverGuide Data Schema",
+  "type": "object",
+  "required": ["schemaVersion", "source", "createdUtc", "build", "records"],
+  "properties": {
+    "schemaVersion": { "const": "fgds-1.0" },
+    "source": { "enum": ["miner", "recorder"] },
+    "createdUtc": { "type": "string" },
+    "build": {
+      "type": "object",
+      "required": ["version", "buildNumber", "interfaceVersion"],
+      "properties": {
+        "version": { "type": "string" },
+        "buildNumber": { "type": "string" },
+        "interfaceVersion": { "type": ["integer", "null"] },
+        "buildKey": { "type": ["string", "null"] },
+        "cdnKey": { "type": ["string", "null"] },
+        "product": { "type": ["string", "null"] }
+      },
+      "additionalProperties": true
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind", "observedAt", "data"],
+        "properties": {
+          "kind": { "type": "string" },
+          "id": { "type": ["string", "integer", "null"] },
+          "observedAt": { "type": "string" },
+          "evidence": { "type": ["string", "null"] },
+          "data": { "type": "object" }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
